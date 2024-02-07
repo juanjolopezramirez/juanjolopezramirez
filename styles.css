@@ -1,0 +1,17 @@
+/* Universal Selector */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    list-style: none;
+}
+/* End Universal Selector */
+
+/* HTML & Body Selector */
+html{
+    font-size: 62.5%;
+    font-family: 'DM Sans',sans-serif;
+    scroll-behavior: smooth;
+}
+/* End HTML Selector */
