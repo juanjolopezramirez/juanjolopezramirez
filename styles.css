@@ -162,7 +162,7 @@ main{
 .animation{
   display: flex;
   justify-content: center;
-   margin-top: 120px;
+   margin-top: 160px;
 }
 
 .cube-loader {
