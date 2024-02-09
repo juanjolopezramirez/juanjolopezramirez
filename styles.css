@@ -137,7 +137,7 @@ main{
   margin-top: 60px;
   width: 100%;
   min-width: 288px;
-  height: 320px;
+  height: 90vh;
   background-image: url(./assets/img/portadax1.jpg);
   background-position: center;
   background-size: cover;
@@ -149,7 +149,7 @@ main{
 
 
 .header--img-container .overlay {
-  margin-top: 220px;
+  margin-top: 70vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -165,6 +165,7 @@ main{
 }
 
 .header--img-container p {
+  font-family: 'Raleway', sans-serif;;
   font-size: 1.2rem;
   font-weight: bold;
   line-height: 2.6rem;
