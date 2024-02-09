@@ -170,11 +170,20 @@ main{
   color: #ffffff;
 }
 
+.header--img-container p:nth-child(2) {
+  font-family: 'Raleway', sans-serif;;
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 2.6rem;
+  color: #ffffff;
+}
+
 /* 2.2 Social Icons */
 .social-icons {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .social-icon {
