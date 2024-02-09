@@ -179,6 +179,15 @@ main{
   color: #ffffff;
 }
 
+.wfind {
+  font-family: 'Raleway', sans-serif;;
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 2.6rem;
+  color: #ffffff;
+}
+
 /* 2.2 Social Icons */
 .social-icons {
   display: flex;
