@@ -40,7 +40,7 @@ body {
   align-items: center;
   width: 100%;
   min-width: 320px;
-  height: 100px;
+  height: 80px;
   background-color: var(--grey-jl);
   padding: 20px;
 }
@@ -131,10 +131,10 @@ main{
 
 /* 2.1 Header Title Container */
 .header--img-container {
-  margin-top: 100px;
+  margin-top: 80px;
   width: 100%;
   min-width: 288px;
-  height: 85vh;
+  height: 80vh;
   background-image: url(./assets/img/portadax1.png);
   background-position: center;
   background-size: cover;
@@ -146,7 +146,7 @@ main{
 
 
 .header--img-container .overlay {
-  margin-top: 70vh;
+  margin-top: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
