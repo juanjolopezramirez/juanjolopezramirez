@@ -124,9 +124,6 @@ body {
 
 
 
-
-
-
 main{
   width: 100%;
   height: auto;
@@ -137,8 +134,8 @@ main{
   margin-top: 60px;
   width: 100%;
   min-width: 288px;
-  height: 90vh;
-  background-image: url(./assets/img/portadax1.jpg);
+  height: 100vh;
+  background-image: url(./assets/img/portadax1.png);
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
