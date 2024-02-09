@@ -134,7 +134,7 @@ main{
   margin-top: 60px;
   width: 100%;
   min-width: 288px;
-  height: 100vh;
+  height: 90vh;
   background-image: url(./assets/img/portadax1.png);
   background-position: center;
   background-size: cover;
@@ -146,7 +146,7 @@ main{
 
 
 .header--img-container .overlay {
-  margin-top: 70vh;
+  margin-top: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
