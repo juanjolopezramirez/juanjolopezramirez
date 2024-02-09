@@ -40,7 +40,7 @@ body {
   align-items: center;
   width: 100%;
   min-width: 320px;
-  height: 60px;
+  height: 15vh;
   background-color: var(--grey-jl);
   padding: 20px;
 }
@@ -134,7 +134,7 @@ main{
   margin-top: 60px;
   width: 100%;
   min-width: 288px;
-  height: 90vh;
+  height: 85vh;
   background-image: url(./assets/img/portadax1.png);
   background-position: center;
   background-size: cover;
@@ -146,7 +146,7 @@ main{
 
 
 .header--img-container .overlay {
-  margin-top: 60vh;
+  margin-top: 70vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -163,6 +163,7 @@ main{
 
 .header--img-container p {
   font-family: 'Raleway', sans-serif;;
+  font-style: italic;
   font-size: 1.2rem;
   font-weight: bold;
   line-height: 2.6rem;
@@ -183,12 +184,4 @@ main{
 .social-icon img {
   width: 30px; /* Ajusta el tamaño según tus necesidades */
   height: auto;
-}
-
-/* 2.3 Additional Paragraph */
-.additional-paragraph {
-  text-align: center;
-  color: white;
-  font-size: 1.5rem;
-  margin: 20px 0;
 }
