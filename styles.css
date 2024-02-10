@@ -163,7 +163,7 @@ main{
 
 .header--img-container p {
   font-family: 'Raleway', sans-serif;;
-  font-style: italic;
+  /* font-style: italic; */
   font-size: 1.2rem;
   font-weight: bold;
   line-height: 2.6rem;
@@ -171,6 +171,7 @@ main{
 }
 
 .header--img-container p:nth-child(2) {
+  margin-top: -10px;
   font-family: 'Raleway', sans-serif;;
   font-size: 0.6rem;
   font-style: normal;
@@ -180,6 +181,7 @@ main{
 }
 
 .wfind {
+  margin-top: -10px;
   font-family: 'Raleway', sans-serif;;
   font-size: 0.6rem;
   font-style: normal;
@@ -192,7 +194,7 @@ main{
 .social-icons {
   display: flex;
   justify-content: center;
-  margin-top: 10px;
+  /* margin-top: 10px; */
 }
 
 .social-icon {
