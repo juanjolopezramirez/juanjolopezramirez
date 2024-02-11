@@ -25,7 +25,7 @@ html{
 
 body {
   
-  background-color: var(--white-jl);
+  background-color: var(--black-jl);
 }
 /* End HTML Selector */
 
@@ -192,7 +192,7 @@ main{
 }
 
 .social-icon img {
-  width: 20px; /* Ajusta el tamaño según tus necesidades */
+  width: 25px; /* Ajusta el tamaño según tus necesidades */
   height: auto;
 }
 
@@ -238,7 +238,7 @@ main{
   width: 48px;
   height: 48px;
   background-color: #fff;
-  background-image: radial-gradient(circle 10px, #0d161b 100%, transparent 0);
+  background-image: radial-gradient(circle 10px, #0d161b 100%, transparent 10%);
   background-repeat: no-repeat;
   border-radius: 50%;
   animation: eyeMove 10s infinite, blink 10s infinite;
