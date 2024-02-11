@@ -308,25 +308,25 @@ main{
 .header--qoute-text h3 {
   font-family: 'Raleway', sans-serif;;
   width: auto;
-  font-size: 2.4rem;
+  font-size: 2.0rem;
 }
 
 .remark{
   font-family: 'Raleway', sans-serif;;
   width: auto;
-  font-size: 2.4rem;
+  font-size: 2.0rem;
   color: var(--red-jl);
 }
 
 .header--qoute-text h4 {
   font-family: 'Raleway', sans-serif;;
-  font-size: 1.8rem;
+  font-size: 1.0rem;
   margin-top: 3px;
 }
 
 .remark2{
   font-family: 'Raleway', sans-serif;;
-  font-size: 1.8rem;
+  font-size: 1.0rem;
   margin-top: 3px;
   color: var(--red-jl);
 }
