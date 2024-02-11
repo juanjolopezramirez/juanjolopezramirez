@@ -161,26 +161,16 @@ main{
   z-index: 1;
 }
 
-.header--img-container p {
+.header--img-container h3 {
   font-family: 'Raleway', sans-serif;;
   /* font-style: italic; */
-  font-size: 1.2rem;
+  font-size: 1.6rem;
   font-weight: bold;
   line-height: 2.6rem;
   color: #ffffff;
 }
 
-.header--img-container p:nth-child(2) {
-  margin-top: -10px;
-  font-family: 'Raleway', sans-serif;;
-  font-size: 0.6rem;
-  font-style: normal;
-  font-weight: 500;
-  line-height: 2.6rem;
-  color: #ffffff;
-}
-
-.wfind {
+.header--img-container p {
   margin-top: -10px;
   font-family: 'Raleway', sans-serif;;
   font-size: 0.6rem;
@@ -202,6 +192,6 @@ main{
 }
 
 .social-icon img {
-  width: 30px; /* Ajusta el tamaño según tus necesidades */
+  width: 20px; /* Ajusta el tamaño según tus necesidades */
   height: auto;
 }
