@@ -210,7 +210,7 @@ main{
 
 .header--qoute-container{
   min-width: 288px;
-  height: 250px;
+  height: 320px;
   background-color: #e8e8e8;
 
 }
@@ -307,7 +307,7 @@ main{
 
 
 .header--qoute-text h3 {
-  margin-top: 40px;
+  margin-top: 100px;
   font-family: 'Raleway', sans-serif;;
   width: auto;
   font-size: 2.0rem;
@@ -335,7 +335,14 @@ main{
 }
 
 .header--qoute-text p {
-  margin: 0 20px;
+  margin: 0 16px;
+  font-family: 'Raleway', sans-serif;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.header--qoute-text p:nth-of-type(2) {
+  margin-top: 5px;
   font-family: 'Raleway', sans-serif;
   font-size: 1rem;
   text-align: center;
@@ -344,17 +351,9 @@ main{
 .header--qoute-text p:nth-of-type(3) {
   margin-top: 5px;
   font-family: 'Raleway', sans-serif;
-  font-size: 0.8rem;
+  font-size: 1rem;
   text-align: center;
 }
-
-.header--qoute-text p:nth-of-type(4) {
-  margin-top: 3px;
-  font-family: 'Raleway', sans-serif;
-  font-size: 0.4rem;
-  text-align: center;
-}
-
 
 
 .personaldistinction--container{
