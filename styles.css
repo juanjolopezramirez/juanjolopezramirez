@@ -165,16 +165,16 @@ main{
 .header--img-container h3 {
   font-family: 'Raleway', sans-serif;;
   /* font-style: italic; */
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: bold;
   line-height: 2.6rem;
   color: #ffffff;
 }
 
 .header--img-container p {
-  margin-top: -10px;
+  margin-top: -5px;
   font-family: 'Raleway', sans-serif;;
-  font-size: 0.6rem;
+  font-size: 0.8rem;
   font-style: normal;
   font-weight: 500;
   line-height: 2.6rem;
