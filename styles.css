@@ -439,14 +439,14 @@ main{
 .personaldistinction--container-card{
   display: flex;
   justify-content: center;
-  margin-top: 45px;
+  margin-top: 2px;
 }
 
 
 .personaldistinction--card {
     width: 275px;
     height: 400px;
-    background: #171717;
+    background: transparent;
     transition: 1s ease-in-out;
     clip-path: polygon( 30px 0%, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%, 0% 30px );
     border-top-right-radius: 20px;
@@ -473,13 +473,13 @@ main{
   display: block;
   text-align: center;
   font-size: 1.2rem;
-  margin: 10px 20px;
+  margin: 10px -20px;
 }
 
 .personaldistinction--card img {
     display: flex;
-    width: 80px;
-    height: 80px;
+    width: 150px;
+    height: 150px;
     object-fit: cover;
     border-radius: 50%;
     justify-content: center;
