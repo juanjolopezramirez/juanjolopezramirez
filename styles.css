@@ -412,7 +412,7 @@ main{
     display: flex;
     width: 80px;
     height: 80px;
-    background-image: url(./assets/img/profilePic.JPG);
+    background-image: url(./assets/img/profilepic.JPG);
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
