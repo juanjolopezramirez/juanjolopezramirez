@@ -408,14 +408,11 @@ main{
   margin: 10px 20px;
 }
 
-.personaldistinction--card .personaldistinction--img {
+.personaldistinction--card img {
     display: flex;
     width: 80px;
     height: 80px;
-    background-image: url(./assets/img/profilepic.JPG);
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
+    object-fit: cover;
     border-radius: 50%;
     justify-content: center;
     margin-top: 40px;
