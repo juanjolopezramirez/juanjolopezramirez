@@ -201,7 +201,7 @@ main{
 
 .horizontal-line {
   border: none;
-  border-top: 15px solid var(--grey-jl);
+  border-top: 10px solid var(--grey-jl);
 }
 
 
@@ -352,4 +352,13 @@ main{
   font-family: 'Raleway', sans-serif;
   font-size: 0.6rem;
   text-align: center;
+}
+
+
+
+.personaldistinction--container{
+  min-height: 288px;
+  height: 288px;
+  background-color: var(--black-jl);
+
 }
