@@ -365,3 +365,62 @@ main{
   background-color: var(--black-jl);
 
 }
+
+/* section */
+
+.personaldistinction--container-card{
+  display: flex;
+  justify-content: center;
+  margin-top: 45px;
+}
+
+
+.personaldistinction--card {
+    width: 275px;
+    height: 400px;
+    background: #171717;
+    transition: 1s ease-in-out;
+    clip-path: polygon( 30px 0%, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%, 0% 30px );
+    border-top-right-radius: 20px;
+    border-bottom-left-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.personaldistinction--card span {
+  font-family: 'Raleway', sans-serif;
+  font-weight: bold;
+    color: white;
+    text-align: center;
+    display: block;
+    font-size: 2rem;
+}
+
+.personaldistinction--card .personaldistinction--info {
+  font-family: 'Raleway', sans-serif;
+  font-weight: 400;
+  color: white;
+  display: block;
+  text-align: center;
+  font-size: 1.2rem;
+  margin: 10px 20px;
+}
+
+.personaldistinction--card .personaldistinction--img {
+    display: flex;
+    width: 80px;
+    height: 80px;
+    background-image: url(./assets/img/profilePic.JPG);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    border-radius: 50%;
+    justify-content: center;
+    margin-top: 40px;
+    margin-bottom: 8px;
+    align-content: center;
+    flex-direction: row;
+}
+
