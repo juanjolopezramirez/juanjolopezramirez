@@ -24,7 +24,7 @@ html{
 }
 
 body {
-  
+  overflow: auto;
   background-color: var(--black-jl);
 }
 /* End HTML Selector */
@@ -43,6 +43,7 @@ body {
   height: 80px;
   background-color: var(--grey-jl);
   padding: 20px;
+  z-index: 1000;
 }
 
 /* 1.1. logo vectore image */
