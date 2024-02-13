@@ -426,10 +426,13 @@ main{
   text-align: center;
 }
 .portfolio--container-button{
-    position: absolute;
-    display: block;
-    margin-top: 310px;
-    left: calc(50% - 75px);
+  position: absolute;
+  display: flex;
+  justify-content: center; /* Centra horizontalmente */
+  align-items: center; /* Centra verticalmente */
+  margin-top: 330px; /* Coloca el borde superior en el 50% del contenedor padre */
+  left: 50%; /* Coloca el borde izquierdo en el 50% del contenedor padre */
+  transform: translate(-50%, -50%); /* Centra el botón con respecto a su propio tamaño */
 }
 
 .portfolio-button {
