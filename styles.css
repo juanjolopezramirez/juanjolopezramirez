@@ -430,7 +430,6 @@ main{
     justify-content: center;
     margin-right: 14px;
     margin-top: 310px;
-
 }
 
 .portfolio-button {
@@ -438,7 +437,6 @@ main{
   width: 150px;
   height: 40px;
   cursor: pointer;
-  left: calc(50% - 150px);
   display: flex;
   align-items: center;
   border: 2px solid var(--grey-jl);
