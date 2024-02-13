@@ -426,10 +426,10 @@ main{
   text-align: center;
 }
 .portfolio--container-button{
-  display: flex;
-    justify-content: center;
-    margin-right: 14px;
+    position: absolute;
+    display: block;
     margin-top: 310px;
+    left: calc(50% - 75px);
 }
 
 .portfolio-button {
