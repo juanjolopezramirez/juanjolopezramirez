@@ -443,7 +443,7 @@ main{
   display: flex;
   align-items: center;
   border: 2px solid var(--grey-jl);
-  box-shadow: 4px 4px var(--black-jl);
+  box-shadow: 4px 4px #404040;
   background-color: var(--white-jl);
   border-radius: 10px;
   overflow: hidden;
