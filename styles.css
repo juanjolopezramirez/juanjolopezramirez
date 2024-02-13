@@ -563,7 +563,7 @@ main{
   position: relative;
   max-width: 500px;
   width: 80%;
-  background: #ececec;
+  background: var(--grey-jl);
   margin: 0 15px;
   padding: 10px 20px;
   border-radius: 7px;
@@ -578,7 +578,7 @@ main{
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--white-jl);
 }
 
 .skill-box .skill-bar {
@@ -595,7 +595,7 @@ main{
   height: 100%;
   width: 90%;
   border-radius: 6px;
-  background: #4070f4;
+  background: var(--red-jl);
   animation: progress 0.4s ease-in-out forwards;
   opacity: 0;
 }
@@ -644,7 +644,7 @@ main{
   color: #fff;
   padding: 2px 6px;
   border-radius: 3px;
-  background: #4070f4;
+  background: var(--red-jl);
   z-index: 1;
 }
 
@@ -656,6 +656,6 @@ main{
   height: 10px;
   width: 10px;
   z-index: -1;
-  background-color: #4070f4;
+  background-color: var(--red-jl);
   transform: translateX(-50%) rotate(45deg);
 }
