@@ -135,7 +135,7 @@ main{
   margin-top: 80px;
   width: 100%;
   min-width: 288px;
-  height: 80vh;
+  height: 70vh;
   background-image: url(./assets/img/portadax1.png);
   background-position: center;
   background-size: cover;
@@ -194,7 +194,7 @@ main{
 /* 2.2 Social Icons */
 .social-icons {
   display: flex;
-  height: 60px;
+  height: 55px;
   width: 250px;
 
 }
