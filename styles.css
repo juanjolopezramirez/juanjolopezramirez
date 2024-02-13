@@ -154,7 +154,7 @@ main{
     justify-content: center;
     width: 100%;
     height: auto;
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(0, 0, 0, 0.01);
 }
 
 .header--img-container .overlay {
