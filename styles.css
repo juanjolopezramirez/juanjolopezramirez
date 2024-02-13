@@ -553,7 +553,6 @@ main{
     object-fit: cover;
     border-radius: 50%;
     justify-content: center;
-    margin-top: 40px;
     margin-bottom: 8px;
     align-content: center;
     flex-direction: row;
@@ -600,27 +599,27 @@ main{
   opacity: 0;
 }
 
-.skill-per.html {
+.skill-per.webdevelopment {
    /*progreso de las diferentes lenguajes*/
-  width: 50%;
+  width: 55%;
   animation-delay: 0.1s;
 }
 
-.skill-per.css {
+.skill-per.digitalcontent {
          /*progreso de las diferentes lenguajes*/
-  width: 70%;
+  width: 65%;
   animation-delay: 0.1s;
 }
 
-.skill-per.javascript {
+.skill-per.business {
       /*progreso de las diferentes lenguajes*/
-  width: 50%;
+  width: 60%;
   animation-delay: 0.2s;
 }
 
-.skill-per.nodejs {
+.skill-per.pcbased {
       /*progreso de las diferentes lenguajes*/
-  width: 30%;
+  width: 40%;
   animation-delay: 0.3s;
 }
 
@@ -646,6 +645,7 @@ main{
   border-radius: 3px;
   background: var(--red-jl);
   z-index: 1;
+  opacity: 75%;
 }
 
 .tooltip::before {
