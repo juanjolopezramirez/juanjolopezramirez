@@ -124,13 +124,13 @@ body {
 
 
 
-
+/* 2. Start Main */
 main{
   width: 100%;
   height: auto;
 }
 
-/* 2.1 Header Title Container */
+/* 2.1 Header Image Container (#findme) */
 .header--img-container {
   margin-top: 80px;
   width: 100%;
@@ -190,8 +190,8 @@ main{
     margin-bottom: -5px;
 }
 
-/* 2.2 Social Icons */
-/* 2.2 Social Icons */
+/* 2.1.2 Social Icons */
+/* 2.1.2 Social Icons */
 .social-icons {
   display: flex;
   height: 55px;
@@ -283,7 +283,7 @@ main{
 }
 
 
-/* 2 INDIVIDUAL DISTINCTION Container */
+/* 2.2 Page? Container */
 
 .header--qoute-container{
   min-width: 288px;
@@ -292,7 +292,7 @@ main{
 
 }
 
-/* 2.1 Eyes Animation BOX */
+/* 2.2.1 Eyes Animation BOX */
 
 .eyes--animation-box{
   height: 70px;
@@ -371,7 +371,9 @@ main{
     height: 18px;
   }
 }
+/* eyes animation end */
 
+/* 2.2.2 Why a Domain? Container text */
 .header--qoute-text {
   display: flex;
   width: auto;
@@ -434,6 +436,8 @@ main{
   font-size: 1rem;
   text-align: center;
 }
+/* End Why a Domain? Container  */
+/* 2.2.2 Portafolio Button */
 .portfolio--container-button{
   position: absolute;
   display: flex;
@@ -501,6 +505,11 @@ main{
   box-shadow: 0px 0px var(--black-jl);
 }
 
+/* End Portafolio Button */
+/* End Container */
+
+
+/* 3. INDIVIDUAL DISTINCTION  Container */
 
 .personaldistinction--container{
   height: 1000px;
@@ -509,17 +518,15 @@ main{
   align-items: center;
   justify-content: flex-start;
   flex-direction: column;
-
 }
 
-/* section */
+/* 3.1 About me Fundamentals Container */
 
 .personaldistinction--container-card{
   display: flex;
   justify-content: center;
   margin-top: 2px;
 }
-
 
 .personaldistinction--card {
     width: 100%;
@@ -571,6 +578,9 @@ main{
     flex-direction: row;
 }
 
+/* End Fundamentals Container */
+
+/* 3.2 Skills & Knowledge Container */
 .main-skills-container{
     margin-top: 16px;
     width: 100%;
@@ -597,12 +607,76 @@ main{
 }
 
 .skills-container--slider {
-  display: flex;
-  /*gap: 50px; Se puede usar pero el profe dio otra alt*/
-  height: 316px;
-  overflow-x: scroll;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
+  margin: 0 auto;
+  width: 100%; /* Ancho completo para pantallas pequeñas */
+  max-width: 800px; /* Ancho máximo para pantallas grandes */
+  text-align: center;
 }
 
+.skills-container--slider label {
+  cursor:pointer;
+  text-decoration: none;
+}
 
+.slides--id {
+  padding: 10px;
+  border: 3px solid #ccc;
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.overflow--id {
+  width: 100%;
+  overflow: hidden;
+}
+
+.slides--id .inner {
+  transition: margin-left 800ms cubic-bezier(0.770, 0.000, 0.175, 1.000);
+  width: 400%;
+  line-height: 0;
+  height: 300px;
+  display: flex; /* Se añadió para centrar el contenido */
+}
+
+.slides--id .slide {
+  width: 100%; /* Ancho completo para pantallas pequeñas */
+  float: left;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #fff;
+}
+
+/* Resto de estilos para slides... */
+
+@media screen and (min-width: 288px) {
+  /* Estilos específicos para pantallas con un ancho mínimo de 288px */
+
+  .slides--id {
+     max-width: none; /* Ancho máximo para pantallas grandes */
+     margin: 0 auto;
+  }
+
+  .slides--id .inner {
+     height: auto; /* Ajustar la altura según el contenido */
+  }
+
+  .slides--id .slide {
+     width: 25%; /* Restaurar el ancho original para pantallas grandes */
+  }
+
+  #slide1:checked ~ #controls label:nth-child(2),
+  #slide2:checked ~ #controls label:nth-child(3),
+  #slide3:checked ~ #controls label:nth-child(4),
+  #slide4:checked ~ #controls label:nth-child(1),
+  #slide1:checked ~ #controls label:nth-last-child(2),
+  #slide2:checked ~ #controls label:nth-last-child(3),
+  #slide3:checked ~ #controls label:nth-last-child(4),
+  #slide4:checked ~ #controls label:nth-last-child(1) {
+     margin: 0 -50px 0 0; /* Restaurar el margen para pantallas grandes */
+  }
+
+  /* Otros ajustes específicos para pantallas grandes... */
+}
