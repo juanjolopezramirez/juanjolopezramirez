@@ -1,17 +1,22 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Obtener elementos del DOM
     var checkIcon = document.getElementById('check-icon');
     var mobileMenuContainer = document.querySelector('.mobile-menu-container');
-
-    // Agregar evento de cambio al checkbox
+  
     checkIcon.addEventListener('change', function () {
-        // Agregar o quitar la clase 'menu-open' según el estado del checkbox
-        if (checkIcon.checked) {
-            mobileMenuContainer.classList.add('menu-open');
-            console.log("Menu Abierto")
-        } else {
-            mobileMenuContainer.classList.remove('menu-open');
-            console.log("Menu Cerrado")
-        }
+      if (checkIcon.checked) {
+        mobileMenuContainer.style.display = 'block';
+      } else {
+        mobileMenuContainer.style.display = 'none';
+      }
     });
-});
+  
+    // Cierra el menú al hacer clic en un enlace del menú
+    var mobileMenuLinks = document.querySelectorAll('.mobile-menu-container a');
+    mobileMenuLinks.forEach(function (link) {
+      link.addEventListener('click', function () {
+        mobileMenuContainer.style.display = 'none';
+        checkIcon.checked = false;
+      });
+    });
+  });
+  
