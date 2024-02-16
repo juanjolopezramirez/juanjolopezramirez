@@ -391,6 +391,7 @@ main{
   width: auto;
   font-size: 3.2rem;
   text-align: center;
+  padding: 0 8px;
 }
 
 .remark{
@@ -407,6 +408,7 @@ main{
     margin-bottom: 16px;
     padding: 0 16px;
     text-align: center;
+    padding: 0 8px;
 }
 
 .remark2{
@@ -421,6 +423,7 @@ main{
     font-family: 'Raleway', sans-serif;
     font-size: 1.6rem;
     text-align: center;
+    padding: 0 8px;
 }
 
 .header--qoute-text p:nth-of-type(2) {
@@ -428,6 +431,7 @@ main{
     font-family: 'Raleway', sans-serif;
     font-size: 1.2rem;
     text-align: center;
+    padding: 0 8px;
 }
 
 .header--qoute-text p:nth-of-type(3) {
@@ -435,6 +439,7 @@ main{
   font-family: 'Raleway', sans-serif;
   font-size: 1rem;
   text-align: center;
+  padding: 0 8px;
 }
 /* End Why a Domain? Container  */
 /* 2.2.2 Portafolio Button */
@@ -563,6 +568,7 @@ main{
   text-align: center;
   font-size: 1.6rem;
   margin: 10px 16px;
+  padding: 0 8px;
 }
 
 .personaldistinction--card img {
@@ -594,6 +600,7 @@ main{
   min-width: 288px;
   height: auto;
   margin: 0 auto;
+  padding: 0 8px;
 }
 
 .skills--title h2{
@@ -604,6 +611,7 @@ main{
   line-height: 2.6rem;
   color: var(--white-jl);
   margin-bottom: 50px;
+  padding: 0 8px;
 }
 
 .skills-container--slider {
