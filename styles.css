@@ -386,13 +386,11 @@ main{
 
 
 .header--qoute-text h3 {
-  margin-top: 260px;
   font-family: 'Raleway', sans-serif;
   width: auto;
   font-size: 3.2rem;
   text-align: center;
-  margin-left: 16px;
-  margin-right: 16px;
+  margin: 280px 16px 8px;
 }
 
 .remark{
