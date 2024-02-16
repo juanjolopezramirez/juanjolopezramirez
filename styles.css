@@ -617,3 +617,70 @@ main{
   max-width: 800px; /* Ancho máximo para pantallas grandes */
   text-align: center;
 }
+
+.slider {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+}
+
+.slider input[type=radio] {
+  display: none;
+}
+
+.slides {
+  overflow: hidden;
+  position: relative;
+}
+
+.slides .slide {
+  width: 100%;
+  float: left;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  color: #fff;
+}
+
+.slides .slide_1 {
+  background: #00171F;
+}
+
+.slides .slide_2 {
+  background: #003459;
+}
+
+.slides .slide_3 {
+  background: #007EA7;
+}
+
+.slides .slide_4 {
+  background: #00A8E8;
+}
+
+.controls, .bullets {
+  margin-top: 10px;
+}
+
+.controls label, .bullets label {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ccc;
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+.slides input[type=radio]:checked ~ .controls label,
+.slides input[type=radio]:checked ~ .bullets label {
+  background: #444;
+}
+
+@media screen and (max-width: 475px) {
+  .slides .slide {
+     height: 150px;
+  }
+}
