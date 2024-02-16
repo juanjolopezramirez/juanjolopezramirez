@@ -140,6 +140,7 @@ body {
 .mobile-menu-container ul {
   padding: 20px;
   text-align: center;
+  background: var(--black-jl);
 }
 
 .mobile-menu-container li {
