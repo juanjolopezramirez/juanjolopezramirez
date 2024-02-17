@@ -557,7 +557,7 @@ main{
 
 /* 3. INDIVIDUAL DISTINCTION  Container */
 
-.personaldistinction--container{
+.personalidentity--container{
   height: fit-content;
   background-color: var(--black-jl);
   display: flex;
@@ -568,7 +568,7 @@ main{
 
 /* 3.1 About me Fundamentals Container */
 
-.personaldistinction--container-card{
+.personalidentity--container-card{
   display: flex;
   justify-content: center;
   margin-top: 2px;
@@ -651,12 +651,10 @@ main{
   font-weight: bold;
   line-height: 2.6rem;
   color: var(--white-jl);
-  margin-bottom: 50px;
   padding: 0 8px;
 }
 
 .skills-container--slider {
-  margin-top: 20px;
   display: flex;
   gap: 50px; 
   height: 400px;
@@ -667,11 +665,11 @@ main{
 
 .banner {
   position: absolute;
-  width: 140px;
+  width: 180px;
   height: 31px;
   padding: 6px;
   top: -15px;
-  left: calc(50% - 70px);
+  left: calc(50% - 90px);
   font-size: 1.2rem;
   font-weight: bold;
   letter-spacing: 0.5px;
@@ -683,8 +681,8 @@ main{
 .skills-container--card {
   position: relative;
   scroll-snap-align: center;
-  width: 70%;
-  min-width: 190px;
+  width: 80%;
+  min-width: 250px;
   max-width: 300px;
   height: 300px;
   margin: 50px 5px 0;
@@ -716,14 +714,4 @@ main{
   font-size: 1.2rem;
   font-weight: 500;
   color: var(--black-jl);
-}
-
-.container-3d {
-  position: absolute;
-  min-width: 190px;
-  max-width: 100px;
-  height: 100px;
-  margin-left: calc(50% - 95px );
-  border: 5px solid transparent;
-  perspective: 140px;
 }
