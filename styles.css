@@ -696,13 +696,12 @@ main{
 }
 
 
-.firstpilar{
-  margin-left: calc(50%);
+/* .firstpilar{
 }
 
 .thirdpilar{
-  margin-right: calc(50%);
-}
+ 
+} */
 
 .pilars-card--title {
   padding-top: 30px;
@@ -728,11 +727,6 @@ main{
   border-radius: 7px;
   flex-direction: column;
   justify-content: space-around;
-}
-
-.container .skill-box {
-  width: 100%;
-  margin: 25px 0;
 }
 
 .skill-box .skill-box--title {
