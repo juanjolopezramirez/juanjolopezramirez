@@ -676,10 +676,12 @@ main{
   background-color: var(--red-jl);
   border-radius: 8px;
   color: #fff;
+  z-index: 999;
 }
 
 .skills-container--card {
   position: relative;
+  display: flex;
   scroll-snap-align: center;
   width: 80%;
   min-width: 250px;
@@ -687,9 +689,9 @@ main{
   height: 300px;
   margin: 50px 5px 0;
   padding: 0 15px;
-  background-color: #fff;
+  background-color: var(--grey-jl);
   border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(89,73,30, 0.16);
+  /* box-shadow: 0 4px 8px rgba(89,73,30, 0.16); */
   
 }
 
@@ -714,4 +716,82 @@ main{
   font-size: 1.2rem;
   font-weight: 500;
   color: var(--black-jl);
+}
+
+.skills--container {
+  position: relative;
+  display: flex;
+  max-width: 500px;
+  width: 100%;
+  background: var(--black-jl);
+  padding: 30px 20px;
+  border-radius: 7px;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.container .skill-box {
+  width: 100%;
+  margin: 25px 0;
+}
+
+.skill-box .skill-box--title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white-jl);
+}
+
+.skill-box .skill-bar {
+  height: 8px;
+  width: 100%;
+  border-radius: 6px;
+  margin-top: 6px;
+  background: rgba(0,0,0,0.1);
+}
+
+.skill-bar .skill-per {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 90%;
+  border-radius: 6px;
+  background: var(--red-jl);
+  animation: progress 0.4s ease-in-out forwards;
+  opacity: 0;
+}
+
+.skill-per.html {
+   /*progreso de las diferentes lenguajes*/
+  width: 50%;
+  animation-delay: 0.1s;
+}
+
+.skill-per.css {
+         /*progreso de las diferentes lenguajes*/
+  width: 70%;
+  animation-delay: 0.1s;
+}
+
+.skill-per.javascript {
+      /*progreso de las diferentes lenguajes*/
+  width: 50%;
+  animation-delay: 0.2s;
+}
+
+.skill-per.nodejs {
+      /*progreso de las diferentes lenguajes*/
+  width: 30%;
+  animation-delay: 0.3s;
+}
+
+@keyframes progress {
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
