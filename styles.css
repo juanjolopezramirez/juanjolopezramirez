@@ -861,3 +861,32 @@ main{
     opacity: 1;
   }
 }
+
+/* Navigation Arrows */
+.navigation-arrows {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.arrow {
+  cursor: pointer;
+  font-size: 24px;
+  margin: 0 10px;
+}
+
+.indicator-container {
+  display: flex;
+  align-items: center;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin: 0 5px;
+  cursor: pointer;
+}
