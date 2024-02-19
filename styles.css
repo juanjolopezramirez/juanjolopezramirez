@@ -864,7 +864,6 @@ main{
 
 /* Navigation Arrows */
 .navigation-arrows {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -873,7 +872,8 @@ main{
 
 .arrow {
   cursor: pointer;
-  font-size: 24px;
+  width: 30px; /* Ajusta el ancho según tus necesidades */
+  height: 30px; /* Ajusta la altura según tus necesidades */
   margin: 0 10px;
 }
 

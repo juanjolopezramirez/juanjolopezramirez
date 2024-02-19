@@ -232,7 +232,7 @@
                         </div>
                     </article>
 
-                    <article class="skills-container--card thirdpilar">
+                    <article class="skills-container--card fourthpilar">
                         <p class="banner">Audiovisual Content</p>
                         <div class="skills--container">
                             <div class="skill-box">
@@ -270,16 +270,22 @@
                         </div>
                     </article>
             </section>
+
+           <!-- Add navigation arrows and indicators -->
             <div class="navigation-arrows">
-                <div class="arrow left-arrow">&lt;</div>
-                <div class="indicator-container">
-                  <div class="indicator"></div>
-                  <div class="indicator"></div>
-                  <div class="indicator"></div>
-                  <div class="indicator"></div>
+                <div class="arrow left-arrow" onclick="changeSlide(-1)">
+                    <img src="./assets/icons/whiteArrowDer.svg" alt="Left Arrow"> 
                 </div>
-                <div class="arrow right-arrow">&gt;</div>
-              </div>
+                <div class="indicator-container">
+                    <div class="indicator" onclick="currentSlide(1)"></div>
+                    <div class="indicator" onclick="currentSlide(2)"></div>
+                    <div class="indicator" onclick="currentSlide(3)"></div>
+                    <div class="indicator" onclick="currentSlide(4)"></div>
+                </div>
+                <div class="arrow right-arrow" onclick="changeSlide(1)">
+                    <img src="./assets/icons/whiteArrowIzq.svg" alt="Left Arrow"> 
+                </div>
+            </div>
         </section>
     </section>   
     

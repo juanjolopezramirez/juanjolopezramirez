@@ -1,10 +1,7 @@
 var checkIcon = document.getElementById('check-icon');
 var mobileMenuContainer = document.querySelector('.mobile-menu-container');
 
-const slider = document.querySelector(".skills-container--slider");
-const arrows = document.querySelectorAll(".arrow");
-const indicators = document.querySelectorAll(".indicator");
-let currentIndex = 0;
+let currentSlideIndex = 1;
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -27,33 +24,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
   
+  function showSlide(index) {
+    const slides = document.querySelectorAll('.skills-container--card');
+    slides.forEach(slide => slide.style.display = 'none');
 
-  document.addEventListener("DOMContentLoaded", function () {
-    arrows.forEach((arrow) => {
-      arrow.addEventListener("click", () => {
-        if (arrow.classList.contains("left-arrow")) {
-          currentIndex = Math.max(currentIndex - 1, 0);
-        } else {
-          currentIndex = Math.min(currentIndex + 1, slider.children.length - 1);
-        }
-  
-        updateSlider();
-      });
-    });
-  
-    indicators.forEach((indicator, index) => {
-      indicator.addEventListener("click", () => {
-        currentIndex = index;
-        updateSlider();
-      });
-    });
-  
-    function updateSlider() {
-      slider.style.transform = `translateX(${-currentIndex * 100}%)`;
-  
-      indicators.forEach((indicator, index) => {
-        indicator.classList.toggle("active", index === currentIndex);
-      });
+    if (index < 1) {
+        currentSlideIndex = slides.length;
+    } else if (index > slides.length) {
+        currentSlideIndex = 1;
+    } else {
+        currentSlideIndex = index;
     }
-  });
-  
+
+    slides[currentSlideIndex - 1].style.display = 'flex';
+}
+
+function changeSlide(n) {
+    showSlide(currentSlideIndex + n);
+}
+
+function currentSlide(n) {
+    showSlide(n);
+}
