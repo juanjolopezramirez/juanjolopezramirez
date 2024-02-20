@@ -916,6 +916,8 @@ main{
 }
 
 .know-button img {
+  width: 18px;
+  height: 18px;
   transition: 400ms;
 }
 
@@ -924,11 +926,11 @@ main{
 }
 
 .know-button:hover .text {
-  color: #181717;
+  color: var(--grey-jl);
 }
 
 .know-button:hover img {
-  fill: #181717;
+  fill: var(--grey-jl);
 }
 
 .b-html{
