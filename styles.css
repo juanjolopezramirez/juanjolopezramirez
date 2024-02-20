@@ -894,110 +894,78 @@ main{
   cursor: pointer;
 }
 
-
-
-
-
-.content {
+.know-button {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 15px;
-  width: 300px;
-  height: 100px;
-  position: relative;
-  overflow: hidden;
-  border-radius: 14px;
-}
-.content::before {
-  content: "";
-  position: absolute;
-  left: 0%;
-  top: 50%;
-  transform: translateY(-50%);
-  bottom: 0;
-  width: 40px;
-  height: 96px;
-  background-image: transparent;
-  z-index: 2;
-  border-radius: 10px 0 0 10px;
-}
-.content::after {
-  content: "";
-  position: absolute;
-  right: 0%;
-  top: 50%;
-  transform: translateY(-50%);
-  bottom: 0;
-  width: 40px;
-  height: 96px;
-  background-image: transparent;
-  z-index: 9;
-  border-radius: 0 10px 10px 0;
-}
-.basic-marquee {
-  display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-}
-.basic-marquee .button {
-  transition: all 0.3s ease;
-}
-.basic-marquee .button:hover {
-  transform: scale(1.1);
-  cursor: pointer;
-}
-.basic-marquee-1 {
-  animation: marquee 15s linear infinite;
-}
-.basic-marquee-2 {
-  animation: marquee 21s linear infinite;
-}
-.benefits {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  padding: 10px 15px;
   gap: 15px;
-  min-width: 900px;
-  height: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  position: absolute;
-  inset: 0;
-}
-@keyframes marquee {
-  0% {
-    transform: translateX(-10%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-.basic-marquee img {
-  width: 40px; /* Establece el ancho deseado para la imagen */
-}
-
-.basic-marquee button {
-  background-color: transparent;
+  outline: 3px var(--red-jl) solid;
+  outline-offset: -3px;
+  border-radius: 5px;
   border: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  cursor: pointer;
+  transition: 400ms;
 }
 
-.cls-1 {
-  fill: #1ab7ea;
+.know-button .know-text {
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  transition: 400ms;
 }
 
-.cls-1,
-.cls-2 {
-  fill-rule: evenodd;
+.know-button img {
+  transition: 400ms;
 }
+
+.know-button:hover {
+  background-color: transparent;
+}
+
+.know-button:hover .text {
+  color: #181717;
+}
+
+.know-button:hover img {
+  fill: #181717;
+}
+
+.b-html{
+  background-color: #B80000;
+}
+
+.b-css{
+  background-color: #D01717;
+}
+
+.b-js{
+  background-color: #ba2121;
+}
+
+.b-python{
+  background-color: #B80000;
+}
+
+.b-java{
+  background-color: #ba2121;
+}
+
+.b-tailwind{
+  background-color: #D01717;
+}
+
+.b-nodejs{
+  background-color: #D01717;
+}
+
+.b-ib{
+  background-color: #B80000;
+}
+
+
+
+
 
 
 /* Footer */
