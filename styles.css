@@ -331,7 +331,7 @@ main{
 
 .header--qoute-container{
   min-width: 288px;
-  height: 520px;
+  height: 575px;
   background-color: #e8e8e8;
 
 }
@@ -434,7 +434,7 @@ main{
   width: auto;
   font-size: 3.2rem;
   text-align: center;
-  margin: 280px 16px 8px;
+  margin: 345px 16px 8px;
 }
 
 .remark{
@@ -489,7 +489,7 @@ main{
   display: flex;
   justify-content: center; /* Centra horizontalmente */
   align-items: center; /* Centra verticalmente */
-  margin-top: 350px; /* Coloca el borde superior en el 50% del contenedor padre */
+  margin-top: 405px; /* Coloca el borde superior en el 50% del contenedor padre */
   left: 50%; /* Coloca el borde izquierdo en el 50% del contenedor padre */
   transform: translate(-50%, -50%); /* Centra el botón con respecto a su propio tamaño */
 }
