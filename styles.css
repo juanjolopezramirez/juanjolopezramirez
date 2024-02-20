@@ -633,7 +633,7 @@ main{
     width: 100%;
     text-align: center;
     min-width: 320px;
-    padding-bottom: 70px;
+    padding-bottom: 16px;
 }
 
 .skills--title {
