@@ -2,6 +2,7 @@
   /*Colores*/
   --black-jl: #282929;
   --grey-jl: #303030;
+  --lightgrey-jl:#585858;
   --red-jl: #CD0000;
   --white-jl: #ffffff;
 }
@@ -687,13 +688,13 @@ main{
     align-items: center;
     padding: 10px 15px;
     gap: 15px;
-    outline: 3px var(--red-jl) solid;
+    outline: 3px #a62c2a solid;
     outline-offset: -3px;
     border-radius: 5px;
     border: none;
     cursor: pointer;
     transition: 400ms;
-    justify-content: space-evenly;
+    justify-content: space-between;
 }
 
 .know-button .know-text {
@@ -722,11 +723,11 @@ main{
 }
 
 .b-know{
-  background-color: #B80000;
+  background-color: var(--lightgrey-jl);
 }
 
 .b-noknow{
-  background-color: #ba2121;
+  background-color: #808080;
 }
 
 
