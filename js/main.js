@@ -24,25 +24,3 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
   
-  function showSlide(index) {
-    const slides = document.querySelectorAll('.skills-container--card');
-    slides.forEach(slide => slide.style.display = 'none');
-
-    if (index < 1) {
-        currentSlideIndex = slides.length;
-    } else if (index > slides.length) {
-        currentSlideIndex = 1;
-    } else {
-        currentSlideIndex = index;
-    }
-
-    slides[currentSlideIndex - 1].style.display = 'flex';
-}
-
-function changeSlide(n) {
-    showSlide(currentSlideIndex + n);
-}
-
-function currentSlide(n) {
-    showSlide(n);
-}
