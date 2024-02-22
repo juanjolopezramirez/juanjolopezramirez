@@ -671,20 +671,29 @@ main{
 }
 
 
+.schooling-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;  /* Dos columnas de ancho igual */
+    gap: 16px;  /* Espacio entre las columnas */
+    padding: 20px;
+}
+
+
 
 .know-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px 15px;
-  gap: 15px;
-  outline: 3px var(--red-jl) solid;
-  outline-offset: -3px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  transition: 400ms;
-  margin: 8px 0;
+    width: 140px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    gap: 15px;
+    outline: 3px var(--red-jl) solid;
+    outline-offset: -3px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: 400ms;
+    justify-content: space-evenly;
 }
 
 .know-button .know-text {
