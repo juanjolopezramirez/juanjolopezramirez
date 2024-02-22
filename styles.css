@@ -647,7 +647,7 @@ main{
   font-weight: bold;
   line-height: 2.6rem;
   font-family: 'Raleway', sans-serif;
-  margin: 0 auto;
+  margin: 16px auto;
   color: var(--white-jl);
 }
 
@@ -655,6 +655,19 @@ main{
   margin-top: 36px;
   display: grid;
 
+}
+
+.knowskill-box--text h3{
+  margin-top: 40px;
+  width: 90%;
+  min-width: 288px;
+  height: auto;
+  font-size: 1.6rem;
+  font-weight: bold;
+  line-height: 2.6rem;
+  font-family: 'Raleway', sans-serif;
+  margin: 24px auto;
+  color: var(--white-jl);
 }
 
 
@@ -699,37 +712,14 @@ main{
   fill: var(--grey-jl);
 }
 
-.b-html{
+.b-know{
   background-color: #B80000;
 }
 
-.b-css{
-  background-color: #D01717;
-}
-
-.b-js{
+.b-noknow{
   background-color: #ba2121;
 }
 
-.b-python{
-  background-color: #B80000;
-}
-
-.b-java{
-  background-color: #ba2121;
-}
-
-.b-tailwind{
-  background-color: #D01717;
-}
-
-.b-nodejs{
-  background-color: #D01717;
-}
-
-.b-ib{
-  background-color: #B80000;
-}
 
 
 
