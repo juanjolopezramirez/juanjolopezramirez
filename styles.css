@@ -5,6 +5,8 @@
   --lightgrey-jl:#585858;
   --red-jl: #CD0000;
   --white-jl: #ffffff;
+  --blue-jl: #004080;
+  --lightblue-jl: #0066cc;
 }
 
 /* Universal Selector */
@@ -688,7 +690,6 @@ main{
     align-items: center;
     padding: 10px 15px;
     gap: 15px;
-    outline: 3px #a62c2a solid;
     outline-offset: -3px;
     border-radius: 5px;
     border: none;
@@ -723,11 +724,13 @@ main{
 }
 
 .b-know{
-  background-color: var(--lightgrey-jl);
+  background-color: var(--blue-jl);
+  outline: 3px var(--lightblue-jl) solid;
 }
 
 .b-noknow{
-  background-color: #808080;
+  background-color: var(--lightblue-jl);
+  outline: 3px var(--blue-jl) solid;
 }
 
 
