@@ -769,6 +769,41 @@ main{
   }
 }
 
+.linea-del-tiempo {
+  position: relative;
+  background-color: black;
+  overflow: hidden;
+  padding: 20px;
+  /* Añade la línea del tiempo continua en el fondo */
+  background: linear-gradient(to right, white 5px, transparent 2px);
+  margin-left: 30px;
+}
+
+.evento {
+  position: relative;
+  padding: 10px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.fecha {
+  background-color: white;
+  color: black;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  font-weight: bold;
+  position: absolute;
+  top: 50%;
+  left: -15px;
+  transform: translateY(-50%);
+}
+
+.descripcion {
+  margin-left: 40px;
+}
 
 
 
