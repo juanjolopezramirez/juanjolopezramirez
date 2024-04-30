@@ -809,10 +809,11 @@ main{
 }
 
 .event-content {
-    display: flex;
-    padding: 20px;
-    gap: 10px;
-    flex-direction: column;
+  display: flex;
+  padding: 20px;
+  gap: 10px;
+  flex-direction: column;
+  outline: 0.5px var(--lightblue-jl) solid;
 }
 
 .event-content h2 {
@@ -849,7 +850,7 @@ section.top {
 
 section.top img {
   display: block;
-  height: 30px;
+  height: 15px;
   margin: 0 0 30px;
 }
 
