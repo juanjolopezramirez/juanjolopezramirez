@@ -780,7 +780,7 @@ main{
 .line {
   width: 5px;
   height: 100%;
-  background-color: var(--white-jl);
+  background-color: var(--lightblue-jl);
   position: absolute;
   left: 50%;
   top: 0;
