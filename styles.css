@@ -242,8 +242,7 @@ main{
 .social-icons {
   display: flex;
   height: 55px;
-  width: 250px;
-
+  width: 230px;
 }
 
 .social-icons .social-link1,
@@ -262,9 +261,9 @@ main{
   border-radius: 30px;
 }
 
-.social-icon {
+/* .social-icon {
   margin: 0 10px;
-}
+} */
 
 .social-icon img {
   position: absolute;
