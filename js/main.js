@@ -35,10 +35,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Cambiar el contenido de la página al nuevo idioma
     elements.forEach(function(element) {
-        element.textContent = element.getAttribute(`data-${newLang}`);
+        // Usar innerHTML para preservar la estructura interna
+        element.innerHTML = element.getAttribute(`data-${newLang}`);
     });
 
     // Actualizar el idioma en el atributo lang del documento
     document.documentElement.lang = newLang;
 });
+
+
+
 
