@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Alternar entre idiomas
     const newLang = currentLang === 'es' ? 'en' : 'es';
-    const newFlagSrc = newLang === 'es' ? './assets/icons/esBtn.svg' : './assets/icons/enBtn.svg';
+    const newFlagSrc = newLang === 'es' ? './assets/icons/enBtn.svg' : './assets/icons/esBtn.svg';
     this.src = newFlagSrc; // Cambiar la bandera
 
     // Cambiar el contenido de la página al nuevo idioma
