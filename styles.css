@@ -37,8 +37,8 @@ body {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 60px;
-  height: 60px;
+  width: 42px;
+  height: 42px; 
   cursor: pointer;
   z-index: 1000;
 }
@@ -47,6 +47,7 @@ body {
   transform: scale(1.1);
   transition: transform 0.3s ease-in-out;
 }
+
 
 
 /* 1. Header */
