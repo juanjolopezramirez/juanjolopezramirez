@@ -365,7 +365,7 @@ main{
 
 .horizontal-line {
   border: none;
-  border-top: 10px solid var(--grey-jl);
+  border-top: 5px solid var(--grey-jl);
 }
 
 
@@ -871,7 +871,7 @@ footer {
   background-color: var(--black-jl); /* Fondo del footer acorde con la paleta de colores */
   padding: 20px 0;
   text-align: center;
-  border-top: 5px solid var(--blue-jl); /* Borde superior acorde al estilo */
+  border-top: 5px solid var(--grey-jl); /* Borde superior acorde al estilo */
 }
 
 .footer-container {
