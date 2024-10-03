@@ -60,7 +60,7 @@ body {
   align-items: center;
   width: 100%;
   min-width: 320px;
-  height: 80px;
+  height: 70px;
   background-color: var(--grey-jl);
   padding: 20px;
   z-index: 1000;
@@ -144,7 +144,7 @@ body {
 .mobile-menu-container {
   display: none;
   position: fixed;
-  top: 80px;
+  top: 70px;
   left: 0;
   width: 100%;
   background-color: var(--grey-jl);
@@ -196,7 +196,7 @@ main{
 
 /* 2.1 Header Image Container (#findme) */
 .header--img-container {
-  margin-top: 80px;
+  margin-top: 70px;
   width: 100%;
   min-width: 288px;
   height: 90vh;
@@ -866,114 +866,28 @@ main{
   font-size: 1.2rem;
 }
 
-/*7. Footer*/
-
+/*6. Footer*/
 footer {
-  position: static;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  padding-bottom: 20px;
-  background: var(--grey-jl);
+  background-color: var(--black-jl); /* Fondo del footer acorde con la paleta de colores */
+  padding: 20px 0;
+  text-align: center;
+  border-top: 5px solid var(--blue-jl); /* Borde superior acorde al estilo */
 }
 
-footer section {
-  padding: 0 50px;
+.footer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px; /* Espaciado entre elementos */
 }
 
-section.top {
-  padding-top: 25px;
-  margin-bottom: 15px;
+.footer-logo img {
+  height: 16px; /* Tamaño del logo */
 }
 
-section.top img {
-  display: block;
-  height: 15px;
-  margin: 0 0 30px;
+.footer-copyright p {
+  color: #c7c7c7; /* Color del texto */
+  font-size: 1.2rem; /* Tamaño de fuente */
 }
-
-section.top ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 30px;
-  grid-template-columns: repeat(2, 1fr);
-}
-
-section.top ul li a {
-  display: block;
-  margin-bottom: 10px;
-  color: #ffffff;
-}
-
-section.top h3 {
-  color: #c7c7c7;
-  font-weight: 400;
-  font-size: 16px;
-  letter-spacing: 1px;
-}
-
-section.bottom {
-  padding-top: 5px;
-  border-top: 2px solid #d187072c;
-  color: #c7c7c7;
-  font-size: 13px;  
-} 
-.redicon span{
-  display: inline-block;
-  width: 15px;
-  height: 15px;
-  margin-right: 7px;  
-  background-position: center;
-  vertical-align: middle;
-}
-
-.facebook{
-  background-image: url('./assets/icons/Facebook.svg');
-  background-repeat: no-repeat;
-}
-
-.instagram{
-  background-image: url('./assets/icons/Vector.svg');
-  background-repeat: no-repeat;
-}
-
-.tiktok{
-  background-image: url('./assets/icons/TikTok.svg');
-  background-repeat: no-repeat;
-}
-
-.linkedin{
-  background-image: url('./assets/icons/LinkedIn.svg');
-  background-repeat: no-repeat;
-}  
-
-.youtube{
-  background-image: url('./assets/icons/Youtube.svg');
-  background-repeat: no-repeat;
-}
-
-.envelope{
-  background-image: url('./assets/icons/envelope.svg');
-  background-repeat: no-repeat;
-}
-
-.conticon{
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 4px;  
-  background-position: center;
-  vertical-align: middle;
-}
-
-.contactoFooter{
-  color: #ffffff;
-  padding-top: 40px;
-  padding-bottom: 15px;
-  text-align: center;   
-}
-
 
 /*End FOOTER*/
