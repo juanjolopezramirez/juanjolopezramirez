@@ -7,6 +7,8 @@
   --white-jl: #ffffff;
   --blue-jl: #004080;
   --lightblue-jl: #0066cc;
+  --main-color: #1d2635;
+  --secMain-color:#111827;
 }
 
 /* Universal Selector */
@@ -28,7 +30,7 @@ html{
 
 body {
   overflow: auto;
-  background-color: var(--black-jl);
+  background-color: var(--secMain-color);
 }
 /* End HTML Selector */
 
@@ -61,7 +63,7 @@ body {
   width: 100%;
   min-width: 320px;
   height: 70px;
-  background-color: var(--grey-jl);
+  background-color: var(--main-color);
   padding: 20px;
   z-index: 1000;
 }
@@ -147,7 +149,7 @@ body {
   top: 70px;
   left: 0;
   width: 100%;
-  background-color: var(--grey-jl);
+  background-color: var(--main-color);
   z-index: 999;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease-in-out;
@@ -365,7 +367,7 @@ main{
 
 .horizontal-line {
   border: none;
-  border-top: 10px solid var(--grey-jl);
+  border-top: 10px solid var(--main-color);
 }
 
 
@@ -543,7 +545,7 @@ main{
   cursor: pointer;
   display: flex;
   align-items: center;
-  border: 2px solid var(--grey-jl);
+  border: 2px solid var(--main-color);
   box-shadow: 0px 4px #585858;
   background-color: var(--white-jl);
   border-radius: 10px;
@@ -601,7 +603,7 @@ main{
 
 .personalidentity--container{
   height: fit-content;
-  background-color: var(--black-jl);
+  background-color: var(--secMain-color);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -755,11 +757,11 @@ main{
 }
 
 .know-button:hover .text {
-  color: var(--grey-jl);
+  color: var(--main-color);
 }
 
 .know-button:hover img {
-  fill: var(--grey-jl);
+  fill: var(--main-color);
 }
 
 .b-know{
@@ -838,7 +840,7 @@ main{
 }
 
 .event {
-  background-color: var(--grey-jl);
+  background-color: var(--main-color);
   border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
@@ -868,7 +870,7 @@ main{
 
 /*6. Footer*/
 footer {
-  background-color: var(--black-jl); /* Fondo del footer acorde con la paleta de colores */
+  background-color: var(--secMain-color); /* Fondo del footer acorde con la paleta de colores */
   padding: 20px 0;
   text-align: center;
   border-top: 5px solid var(--blue-jl); /* Borde superior acorde al estilo */
