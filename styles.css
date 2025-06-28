@@ -868,6 +868,62 @@ main{
   font-size: 1.2rem;
 }
 
+.projects-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: var(--secMain-color);
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.6rem;
+  color: var(--white-jl);
+  margin-bottom: 24px;
+  font-family: 'Raleway', sans-serif;
+}
+
+.project-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-button {
+  display: flex;
+  align-items: center;
+  background-color: var(--lightblue-jl);
+  color: var(--white-jl);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  font-size: 1.6rem;
+}
+
+.project-button:hover {
+  background-color: var(--blue-jl);
+}
+
+.project-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+}
+
+.project-description {
+  max-width: 300px;
+  font-size: 1.4rem;
+  color: var(--white-jl);
+  font-family: 'Raleway', sans-serif;
+}
+
+
 /*6. Footer*/
 footer {
   background-color: var(--secMain-color); /* Fondo del footer acorde con la paleta de colores */
