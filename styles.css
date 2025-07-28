@@ -80,10 +80,12 @@ main{
 .hero-header .hero-header--brand p {
   color: var(--white);
   font-size: 0.8rem; /* 8px */
+  opacity: 0.2;
 }
 .hero-header .hero-header--brand img {
   height: 1.6rem; /* 30px */
   margin-top: -2px;
+  opacity: 0.3;
 }
 
 .hero-header .overlay {
