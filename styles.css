@@ -1,14 +1,8 @@
 :root{
   /*Colores*/
-  --black-jl: #282929;
-  --grey-jl: #303030;
-  --lightgrey-jl:#585858;
-  --red-jl: #CD0000;
+  --pueblo: #802909;
   --white: #ffffff;
-  --blue-jl: #004080;
-  --lightblue-jl: #0066cc;
-  --main-color: #1d2635;
-  --secMain-color:#111827;
+  
 }
 
 /* Universal Selector */
@@ -30,7 +24,7 @@ html{
 
 body {
   overflow: auto;
-  background-color: var(--secMain-color);
+  background-color: var(--pueblo);
 }
 /* End HTML Selector */
 
@@ -207,7 +201,7 @@ main{
   bottom: 0vh; /* Adjust this value if necessary to position the content vertically */
   width: 100%;
   text-align: center;
-  color: #ffffff;
+  color: var(--white);
 }
 
 .professional-info h2 {
@@ -221,7 +215,7 @@ main{
   height: 0; 
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
-  border-top: 15px solid #ffffff;
+  border-top: 15px solid var(--white);
   margin: 20px auto;
   animation: bounce 2s infinite;
 }
@@ -240,7 +234,7 @@ main{
 
 .horizontal-line {
   border: none;
-  border-top: 10px solid var(--main-color);
+  border-top: 10px solid #51210c;
 }
 
 
