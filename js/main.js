@@ -1,4 +1,4 @@
-document.getElementById('translateBtn').addEventListener('click', function() {
+document.getElementById('translatableBtn').addEventListener('click', function() {
     const elements = document.querySelectorAll('.translatable');
     const currentLang = document.documentElement.lang;
 
