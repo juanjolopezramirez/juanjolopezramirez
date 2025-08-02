@@ -1,0 +1,12 @@
+.hero-header {
+    width: 100%;
+    min-width: 288px;
+    height: 95vh;
+    background-image: url(./assets/img/myCoverTablet);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    text-align: center;
+    position: relative; /* Ensure the container positions elements relative to it */
+    overflow: hidden;
+  }
