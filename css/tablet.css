@@ -1,7 +1,7 @@
 .hero-header {
     width: 100%;
     min-width: 288px;
-    height: 95vh;
+    min-height: 850px;
     background-image: url(./assets/img/myCoverTablet);
     background-position: center;
     background-size: cover;
