@@ -1,396 +1,435 @@
-:root{
-  /*Colores*/
-  --pueblo: #802909;
-  --white: #ffffff;
-  
+/* =============================================================
+   Juanjo López Ramírez — Personal page
+   Mobile first. Everything wider lives in css/tablet.css + css/desktop.css
+   ============================================================= */
+
+/* ---------- Tokens ---------------------------------------- */
+:root {
+  /* The five, and no sixth */
+  --slate:  #2B3A43;
+  --bone:   #F1EFE9;
+  --pine:   #263B28;
+  --iris:   #7D9B4E;
+  --ring:   #C08A2E;
+
+  /* Steps allowed */
+  --pine-900: #16231A;
+  --pine-700: #1E2F20;
+  --pine-200: #B7C7B4;
+  --slate-100:#D6DDE1;
+  --iris-300: #A9C47F;
+  --iris-700: #5E7639;
+  --ring-300: #E0B778;
+  --bone-panel:#E7E4DB;
+
+  /* Type */
+  --serif:  "Young Serif", Georgia, "Times New Roman", serif;
+  --sans:   "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --hand:   "Petemoss", cursive;
+
+  /* Rhythm */
+  --measure: 62ch;
+  --gutter: 1.5rem;
+  --radius: 0;              /* square corners — softening is an apology */
+
+  /* Motion */
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --dur: 900ms;
 }
 
-/* Universal Selector */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    list-style: none;
-}
-/* End Universal Selector */
+/* ---------- Reset ----------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
 
-/* HTML & Body Selector */
-html{
-    font-size: 62.5%;
-    font-family: 'DM Sans',sans-serif;
-    scroll-behavior: smooth;
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: none;   /* no rubber-band showing Pine under the Bone footer */
 }
 
 body {
-  overflow: auto;
-  background-color: var(--pueblo);
-}
-/* End HTML Selector */
-
-/* Start Visual Content */
-#translatableBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 42px;
-  height: 42px; 
-  cursor: pointer;
-  z-index: 1000;
-}
-
-#translatableBtn:hover {
-  transform: scale(1.1);
-  transition: transform 0.3s ease-in-out;
-}
-/* 2. Start Main */
-main{
-  width: 100%;
-  height: auto;
-}
-
-/* 2.1 Header Image Container (#findme) */
-.hero-header {
-  width: 100%;
-  min-width: 288px;
-  height: 95vh;
-  background-image: url(./assets/img/myCoverShoesTiny.png);
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  text-align: center;
-  position: relative; /* Ensure the container positions elements relative to it */
-  overflow: hidden;
-}
-
-/* 2. Reposicionar el logo/texto de la marca */
-.hero-header .hero-header--brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 4rem;
-}
-.hero-header .hero-header--brand p {
-  color: var(--white);
-  font-size: 0.8rem; /* 8px */
-  opacity: 0.2;
-}
-.hero-header .hero-header--brand img {
-  height: 1.6rem; /* 30px */
-  margin-top: -2px;
-  opacity: 0.3;
-}
-
-.hero-header .overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: auto;
-  background-color: rgba(0, 0, 0, 0.01);
-  position: relative;
-  z-index: 1;
-}
-
-.hero-header img {
-  height: 15vh;
-  margin: 16px;
-}
-
-.hero-header h4 {
-  font-family: 'Raleway', sans-serif;
-  font-size: 1.2rem;
-  font-weight: 500;
-  line-height: 2.6rem;
-  color: #ffffff;
-}
-
-.hero-header p {
-  font-family: 'Raleway', sans-serif;
-  font-size: 0.8rem;
-  font-style: normal;
-  font-weight: 500;
-  line-height: 2.6rem;
-  color: #ffffff;
-  margin-bottom: -5px;
-}
-
-/* 2.1.2 Social Icons */
-.social-icons {
-  display: flex;
-  height: 55px;
-  width: 230px;
-}
-
-.social-icons .social-link1,
-.social-icons .social-link2,
-.social-icons .social-link3,
-.social-icons .social-link4 {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 25%;
-  color: whitesmoke;
-  font-size: 24px;
-  text-decoration: none;
-  transition: 0.25s;
-  border-radius: 30px;
-}
-
-.social-icon img {
-  position: absolute;
-  display: flex;
-  width: 35px;
-  height: 35px;
-  opacity: 1;
-  transition: opacity 0.25s;
-  z-index: 2;
-  padding: 0.25rem;
-  cursor: pointer;
-  transform: scale(1);
-}
-
-.social-icons .social-link1:hover {
-  background-color: #0a66c2;
-  animation: bounce_613 0.4s linear;
-}
-
-.social-icons .social-link2:hover {
-  background: #f09433;
-  background: -moz-linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-  background: -webkit-linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
-  background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f09433', endColorstr='#bc1888',GradientType=1 );
-  animation: bounce_613 0.4s linear;
-}
-
-.social-icons .social-link3:hover {
-  background-color: #242c34;
-  animation: bounce_613 0.4s linear;
-}
-
-.social-icons .social-link4:hover {
-  background-color: #000;
-  animation: bounce_613 0.4s linear;
-}
-
-@keyframes bounce_613 {
-  40% {
-      transform: scale(1.4);
-  }
-
-  60% {
-      transform: scale(0.8);
-  }
-
-  80% {
-      transform: scale(1.2);
-  }
-
-  100% {
-      transform: scale(1);
-  }
-}
-
-/* New Professional Info Section */
-.professional-info {
-  position: absolute;
-  bottom: 0vh; /* Adjust this value if necessary to position the content vertically */
-  width: 100%;
-  text-align: center;
-  color: var(--white);
-}
-
-.professional-info h2 {
-  font-family: 'Raleway', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 500;
-}
-
-.arrow {
-  width: 0; 
-  height: 0; 
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 15px solid var(--white);
-  margin: 20px auto;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% {
-      transform: translateY(0);
-  }
-  50% {
-      transform: translateY(-10px);
-  }
-}
-
-/* End Main Container */
-/* End Header Image Container */
-
-.horizontal-line {
-  border: none;
-  border-top: 10px solid #51210c;
-}
-
-
-/* 2.2 Page? Container */
-
-.header--qoute-container{
-  min-width: 288px;
-  height: 575px;
-  background-color: #e8e8e8;
-
-}
-
-/* 2.2.1 Eyes Animation BOX */
-
-.eyes--animation-box{
-  height: 70px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: 50px;
-  margin-bottom: 50px;
-}
-
-.loader {
-  position: relative;
-  width: 100px;
-  display: flex;
-  justify-content: space-between;
-}
-.loader::after,
-.loader::before {
-  content: "";
-  display: inline-block;
-  width: 48px;
-  height: 48px;
-  background-color: #fff;
-  background-image: radial-gradient(circle 14px, #0d161b 100%, transparent 0%);
-  background-repeat: no-repeat;
-  border-radius: 50%;
-  animation: eyeMove 10s infinite, blink 10s infinite;
-}
-@keyframes eyeMove {
-  0%,
-  10% {
-    background-position: 0px 0px;
-  }
-  13%,
-  40% {
-    background-position: -15px 0px;
-  }
-  43%,
-  70% {
-    background-position: 15px 0px;
-  }
-  73%,
-  90% {
-    background-position: 0px 15px;
-  }
-  93%,
-  100% {
-    background-position: 0px 0px;
-  }
-}
-@keyframes blink {
-  0%,
-  10%,
-  12%,
-  20%,
-  22%,
-  40%,
-  42%,
-  60%,
-  62%,
-  70%,
-  72%,
-  90%,
-  92%,
-  98%,
-  100% {
-    height: 48px;
-  }
-  11%,
-  21%,
-  41%,
-  61%,
-  71%,
-  91%,
-  99% {
-    height: 18px;
-  }
-}
-/* eyes animation end */
-
-/* 2.2.2 Why a Domain? Container text */
-.header--qoute-text {
-  display: flex;
-  width: auto;
-  height: 50PX;
-  justify-content: center;
-  margin-top: 10PX;
-  flex-direction: column;
-  align-items: center;
-}
-
-
-.header--qoute-text h3 {
-  font-family: 'Raleway', sans-serif;
-  width: auto;
-  font-size: 3.2rem;
-  text-align: center;
-  margin: 345px 16px 8px;
-}
-
-.remark{
-  font-family: 'Raleway', sans-serif;;
-  width: auto;
-  font-size: 2.0rem;
-  color: var(--red-jl);
-}
-
-.header--qoute-text h4 {
-  font-family: 'Raleway', sans-serif;
-    font-size: 2.4rem;
-    text-align: center;
-    margin: 10px 8px 16px;
-    padding: 0 16px;
-}
-
-.remark2{
-  font-family: 'Raleway', sans-serif;;
-  font-size: 1.6rem;
-  margin-top: 3px;
-  color: var(--red-jl);
-}
-
-.header--qoute-text p {
-    margin: 0 16px;
-    font-family: 'Raleway', sans-serif;
-    font-size: 1.6rem;
-    text-align: center;
-    padding: 0 8px;
-}
-
-.header--qoute-text p:nth-of-type(2) {
-    margin-top: 5px;
-    font-family: 'Raleway', sans-serif;
-    font-size: 1.2rem;
-    text-align: center;
-    padding: 0 8px;
-}
-
-.header--qoute-text p:nth-of-type(3) {
-  margin-top: 5px;
-  font-family: 'Raleway', sans-serif;
+  margin: 0;
+  background: var(--pine);
+  color: var(--bone);
+  font-family: var(--sans);
   font-size: 1rem;
-  text-align: center;
-  padding: 0 8px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;   /* a number is a fact */
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
-/* End Why a Domain? Container  */
+
+img, svg { display: block; max-width: 100%; height: auto; }
+ul { list-style: none; margin: 0; padding: 0; }
+
+/* [hidden] must beat the display rules below it */
+[hidden] { display: none !important; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--iris-300);
+  outline-offset: 3px;
+}
+
+/* ---------- Utilities ------------------------------------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute; left: 0; top: -100%;
+  z-index: 100; padding: .75rem 1rem;
+  background: var(--bone); color: var(--slate);
+  font-weight: 600;
+}
+.skip-link:focus { top: 0; }
+
+/* Numerals always come from the sans, even inside the serif */
+.script {
+  font-family: var(--hand);
+  font-size: 1.7em;
+  display: inline-block;
+  line-height: .7;              /* keeps the hand from stretching the line */
+  vertical-align: -.08em;
+}
+
+/* Icons are inline SVG so they inherit `color` directly. That also
+   means they still render when the file is opened without a server. */
+.icon {
+  display: block;
+  width: 1.6rem; height: 1.6rem;
+  transition: color .25s var(--ease);
+}
+
+/* =============================================================
+   Reveal — the only motion in the system.
+   A line under tension, not something swelling into existence.
+   ============================================================= */
+/* Visible by default. The rotation still applies, so the forest keeps
+   its tilt even if the script never runs. */
+.reveal {
+  --ty: 26px;
+  --rot: 0deg;
+  transform: rotate(var(--rot));
+}
+
+/* Only once reveal.js has taken responsibility does anything hide. */
+.js-reveal .reveal {
+  opacity: 0;
+  transform: translateY(var(--ty)) rotate(var(--rot));
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+  transition-delay: var(--delay, 0ms);
+}
+.js-reveal .reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) rotate(var(--rot));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal,
+  .js-reveal .reveal { opacity: 1; transform: rotate(var(--rot)); transition: none; }
+  .sig__p { animation: none; clip-path: none; }
+  .link-chip:hover, .link-chip:focus-visible { animation: none; }
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* =============================================================
+   Desktop banner
+   ============================================================= */
+.desktop-banner {
+  display: none;                        /* switched on in css/desktop.css */
+  position: fixed; inset: 0 0 auto 0; z-index: 60;
+  gap: 1rem; align-items: flex-start;
+  padding: .9rem 1.1rem;
+  background: var(--ring);
+  color: var(--pine-900);
+}
+.desktop-banner__text { margin: 0; font-size: .9rem; line-height: 1.45; }
+.desktop-banner__text strong { display: block; font-weight: 800; }
+.desktop-banner__close {
+  flex: 0 0 auto; font-size: 1.5rem; line-height: 1;
+  padding: 0 .25rem; color: inherit;
+}
+
+/* =============================================================
+   Header
+   ============================================================= */
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem var(--gutter);
+  padding-top: max(.85rem, env(safe-area-inset-top));
+  background: var(--pine-700);
+  border-bottom: 1px solid rgba(241, 239, 233, .08);
+}
+
+.brand { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+.brand__mark { width: 12px; height: auto; flex: 0 0 auto; }
+.brand__name {
+  font-family: var(--serif);
+  font-size: .95rem;
+  letter-spacing: -.015em;
+  color: var(--pine-200);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.nav-toggle {
+  flex: 0 0 auto;
+  display: grid; gap: 5px;
+  padding: .5rem .25rem;
+}
+.nav-toggle__bar {
+  display: block; width: 26px; height: 2px;
+  background: var(--bone);
+  transition: transform .35s var(--ease), opacity .2s linear;
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Slide-down panel */
+.site-nav {
+  position: absolute; left: 0; right: 0; top: 100%;
+  background: var(--pine-700);
+  border-bottom: 1px solid rgba(241, 239, 233, .08);
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .45s var(--ease);
+}
+.site-nav.is-open { max-height: 22rem; }
+.site-nav__list { padding: .5rem var(--gutter) 1.25rem; }
+.site-nav__list li + li { border-top: 1px solid rgba(241, 239, 233, .07); }
+.site-nav__list a {
+  display: block; padding: .85rem 0;
+  font-size: 1rem; letter-spacing: -.01em;
+  color: var(--bone);
+}
+.site-nav__list a:hover { color: var(--iris-300); }
+
+/* =============================================================
+   Hero
+   ============================================================= */
+.hero {
+  padding: 2.5rem var(--gutter) 0;
+  text-align: center;
+}
+
+.hero__eyebrow {
+  margin: 0 0 1.25rem;
+  font-size: .8rem; font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--bone);
+}
+
+.hero__name { margin: 0; }
+.hero__name .sig {
+  width: min(100%, 15.5rem);
+  height: auto;
+  margin-inline: auto;
+  fill: var(--bone);
+  overflow: visible;
+}
+
+/* Each stroke is written left to right, in the order it was drawn. */
+.sig__p {
+  clip-path: inset(-5% 101% -5% -5%);
+  animation: sigWrite 460ms cubic-bezier(.34, .66, .38, 1) forwards;
+  animation-delay: calc(var(--i) * 115ms + 250ms);
+}
+@keyframes sigWrite {
+  to { clip-path: inset(-5% -5% -5% -5%); }
+}
+
+.hero__tagline {
+  margin: 1.1rem auto 0;
+  max-width: 22rem;
+  font-size: .95rem; font-weight: 300;
+  line-height: 1.55;
+  color: var(--bone);
+}
+.hero__tagline .ahava { color: var(--iris-300); }
+
+/* --- The two images ------------------------------------------------ */
+.portrait {
+  position: relative;
+  margin: 1.5rem auto 0;
+  width: min(100%, 22rem);
+  aspect-ratio: 1 / 1;
+}
+.portrait__forest {
+  --rot: 3.52deg;              /* the tilt, exactly */
+  --ty: 34px;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+}
+.portrait__me {
+  --ty: 20px;
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: 62%;
+  transform-origin: bottom center;
+  translate: -50% 0;           /* keeps .reveal's transform free */
+  object-fit: contain;
+}
+
+/* =============================================================
+   Links
+   ============================================================= */
+.links {
+  padding: 1.75rem var(--gutter) 0;
+  text-align: center;
+}
+.links__title {
+  margin: 0 0 1.1rem;
+  font-size: .85rem; font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--bone);
+}
+
+.links__list {
+  display: flex; justify-content: center; align-items: center;
+  gap: 1.35rem;
+  flex-wrap: wrap;
+}
+
+.link-chip {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 50%;
+  color: var(--bone);
+  background: transparent;
+  /* `scale` and `background`, never `transform`: the reveal owns transform
+     and the two must not fight over the same property. */
+  transition: background-color .28s var(--ease), color .28s var(--ease);
+}
+.link-chip .icon { width: 1.6rem; height: 1.6rem; }
+/* The chip fills with the platform's own colour and bounces once —
+   the one thing borrowed from outside the five, and only on contact. */
+.link-chip:hover,
+.link-chip:focus-visible {
+  background: var(--brand-bg, var(--iris));
+  color: var(--brand-fg, var(--pine-900));
+  animation: chipBounce .4s linear;
+}
+
+/* Animating `scale` rather than `transform` keeps the reveal's
+   translate/rotate intact underneath. */
+@keyframes chipBounce {
+  0%, 100% { scale: 1; }
+  40%      { scale: 1.4; }
+  60%      { scale: .8; }
+  80%      { scale: 1.2; }
+}
+
+/* The quiet button */
+.links__more {
+  display: grid; place-items: center;
+  width: 2.5rem; height: 2.5rem;
+  margin: .5rem auto 0;
+  color: var(--pine-200);
+  transition: color .3s var(--ease);
+}
+.links__more:hover { color: var(--bone); }
+.links__more .icon { width: 1.5rem; height: 1.5rem; }
+.links__more[aria-expanded="true"] { color: var(--iris-300); }
+
+.links__list--secondary {
+  margin-top: .85rem;
+  gap: 1.35rem;
+}
+.links__list--secondary li {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+  transition-delay: var(--delay, 0ms);
+}
+.links__list--secondary.is-open li { opacity: 1; transform: none; }
+
+/* Scroll cue */
+.scroll-cue {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+  margin: 1.75rem auto 0;
+  padding-bottom: 1.5rem;
+  font-size: .8rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--bone);
+}
+.scroll-cue .icon { width: 1.05rem; height: .62rem; animation: nudge 2.6s var(--ease) infinite; }
+.scroll-cue:hover { color: var(--iris-300); }
+
+@keyframes nudge {
+  0%, 70%, 100% { transform: translateY(0); }
+  35%           { transform: translateY(5px); }
+}
+
+/* =============================================================
+   About — the room with the light on
+   ============================================================= */
+.about {
+  background: var(--bone);
+  color: var(--slate);
+  border-top: 3px solid var(--iris);
+  padding: 2.5rem var(--gutter) 2rem;
+}
+.about p {
+  max-width: var(--measure);
+  margin: 0 0 1.15rem;
+  font-size: .9rem;
+  line-height: 1.75;
+}
+.about p:first-of-type::first-line { font-weight: 600; }
+.about__mark {
+  width: 16px; height: auto;
+  margin: 1.5rem auto 0;
+}
+
+/* =============================================================
+   Footer
+   ============================================================= */
+.site-footer {
+  background: var(--bone);
+  color: var(--slate);
+  text-align: center;
+  padding: 0 var(--gutter) 5.5rem;   /* room for the fixed language button */
+}
+.site-footer__line { margin: 0 0 .75rem; padding-top: 1.75rem; }
+.site-footer__logo {
+  width: min(100%, 14rem);
+  height: auto;
+  margin-inline: auto;
+}
+.site-footer__meta {
+  margin: 0;
+  font-size: .75rem;
+  color: #5A6B74;                     /* Slate 400 — secondary text */
+  display: flex; justify-content: center; gap: .5rem; flex-wrap: wrap;
+}
+.site-footer__meta a { border-bottom: 1px solid currentColor; }
+
+/* =============================================================
+   Language toggle — absolute from the page, fixed to the viewport,
+   so it can be reached at any moment.
+   ============================================================= */
+.lang-toggle {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 55;
+  width: 2.6rem; height: 2.6rem;
+  display: grid; place-items: center;
+  transition: scale .35s var(--ease);
+}
+.lang-toggle:hover { scale: 1.06; }
+.lang-toggle:active { scale: .96; }
+.lang-toggle__flag {
+  width: 100%; height: 100%;
+  transition: opacity .25s linear;
+}
+.lang-toggle.is-swapping .lang-toggle__flag { opacity: 0; }
