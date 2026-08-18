@@ -9,7 +9,7 @@
 
   var DICT = {
     en: {
-      'doc.title':     'Juanjo López Ramírez — Brand Consultant & Creator',
+      'doc.title':     'Juanjo López Ramírez — Creator & Brand Consultant',
       'a11y.skip':     'Skip to content',
       'a11y.menu':     'Open menu',
       'a11y.menuClose':'Close menu',
@@ -46,7 +46,7 @@
     },
 
     es: {
-      'doc.title':     'Juanjo López Ramírez — Brand Consultant & Creator',
+      'doc.title':     'Juanjo López Ramírez — Creador & Consultor de Marca',
       'a11y.skip':     'Saltar al contenido',
       'a11y.menu':     'Abrir menú',
       'a11y.menuClose':'Cerrar menú',
