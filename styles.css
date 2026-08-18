@@ -220,6 +220,13 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   text-align: center;
 }
 
+/* The role, the name and the tagline are one heading unit (<hgroup>).
+   The spacing still belongs to the three children, so the group adds none. */
+.hero__heading {
+  display: block;
+  margin: 0;
+}
+
 .hero__eyebrow {
   margin: 0 0 1.25rem;
   font-size: .8rem; font-weight: 600;
@@ -238,6 +245,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* Each stroke is written left to right, in the order it was drawn. */
 .sig__p {
+  --i: 0;                       /* a stroke with no index is still written */
   clip-path: inset(-5% 101% -5% -5%);
   animation: sigWrite 460ms cubic-bezier(.34, .66, .38, 1) forwards;
   animation-delay: calc(var(--i) * 115ms + 250ms);
@@ -245,6 +253,21 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 @keyframes sigWrite {
   to { clip-path: inset(-5% -5% -5% -5%); }
 }
+
+/* The index used to ride along on a style attribute. It is the stroke's
+   position in the signature, so the document order is what states it. */
+.sig__p:nth-of-type(1)  { --i: 0;  }
+.sig__p:nth-of-type(2)  { --i: 1;  }
+.sig__p:nth-of-type(3)  { --i: 2;  }
+.sig__p:nth-of-type(4)  { --i: 3;  }
+.sig__p:nth-of-type(5)  { --i: 4;  }
+.sig__p:nth-of-type(6)  { --i: 5;  }
+.sig__p:nth-of-type(7)  { --i: 6;  }
+.sig__p:nth-of-type(8)  { --i: 7;  }
+.sig__p:nth-of-type(9)  { --i: 8;  }
+.sig__p:nth-of-type(10) { --i: 9;  }
+.sig__p:nth-of-type(11) { --i: 10; }
+.sig__p:nth-of-type(12) { --i: 11; }
 
 .hero__tagline {
   margin: 1.1rem auto 0;
@@ -328,6 +351,22 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   80%      { scale: 1.2; }
 }
 
+/* The one place outside the five colours. Each platform states its own
+   ground and its own ink; nothing here is read unless the chip is touched. */
+.link-chip--linkedin  { --brand-bg: #0A66C2; --brand-fg: #FFFFFF; }
+.link-chip--github    { --brand-bg: #242C34; --brand-fg: #FFFFFF; }
+.link-chip--vsco      { --brand-bg: #F1EFE9; --brand-fg: #141414; }
+.link-chip--youtube   { --brand-bg: #FF0000; --brand-fg: #FFFFFF; }
+.link-chip--x         { --brand-bg: #000000; --brand-fg: #FFFFFF; }
+.link-chip--instagram {
+  --brand-bg: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  --brand-fg: #FFFFFF;
+}
+.link-chip--tiktok {
+  --brand-bg: linear-gradient(45deg, #25F4EE 0%, #010101 50%, #FE2C55 100%);
+  --brand-fg: #FFFFFF;
+}
+
 /* The quiet button */
 .links__more {
   display: grid; place-items: center;
@@ -350,6 +389,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transition: opacity .45s var(--ease), transform .45s var(--ease);
   transition-delay: var(--delay, 0ms);
 }
+
+/* They arrive one after another, not all at once. */
+.links__list--secondary li:nth-child(1) { --delay: 0ms; }
+.links__list--secondary li:nth-child(2) { --delay: 80ms; }
+.links__list--secondary li:nth-child(3) { --delay: 160ms; }
 .links__list--secondary.is-open li { opacity: 1; transform: none; }
 
 /* Scroll cue */
@@ -412,6 +456,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   display: flex; justify-content: center; gap: .5rem; flex-wrap: wrap;
 }
 .site-footer__meta a { border-bottom: 1px solid currentColor; }
+/* <small> carries the small print, not a second size: the line is already
+   set at .75rem and both halves of it must read the same. */
+.site-footer__copy { font-size: inherit; }
 
 /* =============================================================
    Language toggle — absolute from the page, fixed to the viewport,

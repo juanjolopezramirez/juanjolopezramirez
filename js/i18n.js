@@ -17,6 +17,8 @@
       'a11y.less':     'Hide extra platforms',
       'a11y.dismiss':  'Dismiss',
       'a11y.lang':     'Cambiar a español',
+      'a11y.nav':      'Main',
+      'a11y.profiles': 'My profiles',
 
       'desktop.title': 'The desktop version is on its way.',
       'desktop.body':  'This experience was designed for phone and tablet first. The wide layout is still being built — for now, here is the mobile one.',
@@ -54,6 +56,8 @@
       'a11y.less':     'Ocultar plataformas',
       'a11y.dismiss':  'Cerrar',
       'a11y.lang':     'Switch to English',
+      'a11y.nav':      'Principal',
+      'a11y.profiles': 'Mis perfiles',
 
       'desktop.title': 'La versión de escritorio está en camino.',
       'desktop.body':  'Esta experiencia se diseñó primero para móvil y tablet. La versión ancha todavía se está construyendo — por ahora, esta es la móvil.',

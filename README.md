@@ -26,6 +26,10 @@ Personal Web Page/
 Scripts are plain `<script defer>` (no ES modules) so the page also works when opened
 straight from the filesystem.
 
+No `<style>` block and no `style` attribute anywhere in the markup: every rule lives in
+`styles.css` (mobile), `css/tablet.css` (≥600px) or `css/desktop.css` (≥1024px). The HTML
+names things; the CSS decides how they look.
+
 ## Run it
 
 Any static server works. From this folder:
@@ -67,12 +71,14 @@ scales. Things arrive as though pulled, not as though swelling into existence.
 so it can be reached at any moment. It shows the flag of the language you would switch *to*:
 reading Spanish, you see the UK flag. The choice persists in `localStorage`.
 
-**The "•••" button** holds TikTok, YouTube, X and VSCO. They stagger in at 0 / 80 / 160 / 240 ms.
-Closed by default, because the four that matter should be met first.
+**The "•••" button** holds TikTok, YouTube and X. They stagger in at 0 / 80 / 160 ms, set by
+`:nth-child` in `styles.css` rather than written onto the elements by script. Closed by
+default, because the four that matter should be met first.
 
 **On hover each chip fills with its platform's own colour and bounces once.** Two custom
 properties per chip carry it — `--brand-bg` (a colour *or* a gradient) and `--brand-fg`
-(the icon):
+(the icon). Both are declared in `styles.css` on a `.link-chip--<platform>` class, so the
+markup only names the platform and never carries a colour:
 
 | | background | icon |
 |---|---|---|
@@ -89,7 +95,9 @@ one thing borrowed from outside the five, and only on contact. `chipBounce` anim
 `scale` property — not `transform` — so it composes with the reveal instead of cancelling it.
 
 **The signature is inlined, not an `<img>`**, so its twelve strokes can arrive in turn —
-65 ms apart, starting at 150 ms. `prefers-reduced-motion` shows them all at once.
+115 ms apart, starting at 250 ms. Each stroke's place in that order is read from its
+position in the document (`.sig__p:nth-of-type()`), so nothing has to be numbered by hand
+in the markup. `prefers-reduced-motion` shows them all at once.
 
 **The flags are circular in the file, not clipped by CSS.** Both are drawn on a 40×40
 viewBox with a `<circle cx=20 cy=20 r=20>` clip path, so the circle is exactly centred and

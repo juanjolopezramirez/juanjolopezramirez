@@ -42,11 +42,6 @@
     var list = d.getElementById('links-secondary');
     if (!btn || !list) return;
 
-    var items = list.querySelectorAll('li');
-    for (var i = 0; i < items.length; i++) {
-      items[i].style.setProperty('--delay', (i * 80) + 'ms');
-    }
-
     btn.addEventListener('click', function () {
       var open = btn.getAttribute('aria-expanded') !== 'true';
       btn.setAttribute('aria-expanded', String(open));
@@ -144,7 +139,11 @@
   /* ---------- Small things --------------------------------- */
   function initYear() {
     var y = d.getElementById('year');
-    if (y) y.textContent = String(new Date().getFullYear());
+    if (!y) return;
+    var year = String(new Date().getFullYear());
+    y.textContent = year;
+    // <time> must not say one year and mean another
+    if (y.hasAttribute('datetime')) y.setAttribute('datetime', year);
   }
 
   w.JJ = w.JJ || {};
