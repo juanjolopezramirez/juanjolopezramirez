@@ -1,24 +1,25 @@
 # Cómo cambiar los textos
 
+> Esta guía es para el proyecto **Astro** (`juanjo-web/`).
+> La versión vieja sin framework está en `../Personal Web Page/` y ya no se toca.
+
 Guía para editar la página sin romperla. En español, porque es para ti.
 
 ---
 
-## Primero: por qué no te funcionó editar el HTML
+## Dónde están los textos
 
-Lo intentaste bien. El problema es que `index.html` **no es donde viven los textos**.
+Todos en **`src/i18n/ui.js`**, agrupados por idioma. Los componentes `.astro` no llevan texto
+escrito: llaman a una clave, así:
 
-Si abres `index.html` y ves esto:
-
-```html
-<h2 class="links__title" data-i18n="links.title">Find me here:</h2>
+```astro
+<h2 class="links__title">{t('links.title')}</h2>
 ```
 
-Ese `Find me here:` **no se ve nunca**. Es solo un respaldo por si el JavaScript falla.
-La parte que manda es `data-i18n="links.title"`: al cargar la página, el archivo
-`js/i18n.js` busca la clave `links.title` en el idioma activo y **reemplaza** ese texto.
+Ese `t('links.title')` va a buscar la clave `links.title` en el idioma de la página.
 
-> **Regla:** si un elemento tiene `data-i18n`, su texto se edita en `js/i18n.js`, no en el HTML.
+> **Regla:** si ves `t('algo')` en un archivo `.astro`, ese texto se edita en `src/i18n/ui.js`.
+> Nunca dentro del `.astro`.
 
 ---
 
@@ -26,11 +27,13 @@ La parte que manda es `data-i18n="links.title"`: al cargar la página, el archiv
 
 | Qué quieres cambiar | Archivo | Cómo encontrarlo |
 |---|---|---|
-| Cualquier texto visible (títulos, párrafos, botones) | `js/i18n.js` | Busca la clave que dice el HTML |
-| Definiciones del glosario (Ahavá, Emet, Ágape) | `js/glossary.js` | Busca el nombre del término |
-| Enlaces de redes sociales | `index.html` | Busca `href="https://`  |
-| Tu correo | `index.html` | Busca `mailto:` |
-| Colores, tamaños, animaciones | `styles.css` | — |
+| Cualquier texto visible (títulos, párrafos, botones) | `src/i18n/ui.js` | Busca la clave |
+| Definiciones del glosario (Ahavá, Emet, Ágape) | `src/i18n/terms.js` | Busca el término |
+| Enlaces de redes sociales | `src/data/social.js` | Todos juntos, una vez |
+| Qué secciones salen en el menú | `src/data/social.js` | El array `NAV` |
+| Tu correo | `src/components/Header.astro` | Busca `mailto:` |
+| Colores, tamaños, animaciones | `src/styles/base.css` | — |
+| Escritorio y tablet | `src/styles/desktop.css` · `tablet.css` | — |
 
 ---
 
@@ -38,15 +41,15 @@ La parte que manda es `data-i18n="links.title"`: al cargar la página, el archiv
 
 Digamos que quieres cambiar **"Encuéntrame aquí:"**.
 
-**1.** Abre `index.html` y busca ese texto o algo parecido. Encuentras:
+**1.** Busca esa clave en los componentes. La encuentras así:
 
-```html
-<h2 class="links__title" data-i18n="links.title">Find me here:</h2>
+```astro
+<h2 class="links__title">{t('links.title')}</h2>
 ```
 
 **2.** Copia la clave: `links.title`
 
-**3.** Abre `js/i18n.js` y busca `links.title`. Vas a encontrar **cinco**, una por idioma:
+**3.** Abre `src/i18n/ui.js` y busca `links.title`. Vas a encontrar **cinco**, una por idioma:
 
 ```js
     es: {
@@ -60,7 +63,7 @@ Digamos que quieres cambiar **"Encuéntrame aquí:"**.
       'links.title':    'Mis redes:',
 ```
 
-**5.** Guarda, y en el navegador presiona **Ctrl + Shift + R**.
+**5.** Guarda. Si tienes `npm run dev` corriendo, la página se actualiza sola.
 
 Si no cambia nada, ve al final de esta guía, sección *"No veo mis cambios"*.
 
@@ -108,7 +111,7 @@ O el apóstrofo tipográfico `’`, que no rompe nada:
 
 ## Los cinco idiomas
 
-`js/i18n.js` tiene cinco bloques, en este orden:
+`src/i18n/ui.js` tiene cinco bloques, en este orden:
 
 ```js
   var DICT = {
@@ -123,7 +126,7 @@ O el apóstrofo tipográfico `’`, que no rompe nada:
 Si cambias un texto, **cámbialo en los cinco**, o ese idioma se queda con lo viejo.
 
 > **Cuidado con dónde pegas un bloque nuevo.** Tiene que quedar *dentro* de `var DICT = {…};`
-> y no dentro de `w.JJ.i18n = {…}` que está más abajo. Si te equivocas, ese idioma se ve todo
+> y no dentro de `META = {…}` que está más arriba. Si te equivocas, ese idioma se ve todo
 > en inglés aunque la bandera cambie.
 
 Si no quieres traducir algo todavía, déjalo en inglés en los demás. La página no se
@@ -151,7 +154,7 @@ cámbiala también ahí para que el glosario la siga reconociendo.
 
 ## El glosario (Ahavá, Emet, Ágape)
 
-Las palabras subrayadas con puntitos abren un panel. Todo eso vive en `js/glossary.js`.
+Las palabras subrayadas con puntitos abren un panel. Todo eso vive en `src/i18n/terms.js`.
 
 Cada término tiene esta forma:
 
@@ -189,14 +192,16 @@ No hace falta tocar el HTML: la página busca las palabras sola dentro de la sec
 
 ## Cambiar los enlaces de redes
 
-Estos sí están en `index.html`. Busca `href="https://` y verás:
+Ahora están **en un solo sitio**: `src/data/social.js`.
 
-```html
-<a class="link-chip net--linkedin" href="https://www.linkedin.com/in/juanjoselopezramirez"
+```js
+{ id: 'instagram', name: 'Instagram', row: true, href: 'https://...' },
 ```
 
-Cambia solo la dirección entre comillas. **Ojo:** cada red aparece **dos veces** — una en
-la fila visible y otra en el panel de "todas mis plataformas". Cambia ambas.
+Cambia solo lo de `href`. Ya no hay que editarlo dos veces: la fila del hero y el panel de
+«todas mis plataformas» salen del mismo array.
+
+`row: true` = aparece en la fila visible. `row: false` = solo dentro del panel.
 
 Pendientes de confirmar: Instagram, GitHub, Facebook, TikTok, YouTube, X y VSCO.
 
@@ -204,17 +209,13 @@ Pendientes de confirmar: Instagram, GitHub, Facebook, TikTok, YouTube, X y VSCO.
 
 ## No veo mis cambios
 
-El navegador guarda copias viejas de los archivos. Por eso los enlaces llevan `?v=13`:
+Con Astro esto casi no pasa: `npm run dev` recarga solo.
 
-```html
-<link rel="stylesheet" href="styles.css?v=13" />
-<script src="js/i18n.js?v=13" defer></script>
+Si publicaste y no ves los cambios, es que falta volver a construir:
+
+```bash
+npm run build
 ```
-
-**Si editaste y no ves nada:**
-
-1. Presiona **Ctrl + Shift + R** (recarga forzada).
-2. Si aún no, sube el número: cambia **todos** los `?v=13` a `?v=14` en `index.html`.
 
 ---
 
@@ -222,8 +223,9 @@ El navegador guarda copias viejas de los archivos. Por eso los enlaces llevan `?
 
 - Las **claves** del diccionario (`'links.title'`, `'about.p1'`…).
 - Las **llaves** `{ }` y **corchetes** `[ ]`.
-- Los `data-i18n`, `data-glossary`, `data-term` del HTML.
-- La carpeta `assets/`, salvo para reemplazar una imagen por otra con el mismo nombre.
+- `src/data/icons.js` — está generado a partir de los SVG; se rehace, no se edita.
+- Las carpetas `node_modules/`, `dist/` y `.astro/` — se regeneran solas.
+- `public/assets/`, salvo para reemplazar una imagen por otra con el mismo nombre.
 
 Si algo se rompe y no sabes qué fue: los archivos son texto plano. Deshaz con **Ctrl + Z**
 hasta que vuelva a funcionar, y prueba de nuevo con un cambio más pequeño.

@@ -1,0 +1,23 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import Base from '../../layouts/Base.astro';
+import Hero from '../../components/Hero.astro';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const t = useT(lang);
+---
+<Base lang={lang} path="">
+  <Hero t={t} />
+
+  <section class="about" id="about" aria-labelledby="about-title" data-glossary>
+    <h2 class="sr-only" id="about-title">{t('scroll.label')}</h2>
+    <p class="reveal">{t('about.p1')}</p>
+    <p class="reveal">{t('about.p2')}</p>
+    <p class="reveal">{t('about.p3')}</p>
+    <p class="reveal">{t('about.p4')}</p>
+    <img class="about__mark reveal" src="/assets/logos/mark-ring.svg" alt="" width="19" height="32" />
+  </section>
+</Base>

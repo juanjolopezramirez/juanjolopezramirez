@@ -1,0 +1,47 @@
+---
+import { NAV } from '../data/social.js';
+import LangPicker from './LangPicker.astro';
+import Icon from './Icon.astro';
+const { lang, t, path = '', active = '' } = Astro.props;
+const to = (slug) => `/${lang}/${slug}/`;
+---
+<header class="site-header">
+  <!-- La marca sola: el mismo dibujo, el mismo tamano, en todas las pantallas. -->
+  <a class="brand" href={`/${lang}/`}>
+    <span class="brand__mark"><Icon id="mark" /></span>
+    <span class="brand__name">Juan José López Ramírez</span>
+  </a>
+
+  <!-- Una sola pieza a la derecha. Desde 1024px es la pastilla flotante:
+       secciones, idioma y menu dentro del mismo hueso. -->
+  <div class="header-bar">
+    <nav class="site-nav site-nav--wide" aria-label="Main">
+      <ul class="site-nav__wide-list">
+        {NAV.map((n) => (
+          <li>
+            <a href={to(n.slug)} class={active === n.slug ? 'is-current' : ''}
+               aria-current={active === n.slug ? 'page' : undefined}>{t(n.key)}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="site-header__tools">
+      <div class="site-header__lang"><LangPicker lang={lang} t={t} path={path} /></div>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav"
+              aria-label={t('a11y.menu')}>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="site-nav site-nav--drop" id="site-nav" aria-label="Menu">
+    <ul class="site-nav__list">
+      <li><a href={`/${lang}/`}>{t('nav.start')}</a></li>
+      {NAV.map((n) => <li><a href={to(n.slug)}>{t(n.key)}</a></li>)}
+      <li><a href="mailto:juanjoselopezramirez@gmail.com">{t('nav.write')}</a></li>
+    </ul>
+  </nav>
+</header>

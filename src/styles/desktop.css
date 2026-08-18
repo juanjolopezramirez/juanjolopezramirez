@@ -1,0 +1,119 @@
+/* =============================================================
+   Escritorio — 1024px y mas. Ya no hay aviso de "en construccion":
+   esta version existe.
+
+   La cabecera se alarga: marca a la izquierda, secciones al centro,
+   idioma y menu a la derecha. El hero conserva las dos columnas.
+   ============================================================= */
+@media (min-width: 1024px) {
+
+  :root { --gutter: 3.5rem; }
+
+  /* ---- Cabecera larga ---- */
+  .site-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.15rem var(--gutter);
+  }
+  .brand__mark { width: 17px; }
+  .brand__name { font-size: 1.15rem; }
+
+  /* El centro solo aparece aqui. Hay que deshacer el posicionamiento
+     del menu desplegable, que esta version no usa. */
+  .site-nav--wide {
+    display: block;
+    justify-self: center;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    background: none;
+    border: 0;
+  }
+  .site-nav__wide-list {
+    display: flex;
+    align-items: center;
+    gap: 2.1rem;
+  }
+  .site-nav__wide-list a {
+    position: relative;
+    display: block;
+    padding: .35rem 0;
+    font-size: .92rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--pine-200);
+    transition: color .25s var(--ease);
+  }
+  .site-nav__wide-list a:hover,
+  .site-nav__wide-list a.is-current { color: var(--bone); }
+
+  /* Una sola linea Iris marca donde estas */
+  .site-nav__wide-list a::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -2px;
+    height: 2px;
+    background: var(--iris);
+    scale: 0 1;
+    transform-origin: left;
+    transition: scale .32s var(--ease);
+  }
+  .site-nav__wide-list a:hover::after,
+  .site-nav__wide-list a.is-current::after { scale: 1 1; }
+
+  .site-header__tools { justify-self: end; }
+
+  /* Con el centro visible, el desplegable sobra */
+  .nav-toggle { display: none; }
+  .site-nav:not(.site-nav--wide) { display: none; }
+
+  /* ---- Hero ---- */
+  .hero {
+    max-width: 74rem;
+    margin-inline: auto;
+    column-gap: 4rem;
+    padding-top: 4rem;
+  }
+  .hero__name .sig { width: min(100%, 24rem); }
+  .hero__role { font-size: 1.05rem; letter-spacing: .08em; }
+  .links { margin-top: 2.4rem; }
+  .link-chip { width: 3.4rem; height: 3.4rem; }
+  .link-chip .icon { width: 2rem; height: 2rem; }
+
+  .portrait { width: min(100%, 30rem); }
+  .hero__tagline { max-width: 30rem; font-size: 1.15rem; }
+
+  .scroll-cue { margin-top: 3rem; padding-bottom: 3.5rem; }
+
+  /* ---- Lectura ---- */
+  .about,
+  .page {
+    max-width: 74rem;
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+  .about p { font-size: 1.1rem; }
+  .page__title { font-size: 3rem; }
+
+  .site-footer { padding-bottom: 3.5rem; }
+  .site-footer__logo { width: min(100%, 20rem); }
+
+  /* ---- Hojas: no ocupan toda la pantalla ---- */
+  .social-panel,
+  .term-panel { align-items: center; justify-items: center; }
+  .social-panel__sheet,
+  .term-panel__sheet {
+    width: min(52rem, calc(100vw - 6rem));
+    border-radius: 2px;
+    translate: 0 24px;
+  }
+  .social-panel.is-open .social-panel__sheet,
+  .term-panel.is-open .term-panel__sheet { translate: 0 0; }
+}
+
+/* Pantallas muy anchas: la lectura no se estira sin limite */
+@media (min-width: 1600px) {
+  .hero, .about, .page { max-width: 80rem; }
+}

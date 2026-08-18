@@ -1,0 +1,5 @@
+---
+import { ICONS } from '../data/icons.js';
+const { id } = Astro.props;
+---
+<Fragment set:html={ICONS[id] ?? ''} />

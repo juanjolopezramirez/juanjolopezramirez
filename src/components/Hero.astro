@@ -1,0 +1,34 @@
+---
+import SocialRow from './SocialRow.astro';
+import Icon from './Icon.astro';
+const { t } = Astro.props;
+---
+<!-- Movil: una columna. Tablet: dos. Escritorio: el texto a la izquierda,
+     el retrato ocupando toda la altura a la derecha. -->
+<section class="hero" id="top">
+  <div class="hero__identity">
+    <!-- El nombre, escrito. La firma dibujada cede su sitio al retrato. -->
+    <h1 class="hero__name">Juanjo López Ramírez</h1>
+    <p class="hero__role">{t('hero.role')}</p>
+    <SocialRow t={t} />
+  </div>
+
+  <div class="hero__portrait">
+    <figure class="portrait">
+      <img class="portrait__forest reveal" src="/assets/img/forest-only.png" alt="" decoding="async" />
+      <img class="portrait__me reveal" src="/assets/img/just-me.png"
+           alt="Juanjo, wearing a navy coat, looking to the side" decoding="async" />
+    </figure>
+  </div>
+
+  <p class="hero__tagline" data-glossary>
+    <span>{t('hero.tagline1')}</span>
+    <em class="script">{t('hero.lightly')}</em><span>{t('hero.comma')}</span><br />
+    <span>{t('hero.tagline2')}</span> <span class="ahava">{t('hero.ahava')}</span>
+  </p>
+
+  <a class="scroll-cue" href="#about">
+    <span class="scroll-cue__sticker">{t('scroll.label')}</span>
+    <Icon id="arrow" />
+  </a>
+</section>

@@ -1,0 +1,15 @@
+---
+const { t } = Astro.props;
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <p class="site-footer__line">
+    <img class="site-footer__logo reveal" src="/assets/logos/nada-que-demostrar.svg"
+         alt="Nada que demostrar. Todo por amar." width="891" height="259" loading="lazy" />
+  </p>
+  <p class="site-footer__meta">
+    <a href="https://juanjolopezramirez.com">juanjolopezramirez.com</a>
+    <span aria-hidden="true">·</span>
+    <span>&copy; {year}</span>
+  </p>
+</footer>

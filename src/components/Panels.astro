@@ -1,0 +1,39 @@
+---
+import { SOCIAL } from '../data/social.js';
+import Icon from './Icon.astro';
+const { t } = Astro.props;
+---
+<!-- Todas las plataformas: una hoja sobre la pagina, nada debajo se mueve -->
+<div class="social-panel" id="social-panel" hidden>
+  <div class="social-panel__scrim" data-close-social></div>
+  <div class="social-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="social-panel-title">
+    <button class="social-panel__close" type="button" data-close-social aria-label={t('a11y.closePanel')}>&times;</button>
+    <h2 class="social-panel__title" id="social-panel-title">{t('social.title')}</h2>
+    <ul class="social-panel__grid">
+      {SOCIAL.map((s) => (
+        <li class="social-panel__item">
+          <a class={`link-chip net--${s.id}`} href={s.href} target="_blank" rel="noopener noreferrer">
+            <Icon id={s.id} /><span class="sr-only">{s.name}</span>
+          </a>
+          <span class="social-panel__name">{s.name}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>
+
+<!-- Una palabra que no es nuestra: que significa y quien lo dice -->
+<div class="term-panel" id="term-panel" hidden>
+  <div class="term-panel__scrim" data-close-term></div>
+  <article class="term-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="term-panel-title">
+    <button class="term-panel__close" type="button" data-close-term aria-label={t('a11y.termClose')}>&times;</button>
+    <p class="term-panel__script" id="term-panel-script" lang="he" dir="rtl"></p>
+    <h2 class="term-panel__title" id="term-panel-title"></h2>
+    <p class="term-panel__meta" id="term-panel-meta"></p>
+    <p class="term-panel__def" id="term-panel-def"></p>
+    <footer class="term-panel__cite">
+      <h3 class="term-panel__cite-label" id="term-panel-source-label">{t('term.source')}</h3>
+      <p class="term-panel__source" id="term-panel-source"></p>
+    </footer>
+  </article>
+</div>

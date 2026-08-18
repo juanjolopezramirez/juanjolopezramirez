@@ -1,25 +1,32 @@
-/* =============================================================
-   i18n — four languages, never two on the same surface.
-   "Pick the reader, then write for them."
-   ============================================================= */
-(function (w) {
-  'use strict';
+/* Diccionarios de la interfaz. Un idioma por bloque.
+   Para cambiar un texto: edita el valor entre comillas. Ver TEXTOS.md */
 
-  var STORAGE_KEY = 'jjlr-lang';
+export const LANGS = ['es', 'en', 'pt', 'fr', 'it'];
+export const DEFAULT_LANG = 'es';
 
-  /* The order they appear in the picker. */
-  var LANGS = ['es', 'en', 'pt', 'fr', 'it'];
-
-  var META = {
-    es: { name: 'Español',    flag: 'assets/icons/flag-co.svg', code: 'ES' },
-    en: { name: 'English',    flag: 'assets/icons/flag-us.svg', code: 'EN' },
-    pt: { name: 'Português',  flag: 'assets/icons/flag-br.svg', code: 'PT' },
-    fr: { name: 'Français',   flag: 'assets/icons/flag-fr.svg', code: 'FR' },
-    it: { name: 'Italiano',   flag: 'assets/icons/flag-it.svg', code: 'IT' }
+export const META = {
+    es: { name: 'Español',    flag: '/assets/icons/flag-co.svg', code: 'ES' },
+    en: { name: 'English',    flag: '/assets/icons/flag-us.svg', code: 'EN' },
+    pt: { name: 'Português',  flag: '/assets/icons/flag-br.svg', code: 'PT' },
+    fr: { name: 'Français',   flag: '/assets/icons/flag-fr.svg', code: 'FR' },
+    it: { name: 'Italiano',   flag: '/assets/icons/flag-it.svg', code: 'IT' }
   };
 
-  var DICT = {
+export const UI = {
     en: {
+      'page.about.lead': 'Who I am, where I come from, and why the work looks like this.',
+      'nav.work': 'Work',
+      'nav.projects': 'Projects',
+      'nav.writing': 'Writing',
+      'nav.contact': 'Contact',
+      'page.work.title': 'Work',
+      'page.work.lead': 'Brands, identities and pieces made for someone else.',
+      'page.projects.title': 'Projects',
+      'page.projects.lead': 'What I build on my own: Fraterni(U) and Su Essencia.',
+      'page.writing.title': 'Writing',
+      'page.writing.lead': 'Essays, studies and notes from the path.',
+      'page.about.title': 'About the journey',
+      'page.soon': 'Being built. Soon.',
       'doc.title':      'Juanjo López Ramírez — Creator & Brand Consultant',
       'a11y.skip':      'Skip to content',
       'a11y.menu':      'Open menu',
@@ -60,6 +67,19 @@
     },
 
     es: {
+      'page.about.lead': 'Quién soy, de dónde vengo y por qué el trabajo se ve así.',
+      'nav.work': 'Trabajo',
+      'nav.projects': 'Proyectos',
+      'nav.writing': 'Escritos',
+      'nav.contact': 'Contacto',
+      'page.work.title': 'Trabajo',
+      'page.work.lead': 'Marcas, identidades y piezas hechas para alguien más.',
+      'page.projects.title': 'Proyectos',
+      'page.projects.lead': 'Lo que construyo por cuenta propia: Fraterni(U) y Su Essencia.',
+      'page.writing.title': 'Escritos',
+      'page.writing.lead': 'Ensayos, estudios y notas del camino.',
+      'page.about.title': 'Sobre el camino',
+      'page.soon': 'En construcción. Pronto.',
       'doc.title':      'Juanjo López Ramírez — Creador y Consultor de Marca',
       'a11y.skip':      'Saltar al contenido',
       'a11y.menu':      'Abrir menú',
@@ -100,6 +120,19 @@
     },
 
     pt: {
+      'page.about.lead': 'Quem sou, de onde venho e por que o trabalho se parece com isto.',
+      'nav.work': 'Trabalho',
+      'nav.projects': 'Projetos',
+      'nav.writing': 'Escritos',
+      'nav.contact': 'Contato',
+      'page.work.title': 'Trabalho',
+      'page.work.lead': 'Marcas, identidades e peças feitas para outra pessoa.',
+      'page.projects.title': 'Projetos',
+      'page.projects.lead': 'O que construo por conta própria: Fraterni(U) e Su Essencia.',
+      'page.writing.title': 'Escritos',
+      'page.writing.lead': 'Ensaios, estudos e notas do caminho.',
+      'page.about.title': 'Sobre o caminho',
+      'page.soon': 'Em construção. Em breve.',
       'doc.title':      'Juanjo López Ramírez — Criador e Consultor de Marca',
       'a11y.skip':      'Ir para o conteúdo',
       'a11y.menu':      'Abrir menu',
@@ -140,6 +173,19 @@
     },
 
     fr: {
+      'page.about.lead': 'Qui je suis, d’où je viens et pourquoi le travail ressemble à cela.',
+      'nav.work': 'Travaux',
+      'nav.projects': 'Projets',
+      'nav.writing': 'Écrits',
+      'nav.contact': 'Contact',
+      'page.work.title': 'Travaux',
+      'page.work.lead': 'Marques, identités et pièces faites pour quelqu’un d’autre.',
+      'page.projects.title': 'Projets',
+      'page.projects.lead': 'Ce que je construis seul : Fraterni(U) et Su Essencia.',
+      'page.writing.title': 'Écrits',
+      'page.writing.lead': 'Essais, études et notes du chemin.',
+      'page.about.title': 'À propos du chemin',
+      'page.soon': 'En construction. Bientôt.',
       'doc.title':      'Juanjo López Ramírez — Créateur & Consultant en Marque',
       'a11y.skip':      'Aller au contenu',
       'a11y.menu':      'Ouvrir le menu',
@@ -179,6 +225,19 @@
       'about.p4': "Je ne sépare pas qui je suis de ce que je construis : mon travail est, simplement, l'architecture de mes convictions, renforcées sur un chemin dont je continue d'apprendre."
     },
     it: {
+      'page.about.lead': 'Chi sono, da dove vengo e perché il lavoro ha questo aspetto.',
+      'nav.work': 'Lavori',
+      'nav.projects': 'Progetti',
+      'nav.writing': 'Scritti',
+      'nav.contact': 'Contatti',
+      'page.work.title': 'Lavori',
+      'page.work.lead': 'Marchi, identità e pezzi fatti per qualcun altro.',
+      'page.projects.title': 'Progetti',
+      'page.projects.lead': 'Ciò che costruisco per conto mio: Fraterni(U) e Su Essencia.',
+      'page.writing.title': 'Scritti',
+      'page.writing.lead': 'Saggi, studi e note del cammino.',
+      'page.about.title': 'Sul cammino',
+      'page.soon': 'In costruzione. Presto.',
       'doc.title':      'Juanjo López Ramírez — Creatore e Consulente di Marca',
       'a11y.skip':      'Vai al contenuto',
       'a11y.menu':      'Apri il menu',
@@ -218,58 +277,3 @@
       'about.p4': 'Non separo chi sono da ciò che costruisco: il mio lavoro è, semplicemente, l’architettura delle mie convinzioni, rafforzate lungo un cammino da cui continuo a imparare.'
     }
   };
-
-  function stored() {
-    try { return w.localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
-  }
-  function remember(lang) {
-    try { w.localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* private mode */ }
-  }
-
-  function initial() {
-    var saved = stored();
-    if (LANGS.indexOf(saved) !== -1) return saved;
-    var nav = (w.navigator.language || 'en').toLowerCase().slice(0, 2);
-    return LANGS.indexOf(nav) !== -1 ? nav : 'en';
-  }
-
-  var current = 'en';
-
-  function t(key) {
-    var pack = DICT[current] || DICT.en;
-    return pack[key] != null ? pack[key] : (DICT.en[key] != null ? DICT.en[key] : key);
-  }
-
-  function apply(lang) {
-    current = LANGS.indexOf(lang) !== -1 ? lang : 'en';
-
-    document.documentElement.setAttribute('lang', current);
-    document.title = t('doc.title');
-
-    var nodes = document.querySelectorAll('[data-i18n]');
-    for (var i = 0; i < nodes.length; i++) {
-      nodes[i].textContent = t(nodes[i].getAttribute('data-i18n'));
-    }
-
-    var labelled = document.querySelectorAll('[data-i18n-aria]');
-    for (var j = 0; j < labelled.length; j++) {
-      labelled[j].setAttribute('aria-label', t(labelled[j].getAttribute('data-i18n-aria')));
-    }
-
-    remember(current);
-    w.dispatchEvent(new CustomEvent('jj:langchange', { detail: { lang: current } }));
-  }
-
-  w.JJ = w.JJ || {};
-  w.JJ.i18n = {
-    init: function () { apply(initial()); },
-    apply: apply,
-    t: t,
-    langs: LANGS,
-    meta: META,
-    get current() { return current; },
-    others: function () {
-      return LANGS.filter(function (l) { return l !== current; });
-    }
-  };
-})(window);

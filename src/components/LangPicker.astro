@@ -1,0 +1,25 @@
+---
+import { META, otherLangs } from '../i18n/utils.js';
+import Icon from './Icon.astro';
+const { lang, t, path = '' } = Astro.props;
+const clean = String(path).replace(/^\/+|\/+$/g, '');
+const to = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
+---
+<!-- La bandera dice donde estas. Al abrirla, las otras son enlaces reales. -->
+<div class="lang" data-lang>
+  <ul class="lang__list" id="lang-list" hidden aria-label={t('a11y.langList')}>
+    {otherLangs(lang).map((l) => (
+      <li>
+        <a class="lang__option" href={to(l)} lang={l} hreflang={l} title={META[l].name} aria-label={META[l].name}>
+          <img src={META[l].flag} alt="" width="40" height="40" />
+        </a>
+      </li>
+    ))}
+  </ul>
+  <button class="lang__current" type="button" data-lang-toggle
+          aria-expanded="false" aria-controls="lang-list" aria-haspopup="true"
+          aria-label={t('a11y.lang')} title={t('a11y.lang')}>
+    <img class="lang__flag" src={META[lang].flag} alt="" width="40" height="40" />
+    <span class="lang__badge" aria-hidden="true"><Icon id="globe" /></span>
+  </button>
+</div>

@@ -1,0 +1,18 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import Base from '../../layouts/Base.astro';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const { lang } = Astro.params;
+const t = useT(lang);
+const title = t('page.work.title');
+---
+<Base lang={lang} path="work" active="work" title={`${title} — Juanjo López Ramírez`}>
+  <section class="page" data-glossary>
+    <h1 class="page__title">{title}</h1>
+    <p class="page__lead reveal">{t('page.work.lead') ?? ''}</p>
+    <p class="page__soon reveal">{t('page.soon')}</p>
+  </section>
+</Base>

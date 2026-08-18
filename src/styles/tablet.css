@@ -1,0 +1,85 @@
+/* =============================================================
+   Tablet — 600px y mas.
+   Aqui el hero se parte en dos columnas: identidad a la izquierda,
+   retrato a la derecha, y el boton del camino al centro, debajo.
+   ============================================================= */
+@media (min-width: 600px) {
+
+  :root { --gutter: 2.5rem; }
+
+  .site-header { padding-block: 1.1rem; }
+
+  /* El selector deja de flotar y ocupa su sitio junto al menu */
+  .site-header__lang { position: static; z-index: auto; }
+  .lang__list { bottom: auto; top: calc(100% + .55rem); }
+  .lang__list li { translate: 0 -12px; }
+  .brand__name { font-size: 1.1rem; }
+
+  .site-nav__list { padding-inline: 2.5rem; }
+  .site-nav__list a { font-size: 1.1rem; padding-block: 1rem; }
+
+  /* ---- Hero en dos columnas ---- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "identity portrait"
+      "tagline  tagline"
+      "cue      cue";
+    align-items: center;
+    column-gap: 2.5rem;
+    padding: 3rem var(--gutter) 0;
+    text-align: left;
+  }
+  .hero__identity { grid-area: identity; }
+  .hero__portrait { grid-area: portrait; }
+  .hero__tagline  { grid-area: tagline; }
+  .scroll-cue     { grid-area: cue; }
+
+  .hero__name { font-size: clamp(2.6rem, 6.4vw, 3.6rem); }
+  .hero__role { font-size: .95rem; margin-top: .8rem; justify-content: flex-start; }
+
+  .links { margin-top: 1.9rem; text-align: left; }
+  .links__title { font-size: 1rem; margin-bottom: 1rem; }
+  .links__list { justify-content: flex-start; gap: 1.1rem; }
+  .link-chip { width: 3.1rem; height: 3.1rem; }
+  .link-chip .icon { width: 1.85rem; height: 1.85rem; }
+
+  /* El retrato manda en su columna; la altura ya no lo limita */
+  .portrait {
+    width: min(100%, 26rem);
+    margin: 0 auto;
+  }
+  .hero__tagline {
+    max-width: 26rem;
+    margin: 1.4rem auto 0;
+    font-size: 1.05rem;
+    text-align: center;
+  }
+
+  .scroll-cue {
+    margin: 2.5rem auto 0;
+    padding-bottom: 2.5rem;
+    font-size: .9rem;
+  }
+
+  /* ---- About ---- */
+  .about { padding: 3.5rem var(--gutter) 3rem; }
+  .about p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 1.4rem; }
+  .about__mark { width: 20px; margin-top: 2rem; }
+
+  /* ---- Paginas interiores ---- */
+  .page { padding: 4rem var(--gutter) 5rem; }
+  .page__title { font-size: 2.4rem; }
+  .page__lead { font-size: 1.15rem; }
+
+  /* ---- Footer ---- */
+  .site-footer { padding-bottom: 3.5rem; }
+  .site-footer__logo { width: min(100%, 18rem); }
+  .site-footer__meta { font-size: .85rem; }
+
+  /* ---- Hojas ---- */
+  .social-panel__grid { grid-template-columns: repeat(8, 1fr); gap: 1.4rem .5rem; }
+  .social-panel__sheet,
+  .term-panel__sheet { padding-inline: var(--gutter); }
+}

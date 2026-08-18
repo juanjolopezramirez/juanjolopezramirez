@@ -134,27 +134,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   html { scroll-behavior: auto; }
   .reveal,
   .js-reveal .reveal { opacity: 1; transform: rotate(var(--rot)); transition: none; }
-  .sig__p { animation: none; clip-path: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
-}
-
-/* =============================================================
-   Desktop banner
-   ============================================================= */
-.desktop-banner {
-  display: none;                        /* switched on in css/desktop.css */
-  position: fixed; inset: 0 0 auto 0; z-index: 60;
-  gap: 1rem; align-items: flex-start;
-  padding: .9rem 1.1rem;
-  background: var(--ring);
-  color: var(--pine-900);
-}
-.desktop-banner__text { margin: 0; font-size: .9rem; line-height: 1.45; }
-.desktop-banner__text strong { display: block; font-weight: 800; }
-.desktop-banner__close {
-  flex: 0 0 auto; font-size: 1.5rem; line-height: 1;
-  padding: 0 .25rem; color: inherit;
 }
 
 /* =============================================================
@@ -170,10 +151,26 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   border-bottom: 1px solid rgba(241, 239, 233, .08);
 }
 
-.brand { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-.brand__mark { width: 12px; height: auto; flex: 0 0 auto; }
-/* The signature already says the name. Here it is only a watermark,
-   so the page does not say it twice at full voice. */
+.site-header__tools { display: flex; align-items: center; gap: .6rem; }
+.header-bar { display: flex; align-items: center; gap: .6rem; }
+.site-nav--wide { display: none; }        /* solo desde 1024px */
+
+.brand { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+
+/* La marca no cambia de tamano entre pantallas: el mismo dibujo, siempre.
+   Nunca por debajo de 16px — mas abajo el siete se cierra. */
+.brand__mark {
+  flex: 0 0 auto;
+  display: block;
+  width: 20px;
+  color: var(--bone);
+  transition: color .25s var(--ease);
+}
+.brand__mark .icon { width: 100%; height: auto; }
+.brand:hover .brand__mark { color: var(--iris-300); }
+
+/* El nombre ya se dice grande en el hero. Aqui es solo marca de agua,
+   para que la pagina no lo diga dos veces a plena voz. */
 .brand__name {
   opacity: .2;
   font-family: var(--serif);
@@ -224,31 +221,35 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   text-align: center;
 }
 
-/* The name first. The role explains it, underneath. */
+/* The name first, written — not drawn. Young Serif carries it, because
+   the name is the one place the serif is allowed to speak for me.
+   Never below 28px, one weight, tracked in. */
+.hero__name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(2.1rem, 11vw, 3rem);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: -.015em;
+  color: var(--bone);
+  text-wrap: balance;
+}
+
+/* The role explains the name, underneath. A single Iris tick before it,
+   so the label reads as a status and not as a second title. */
 .hero__role {
-  margin: .35rem 0 0;
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  margin: .7rem 0 0;
   font-size: .82rem; font-weight: 600;
   letter-spacing: .06em;
   color: var(--pine-200);
 }
-
-.hero__name { margin: 0; }
-.hero__name .sig {
-  width: min(100%, 15.5rem);
-  height: auto;
-  margin-inline: auto;
-  fill: var(--bone);
-  overflow: visible;
-}
-
-/* Each stroke is written left to right, in the order it was drawn. */
-.sig__p {
-  clip-path: inset(-5% 101% -5% -5%);
-  animation: sigWrite 460ms cubic-bezier(.34, .66, .38, 1) forwards;
-  animation-delay: calc(var(--i) * 115ms + 250ms);
-}
-@keyframes sigWrite {
-  to { clip-path: inset(-5% -5% -5% -5%); }
+.hero__role::before {
+  content: "";
+  flex: 0 0 auto;
+  width: .42rem; height: .42rem;
+  border-radius: 50%;
+  background: var(--iris);
 }
 
 .hero__tagline {
@@ -421,7 +422,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: var(--bone);
   color: var(--slate);
   text-align: center;
-  padding: 0 var(--gutter) 5.5rem;   /* room for the fixed language button */
+  padding: 0 var(--gutter) 5rem;
 }
 /* Dim the wrapper, not the image: `.reveal` owns the image's opacity
    and the two would override each other. */
@@ -582,27 +583,34 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 
 /* =============================================================
-   Language — the flag says where you are, not where you would go.
-   Tapping it opens the others.
+   Idioma — la bandera dice donde estas. Al abrirla, las otras son
+   enlaces reales a la misma pagina en otro idioma.
    ============================================================= */
-.lang {
+/* En movil flota abajo a la derecha, como antes de Astro.
+   Desde 600px vuelve a la cabecera (ver tablet.css). */
+.site-header__lang {
   position: fixed;
-  /* the offsets absorb the padding, so opening never moves the button */
   right: max(.6rem, env(safe-area-inset-right));
   bottom: max(.6rem, env(safe-area-inset-bottom));
   z-index: 55;
-  display: grid; justify-items: center; gap: .55rem;
+}
+
+.lang { position: relative; display: grid; justify-items: center; }
+
+.lang__list {
+  position: absolute;
+  bottom: calc(100% + .55rem);      /* abre hacia arriba: esta abajo del todo */
+  right: 0;
+  z-index: 60;
+  display: grid; gap: .45rem; justify-items: center;
   padding: .4rem;
   border-radius: 999px;
-  background: rgba(30, 47, 32, 0);            /* Pine 700, held invisible */
-  transition: background-color .55s var(--ease-smooth);
+  background: var(--pine-700);
+  box-shadow: 0 0 0 1px rgba(241, 239, 233, .08);
 }
-.lang.is-open { background: var(--pine-700); }
-
-.lang__list { display: grid; gap: .55rem; justify-items: center; }
 .lang__list li {
   opacity: 0;
-  translate: 0 14px;
+  translate: 0 12px;
   scale: .5;
   rotate: -40deg;
   transition:
@@ -618,34 +626,31 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .lang__current {
   position: relative;
   display: grid; place-items: center;
-  width: 2.5rem; height: 2.5rem;
+  width: 2.35rem; height: 2.35rem;
   transition: scale .3s var(--ease);
 }
 .lang__option:hover, .lang__current:hover { scale: 1.08; }
 .lang__option:active, .lang__current:active { scale: .95; }
 .lang__option img, .lang__flag { width: 100%; height: 100%; }
 
-/* One full, unhurried turn on the way open — and back on the way closed. */
-.lang__flag {
-  rotate: 0deg;
-  transition: rotate .85s var(--ease-smooth);
-}
+.lang__current { width: 2.5rem; height: 2.5rem; }
+
+/* Una vuelta entera, sin prisa, al abrir y al cerrar. */
+.lang__flag { rotate: 0deg; transition: rotate .85s var(--ease-smooth); }
 .lang.is-open .lang__flag { rotate: 360deg; }
 
-.lang__current { width: 2.75rem; height: 2.75rem; }
-
-/* A globe on the corner, so the flag reads as "language", not "country" */
+/* Un globo en la esquina: la bandera es idioma, no pais. */
 .lang__badge {
-  position: absolute; right: -2px; bottom: -2px;
-  width: 1.1rem; height: 1.1rem;
+  position: absolute; right: -3px; bottom: -3px;
+  width: 1.05rem; height: 1.05rem;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--bone);
   color: var(--pine);
 }
-.lang__badge .icon { width: .72rem; height: .72rem; }
+.lang__badge .icon { width: .7rem; height: .7rem; }
 
-/* Three quiet pulses on arrival, then it stops asking. */
+/* Tres pulsos al llegar, y deja de pedir atencion. */
 .lang__current::after {
   content: "";
   position: absolute; inset: -5px;
@@ -658,46 +663,36 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .lang.is-open .lang__current::after,
 .lang.has-used .lang__current::after { animation: none; }
 
-/* =============================================================
-   Timing — the order things arrive in, kept out of the markup.
-   ============================================================= */
-.sig__p:nth-child(1) { --i: 0; }
-.sig__p:nth-child(2) { --i: 1; }
-.sig__p:nth-child(3) { --i: 2; }
-.sig__p:nth-child(4) { --i: 3; }
-.sig__p:nth-child(5) { --i: 4; }
-.sig__p:nth-child(6) { --i: 5; }
-.sig__p:nth-child(7) { --i: 6; }
-.sig__p:nth-child(8) { --i: 7; }
-.sig__p:nth-child(9) { --i: 8; }
-.sig__p:nth-child(10) { --i: 9; }
-.sig__p:nth-child(11) { --i: 10; }
-.sig__p:nth-child(12) { --i: 11; }
-
-.social-panel__item:nth-child(1) { --d: 60ms; }
-.social-panel__item:nth-child(2) { --d: 105ms; }
-.social-panel__item:nth-child(3) { --d: 150ms; }
-.social-panel__item:nth-child(4) { --d: 195ms; }
-.social-panel__item:nth-child(5) { --d: 240ms; }
-.social-panel__item:nth-child(6) { --d: 285ms; }
-.social-panel__item:nth-child(7) { --d: 330ms; }
-.social-panel__item:nth-child(8) { --d: 375ms; }
-
-.lang__list li:nth-child(1) { --d: 0ms; }
-.lang__list li:nth-child(2) { --d: 55ms; }
-.lang__list li:nth-child(3) { --d: 110ms; }
-.lang__list li:nth-child(4) { --d: 165ms; }
-
-/* The four in the row, then the forest, then the portrait on top. */
-.links__list > li:nth-child(1) .reveal { --delay: 0ms; }
-.links__list > li:nth-child(2) .reveal { --delay: 70ms; }
-.links__list > li:nth-child(3) .reveal { --delay: 140ms; }
-.links__list > li:nth-child(4) .reveal { --delay: 210ms; }
-.portrait__forest { --delay: 0ms; }
-.portrait__me     { --delay: 220ms; }
-
 @keyframes langPulse {
   0%   { opacity: .85; scale: 1; }
   60%  { opacity: 0;   scale: 1.4; }
   100% { opacity: 0;   scale: 1.4; }
+}
+
+/* =============================================================
+   Paginas interiores — la misma voz, sin retrato.
+   ============================================================= */
+.page {
+  background: var(--bone);
+  color: var(--slate);
+  border-top: 3px solid var(--iris);
+  padding: 2.5rem var(--gutter) 3.5rem;
+  min-height: 60vh;
+}
+.page__title {
+  margin: 0 0 .6rem;
+  font-family: var(--serif);
+  font-size: 1.9rem; font-weight: 400;
+  letter-spacing: -.02em;
+}
+.page__lead {
+  max-width: var(--measure);
+  margin: 0 0 1.2rem;
+  font-size: 1rem; line-height: 1.75;
+}
+.page__soon {
+  margin: 0;
+  font-size: .78rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #5A6B74;
 }
