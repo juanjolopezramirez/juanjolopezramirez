@@ -14,35 +14,40 @@
   .site-nav__list { padding-inline: 2.5rem; }
   .site-nav__list a { font-size: 1.1rem; padding-block: 1rem; }
 
-  /* ---- Hero ---- */
-  .hero { padding-top: 3.5rem; }
-  .hero__eyebrow { font-size: .95rem; margin-bottom: 1.75rem; }
+  /* ---- Cover ---- */
+  .hero { padding-top: 2.5rem; }
+  .hero__eyebrow { font-size: .95rem; margin-top: 1rem; }
   .hero__name .sig { width: min(100%, 20rem); }
   .hero__tagline {
     max-width: 30rem;
     font-size: 1.1rem;
-    margin-top: 1.5rem;
+    margin-top: 1.1rem;
   }
 
-  .portrait {
-    width: min(100%, 30rem);
-    margin-top: 2.25rem;
-  }
+  /* The frame is allowed to get bigger; it is still the column that
+     decides whether it gets to. */
+  .portrait { margin-top: 1.4rem; }
+  .portrait__frame { max-height: 30rem; }
   .portrait__me { width: 58%; }
 
   /* ---- Links ---- */
-  .links { padding-top: 2.5rem; }
-  .links__title { font-size: 1rem; margin-bottom: 1.5rem; }
+  .links { margin-top: 2rem; }
+  .links__title { font-size: 1rem; margin-bottom: 1.1rem; }
   .links__list { gap: 2rem; }
   .link-chip { width: 3.25rem; height: 3.25rem; }
   .link-chip .icon { width: 1.9rem; height: 1.9rem; }
-  .links__list--secondary { gap: 2rem; }
 
   .scroll-cue {
     font-size: .9rem;
-    margin-top: 2.25rem;
-    padding-bottom: 2.25rem;
+    margin-top: 1.4rem;
+    padding-bottom: 1.75rem;
   }
+
+  /* ---- The panel ---- */
+  .links-dialog__panel { width: min(100%, 24rem); padding: 1.6rem 1.35rem 1.35rem; }
+  .links-dialog__title { font-size: 1rem; }
+  .links-dialog__link { font-size: 1.05rem; padding: .8rem .9rem; }
+  .links-dialog__link .icon { width: 1.6rem; height: 1.6rem; }
 
   /* ---- About ---- */
   .about { padding: 3.5rem var(--gutter) 3rem; }
@@ -64,4 +69,25 @@
     right: max(1.75rem, env(safe-area-inset-right));
     bottom: max(1.75rem, env(safe-area-inset-bottom));
   }
+}
+
+/* =============================================================
+   Wide but short is a phone held sideways, not a tablet. The scale
+   above would make the cover twice the height of the screen, so the
+   tablet breakpoint hands it back where it does not apply.
+   ============================================================= */
+@media (min-width: 600px) and (max-height: 620px) {
+  .hero__name .sig { width: min(100%, 14rem); }
+  .hero__eyebrow { font-size: .8rem; margin-top: .4rem; }
+  .hero__tagline { font-size: .9rem; max-width: 26rem; margin-top: .5rem; }
+
+  .links { margin-top: .7rem; }
+  .links__title { font-size: .82rem; margin-bottom: .5rem; }
+  .links__list { gap: 1.35rem; }
+  .link-chip { width: 2.6rem; height: 2.6rem; }
+  .link-chip .icon { width: 1.5rem; height: 1.5rem; }
+  .links__more { width: 2.2rem; height: 2.2rem; margin-top: .25rem; }
+
+  .portrait { margin-top: .5rem; }
+  .scroll-cue { font-size: .78rem; margin-top: .5rem; padding-bottom: .7rem; }
 }

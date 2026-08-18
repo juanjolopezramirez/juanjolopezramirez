@@ -52,6 +52,7 @@ that makes fonts and caching behave predictably.
 | Pine | `#263B28` — the dark field |
 | Iris | `#7D9B4E` — the one line, the mark |
 | Ring | `#C08A2E` — once per piece: the footer mark, the desktop notice |
+| Role | Creator & Brand Consultant — under the signature, never above it |
 | Display | Young Serif — header name only |
 | Signature | `signature.svg`, inlined and animated stroke by stroke |
 | Footer | `nada-que-demostrar.svg` — the logo, not typed text |
@@ -63,6 +64,22 @@ Contrast: Slate on Bone is 10.1:1. Bone on Pine is 10.4:1.
 
 ## How the pieces work
 
+**The cover is one screen, 80vh tall.** Signature, role, tagline, the four links, the
+face and the arrow all live in a single flex column so the whole thing can be taken in
+at once — the arrow that suggests scrolling is worthless below the fold. The height is
+`svh`, the *small* viewport, so nothing hides behind a browser bar that is about to
+reappear; plain `vh` sits underneath it for older engines.
+
+**The face is the only thing that gives.** Everything else in the column is
+`flex: 0 0 auto`; the portrait takes whatever height is left and its frame stays square
+by deriving its width from that height. Below 730px of screen the *type* shrinks first,
+because a name can be read smaller and a face cannot. Below 480px — a phone held
+sideways — the cover stops pretending to be a screen and simply becomes as tall as what
+it holds.
+
+**The links come before the face**, because they are what the page is for; the face is
+who is asking.
+
 **The two images are separate on purpose.** `forest-only.png` sits behind at 3.52°;
 `just-me.png` rises 220 ms later. Both use `.reveal`, which translates and fades — never
 scales. Things arrive as though pulled, not as though swelling into existence.
@@ -71,9 +88,13 @@ scales. Things arrive as though pulled, not as though swelling into existence.
 so it can be reached at any moment. It shows the flag of the language you would switch *to*:
 reading Spanish, you see the UK flag. The choice persists in `localStorage`.
 
-**The "•••" button** holds TikTok, YouTube and X. They stagger in at 0 / 80 / 160 ms, set by
-`:nth-child` in `styles.css` rather than written onto the elements by script. Closed by
-default, because the four that matter should be met first.
+**The "•••" button opens a panel, not a longer page.** Appending the extra platforms
+underneath used to push the portrait down the moment anyone was curious, which is an ugly
+thing to do to a face. All seven now open in a centred `<dialog>` — icon and name, the
+same borrowed brand colour on contact — and the cover behind it does not move by a pixel.
+`showModal()` brings the focus trap, the Escape key and the inert page for free, so none
+of that is re-implemented in script; the only thing `ui.js` adds is the transition either
+side of it. The four that matter are still met first, in the cover itself.
 
 **On hover each chip fills with its platform's own colour and bounces once.** Two custom
 properties per chip carry it — `--brand-bg` (a colour *or* a gradient) and `--brand-fg`
@@ -112,10 +133,10 @@ composition in a 34rem column on a darker ground. The notice is dismissible per 
 
 ## TODO before publishing
 
-1. **Replace the social URLs.** Seven `href`s in `index.html` are marked with
-   `<!-- TODO Juanjo -->`. They are plausible guesses, not confirmed profiles:
-   LinkedIn, Instagram, GitHub, TikTok, YouTube, X. The website link
-   (`juanjolopezramirez.com`) is the one that came from your own assets.
+1. **Replace the social URLs.** Seven profiles are plausible guesses, not confirmed:
+   LinkedIn, Instagram, GitHub, VSCO, TikTok, YouTube, X. Each one appears **twice** in
+   `index.html` — once as a chip in the cover, once as a row in the panel — so change both.
+   The website link (`juanjolopezramirez.com`) is the one that came from your own assets.
 2. Add a real `og:image` and social meta if the page will be shared.
 3. Decide whether the header nav needs a fifth item once there is a projects page.
 

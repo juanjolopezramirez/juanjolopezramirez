@@ -27,7 +27,6 @@
   /* ---- Hold the mobile composition in a centred column ---- */
   .site-header,
   .hero,
-  .links,
   .about,
   .site-footer {
     max-width: 34rem;
@@ -38,8 +37,7 @@
      phone it was drawn for, rather than a stretched page. */
   body { background-color: var(--pine-900); }
 
-  .hero,
-  .links        { background-color: var(--pine); }
+  .hero         { background-color: var(--pine); }
   .site-header  { background-color: var(--pine-700); }
 
   .site-nav { max-width: 34rem; margin-inline: auto; }
@@ -47,7 +45,31 @@
   /* ---- Slightly calmer scale than tablet: nothing is set in a size
           that cannot be spoken quietly ---- */
   .hero__name .sig { width: min(100%, 19rem); }
-  .portrait { width: min(100%, 28rem); }
+  .portrait__frame { max-height: 28rem; }
+
+  /* The tablet scale above assumes a whole screen. Here the notice and the
+     header have already taken theirs, so the type comes back down — a cover
+     that fits by dropping the face is not the one that was asked for. */
+  .hero__eyebrow { font-size: .85rem; margin-top: .45rem; }
+  .hero__tagline { font-size: .95rem; max-width: 26rem; margin-top: .55rem; }
+
+  .links { margin-top: .8rem; }
+  .links__title { font-size: .85rem; margin-bottom: .5rem; }
+  .links__list { gap: 1.5rem; }
+  .link-chip { width: 2.75rem; height: 2.75rem; }
+  .link-chip .icon { width: 1.6rem; height: 1.6rem; }
+  .links__more { width: 2.25rem; height: 2.25rem; margin-top: .25rem; }
+  .links__more .icon { width: 1.4rem; height: 1.4rem; }
+
+  .portrait { margin-top: .6rem; }
+  .scroll-cue { font-size: .8rem; margin-top: .6rem; padding-bottom: .9rem; }
+
+  /* The notice eats into the screen, so the cover gives back the same
+     amount — otherwise the arrow it exists to show falls below the fold. */
+  body:not(.banner-dismissed) .hero {
+    height: calc(80vh - var(--banner-h, 4.25rem));
+    height: calc(80svh - var(--banner-h, 4.25rem));
+  }
 
   /* Pointer devices get the hover affordances the touch layout doesn't need */
   .link-chip { transition-duration: .25s; }
@@ -63,7 +85,6 @@
 @media (min-width: 1440px) {
   .site-header,
   .hero,
-  .links,
   .about,
   .site-footer,
   .site-nav { max-width: 36rem; }
