@@ -26,6 +26,10 @@ Personal Web Page/
 Scripts are plain `<script defer>` (no ES modules) so the page also works when opened
 straight from the filesystem.
 
+No `<style>` block and no `style` attribute anywhere in the markup: every rule lives in
+`styles.css` (mobile), `css/tablet.css` (≥600px) or `css/desktop.css` (≥1024px). The HTML
+names things; the CSS decides how they look.
+
 ## Run it
 
 Any static server works. From this folder:
@@ -48,6 +52,7 @@ that makes fonts and caching behave predictably.
 | Pine | `#263B28` — the dark field |
 | Iris | `#7D9B4E` — the one line, the mark |
 | Ring | `#C08A2E` — once per piece: the footer mark, the desktop notice |
+| Role | Creator & Brand Consultant — under the signature, never above it |
 | Display | Young Serif — header name only |
 | Signature | `signature.svg`, inlined and animated stroke by stroke |
 | Footer | `nada-que-demostrar.svg` — the logo, not typed text |
@@ -59,6 +64,22 @@ Contrast: Slate on Bone is 10.1:1. Bone on Pine is 10.4:1.
 
 ## How the pieces work
 
+**The cover is one screen, 80vh tall.** Signature, role, tagline, the four links, the
+face and the arrow all live in a single flex column so the whole thing can be taken in
+at once — the arrow that suggests scrolling is worthless below the fold. The height is
+`svh`, the *small* viewport, so nothing hides behind a browser bar that is about to
+reappear; plain `vh` sits underneath it for older engines.
+
+**The face is the only thing that gives.** Everything else in the column is
+`flex: 0 0 auto`; the portrait takes whatever height is left and its frame stays square
+by deriving its width from that height. Below 730px of screen the *type* shrinks first,
+because a name can be read smaller and a face cannot. Below 480px — a phone held
+sideways — the cover stops pretending to be a screen and simply becomes as tall as what
+it holds.
+
+**The links come before the face**, because they are what the page is for; the face is
+who is asking.
+
 **The two images are separate on purpose.** `forest-only.png` sits behind at 3.52°;
 `just-me.png` rises 220 ms later. Both use `.reveal`, which translates and fades — never
 scales. Things arrive as though pulled, not as though swelling into existence.
@@ -67,12 +88,18 @@ scales. Things arrive as though pulled, not as though swelling into existence.
 so it can be reached at any moment. It shows the flag of the language you would switch *to*:
 reading Spanish, you see the UK flag. The choice persists in `localStorage`.
 
-**The "•••" button** holds TikTok, YouTube, X and VSCO. They stagger in at 0 / 80 / 160 / 240 ms.
-Closed by default, because the four that matter should be met first.
+**The "•••" button opens a panel, not a longer page.** Appending the extra platforms
+underneath used to push the portrait down the moment anyone was curious, which is an ugly
+thing to do to a face. All seven now open in a centred `<dialog>` — icon and name, the
+same borrowed brand colour on contact — and the cover behind it does not move by a pixel.
+`showModal()` brings the focus trap, the Escape key and the inert page for free, so none
+of that is re-implemented in script; the only thing `ui.js` adds is the transition either
+side of it. The four that matter are still met first, in the cover itself.
 
 **On hover each chip fills with its platform's own colour and bounces once.** Two custom
 properties per chip carry it — `--brand-bg` (a colour *or* a gradient) and `--brand-fg`
-(the icon):
+(the icon). Both are declared in `styles.css` on a `.link-chip--<platform>` class, so the
+markup only names the platform and never carries a colour:
 
 | | background | icon |
 |---|---|---|
@@ -89,7 +116,9 @@ one thing borrowed from outside the five, and only on contact. `chipBounce` anim
 `scale` property — not `transform` — so it composes with the reveal instead of cancelling it.
 
 **The signature is inlined, not an `<img>`**, so its twelve strokes can arrive in turn —
-65 ms apart, starting at 150 ms. `prefers-reduced-motion` shows them all at once.
+115 ms apart, starting at 250 ms. Each stroke's place in that order is read from its
+position in the document (`.sig__p:nth-of-type()`), so nothing has to be numbered by hand
+in the markup. `prefers-reduced-motion` shows them all at once.
 
 **The flags are circular in the file, not clipped by CSS.** Both are drawn on a 40×40
 viewBox with a `<circle cx=20 cy=20 r=20>` clip path, so the circle is exactly centred and
@@ -104,10 +133,10 @@ composition in a 34rem column on a darker ground. The notice is dismissible per 
 
 ## TODO before publishing
 
-1. **Replace the social URLs.** Seven `href`s in `index.html` are marked with
-   `<!-- TODO Juanjo -->`. They are plausible guesses, not confirmed profiles:
-   LinkedIn, Instagram, GitHub, TikTok, YouTube, X. The website link
-   (`juanjolopezramirez.com`) is the one that came from your own assets.
+1. **Replace the social URLs.** Seven profiles are plausible guesses, not confirmed:
+   LinkedIn, Instagram, GitHub, VSCO, TikTok, YouTube, X. Each one appears **twice** in
+   `index.html` — once as a chip in the cover, once as a row in the panel — so change both.
+   The website link (`juanjolopezramirez.com`) is the one that came from your own assets.
 2. Add a real `og:image` and social meta if the page will be shared.
 3. Decide whether the header nav needs a fifth item once there is a projects page.
 

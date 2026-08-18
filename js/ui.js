@@ -36,34 +36,63 @@
     });
   }
 
-  /* ---------- The "more platforms" button ------------------ */
-  function initMore() {
+  /* ---------- The panel with every platform ----------------- */
+  /* The extra platforms used to be appended to the page, which pushed the
+     portrait down the moment anyone was curious. They open in a dialog now,
+     so the cover never moves. showModal() brings the focus trap, the Escape
+     key and the inert page behind it; none of that is re-implemented here. */
+  function initLinksDialog() {
     var btn = d.querySelector('[data-more-toggle]');
-    var list = d.getElementById('links-secondary');
-    if (!btn || !list) return;
+    var dlg = d.getElementById('all-links');
+    if (!btn || !dlg) return;
 
-    var items = list.querySelectorAll('li');
-    for (var i = 0; i < items.length; i++) {
-      items[i].style.setProperty('--delay', (i * 80) + 'ms');
+    var CLOSE_MS = 300;                       // matches the panel's transition
+    var modal = typeof dlg.showModal === 'function';
+    var closing = null;
+
+    function open() {
+      if (closing) { w.clearTimeout(closing); closing = null; }
+      if (modal) dlg.showModal();
+      else dlg.setAttribute('open', '');      // no <dialog> support: still usable
+      d.body.classList.add('is-locked');
+      // Force a reflow so the transition has a starting point to leave from.
+      // (rAF would be throttled to nothing in a backgrounded tab.)
+      void dlg.offsetHeight;
+      dlg.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
     }
 
-    btn.addEventListener('click', function () {
-      var open = btn.getAttribute('aria-expanded') !== 'true';
-      btn.setAttribute('aria-expanded', String(open));
-      btn.setAttribute('aria-label', w.JJ.i18n.t(open ? 'a11y.less' : 'a11y.more'));
+    function close() {
+      if (!dlg.hasAttribute('open')) return;
+      dlg.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      d.body.classList.remove('is-locked');
+      // Let the panel leave before the browser takes the element away.
+      closing = w.setTimeout(function () {
+        closing = null;
+        if (modal) dlg.close();
+        else dlg.removeAttribute('open');
+        btn.focus();
+      }, CLOSE_MS);
+    }
 
-      if (open) {
-        list.hidden = false;
-        // Force a reflow so the transition has a starting point to leave from.
-        // (rAF would be throttled to nothing in a backgrounded tab.)
-        void list.offsetHeight;
-        list.classList.add('is-open');
-      } else {
-        list.classList.remove('is-open');
-        w.setTimeout(function () {
-          if (btn.getAttribute('aria-expanded') !== 'true') list.hidden = true;
-        }, 450);
-      }
+    btn.addEventListener('click', open);
+
+    // The dialog fills the viewport and the panel sits inside it, so a click
+    // that lands on the dialog itself landed outside the panel.
+    dlg.addEventListener('click', function (e) {
+      if (e.target === dlg || e.target.closest('[data-close-dialog]')) close();
+    });
+
+    // Escape: take it ourselves, so the panel leaves instead of vanishing.
+    dlg.addEventListener('cancel', function (e) {
+      e.preventDefault();
+      close();
+    });
+
+    // A destination closes the panel behind you, as the menu does.
+    dlg.addEventListener('click', function (e) {
+      if (e.target.closest('a')) close();
     });
   }
 
@@ -144,14 +173,18 @@
   /* ---------- Small things --------------------------------- */
   function initYear() {
     var y = d.getElementById('year');
-    if (y) y.textContent = String(new Date().getFullYear());
+    if (!y) return;
+    var year = String(new Date().getFullYear());
+    y.textContent = year;
+    // <time> must not say one year and mean another
+    if (y.hasAttribute('datetime')) y.setAttribute('datetime', year);
   }
 
   w.JJ = w.JJ || {};
   w.JJ.ui = {
     init: function () {
       initNav();
-      initMore();
+      initLinksDialog();
       initLang();
       initBanner();
       initYear();

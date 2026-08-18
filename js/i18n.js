@@ -9,14 +9,15 @@
 
   var DICT = {
     en: {
-      'doc.title':     'Juanjo López Ramírez — Brand Consultant & Creator',
+      'doc.title':     'Juanjo López Ramírez — Creator & Brand Consultant',
       'a11y.skip':     'Skip to content',
       'a11y.menu':     'Open menu',
       'a11y.menuClose':'Close menu',
-      'a11y.more':     'Show more platforms',
-      'a11y.less':     'Hide extra platforms',
+      'a11y.more':     'See every platform',
+      'a11y.close':    'Close',
       'a11y.dismiss':  'Dismiss',
       'a11y.lang':     'Cambiar a español',
+      'a11y.nav':      'Main',
 
       'desktop.title': 'The desktop version is on its way.',
       'desktop.body':  'This experience was designed for phone and tablet first. The wide layout is still being built — for now, here is the mobile one.',
@@ -26,13 +27,14 @@
       'nav.about':     'About the journey',
       'nav.write':     'Write to me',
 
-      'hero.role':     'Brand Consultant & Creator',
+      'hero.role':     'Creator & Brand Consultant',
       'hero.tagline1': 'learning to walk',
       'hero.lightly':  'lightly',
       'hero.comma':    ',',
       'hero.tagline2': 'along just one path',
 
       'links.title':   'Find me here:',
+      'links.all':     'Every place, in one list:',
       'links.website': 'Website',
 
       'scroll.label':  'About the journey',
@@ -46,14 +48,15 @@
     },
 
     es: {
-      'doc.title':     'Juanjo López Ramírez — Brand Consultant & Creator',
+      'doc.title':     'Juanjo López Ramírez — Creator & Brand Consultant',
       'a11y.skip':     'Saltar al contenido',
       'a11y.menu':     'Abrir menú',
       'a11y.menuClose':'Cerrar menú',
-      'a11y.more':     'Ver más plataformas',
-      'a11y.less':     'Ocultar plataformas',
+      'a11y.more':     'Ver todas las plataformas',
+      'a11y.close':    'Cerrar',
       'a11y.dismiss':  'Cerrar',
       'a11y.lang':     'Switch to English',
+      'a11y.nav':      'Principal',
 
       'desktop.title': 'La versión de escritorio está en camino.',
       'desktop.body':  'Esta experiencia se diseñó primero para móvil y tablet. La versión ancha todavía se está construyendo — por ahora, esta es la móvil.',
@@ -63,13 +66,14 @@
       'nav.about':     'Sobre el camino',
       'nav.write':     'Escríbeme',
 
-      'hero.role':     'Consultor de Marca y Creador',
+      'hero.role':     'Creador y Consultor de Marca',
       'hero.tagline1': 'aprendiendo a caminar',
       'hero.lightly':  'ligero',
       'hero.comma':    ',',
       'hero.tagline2': 'a lo largo de un solo camino',
 
       'links.title':   'Encuéntrame en las siguientes plataformas:',
+      'links.all':     'Todos los lugares, en una lista:',
       'links.website': 'Sitio web',
 
       'scroll.label':  'Sobre el camino',
