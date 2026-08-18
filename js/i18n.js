@@ -8,13 +8,14 @@
   var STORAGE_KEY = 'jjlr-lang';
 
   /* The order they appear in the picker. */
-  var LANGS = ['es', 'en', 'pt', 'fr'];
+  var LANGS = ['es', 'en', 'pt', 'fr', 'it'];
 
   var META = {
     es: { name: 'Español',    flag: 'assets/icons/flag-co.svg', code: 'ES' },
-    en: { name: 'English',    flag: 'assets/icons/flag-uk.svg', code: 'EN' },
+    en: { name: 'English',    flag: 'assets/icons/flag-us.svg', code: 'EN' },
     pt: { name: 'Português',  flag: 'assets/icons/flag-br.svg', code: 'PT' },
-    fr: { name: 'Français',   flag: 'assets/icons/flag-fr.svg', code: 'FR' }
+    fr: { name: 'Français',   flag: 'assets/icons/flag-fr.svg', code: 'FR' },
+    it: { name: 'Italiano',   flag: 'assets/icons/flag-it.svg', code: 'IT' }
   };
 
   var DICT = {
@@ -176,6 +177,45 @@
       'about.p2': "Né dans les montagnes de Cundinamarca, je marche sur un seul chemin : Ahava. Inspiré par l'esprit de Timothée, je crée avec courage, discipline et, par-dessus tout, amour — même si j'apprends encore à aimer ainsi (agapè).",
       'about.p3': "L'attention n'est pas le but. Enseigner et faire connaître la vérité, si. Cette même quête de la vérité essentielle (Emet) définit mon approche de la stratégie de marque.",
       'about.p4': "Je ne sépare pas qui je suis de ce que je construis : mon travail est, simplement, l'architecture de mes convictions, renforcées sur un chemin dont je continue d'apprendre."
+    },
+    it: {
+      'doc.title':      'Juanjo López Ramírez — Creatore e Consulente di Marca',
+      'a11y.skip':      'Vai al contenuto',
+      'a11y.menu':      'Apri il menu',
+      'a11y.menuClose': 'Chiudi il menu',
+      'a11y.more':      'Vedi tutte le mie piattaforme',
+      'a11y.closePanel':'Chiudi',
+      'a11y.dismiss':   'Chiudi',
+      'a11y.lang':      'Lingua: Italiano. Cambia lingua',
+      'a11y.langList':  'Scegli una lingua',
+
+      'desktop.title':  'La versione desktop è in arrivo.',
+      'desktop.body':   'Questa esperienza è stata pensata prima per cellulare e tablet. La versione ampia è ancora in costruzione — per ora, ecco quella mobile.',
+
+      'nav.start':      'Inizio',
+      'nav.links':      'Dove trovarmi',
+      'nav.about':      'Sul cammino',
+      'nav.write':      'Scrivimi',
+
+      'hero.role':      'Creatore e Consulente di Marca',
+      'hero.tagline1':  'imparare a camminare',
+      'hero.lightly':   'leggero',
+      'hero.comma':     ',',
+      'hero.tagline2':  'lungo un solo cammino',
+      'hero.ahava':     '(ahavà)',
+
+      'links.title':    'Trovami qui:',
+      'social.title':   'Tutte le mie piattaforme',
+      'term.source':    'Fonte',
+      'term.meaning':   'Significato',
+      'a11y.termClose': 'Chiudi',
+
+      'scroll.label':   'Sul cammino',
+
+      'about.p1': 'Creo alla ricerca di ciò che è giusto e seguo l’origine stessa. Attraverso il design, il cinema e la tecnologia, cerco di rafforzare il carattere, ampliare la prospettiva e rivelare ciò che davvero permane.',
+      'about.p2': 'Cresciuto tra le montagne di Cundinamarca, cammino lungo un solo sentiero: Ahavà. Ispirato dallo spirito di Timoteo, creo con coraggio, disciplina e, soprattutto, amore — anche se sto ancora imparando ad amare così (agape).',
+      'about.p3': 'L’attenzione non è l’obiettivo. Insegnare e far conoscere la verità, sì. Questa stessa ricerca della verità essenziale (Emet) è ciò che definisce il mio approccio alla strategia di marca.',
+      'about.p4': 'Non separo chi sono da ciò che costruisco: il mio lavoro è, semplicemente, l’architettura delle mie convinzioni, rafforzate lungo un cammino da cui continuo a imparare.'
     }
   };
 

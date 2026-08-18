@@ -46,7 +46,7 @@ Digamos que quieres cambiar **"Encuéntrame aquí:"**.
 
 **2.** Copia la clave: `links.title`
 
-**3.** Abre `js/i18n.js` y busca `links.title`. Vas a encontrar **cuatro**, una por idioma:
+**3.** Abre `js/i18n.js` y busca `links.title`. Vas a encontrar **cinco**, una por idioma:
 
 ```js
     es: {
@@ -106,22 +106,27 @@ O el apóstrofo tipográfico `’`, que no rompe nada:
 
 ---
 
-## Los cuatro idiomas
+## Los cinco idiomas
 
-`js/i18n.js` tiene cuatro bloques, en este orden:
+`js/i18n.js` tiene cinco bloques, en este orden:
 
 ```js
   var DICT = {
-    en: {  ...inglés...   },
-    es: {  ...español...  },
+    en: {  ...inglés...    },
+    es: {  ...español...   },
     pt: {  ...portugués... },
-    fr: {  ...francés...  }
+    fr: {  ...francés...   },
+    it: {  ...italiano...  }
   };
 ```
 
-Si cambias un texto, **cámbialo en los cuatro**, o ese idioma se queda con lo viejo.
+Si cambias un texto, **cámbialo en los cinco**, o ese idioma se queda con lo viejo.
 
-Si no quieres traducir algo todavía, déjalo en inglés en los otros tres. La página no se
+> **Cuidado con dónde pegas un bloque nuevo.** Tiene que quedar *dentro* de `var DICT = {…};`
+> y no dentro de `w.JJ.i18n = {…}` que está más abajo. Si te equivocas, ese idioma se ve todo
+> en inglés aunque la bandera cambie.
+
+Si no quieres traducir algo todavía, déjalo en inglés en los demás. La página no se
 rompe: si falta una clave en un idioma, usa la de inglés automáticamente.
 
 ---
@@ -136,9 +141,10 @@ Esto ya está resuelto, pero por si lo quieres ajustar. La clave es `hero.ahava`
 | Inglés | `'hero.ahava'` | `'(ahavah)'` |
 | Portugués | `'hero.ahava'` | `'(ahavá)'` |
 | Francés | `'hero.ahava'` | `'(ahava)'` |
+| Italiano | `'hero.ahava'` | `'(ahavà)'` |
 
 La misma palabra aparece también **dentro del párrafo** `about.p2`, escrita a mano en cada
-idioma (`Ahavá` / `Ahavah` / `Ahavá` / `Ahava`). Si cambias la ortografía en `hero.ahava`,
+idioma (`Ahavá` / `Ahavah` / `Ahavá` / `Ahava` / `Ahavà`). Si cambias la ortografía en `hero.ahava`,
 cámbiala también ahí para que el glosario la siga reconociendo.
 
 ---
@@ -155,7 +161,7 @@ Cada término tiene esta forma:
       dir:      'rtl',                        ← 'rtl' hebreo, 'ltr' griego
       language: { es: 'Hebreo bíblico', ... }, ← qué idioma es
       title:    { es: 'Ahavá', en: 'Ahavah', ... },
-      forms:    ['ahavá', 'ahavah', 'ahava'], ← cómo aparece escrita en la página
+      forms:    ['ahavá', 'ahavah', 'ahavà', 'ahava'],  ← cómo aparece escrita
       def: {
         es: 'Amor. No nombra un sentimiento...',
         ...
@@ -198,17 +204,17 @@ Pendientes de confirmar: Instagram, GitHub, Facebook, TikTok, YouTube, X y VSCO.
 
 ## No veo mis cambios
 
-El navegador guarda copias viejas de los archivos. Por eso los enlaces llevan `?v=8`:
+El navegador guarda copias viejas de los archivos. Por eso los enlaces llevan `?v=13`:
 
 ```html
-<link rel="stylesheet" href="styles.css?v=8" />
-<script src="js/i18n.js?v=8" defer></script>
+<link rel="stylesheet" href="styles.css?v=13" />
+<script src="js/i18n.js?v=13" defer></script>
 ```
 
 **Si editaste y no ves nada:**
 
 1. Presiona **Ctrl + Shift + R** (recarga forzada).
-2. Si aún no, sube el número: cambia **todos** los `?v=8` a `?v=9` en `index.html`.
+2. Si aún no, sube el número: cambia **todos** los `?v=13` a `?v=14` en `index.html`.
 
 ---
 

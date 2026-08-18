@@ -63,7 +63,7 @@ that makes fonts and caching behave predictably.
 | Display | Young Serif — header name only |
 | Signature | `signature.svg`, inlined and written stroke by stroke |
 | Role | *Creator & Brand Consultant*, under the signature, translated per language |
-| Languages | es · en · pt · fr |
+| Languages | es · en · pt · fr · it |
 | Footer | `nada-que-demostrar.svg` — the logo, not typed text |
 | Text | Bricolage Grotesque — everything read, and every numeral |
 | Hand | Petemoss — exactly one word: *ligero* / *lightly* |
@@ -95,6 +95,12 @@ safe-area insets. The choice persists in `localStorage`.
 sheet over the page holding all seven platforms, staggered 45 ms apart, each keeping its circle
 and its hover colour. The sheet is an overlay on purpose: expanding the list inline pushed the
 portrait down, and a photo that jumps is worse than a tap.
+
+**The portrait is as large as the screen allows, never larger.**
+`min(80vw, 19rem, max(9rem, calc(100vh - 500px)))` — the last term is the height left over
+once the name, the links and the arrow have taken their share. On a 812 px phone it renders
+at 300 px; on a 667 px one it steps down to 167 px so the arrow stays visible. Sizing it on
+width alone pushed the arrow 60 px off a short screen.
 
 **The cover is meant to be seen whole.** Signature, role, tagline, links, portrait and the
 scroll arrow all fit above the fold on a 375×812 screen — the arrow ends at 699 px. That is why
