@@ -30,11 +30,8 @@
     var io = new IntersectionObserver(function (entries, observer) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
-        var el = entry.target;
-        var delay = parseInt(el.getAttribute('data-reveal-delay'), 10);
-        if (!isNaN(delay) && delay > 0) el.style.setProperty('--delay', delay + 'ms');
-        el.classList.add('is-visible');
-        observer.unobserve(el);        // it settles; it does not keep talking
+        entry.target.classList.add('is-visible');   // the delay lives in the stylesheet
+        observer.unobserve(entry.target);          // it settles; it does not keep talking
       });
     }, {
       root: null,

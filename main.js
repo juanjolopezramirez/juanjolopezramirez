@@ -7,7 +7,7 @@
   'use strict';
 
   function boot() {
-    if (!w.JJ || !w.JJ.i18n || !w.JJ.ui || !w.JJ.reveal) {
+    if (!w.JJ || !w.JJ.i18n || !w.JJ.ui || !w.JJ.reveal || !w.JJ.glossary) {
       // A module did not load. Say so, and leave the page readable.
       if (w.console) w.console.warn('[JJ] a module is missing — the page still reads, it just will not move.');
       document.documentElement.setAttribute('lang', 'en');
@@ -16,9 +16,10 @@
       return;
     }
 
-    w.JJ.i18n.init();   // labels
-    w.JJ.ui.init();     // controls
-    w.JJ.reveal.init(); // motion
+    w.JJ.i18n.init();     // labels
+    w.JJ.glossary.init(); // the words that are not ours
+    w.JJ.ui.init();       // controls
+    w.JJ.reveal.init();   // motion
 
     document.documentElement.classList.add('js-ready');
   }

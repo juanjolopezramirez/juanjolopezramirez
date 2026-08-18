@@ -34,6 +34,7 @@
 
   /* Motion */
   --ease: cubic-bezier(.22, .61, .36, 1);
+  --ease-smooth: cubic-bezier(.16, 1, .3, 1);   /* long tail, no snap */
   --dur: 900ms;
 }
 
@@ -171,7 +172,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 .brand { display: flex; align-items: center; gap: .6rem; min-width: 0; }
 .brand__mark { width: 12px; height: auto; flex: 0 0 auto; }
+/* The signature already says the name. Here it is only a watermark,
+   so the page does not say it twice at full voice. */
 .brand__name {
+  opacity: .2;
   font-family: var(--serif);
   font-size: .95rem;
   letter-spacing: -.015em;
@@ -187,10 +191,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .nav-toggle__bar {
   display: block; width: 26px; height: 2px;
   background: var(--bone);
-  transition: transform .35s var(--ease), opacity .2s linear;
+  transition: transform .26s var(--ease), opacity .09s linear, scale .16s var(--ease);
 }
 .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2) { opacity: 0; scale: .3 1; }
 .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 /* Slide-down panel */
@@ -216,15 +220,16 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
    Hero
    ============================================================= */
 .hero {
-  padding: 2.5rem var(--gutter) 0;
+  padding: 1.5rem var(--gutter) 0;
   text-align: center;
 }
 
-.hero__eyebrow {
-  margin: 0 0 1.25rem;
-  font-size: .8rem; font-weight: 600;
-  letter-spacing: .02em;
-  color: var(--bone);
+/* The name first. The role explains it, underneath. */
+.hero__role {
+  margin: .35rem 0 0;
+  font-size: .82rem; font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--pine-200);
 }
 
 .hero__name { margin: 0; }
@@ -247,7 +252,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 
 .hero__tagline {
-  margin: 1.1rem auto 0;
+  margin: 1rem auto 0;
   max-width: 22rem;
   font-size: .95rem; font-weight: 300;
   line-height: 1.55;
@@ -258,8 +263,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* --- The two images ------------------------------------------------ */
 .portrait {
   position: relative;
-  margin: 1.5rem auto 0;
-  width: min(100%, 22rem);
+  margin: .9rem auto 0;
+  width: min(64vw, 15rem);
   aspect-ratio: 1 / 1;
 }
 .portrait__forest {
@@ -283,20 +288,20 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
    Links
    ============================================================= */
 .links {
-  padding: 1.75rem var(--gutter) 0;
+  margin-top: 1.25rem;
   text-align: center;
 }
 .links__title {
-  margin: 0 0 1.1rem;
-  font-size: .85rem; font-weight: 600;
+  margin: 0 0 .7rem;
+  font-size: .82rem; font-weight: 600;
   letter-spacing: -.01em;
   color: var(--bone);
 }
 
 .links__list {
   display: flex; justify-content: center; align-items: center;
-  gap: 1.35rem;
-  flex-wrap: wrap;
+  gap: .9rem;
+  flex-wrap: nowrap;
 }
 
 .link-chip {
@@ -329,40 +334,57 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 
 /* The quiet button */
-.links__more {
-  display: grid; place-items: center;
-  width: 2.5rem; height: 2.5rem;
-  margin: .5rem auto 0;
-  color: var(--pine-200);
-  transition: color .3s var(--ease);
-}
-.links__more:hover { color: var(--bone); }
-.links__more .icon { width: 1.5rem; height: 1.5rem; }
-.links__more[aria-expanded="true"] { color: var(--iris-300); }
 
-.links__list--secondary {
-  margin-top: .85rem;
-  gap: 1.35rem;
+/* -------------------------------------------------------------
+   Each platform's own colour, declared once, here — never in the
+   markup. The HTML stays semantic; the palette stays in the sheet.
+   ------------------------------------------------------------- */
+.net--linkedin  { --brand-bg: #0A66C2; --brand-fg: #FFFFFF; }
+.net--github    { --brand-bg: #242C34; --brand-fg: #FFFFFF; }
+.net--instagram { --brand-bg: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); --brand-fg: #FFFFFF; }
+.net--vsco      { --brand-bg: #F1EFE9; --brand-fg: #141414; }
+.net--facebook  { --brand-bg: #1877F2; --brand-fg: #FFFFFF; }
+.net--tiktok    { --brand-bg: linear-gradient(45deg, #25F4EE 0%, #010101 50%, #FE2C55 100%); --brand-fg: #FFFFFF; }
+.net--youtube   { --brand-bg: #FF0000; --brand-fg: #FFFFFF; }
+.net--x         { --brand-bg: #000000; --brand-fg: #FFFFFF; }
+
+.link-chip--more {
+  color: var(--pine-200);
+  --brand-bg: var(--iris);
+  --brand-fg: var(--pine-900);
 }
-.links__list--secondary li {
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity .45s var(--ease), transform .45s var(--ease);
-  transition-delay: var(--delay, 0ms);
-}
-.links__list--secondary.is-open li { opacity: 1; transform: none; }
 
 /* Scroll cue */
 .scroll-cue {
   display: flex; flex-direction: column; align-items: center; gap: .3rem;
-  margin: 1.75rem auto 0;
-  padding-bottom: 1.5rem;
+  margin: .75rem auto 0;
+  padding-bottom: 1.25rem;
   font-size: .8rem; font-weight: 600;
-  letter-spacing: .14em; text-transform: uppercase;
+  letter-spacing: .12em; text-transform: uppercase;
   color: var(--bone);
 }
+
+/* Cut out of the page like a sticker: a bone edge all the way round,
+   the same one the forest photograph has. */
+.scroll-cue__sticker {
+  padding: .5rem 1.05rem .45rem;
+  border: 3px solid var(--bone);
+  border-radius: 999px;
+  background: var(--pine-700);
+  rotate: -2.4deg;
+  animation: stickerBob 2.6s var(--ease) infinite;
+}
+.scroll-cue:hover .scroll-cue__sticker {
+  background: var(--bone);
+  color: var(--pine);
+}
+
+@keyframes stickerBob {
+  0%, 70%, 100% { translate: 0 0; }
+  35%           { translate: 0 3px; }
+}
 .scroll-cue .icon { width: 1.05rem; height: .62rem; animation: nudge 2.6s var(--ease) infinite; }
-.scroll-cue:hover { color: var(--iris-300); }
+.scroll-cue:hover .icon { color: var(--iris-300); }
 
 @keyframes nudge {
   0%, 70%, 100% { transform: translateY(0); }
@@ -399,7 +421,13 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   text-align: center;
   padding: 0 var(--gutter) 5.5rem;   /* room for the fixed language button */
 }
-.site-footer__line { margin: 0 0 .75rem; padding-top: 1.75rem; }
+/* Dim the wrapper, not the image: `.reveal` owns the image's opacity
+   and the two would override each other. */
+.site-footer__line {
+  margin: 0 0 .75rem;
+  padding-top: 1.75rem;
+  opacity: .2;
+}
 .site-footer__logo {
   width: min(100%, 14rem);
   height: auto;
@@ -414,22 +442,259 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .site-footer__meta a { border-bottom: 1px solid currentColor; }
 
 /* =============================================================
-   Language toggle — absolute from the page, fixed to the viewport,
-   so it can be reached at any moment.
+   Glossary — a word that is not ours, and can be asked about.
    ============================================================= */
-.lang-toggle {
+.term {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  border-bottom: 1px dotted currentColor;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color .22s var(--ease), border-color .22s var(--ease);
+}
+.term:hover, .term:focus-visible { color: var(--iris-700); border-bottom-style: solid; }
+.hero__tagline .term:hover, .hero__tagline .term:focus-visible { color: var(--iris-300); }
+
+.term-panel { position: fixed; inset: 0; z-index: 75; display: grid; align-items: end; }
+.term-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .74);
+  opacity: 0;
+  transition: opacity .32s var(--ease);
+}
+.term-panel__sheet {
+  position: relative;
+  padding: 1.75rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
+  background: var(--bone);
+  color: var(--slate);
+  border-top: 3px solid var(--ring);
+  translate: 0 100%;
+  transition: translate .42s var(--ease);
+}
+.term-panel.is-open .term-panel__scrim { opacity: 1; }
+.term-panel.is-open .term-panel__sheet { translate: 0 0; }
+
+.term-panel__close {
+  position: absolute; top: .5rem; right: .8rem;
+  width: 2.25rem; height: 2.25rem;
+  font-size: 1.6rem; line-height: 1;
+  color: #5A6B74;
+}
+.term-panel__close:hover { color: var(--slate); }
+
+.term-panel__script {
+  margin: 0 0 .35rem;
+  font-size: 2.1rem; line-height: 1.35;
+  color: var(--iris-700);
+}
+.term-panel__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.35rem; font-weight: 400;
+  letter-spacing: -.015em;
+}
+.term-panel__meta {
+  margin: .1rem 0 .9rem;
+  font-size: .74rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.term-panel__def {
+  margin: 0 0 1.35rem;
+  max-width: var(--measure);
+  font-size: .95rem; line-height: 1.7;
+}
+.term-panel__cite { border-top: 1px solid rgba(43, 58, 67, .16); padding-top: .8rem; }
+.term-panel__cite-label {
+  margin: 0 0 .3rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #5A6B74;
+}
+/* APA: second and further lines indented */
+.term-panel__source {
+  margin: 0;
+  padding-left: 1.4rem;
+  text-indent: -1.4rem;
+  font-size: .76rem; line-height: 1.55;
+  color: #5A6B74;
+}
+
+/* =============================================================
+   All platforms — a sheet over the page, so nothing underneath moves.
+   ============================================================= */
+.social-panel {
+  position: fixed; inset: 0; z-index: 70;
+  display: grid; align-items: end;
+}
+.social-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .74);
+  opacity: 0;
+  transition: opacity .32s var(--ease);
+}
+.social-panel__sheet {
+  position: relative;
+  padding: 1.6rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
+  background: var(--pine-700);
+  border-top: 3px solid var(--iris);
+  translate: 0 100%;
+  transition: translate .42s var(--ease);
+}
+.social-panel.is-open .social-panel__scrim { opacity: 1; }
+.social-panel.is-open .social-panel__sheet { translate: 0 0; }
+
+.social-panel__title {
+  margin: 0 0 1.4rem;
+  font-family: var(--serif);
+  font-size: 1.15rem; font-weight: 400;
+  letter-spacing: -.015em;
+  color: var(--bone);
+}
+.social-panel__close {
+  position: absolute; top: .6rem; right: .9rem;
+  width: 2.25rem; height: 2.25rem;
+  font-size: 1.6rem; line-height: 1;
+  color: var(--pine-200);
+}
+.social-panel__close:hover { color: var(--bone); }
+
+.social-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.3rem .5rem;
+}
+.social-panel__item {
+  display: grid; justify-items: center; gap: .45rem;
+  opacity: 0;
+  translate: 0 14px;
+  transition: opacity .34s var(--ease), translate .34s var(--ease);
+  transition-delay: var(--d, 0ms);
+}
+.social-panel.is-open .social-panel__item { opacity: 1; translate: 0 0; }
+.social-panel__name {
+  font-size: .68rem; font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--pine-200);
+}
+
+/* =============================================================
+   Language — the flag says where you are, not where you would go.
+   Tapping it opens the others.
+   ============================================================= */
+.lang {
   position: fixed;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  /* the offsets absorb the padding, so opening never moves the button */
+  right: max(.6rem, env(safe-area-inset-right));
+  bottom: max(.6rem, env(safe-area-inset-bottom));
   z-index: 55;
-  width: 2.6rem; height: 2.6rem;
+  display: grid; justify-items: center; gap: .55rem;
+  padding: .4rem;
+  border-radius: 999px;
+  background: rgba(30, 47, 32, 0);            /* Pine 700, held invisible */
+  transition: background-color .55s var(--ease-smooth);
+}
+.lang.is-open { background: var(--pine-700); }
+
+.lang__list { display: grid; gap: .55rem; justify-items: center; }
+.lang__list li {
+  opacity: 0;
+  translate: 0 14px;
+  scale: .5;
+  rotate: -40deg;
+  transition:
+    opacity .5s var(--ease-smooth),
+    translate .5s var(--ease-smooth),
+    scale .5s var(--ease-smooth),
+    rotate .6s var(--ease-smooth);
+  transition-delay: var(--d, 0ms);
+}
+.lang.is-open .lang__list li { opacity: 1; translate: 0 0; scale: 1; rotate: 0deg; }
+
+.lang__option,
+.lang__current {
+  position: relative;
   display: grid; place-items: center;
-  transition: scale .35s var(--ease);
+  width: 2.5rem; height: 2.5rem;
+  transition: scale .3s var(--ease);
 }
-.lang-toggle:hover { scale: 1.06; }
-.lang-toggle:active { scale: .96; }
-.lang-toggle__flag {
-  width: 100%; height: 100%;
-  transition: opacity .25s linear;
+.lang__option:hover, .lang__current:hover { scale: 1.08; }
+.lang__option:active, .lang__current:active { scale: .95; }
+.lang__option img, .lang__flag { width: 100%; height: 100%; }
+
+/* One full, unhurried turn on the way open — and back on the way closed. */
+.lang__flag {
+  rotate: 0deg;
+  transition: rotate .85s var(--ease-smooth);
 }
-.lang-toggle.is-swapping .lang-toggle__flag { opacity: 0; }
+.lang.is-open .lang__flag { rotate: 360deg; }
+
+.lang__current { width: 2.75rem; height: 2.75rem; }
+
+/* A globe on the corner, so the flag reads as "language", not "country" */
+.lang__badge {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 1.1rem; height: 1.1rem;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--bone);
+  color: var(--pine);
+}
+.lang__badge .icon { width: .72rem; height: .72rem; }
+
+/* Three quiet pulses on arrival, then it stops asking. */
+.lang__current::after {
+  content: "";
+  position: absolute; inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--iris-300);
+  opacity: 0;
+  pointer-events: none;
+  animation: langPulse 2.4s var(--ease) 1.4s 3;
+}
+.lang.is-open .lang__current::after,
+.lang.has-used .lang__current::after { animation: none; }
+
+/* =============================================================
+   Timing — the order things arrive in, kept out of the markup.
+   ============================================================= */
+.sig__p:nth-child(1) { --i: 0; }
+.sig__p:nth-child(2) { --i: 1; }
+.sig__p:nth-child(3) { --i: 2; }
+.sig__p:nth-child(4) { --i: 3; }
+.sig__p:nth-child(5) { --i: 4; }
+.sig__p:nth-child(6) { --i: 5; }
+.sig__p:nth-child(7) { --i: 6; }
+.sig__p:nth-child(8) { --i: 7; }
+.sig__p:nth-child(9) { --i: 8; }
+.sig__p:nth-child(10) { --i: 9; }
+.sig__p:nth-child(11) { --i: 10; }
+.sig__p:nth-child(12) { --i: 11; }
+
+.social-panel__item:nth-child(1) { --d: 60ms; }
+.social-panel__item:nth-child(2) { --d: 105ms; }
+.social-panel__item:nth-child(3) { --d: 150ms; }
+.social-panel__item:nth-child(4) { --d: 195ms; }
+.social-panel__item:nth-child(5) { --d: 240ms; }
+.social-panel__item:nth-child(6) { --d: 285ms; }
+.social-panel__item:nth-child(7) { --d: 330ms; }
+.social-panel__item:nth-child(8) { --d: 375ms; }
+
+.lang__list li:nth-child(1) { --d: 0ms; }
+.lang__list li:nth-child(2) { --d: 55ms; }
+.lang__list li:nth-child(3) { --d: 110ms; }
+
+/* The four in the row, then the forest, then the portrait on top. */
+.links__list > li:nth-child(1) .reveal { --delay: 0ms; }
+.links__list > li:nth-child(2) .reveal { --delay: 70ms; }
+.links__list > li:nth-child(3) .reveal { --delay: 140ms; }
+.links__list > li:nth-child(4) .reveal { --delay: 210ms; }
+.portrait__forest { --delay: 0ms; }
+.portrait__me     { --delay: 220ms; }
+
+@keyframes langPulse {
+  0%   { opacity: .85; scale: 1; }
+  60%  { opacity: 0;   scale: 1.4; }
+  100% { opacity: 0;   scale: 1.4; }
+}
