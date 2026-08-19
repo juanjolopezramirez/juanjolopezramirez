@@ -104,6 +104,7 @@
      que es lo unico claro dentro de una pastilla verde. */
   .site-nav__write { flex: 0 0 auto; margin-left: .5rem; }
   .site-nav__wide-list .nav-cta {
+    animation: callOut 30s var(--ease) 12s infinite;
     padding: .62rem 1.15rem;
     border-radius: 999px;
     background: var(--bone);
@@ -129,9 +130,9 @@
 
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
           arranca en la misma linea que el nombre ---- */
-  .about,
-      .about p { font-size: 1.1rem; }
-  
+  .about { padding-inline: var(--edge); }
+  .about p { font-size: 1.1rem; }
+
   .site-footer { padding-bottom: 3.5rem; }
   .site-footer__logo { width: min(100%, 20rem); }
 
@@ -179,12 +180,17 @@
     pointer-events: none;
   }
 
-  /* Pinar liso. Sin degradado y sin neblina: el color hace el trabajo. */
+  /* El pinar, con su horizonte dentro. El hero deja de llevarlo: aqui el
+     verde no es toda la seccion, es solo esta mitad, y el dibujo tiene
+     que quedarse dentro de ella. */
+  .hero { background-image: none; }
   .hero__field {
     z-index: 0;
     inset: 0 var(--panel) 0 0;
-    background: var(--pine);
+    background: var(--pine) url("/assets/img/forest-bg.svg") no-repeat bottom center;
+    background-size: 118% auto;
   }
+
 
   /* ---- Yo, sobre la costura ----
      El borde derecho cae siempre a la misma distancia dentro de la
@@ -194,7 +200,10 @@
      El derecho tiene 76px limpios, y por ahi cruzo la costura sin
      ensenar ningun canto. Solo el izquierdo pide ayuda: se apaga en un
      palmo para que parezca que salgo de la sombra, no que me cortaron. */
+  /* Aqui no floto: en la costura soy el ancla, y un ancla que se mueve
+     deja de serlo. */
   .hero__me {
+    animation: none;
     left: auto;
     right: calc(var(--panel) - var(--me-cross));
     bottom: 0;
@@ -328,12 +337,15 @@
   }
 
   /* El pinar, ahora a la derecha */
+  /* En las secciones el verde esta al otro lado y es mas estrecho: el
+     horizonte se ancla al borde de fuera para no quedar partido. */
   .phero__field {
     display: block;
     position: absolute;
     inset: 0 0 0 auto;
     width: var(--panel);
-    background: var(--pine);
+    background: var(--pine) url("/assets/img/forest-bg.svg") no-repeat bottom right;
+    background-size: 128% auto;
   }
 
   /* Lo que se lee ocupa el hueso, y arranca en el borde de siempre */
@@ -371,6 +383,7 @@
   .phero__aside > * { width: min(100%, 22rem); }
 
   .phero__seal {
+    animation: floatY 9s var(--ease-smooth) infinite;
     display: block;
     width: 2.4rem;
     color: var(--bone);

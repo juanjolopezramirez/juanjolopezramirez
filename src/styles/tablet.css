@@ -74,8 +74,6 @@
   .about p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 1.4rem; }
   .about__mark { width: 20px; margin-top: 2rem; }
 
-  /* ---- Paginas interiores ---- */
-      
   /* ---- Hero de seccion: mas aire, todavia en una columna ---- */
   .phero { padding: calc(var(--header-h) + 3rem) var(--gutter) 4rem; }
   .phero__title { font-size: clamp(2.6rem, 6.2vw, 3.5rem); }
