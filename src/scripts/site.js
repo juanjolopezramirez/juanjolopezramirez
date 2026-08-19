@@ -258,7 +258,7 @@ function initReveal() {
   /* Sin unobserve: al salir se rearman, y al volver se escriben otra vez. */
   const again = new IntersectionObserver((entries) => {
     entries.forEach((e) => e.target.classList.toggle('is-in', e.isIntersecting));
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  }, { rootMargin: '0px 0px -2% 0px', threshold: 0.05 });
   lift.forEach((el) => again.observe(el));
 
   // Red de seguridad: nada puede quedarse invisible, pase lo que pase.

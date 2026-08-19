@@ -59,7 +59,7 @@ export const TERMS = {
       dir:      'ltr',
       language: { es: 'Griego del Nuevo Testamento', en: 'New Testament Greek', pt: 'Grego do Novo Testamento', fr: 'Grec du Nouveau Testament', it: 'Greco del Nuovo Testamento' },
       title:    { es: 'Rhema', en: 'Rhema', pt: 'Rhema', fr: 'Rhèma', it: 'Rhema' },
-      forms:    ['rhema', 'rhēma', 'rema'],
+      forms:    ['rhema', 'rhēma', 'rhèma'],
       def: {
         es: 'La palabra dicha. Frente a logos —la Palabra entera, el mensaje— rhema es la que se pronuncia en un momento concreto, para alguien concreto. No es una frase que se elige: es una que se recibe, y después se carga.',
         en: 'The spoken word. Against logos — the whole Word, the message — rhema is the one uttered at a particular moment, to a particular person. Not a phrase you choose: one you receive, and then carry.',
