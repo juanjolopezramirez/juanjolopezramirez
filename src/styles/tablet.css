@@ -29,10 +29,10 @@
   .hero__identity { grid-area: identity; }
   .hero__stage    { grid-area: stage; }
   .hero__panel    { grid-area: panel; }
-  .scroll-cue     { grid-area: cue; }
+  .cue            { grid-area: cue; }
 
   .hero__name { margin-top: 0; font-size: clamp(2.6rem, 6.2vw, 3.5rem); }
-  .hero__role { justify-content: flex-start; font-size: .78rem; }
+  .hero__role { font-size: .78rem; }
 
   /* Aqui ya caben las dos puertas */
   .hero__doors { display: block; margin-top: 1.7rem; }
@@ -51,7 +51,7 @@
 
   /* La hoja cruza por debajo, centrada, sin estirarse */
   .hero__panel {
-    display: block;
+    width: min(100%, 34rem);
     max-width: 34rem;
     margin: 2.4rem auto 0;
   }
@@ -62,8 +62,9 @@
   .rhema--panel { display: block; }
   .rhema--about { display: none; }
 
+  .cue { margin: 2.5rem auto 0; width: fit-content; }
+  .scroll-cue--twin { display: none; }
   .scroll-cue {
-    margin: 2.5rem auto 0;
     padding-bottom: 2.5rem;
     font-size: .9rem;
   }
@@ -74,9 +75,12 @@
   .about__mark { width: 20px; margin-top: 2rem; }
 
   /* ---- Paginas interiores ---- */
-  .page { padding: 3rem var(--gutter) 5rem; }
-  .page__title { font-size: 2.4rem; }
-  .page__lead { font-size: 1.15rem; }
+      
+  /* ---- Hero de seccion: mas aire, todavia en una columna ---- */
+  .phero { padding: calc(var(--header-h) + 3rem) var(--gutter) 4rem; }
+  .phero__title { font-size: clamp(2.6rem, 6.2vw, 3.5rem); }
+  .phero__lead { font-size: 1.15rem; max-width: 34rem; }
+  .phero__aside { margin-top: 3.25rem; }
 
   /* ---- Footer ---- */
   .site-footer { padding-bottom: 3.5rem; }

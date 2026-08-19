@@ -1,0 +1,63 @@
+---
+import { NAV, CONTACT } from '../data/social.js';
+import Icon from './Icon.astro';
+const { lang, t, slug } = Astro.props;
+
+const here = NAV.find((n) => n.slug === slug);
+/* Las otras puertas de la casa: desde aqui se sigue, no se vuelve atras. */
+const others = NAV.filter((n) => n.slug !== slug);
+---
+<!-- El mismo hero del home, con los lados cambiados: aqui el hueso esta a
+     la izquierda y el pinar a la derecha. Movil primero — una columna, lo
+     que se lee arriba — y desde 1200px la costura, al reves. -->
+<section class="phero" id="top">
+
+  <div class="phero__field" aria-hidden="true"></div>
+
+  <div class="phero__panel">
+    <p class="phero__eyebrow" data-lift>Juanjo López Ramírez</p>
+    <h1 class="phero__title" data-lift>{t(`page.${slug}.title`)}</h1>
+    <p class="phero__lead" data-lift>{t(`page.${slug}.lead`) ?? ''}</p>
+
+    {here?.soon && (
+      <p class="phero__status" data-lift>
+        <span class="phero__status-dot" aria-hidden="true"></span>
+        {t('soon.section')}
+      </p>
+    )}
+  </div>
+
+  <!-- Sobre el pinar: la marca, y por donde seguir desde aqui. -->
+  <div class="phero__aside">
+    <span class="phero__seal" aria-hidden="true"><Icon id="mark" /></span>
+
+    <nav class="phero__doors" aria-labelledby="phero-doors" data-lift>
+      <h2 class="phero__doors-title" id="phero-doors">{t('page.next')}</h2>
+      <ul class="phero__doors-list">
+        {others.map((n) => (
+          <li>
+            <a class:list={['door', { 'is-soon': n.soon }]} href={`/${lang}/${n.slug}/`}>
+              <span>{t(n.key)}</span>
+              {n.soon && <span class="door__badge">{t('soon.badge')}</span>}
+              <Icon id="corner" />
+            </a>
+          </li>
+        ))}
+        <li>
+          {CONTACT.soon ? (
+            <button class="door door--write" type="button" data-soon="soon.whatsapp">
+              <span>{t('nav.write')}</span>
+              <span class="door__badge">{t('soon.badge')}</span>
+              <Icon id="corner" />
+            </button>
+          ) : (
+            <a class="door door--write" href={CONTACT.href}>
+              <span>{t('nav.write')}</span>
+              <Icon id="corner" />
+            </a>
+          )}
+        </li>
+      </ul>
+    </nav>
+  </div>
+</section>

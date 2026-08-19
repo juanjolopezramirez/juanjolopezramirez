@@ -130,11 +130,8 @@
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
           arranca en la misma linea que el nombre ---- */
   .about,
-  .page { padding-inline: var(--edge); }
-  .page { padding-top: 3.5rem; }
-  .about p { font-size: 1.1rem; }
-  .page__title { font-size: 3rem; }
-
+      .about p { font-size: 1.1rem; }
+  
   .site-footer { padding-bottom: 3.5rem; }
   .site-footer__logo { width: min(100%, 20rem); }
 
@@ -289,15 +286,17 @@
   .rhema__face { width: 2.4rem; height: 2.4rem; }
 
   /* ---- El camino, abajo del todo, sobre el verde ---- */
-  .scroll-cue {
+  /* Aqui no hay gemelo que valga: el boton es un ancla, no una invitacion. */
+  .scroll-cue--twin { display: none; }
+  .cue {
     position: absolute;
     left: var(--edge); bottom: 3.5vh;
     z-index: 2;
+  }
+  .scroll-cue {
     flex-direction: row;
     align-items: center;
     gap: .85rem;
-    width: fit-content;
-    margin: 0;
     padding: .78rem 1.5rem .78rem 1.7rem;
     border: 2px solid rgba(241, 239, 233, .55);
     border-radius: 999px;
@@ -312,6 +311,88 @@
   .scroll-cue:hover .scroll-cue__sticker { background: none; color: inherit; }
   .scroll-cue .icon { width: 1.05rem; height: .62rem; }
   .scroll-cue:hover .icon { color: inherit; }
+
+  /* =============================================================
+     Hero de seccion — la misma costura, al reves
+     El hueso a la izquierda con lo que se lee, el pinar a la derecha con
+     el sello y las puertas. Mismo ancho de hoja que en el home, mismo
+     borde comun: lo unico que cambia de lado es el color.
+     ============================================================= */
+  .phero {
+    display: block;
+    min-height: 100svh;
+    padding: 0;
+    border-top: 0;
+    background: var(--bone);
+    overflow: hidden;
+  }
+
+  /* El pinar, ahora a la derecha */
+  .phero__field {
+    display: block;
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: var(--panel);
+    background: var(--pine);
+  }
+
+  /* Lo que se lee ocupa el hueso, y arranca en el borde de siempre */
+  .phero__panel {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100svh;
+    width: min(38rem, calc(100% - var(--panel) - var(--edge) - 6rem));
+    margin-left: var(--edge);
+    padding-block: calc(var(--header-h) + 3vh) 4vh;
+  }
+  .phero__title { font-size: clamp(3rem, 4.4vw, 4.6rem); line-height: 1.04; }
+  .phero__lead { font-size: 1.15rem; max-width: 32rem; margin-top: 1.4rem; }
+  .phero__status { margin-top: 2rem; }
+
+  /* El sello y las puertas, sobre el pinar */
+  /* Centrado, como la hoja del home: el sello y las puertas leen como un
+     bloque, no como dos cosas clavadas a los extremos. */
+  .phero__aside {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3rem;
+    width: var(--panel);
+    margin: 0;
+    padding: calc(var(--header-h) + 4vh) var(--gutter) 4vh;
+    border-top: 0;
+  }
+  .phero__aside > * { width: min(100%, 22rem); }
+
+  .phero__seal {
+    display: block;
+    width: 2.4rem;
+    color: var(--bone);
+    opacity: .85;
+  }
+  .phero__seal .icon { width: 100%; height: auto; }
+
+  .phero__doors-title { color: var(--pine-200); }
+  /* Sobre pinar las puertas vuelven a dibujarse en hueso */
+  .phero .door {
+    border-color: rgba(241, 239, 233, .28);
+    color: var(--bone);
+  }
+  .phero .door__badge { background: rgba(241, 239, 233, .16); }
+  .phero .door:hover, .phero .door:focus-visible {
+    background: var(--bone); color: var(--pine); border-color: var(--bone);
+  }
+  .phero .door:hover .door__badge, .phero .door:focus-visible .door__badge {
+    background: rgba(38, 59, 40, .14);
+  }
+  .phero__doors-list { flex-direction: column; align-items: flex-start; gap: .55rem; }
+
 }
 
 /* Pantallas anchas: la hoja crece con la pantalla, el nombre casi no. */

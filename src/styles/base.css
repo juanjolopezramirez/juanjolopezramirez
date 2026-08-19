@@ -50,10 +50,25 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  /* `overflow-x: hidden` en el body no basta: si el html esta en `visible`,
+     el valor se propaga al viewport y el body se queda en visible, asi que
+     la pagina sigue desplazandose de lado. Declarandolo aqui se corta la
+     propagacion. `clip` en vez de `hidden` porque no crea contenedor de
+     scroll — nada puede arrastrarse ni con el dedo.
+     El bosque va rotado 3.52 grados, y rotar un cuadrado ensancha su caja:
+     esos 12px de esquina eran los que descuadraban la pagina al deslizar. */
+  overflow-x: clip;
+  overscroll-behavior-x: none;   /* ni rebote lateral */
   overscroll-behavior-y: none;   /* no rubber-band showing Pine under the Bone footer */
 }
 
+/* Una seccion corta no puede dejar el pinar asomando bajo el pie: el
+   cuerpo ocupa la pantalla entera y el hero de seccion se estira para
+   llenar lo que sobre. Lo demas conserva su altura natural. */
 body {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
   margin: 0;
   background: var(--pine);
   color: var(--bone);
@@ -62,8 +77,11 @@ body {
   line-height: 1.6;
   font-variant-numeric: tabular-nums;   /* a number is a fact */
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
+
+main { flex: 1 0 auto; display: flex; flex-direction: column; }
+main > * { flex: 0 0 auto; }
 
 img, svg { display: block; max-width: 100%; height: auto; }
 ul { list-style: none; margin: 0; padding: 0; }
@@ -283,8 +301,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    nombre, el oficio, las redes y el camino. */
 .hero__stage    { order: 1; }
 .hero__identity { order: 2; }
-.hero__panel    { order: 3; }
-.scroll-cue     { order: 4; }
+.cue            { order: 3; }   /* cierra la primera vista */
+.hero__panel    { order: 4; }   /* y esto ya se descubre bajando */
 
 /* --- El nombre primero, siempre. Nunca por debajo de 28px. --- */
 .hero__name {
@@ -300,20 +318,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    bloques tampoco hace falta un espacio entre ellos. */
 .hero__name-line { display: block; }
 
-/* El oficio explica el nombre, y por eso va debajo de el. */
+/* El oficio explica el nombre, y por eso va debajo de el. Sin punto
+   delante: el color ya lo separa del nombre, y el punto solo repetia
+   lo que hace el de "Disponible para", que si esta diciendo un estado. */
 .hero__role {
-  display: flex; align-items: center; justify-content: center; gap: .5rem;
   margin: .45rem 0 0;
   font-size: .74rem; font-weight: 600;
   letter-spacing: .16em; text-transform: uppercase;
   color: var(--iris-300);
-}
-.hero__role::before {
-  content: "";
-  flex: 0 0 auto;
-  width: .4rem; height: .4rem;
-  border-radius: 50%;
-  background: var(--iris);
 }
 
 /* --- Las dos puertas. En movil sobran: el menu ya las tiene. --- */
@@ -361,7 +373,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      verdad se ve al entrar. Con `vh` la foto se medía contra una pantalla
      mas alta y empujaba las redes por debajo del pliegue. Los 330px son
      lo que ocupan el nombre, el oficio y los enlaces por debajo. */
-  width: min(94vw, 27rem, max(12rem, calc(100svh - 330px)));
+  width: min(94vw, 27rem, max(12rem, calc(100svh - 370px)));
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
@@ -404,8 +416,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .hero__me img { width: 100%; height: auto; }
 
-/* --- La hoja: de donde sale el trabajo, y para quien es ----------- */
-.hero__panel { display: none; }           /* desde tablet */
+/* --- La hoja: de donde sale el trabajo, y para quien es -----------
+   En movil no desaparece: solo espera. Cae por debajo del pliegue y se
+   levanta con el scroll, como el resto de los textos. */
+.hero__panel {
+  width: min(100%, 30rem);
+  margin: 3.25rem auto 0;
+  text-align: left;
+}
 
 .hero__offer-title {
   margin: 0;
@@ -432,6 +450,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   border-radius: 50%;
   background: var(--ring);
 }
+
+/* En movil la hoja es un bloque suelto y no una columna con `gap`:
+   la separacion entre lo que ofrezco y para quien es va aqui. */
+.hero__available { margin-top: 1.75rem; }
 
 .hero__status {
   display: flex; align-items: center; gap: .45rem;
@@ -535,14 +557,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .links__list {
   display: flex; justify-content: center; align-items: center;
   gap: .9rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
-/* "Ver todas" no compite con las cuatro de siempre: rompe la linea y se
-   queda justo debajo, no al fondo de la pantalla. */
-.links__list li:last-child {
-  flex-basis: 100%;
-  display: flex; justify-content: center;
-  margin-top: 0;
+/* Cinco iconos en una fila de movil se hacen largos. GitHub se retira de
+   la vista rapida —sigue estando, tras los tres puntos— y asi la fila
+   queda en cuatro piezas: tres redes y la puerta al resto. */
+@media (max-width: 599px) {
+  .links__item--github { display: none; }
 }
 
 .link-chip {
@@ -603,6 +624,36 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: .8rem; font-weight: 600;
   letter-spacing: .12em; text-transform: uppercase;
   color: var(--bone);
+}
+
+/* En movil el boton es la invitacion a bajar, no un ancla: hecho su
+   trabajo, se aparta. Se va con opacidad y no con display, para que la
+   pagina no pegue un salto al desaparecer. */
+@media (max-width: 599px) {
+  /* El hero cierra con aire: sin el, el pinar y el hueso se dan un
+     testarazo justo donde cambia el color. */
+  .hero { padding-bottom: 3.25rem; }
+
+  .cue { margin-top: 1.2rem; position: relative; width: fit-content; align-self: center; }
+  .scroll-cue { padding-bottom: .5rem; }
+
+  /* El gemelo se tumba exactamente encima del boton. Relleno, para que
+     se vea que invita; y como no ocupa sitio en la fila, al irse deja el
+     boton en su lugar y ningun hueco detras. */
+  /* Copia la forma del boton, no lo tapa con una caja: solo la pastilla
+     va rellena, y la flecha se queda donde estaba. Al irse, la pastilla
+     pasa de rellena a perfilada y nada mas se mueve. */
+  .scroll-cue--twin {
+    position: absolute; inset: 0;
+    pointer-events: none;                 /* el clic pasa al boton de debajo */
+    transition: opacity .45s var(--ease);
+  }
+  .scroll-cue--twin .scroll-cue__sticker {
+    background: var(--bone);
+    border-color: var(--bone);
+    color: var(--pine);
+  }
+  .is-scrolled .scroll-cue--twin { opacity: 0; }
 }
 
 /* Cut out of the page like a sticker: a bone edge all the way round,
@@ -963,30 +1014,84 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .toast__close:hover { color: var(--bone); }
 
 /* =============================================================
-   Paginas interiores — la misma voz, sin retrato.
+   Hero de las secciones
+   El mismo reparto que el home, con los lados cambiados: el hueso a la
+   izquierda y el pinar a la derecha. Movil primero — una columna, lo que
+   se lee arriba — y desde 1200px la costura, al reves.
    ============================================================= */
-.page {
+.phero {
+  position: relative;
+  flex: 1 0 auto;                          /* llena lo que sobre */
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--header-h) + 1.5rem) var(--gutter) 3.25rem;
   background: var(--bone);
   color: var(--slate);
   border-top: 3px solid var(--iris);
-  margin-top: var(--header-h);
-  padding: 2rem var(--gutter) 3.5rem;
-  min-height: 60vh;
 }
-.page__title {
-  margin: 0 0 .6rem;
-  font-family: var(--serif);
-  font-size: 1.9rem; font-weight: 400;
-  letter-spacing: -.02em;
-}
-.page__lead {
-  max-width: var(--measure);
-  margin: 0 0 1.2rem;
-  font-size: 1rem; line-height: 1.75;
-}
-.page__soon {
+.phero__field { display: none; }           /* el pinar solo existe en la costura */
+
+.phero__eyebrow {
   margin: 0;
-  font-size: .78rem; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: #5A6B74;                          /* Slate 400 — texto secundario */
+}
+.phero__title {
+  margin: .55rem 0 0;
+  font-family: var(--serif);
+  font-size: clamp(2.1rem, 10.5vw, 3rem);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.phero__lead {
+  max-width: var(--measure);
+  margin: 1rem 0 0;
+  font-size: 1rem; line-height: 1.7;
+}
+.phero__status {
+  display: flex; align-items: center; gap: .45rem;
+  margin: 1.4rem 0 0;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
   color: #5A6B74;
 }
+.phero__status-dot {
+  flex: 0 0 auto;
+  width: .45rem; height: .45rem;
+  border-radius: 50%;
+  background: var(--ring);
+}
+
+/* El sello y las puertas viven sobre el pinar. En movil no hay pinar,
+   asi que se apoyan en su propia franja al final de la seccion. */
+.phero__aside {
+  margin-top: 2.75rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(43, 58, 67, .14);
+}
+.phero__seal { display: none; }            /* solo en la costura */
+
+.phero__doors-title {
+  margin: 0 0 .8rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.phero__doors-list { display: flex; flex-wrap: wrap; gap: .6rem; }
+/* Sobre hueso las puertas se dibujan en slate, no en hueso. */
+.phero .door {
+  border-color: rgba(43, 58, 67, .28);
+  color: var(--slate);
+}
+.phero .door__badge { background: rgba(43, 58, 67, .1); }
+.phero .door:hover, .phero .door:focus-visible {
+  background: var(--slate); color: var(--bone); border-color: var(--slate);
+}
+.phero .door:hover .door__badge, .phero .door:focus-visible .door__badge {
+  background: rgba(241, 239, 233, .18);
+}
+.door--write { font-family: inherit; }
+

@@ -32,7 +32,11 @@ function initHeader() {
   let ticking = false;
 
   const sync = () => {
-    header.classList.toggle('is-scrolled', scrollY > 24);
+    const moved = scrollY > 24;
+    header.classList.toggle('is-scrolled', moved);
+    /* Tambien en la raiz: hay cosas fuera de la cabecera —el boton de
+       movil— que quieren saber si la pagina ya se movio. */
+    d.documentElement.classList.toggle('is-scrolled', moved);
 
     /* La firma espera a que el nombre grande salga de pantalla. Sin hero
        —las paginas interiores— no hay nada que esperar. */

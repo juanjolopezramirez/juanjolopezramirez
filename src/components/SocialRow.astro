@@ -8,7 +8,7 @@ const row = SOCIAL.filter((s) => s.row);
   <h2 class="links__title">{t('links.title')}</h2>
   <ul class="links__list">
     {row.map((s) => (
-      <li>
+      <li class={`links__item links__item--${s.id}`}>
         <a class={`link-chip net--${s.id} reveal`} href={s.href} target="_blank" rel="noopener noreferrer">
           <Icon id={s.id} /><span class="sr-only">{s.name}</span>
         </a>

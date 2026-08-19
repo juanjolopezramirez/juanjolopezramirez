@@ -1,6 +1,7 @@
 ---
 import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
+import PageHero from '../../components/PageHero.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -10,9 +11,5 @@ const t = useT(lang);
 const title = t('page.about.title');
 ---
 <Base lang={lang} path="about" active="about" title={`${title} — Juanjo López Ramírez`}>
-  <section class="page" data-glossary>
-    <h1 class="page__title">{title}</h1>
-    <p class="page__lead reveal">{t('page.about.lead') ?? ''}</p>
-    <p class="page__soon reveal">{t('page.soon')}</p>
-  </section>
+  <PageHero lang={lang} t={t} slug="about" />
 </Base>

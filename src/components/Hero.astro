@@ -86,8 +86,17 @@ const DOORS = [
     <Rhema t={t} where="panel" />
   </section>
 
-  <a class="scroll-cue" href="#about">
-    <span class="scroll-cue__sticker">{t('scroll.label')}</span>
-    <Icon id="arrow" />
-  </a>
+  <!-- El boton se queda siempre. Encima, exactamente encima, un gemelo
+       relleno que invita a bajar y se retira al primer scroll: como no
+       ocupa sitio en la fila, al irse no deja ningun hueco. -->
+  <div class="cue">
+    <a class="scroll-cue" href="#about">
+      <span class="scroll-cue__sticker">{t('scroll.label')}</span>
+      <Icon id="arrow" />
+    </a>
+    <span class="scroll-cue scroll-cue--twin" aria-hidden="true">
+      <span class="scroll-cue__sticker">{t('scroll.label')}</span>
+      <Icon id="arrow" />
+    </span>
+  </div>
 </section>
