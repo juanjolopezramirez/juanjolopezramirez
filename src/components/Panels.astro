@@ -37,3 +37,9 @@ const { t } = Astro.props;
     </footer>
   </article>
 </div>
+
+<!-- Lo que todavia no esta. Se anuncia y se va solo. -->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <p class="toast__text" id="toast-text"></p>
+  <button class="toast__close" type="button" data-close-toast aria-label={t('a11y.dismiss')}>&times;</button>
+</div>

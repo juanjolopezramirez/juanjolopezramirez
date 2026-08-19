@@ -1,28 +1,43 @@
 ---
-import { NAV } from '../data/social.js';
+import { NAV, CONTACT } from '../data/social.js';
 import LangPicker from './LangPicker.astro';
 import Icon from './Icon.astro';
 const { lang, t, path = '', active = '' } = Astro.props;
 const to = (slug) => `/${lang}/${slug}/`;
 ---
+<!-- Nunca una barra: la cabecera flota sobre lo que haya debajo y solo
+     se pone un vidrio detras cuando la pagina empieza a moverse. -->
 <header class="site-header">
-  <!-- La marca sola: el mismo dibujo, el mismo tamano, en todas las pantallas. -->
-  <a class="brand" href={`/${lang}/`}>
-    <span class="brand__mark"><Icon id="mark" /></span>
-    <span class="brand__name">Juan José López Ramírez</span>
+  <!-- Una sola pieza dice quien soy: la marca y la firma, juntas. -->
+  <a class="brand" href={`/${lang}/`} aria-label="Juanjo López Ramírez">
+    <!-- La firma se guarda tras la marca mientras el nombre esta a la
+         vista, ahi abajo, a tamano completo. Al salir del hero asoma. -->
+    <span class="brand__clip"><Icon id="lockup" /></span>
   </a>
 
-  <!-- Una sola pieza a la derecha. Desde 1024px es la pastilla flotante:
-       secciones, idioma y menu dentro del mismo hueso. -->
   <div class="header-bar">
     <nav class="site-nav site-nav--wide" aria-label="Main">
       <ul class="site-nav__wide-list">
         {NAV.map((n) => (
           <li>
-            <a href={to(n.slug)} class={active === n.slug ? 'is-current' : ''}
-               aria-current={active === n.slug ? 'page' : undefined}>{t(n.key)}</a>
+            <a href={to(n.slug)}
+               class:list={[{ 'is-current': active === n.slug, 'is-soon': n.soon }]}
+               aria-current={active === n.slug ? 'page' : undefined}>
+              {t(n.key)}{n.soon && <span class="sr-only"> — {t('a11y.soon')}</span>}
+            </a>
           </li>
         ))}
+        <li class="site-nav__write">
+          {CONTACT.soon ? (
+            /* Sin numero no hay destino, y un enlace sin destino miente.
+               Mientras tanto es un boton que dice lo que pasa. */
+            <button class="nav-cta" type="button" data-soon="soon.whatsapp">
+              {t('nav.write')}<span class="nav-cta__badge">{t('soon.badge')}</span>
+            </button>
+          ) : (
+            <a class="nav-cta" href={CONTACT.href}>{t('nav.write')}</a>
+          )}
+        </li>
       </ul>
     </nav>
 
@@ -40,8 +55,23 @@ const to = (slug) => `/${lang}/${slug}/`;
   <nav class="site-nav site-nav--drop" id="site-nav" aria-label="Menu">
     <ul class="site-nav__list">
       <li><a href={`/${lang}/`}>{t('nav.start')}</a></li>
-      {NAV.map((n) => <li><a href={to(n.slug)}>{t(n.key)}</a></li>)}
-      <li><a href="mailto:juanjoselopezramirez@gmail.com">{t('nav.write')}</a></li>
+      {NAV.map((n) => (
+        <li>
+          <a href={to(n.slug)} class:list={[{ 'is-soon': n.soon }]}>
+            {t(n.key)}
+            {n.soon && <span class="drop-badge">{t('soon.badge')}</span>}
+          </a>
+        </li>
+      ))}
+      <li>
+        {CONTACT.soon ? (
+          <button class="drop-soon" type="button" data-soon="soon.whatsapp">
+            {t('nav.write')}<span class="drop-badge">{t('soon.badge')}</span>
+          </button>
+        ) : (
+          <a href={CONTACT.href}>{t('nav.write')}</a>
+        )}
+      </li>
     </ul>
   </nav>
 </header>

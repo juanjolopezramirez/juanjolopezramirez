@@ -15,6 +15,7 @@
   /* Steps allowed */
   --pine-900: #16231A;
   --pine-700: #1E2F20;
+  --night:    #1D2E1F;   /* el pinar de las pastillas de la cabecera */
   --pine-200: #B7C7B4;
   --slate-100:#D6DDE1;
   --iris-300: #A9C47F;
@@ -29,6 +30,11 @@
 
   /* Rhythm */
   --measure: 62ch;
+  --header-h: 3.6rem;   /* alto de la cabecera flotante */
+  --pill-h:   3.3rem;   /* las dos piezas de la cabecera miden igual */
+  /* El lockup mide 273x78, y el pez ocupa los primeros 41. De ahi salen
+     tanto su altura como el ancho del recorte que lo aisla. */
+  --lockup-h: 1.7rem;
   --gutter: 1.5rem;
   --radius: 0;              /* square corners — softening is an apology */
 
@@ -65,7 +71,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 /* [hidden] must beat the display rules below it */
 [hidden] { display: none !important; }
 a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+/* Sin `padding: 0` el boton conserva el relleno del navegador, y la
+   bandera puesta se encoge frente a las que puedes elegir. */
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 :focus-visible {
   outline: 2px solid var(--iris-300);
@@ -94,6 +102,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   display: inline-block;
   line-height: .7;              /* keeps the hand from stretching the line */
   vertical-align: -.08em;
+  /* At 1.7x the hand needs its own air: one word space is not enough
+     to keep the entry stroke off the word before it. */
+  margin-left: .14em;
 }
 
 /* Icons are inline SVG so they inherit `color` directly. That also
@@ -116,6 +127,18 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transform: rotate(var(--rot));
 }
 
+/* Los textos vuelven a entrar cada vez que pasan por la ventana; las
+   imagenes se colocan una sola vez y ahi se quedan. */
+.js-reveal [data-lift] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity .72s var(--ease-smooth),
+    transform .72s var(--ease-smooth);
+  transition-delay: var(--d, 0ms);
+}
+.js-reveal [data-lift].is-in { opacity: 1; transform: none; }
+
 /* Only once reveal.js has taken responsibility does anything hide. */
 .js-reveal .reveal {
   opacity: 0;
@@ -134,59 +157,73 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   html { scroll-behavior: auto; }
   .reveal,
   .js-reveal .reveal { opacity: 1; transform: rotate(var(--rot)); transition: none; }
+  .js-reveal [data-lift] { opacity: 1; transform: none; transition: none; }
+  .rhema--about { animation: none !important; }
+  .hero__status-dot { animation: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 
 /* =============================================================
    Header
+   Dos piezas flotando, cada una sobre su propio pinar cerrado: la marca
+   en una, las secciones en otra. Al ser opacas da igual lo que pase por
+   debajo — hueso o pinar — y nada se ve cortado al hacer scroll.
    ============================================================= */
 .site-header {
-  position: sticky; top: 0; z-index: 50;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   gap: 1rem;
-  padding: .85rem var(--gutter);
-  padding-top: max(.85rem, env(safe-area-inset-top));
-  background: var(--pine-700);
-  border-bottom: 1px solid rgba(241, 239, 233, .08);
-}
-
-.site-header__tools { display: flex; align-items: center; gap: .6rem; }
-.header-bar { display: flex; align-items: center; gap: .6rem; }
-.site-nav--wide { display: none; }        /* solo desde 1024px */
-
-.brand { display: flex; align-items: center; gap: .65rem; min-width: 0; }
-
-/* La marca no cambia de tamano entre pantallas: el mismo dibujo, siempre.
-   Nunca por debajo de 16px — mas abajo el siete se cierra. */
-.brand__mark {
-  flex: 0 0 auto;
-  display: block;
-  width: 20px;
+  padding: .7rem var(--gutter);
+  padding-top: max(.7rem, env(safe-area-inset-top));
   color: var(--bone);
-  transition: color .25s var(--ease);
 }
-.brand__mark .icon { width: 100%; height: auto; }
-.brand:hover .brand__mark { color: var(--iris-300); }
 
-/* El nombre ya se dice grande en el hero. Aqui es solo marca de agua,
-   para que la pagina no lo diga dos veces a plena voz. */
-.brand__name {
-  opacity: .2;
-  font-family: var(--serif);
-  font-size: .95rem;
-  letter-spacing: -.015em;
-  color: var(--pine-200);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+/* El mismo traje para las dos: pinar cerrado, esquina redonda y un hilo
+   de hueso que las despega del fondo cuando el fondo tambien es verde.
+   Y la misma altura: dos pastillas de distinto alto se leen como un
+   error, no como una decision. */
+.brand,
+.header-bar {
+  display: flex; align-items: center;
+  flex: 0 0 auto;
+  min-height: var(--pill-h);
+  border-radius: 999px;
+  background: var(--night);
+  border: 1px solid rgba(241, 239, 233, .1);
+  box-shadow: 0 12px 30px -14px rgba(11, 20, 13, .75);
 }
+
+.brand { min-width: 0; padding-inline: .95rem; }
+.brand__clip { display: block; flex: 0 0 auto; }
+.brand__lockup {
+  display: block;
+  height: var(--lockup-h);
+  width: auto;
+  /* El reset pone `max-width: 100%` a toda imagen. Dentro del recorte eso
+     la aplastaria en vez de taparla: aqui la firma tiene que salirse. */
+  max-width: none;
+  color: var(--bone);
+}
+
+/* Los huecos de los extremos se miden hasta lo que SE VE, no hasta la
+   caja. El boton de menu lleva trazos de 20px dentro de una caja de 38,
+   asi que deja 9px de aire por dentro; si el relleno fuera igual a los
+   dos lados, la bandera quedaria pegada y el menu suelto. La izquierda
+   compensa esa holgura. */
+.header-bar { gap: .6rem; padding-inline: 1rem .4rem; }
+.site-nav--wide { display: none; }        /* solo desde 1024px */
 
 .nav-toggle {
   flex: 0 0 auto;
-  display: grid; gap: 5px;
-  padding: .5rem .25rem;
+  display: grid; place-content: center; gap: 5px;
+  width: 2.4rem; height: 2.4rem;
+  border-radius: 50%;
+  transition: background-color .25s var(--ease);
 }
+.nav-toggle:hover { background: rgba(241, 239, 233, .12); }
 .nav-toggle__bar {
-  display: block; width: 26px; height: 2px;
+  display: block; width: 20px; height: 2px;
   background: var(--bone);
   transition: transform .26s var(--ease), opacity .09s linear, scale .16s var(--ease);
 }
@@ -194,20 +231,38 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2) { opacity: 0; scale: .3 1; }
 .nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* Slide-down panel */
+/* Panel desplegable */
 .site-nav {
-  position: absolute; left: 0; right: 0; top: 100%;
-  background: var(--pine-700);
-  border-bottom: 1px solid rgba(241, 239, 233, .08);
+  position: absolute; left: var(--gutter); right: var(--gutter); top: calc(100% - .35rem);
+  background: var(--night);
+  border: 1px solid rgba(241, 239, 233, .1);
+  border-radius: 1.25rem;
+  box-shadow: 0 22px 46px -20px rgba(11, 20, 13, .8);
   overflow: hidden;
   max-height: 0;
   transition: max-height .45s var(--ease);
 }
-.site-nav.is-open { max-height: 22rem; }
-.site-nav__list { padding: .5rem var(--gutter) 1.25rem; }
-.site-nav__list li + li { border-top: 1px solid rgba(241, 239, 233, .07); }
+
+.site-header__tools { display: flex; align-items: center; gap: .5rem; }
+
+/* Cerrado, max-height: 0 todavia deja los dos bordes: 1.6px de linea
+   cruzando la pagina. Cerrado quiere decir cerrado. */
+.site-nav--drop {
+  opacity: 0;
+  visibility: hidden;
+  transition: max-height .45s var(--ease), opacity .3s var(--ease),
+              visibility 0s linear .45s;
+}
+.site-nav--drop.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: max-height .45s var(--ease), opacity .25s var(--ease), visibility 0s;
+}
+.site-nav.is-open { max-height: 24rem; }
+.site-nav__list { padding: .35rem 1.25rem .9rem; }
+.site-nav__list li + li { border-top: 1px solid rgba(241, 239, 233, .09); }
 .site-nav__list a {
-  display: block; padding: .85rem 0;
+  display: block; padding: .8rem 0;
   font-size: 1rem; letter-spacing: -.01em;
   color: var(--bone);
 }
@@ -215,76 +270,248 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* =============================================================
    Hero
+   Movil: solo lo esencial — el nombre, el oficio, las redes, la foto
+   y el camino. Las puertas y la hoja aparecen desde tablet.
    ============================================================= */
 .hero {
-  padding: 1.5rem var(--gutter) 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--header-h) + 1.25rem) var(--gutter) 0;
   text-align: center;
 }
+/* En movil se entra por la imagen: primero la calcomania, despues el
+   nombre, el oficio, las redes y el camino. */
+.hero__stage    { order: 1; }
+.hero__identity { order: 2; }
+.hero__panel    { order: 3; }
+.scroll-cue     { order: 4; }
 
-/* The name first, written — not drawn. Young Serif carries it, because
-   the name is the one place the serif is allowed to speak for me.
-   Never below 28px, one weight, tracked in. */
+/* --- El nombre primero, siempre. Nunca por debajo de 28px. --- */
 .hero__name {
-  margin: 0;
+  margin: 1.4rem 0 0;
   font-family: var(--serif);
-  font-size: clamp(2.1rem, 11vw, 3rem);
+  font-size: clamp(2.1rem, 10.5vw, 3rem);
   font-weight: 400;
   line-height: 1.06;
   letter-spacing: -.015em;
   color: var(--bone);
-  text-wrap: balance;
 }
+/* Cada mitad toma su linea: "Ramírez" se queda abajo, solo. Al ser dos
+   bloques tampoco hace falta un espacio entre ellos. */
+.hero__name-line { display: block; }
 
-/* The role explains the name, underneath. A single Iris tick before it,
-   so the label reads as a status and not as a second title. */
+/* El oficio explica el nombre, y por eso va debajo de el. */
 .hero__role {
   display: flex; align-items: center; justify-content: center; gap: .5rem;
   margin: .7rem 0 0;
-  font-size: .82rem; font-weight: 600;
-  letter-spacing: .06em;
-  color: var(--pine-200);
+  font-size: .74rem; font-weight: 600;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--iris-300);
 }
 .hero__role::before {
   content: "";
   flex: 0 0 auto;
-  width: .42rem; height: .42rem;
+  width: .4rem; height: .4rem;
   border-radius: 50%;
   background: var(--iris);
 }
 
-.hero__tagline {
-  margin: .8rem auto 0;
-  max-width: 22rem;
-  font-size: .95rem; font-weight: 300;
+/* --- Las dos puertas. En movil sobran: el menu ya las tiene. --- */
+.hero__doors { display: none; }
+.hero__doors-title {
+  margin: 0 0 .8rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.hero__doors-list { display: flex; flex-wrap: wrap; gap: .6rem; }
+.door {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .62rem 1rem .62rem 1.2rem;
+  border: 1px solid rgba(241, 239, 233, .28);
+  border-radius: 999px;
+  font-size: .86rem; font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--bone);
+  transition: background-color .28s var(--ease), color .28s var(--ease),
+              border-color .28s var(--ease);
+}
+.door__badge {
+  padding: .1em .45em .14em;
+  border-radius: 999px;
+  background: rgba(241, 239, 233, .16);
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.door:hover .door__badge, .door:focus-visible .door__badge {
+  background: rgba(38, 59, 40, .14);
+}
+.door .icon { width: .8rem; height: .8rem; transition: translate .28s var(--ease); }
+.door:hover, .door:focus-visible {
+  background: var(--bone); color: var(--pine); border-color: var(--bone);
+}
+.door:hover .icon, .door:focus-visible .icon { translate: 2px -2px; }
+
+/* --- El escenario ---------------------------------------------------
+   Movil y tablet: la calcomania de siempre. El bosque detras, yo delante.
+   ------------------------------------------------------------------- */
+.hero__stage {
+  position: relative;
+  width: min(94vw, 27rem, max(12rem, calc(100vh - 400px)));
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+.hero__field { position: absolute; inset: 0; }
+
+/* El bosque es decoracion, asi que es fondo y no <img>: el escritorio,
+   que no lo usa, tampoco lo descarga. */
+.hero__forest {
+  --ty: 34px;
+  --rot: 0deg;
+  --delay: 120ms;
+  position: absolute; inset: 0;
+  display: block;
+  rotate: 3.52deg;                        /* la inclinacion, exacta */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+@media (max-width: 1199px) {
+  .hero__forest {
+    background-image: url("/assets/img/forest-only.png");
+    background-image: image-set(
+      url("/assets/img/forest-only.webp") type("image/webp"),
+      url("/assets/img/forest-only.png") type("image/png"));
+  }
+}
+
+/* `translate` lleva el centrado y `transform` la entrada: si compartieran
+   propiedad, una borraria a la otra. */
+.hero__me {
+  --ty: 46px;
+  --rot: 0deg;
+  --delay: 620ms;                         /* medio segundo detras del bosque */
+  position: absolute;
+  left: 50%; bottom: 0;
+  display: block;
+  width: 62%;
+  translate: -50% 0;
+  z-index: 1;
+}
+.hero__me img { width: 100%; height: auto; }
+
+/* --- La hoja: de donde sale el trabajo, y para quien es ----------- */
+.hero__panel { display: none; }           /* desde tablet */
+
+.hero__offer-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.35rem; font-weight: 400;
+  line-height: 1.15; letter-spacing: -.015em;
+  color: var(--bone);
+}
+.hero__offer-list {
+  margin: 1rem 0 0;
+  display: grid; gap: .55rem;
+  font-size: .85rem; font-weight: 300;
+  line-height: 1.45;
+  color: var(--pine-200);
+}
+.hero__offer-list li {
+  position: relative;
+  padding-left: 1rem;
+}
+.hero__offer-list li::before {
+  content: "";
+  position: absolute; left: 0; top: .55em;
+  width: .3rem; height: .3rem;
+  border-radius: 50%;
+  background: var(--ring);
+}
+
+.hero__status {
+  display: flex; align-items: center; gap: .45rem;
+  margin: 0;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.hero__status-dot {
+  flex: 0 0 auto;
+  width: .45rem; height: .45rem;
+  border-radius: 50%;
+  background: var(--iris-300);
+  animation: statusPulse 2.8s var(--ease) infinite;
+}
+@keyframes statusPulse {
+  0%, 70%, 100% { box-shadow: 0 0 0 0 rgba(169, 196, 127, .55); }
+  35%           { box-shadow: 0 0 0 7px rgba(169, 196, 127, 0); }
+}
+.hero__emet {
+  margin: .5rem 0 0;
+  font-size: .84rem; font-weight: 300;
   line-height: 1.55;
   color: var(--bone);
 }
-.hero__tagline .ahava { color: var(--iris-300); }
 
-/* --- The two images ------------------------------------------------ */
-.portrait {
-  position: relative;
-  margin: .75rem auto 0;
-  /* As large as the width allows, but never larger than the height left
-     over once the name, the links and the arrow have taken their share. */
-  width: min(80vw, 19rem, max(9rem, calc(100vh - 500px)));
-  aspect-ratio: 1 / 1;
+/* La palabra, en su propia caja. */
+.rhema {
+  margin: 1.6rem 0 0;
+  padding: 1.25rem 1.3rem 1.2rem;
+  background: var(--bone-panel);
+  color: var(--slate);
+  border-radius: 24px;
+  text-align: left;
 }
-.portrait__forest {
-  --rot: 3.52deg;              /* the tilt, exactly */
-  --ty: 34px;
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: contain;
+.rhema .icon--quote {
+  width: 1.35rem; height: 1.04rem;
+  color: var(--ring);
 }
-.portrait__me {
-  --ty: 20px;
-  position: absolute;
-  left: 50%; bottom: 0;
-  width: 62%;
-  transform-origin: bottom center;
-  translate: -50% 0;           /* keeps .reveal's transform free */
-  object-fit: contain;
+.rhema__text {
+  margin: .7rem 0 1rem;
+  font-size: .95rem; font-weight: 300;
+  line-height: 1.55;
+}
+.rhema__text .ahava { color: var(--iris-700); white-space: nowrap; }
+.rhema__by {
+  display: flex; align-items: center; gap: .7rem;
+  padding-top: .9rem;
+  border-top: 1px solid rgba(43, 58, 67, .14);
+}
+.rhema__face {
+  flex: 0 0 auto;
+  display: block;
+  width: 2.6rem; height: 2.6rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--pine-700);
+}
+.rhema__face img { width: 100%; height: 100%; object-fit: cover; }
+.rhema__by b {
+  display: block;
+  font-size: .82rem; font-weight: 600; letter-spacing: -.01em;
+}
+.rhema__by small {
+  display: block;
+  font-size: .7rem;
+  color: #5A6B74;                         /* Slate 400 — texto secundario */
+}
+
+/* En movil la palabra vive sobre el hueso de la seccion siguiente;
+   desde tablet vuelve a la hoja del hero. */
+.rhema--panel { display: none; }
+.rhema--about {
+  max-width: var(--measure);
+  margin: 1rem 0 2.75rem;                 /* aire, sobre todo por debajo */
+  background: var(--bone);
+  border: 1px solid rgba(43, 58, 67, .14);
+  /* Un vaiven de doce segundos: no llama la atencion, pero la caja
+     nunca esta del todo quieta. */
+  animation: rhemaBreathe 12s var(--ease-smooth) infinite;
+}
+@keyframes rhemaBreathe {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
 }
 
 /* =============================================================
@@ -304,7 +531,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .links__list {
   display: flex; justify-content: center; align-items: center;
   gap: .9rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+}
+/* "Ver todas" no compite con las cuatro de siempre: rompe la linea y se
+   queda justo debajo, no al fondo de la pantalla. */
+.links__list li:last-child {
+  flex-basis: 100%;
+  display: flex; justify-content: center;
+  margin-top: .35rem;
 }
 
 .link-chip {
@@ -457,7 +691,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   transition: color .22s var(--ease), border-color .22s var(--ease);
 }
 .term:hover, .term:focus-visible { color: var(--iris-700); border-bottom-style: solid; }
-.hero__tagline .term:hover, .hero__tagline .term:focus-visible { color: var(--iris-300); }
+.rhema__text .term:hover, .rhema__text .term:focus-visible { color: var(--iris-700); }
 
 .term-panel { position: fixed; inset: 0; z-index: 75; display: grid; align-items: end; }
 .term-panel__scrim {
@@ -472,6 +706,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: var(--bone);
   color: var(--slate);
   border-top: 3px solid var(--ring);
+  border-radius: 32px 32px 0 0;
   translate: 0 100%;
   transition: translate .42s var(--ease);
 }
@@ -542,6 +777,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   padding: 1.6rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
   background: var(--pine-700);
   border-top: 3px solid var(--iris);
+  border-radius: 32px 32px 0 0;
   translate: 0 100%;
   transition: translate .42s var(--ease);
 }
@@ -588,18 +824,16 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
    ============================================================= */
 /* En movil flota abajo a la derecha, como antes de Astro.
    Desde 600px vuelve a la cabecera (ver tablet.css). */
-.site-header__lang {
-  position: fixed;
-  right: max(.6rem, env(safe-area-inset-right));
-  bottom: max(.6rem, env(safe-area-inset-bottom));
-  z-index: 55;
-}
+/* Flotaba abajo con `position: fixed`, y en movil la barra del navegador
+   se abre y se cierra al hacer scroll: el ancla de abajo se movia con ella.
+   Dentro de la cabecera, que ya es fija, se queda quieto. */
+.site-header__lang { position: relative; }
 
 .lang { position: relative; display: grid; justify-items: center; }
 
 .lang__list {
   position: absolute;
-  bottom: calc(100% + .55rem);      /* abre hacia arriba: esta abajo del todo */
+  top: calc(100% + .5rem);          /* abre hacia abajo, bajo la cabecera */
   right: 0;
   z-index: 60;
   display: grid; gap: .45rem; justify-items: center;
@@ -610,7 +844,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 .lang__list li {
   opacity: 0;
-  translate: 0 12px;
+  translate: 0 -12px;
   scale: .5;
   rotate: -40deg;
   transition:
@@ -622,18 +856,19 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 .lang.is-open .lang__list li { opacity: 1; translate: 0 0; scale: 1; rotate: 0deg; }
 
+/* Todas las banderas miden lo mismo: la que esta puesta no es mas
+   importante que las que puedes elegir. */
 .lang__option,
 .lang__current {
   position: relative;
   display: grid; place-items: center;
-  width: 2.35rem; height: 2.35rem;
+  width: 1.95rem; height: 1.95rem;
   transition: scale .3s var(--ease);
 }
 .lang__option:hover, .lang__current:hover { scale: 1.08; }
 .lang__option:active, .lang__current:active { scale: .95; }
 .lang__option img, .lang__flag { width: 100%; height: 100%; }
 
-.lang__current { width: 2.5rem; height: 2.5rem; }
 
 /* Una vuelta entera, sin prisa, al abrir y al cerrar. */
 .lang__flag { rotate: 0deg; transition: rotate .85s var(--ease-smooth); }
@@ -642,32 +877,86 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* Un globo en la esquina: la bandera es idioma, no pais. */
 .lang__badge {
   position: absolute; right: -3px; bottom: -3px;
-  width: 1.05rem; height: 1.05rem;
+  width: .9rem; height: .9rem;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--bone);
   color: var(--pine);
 }
-.lang__badge .icon { width: .7rem; height: .7rem; }
+.lang__badge .icon { width: .6rem; height: .6rem; }
 
-/* Tres pulsos al llegar, y deja de pedir atencion. */
-.lang__current::after {
-  content: "";
-  position: absolute; inset: -5px;
-  border-radius: 50%;
-  border: 2px solid var(--iris-300);
+
+
+/* =============================================================
+   Lo que aun no esta
+   Una seccion sin escribir se muestra apagada: sigue siendo alcanzable,
+   pero no promete lo que no hay. El aviso lo dice en voz alta para
+   quien no ve la opacidad.
+   ============================================================= */
+.is-soon { opacity: .55; }
+.is-soon:hover, .is-soon:focus-visible { opacity: .85; }
+
+.drop-badge,
+.nav-cta__badge {
+  margin-left: .5rem;
+  padding: .12em .5em .16em;
+  border-radius: 999px;
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  vertical-align: middle;
+}
+.drop-badge {
+  background: rgba(241, 239, 233, .14);
+  color: var(--pine-200);
+}
+.nav-cta__badge {
+  background: rgba(241, 239, 233, .18);
+  color: var(--bone);
+}
+
+/* Escribirme, mientras no haya numero, es un boton — no un enlace. */
+.drop-soon {
+  display: flex; align-items: center;
+  width: 100%;
+  padding: .8rem 0;
+  font-size: 1rem; letter-spacing: -.01em;
+  text-align: left;
+  color: var(--bone);
+  opacity: .55;
+}
+
+/* El aviso. Aparece abajo, lo lee el lector de pantalla, y se va solo. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 90;
+  display: flex; align-items: flex-start; gap: .75rem;
+  width: min(26rem, calc(100vw - 2rem));
+  padding: .9rem .8rem .9rem 1.1rem;
+  border: 1px solid rgba(241, 239, 233, .14);
+  border-radius: 16px;
+  background: rgba(30, 47, 32, .96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 44px -18px rgba(11, 20, 13, .9);
+  translate: -50% 1.5rem;
   opacity: 0;
-  pointer-events: none;
-  animation: langPulse 2.4s var(--ease) 1.4s 3;
+  transition: translate .32s var(--ease), opacity .32s var(--ease);
 }
-.lang.is-open .lang__current::after,
-.lang.has-used .lang__current::after { animation: none; }
-
-@keyframes langPulse {
-  0%   { opacity: .85; scale: 1; }
-  60%  { opacity: 0;   scale: 1.4; }
-  100% { opacity: 0;   scale: 1.4; }
+.toast.is-open { translate: -50% 0; opacity: 1; }
+.toast__text {
+  margin: 0;
+  font-size: .88rem; line-height: 1.5;
+  color: var(--bone);
 }
+.toast__close {
+  flex: 0 0 auto;
+  width: 1.6rem; height: 1.6rem;
+  font-size: 1.35rem; line-height: 1;
+  color: var(--pine-200);
+}
+.toast__close:hover { color: var(--bone); }
 
 /* =============================================================
    Paginas interiores — la misma voz, sin retrato.
@@ -676,7 +965,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: var(--bone);
   color: var(--slate);
   border-top: 3px solid var(--iris);
-  padding: 2.5rem var(--gutter) 3.5rem;
+  margin-top: var(--header-h);
+  padding: 2rem var(--gutter) 3.5rem;
   min-height: 60vh;
 }
 .page__title {

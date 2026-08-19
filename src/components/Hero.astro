@@ -1,31 +1,90 @@
 ---
+import { NAV } from '../data/social.js';
 import SocialRow from './SocialRow.astro';
+import Rhema from './Rhema.astro';
 import Icon from './Icon.astro';
-const { t } = Astro.props;
+const { lang, t } = Astro.props;
+
+/* Dos puertas, no cinco. Una lleva a la gente con la que he caminado,
+   la otra a lo que estoy construyendo por cuenta propia. */
+const soonOf = (slug) => NAV.find((n) => n.slug === slug)?.soon;
+const DOORS = [
+  { slug: 'work',     key: 'door.work',     soon: soonOf('work') },
+  { slug: 'projects', key: 'door.projects', soon: soonOf('projects') }
+];
 ---
-<!-- Movil: una columna. Tablet: dos. Escritorio: el texto a la izquierda,
-     el retrato ocupando toda la altura a la derecha. -->
+<!-- Movil y tablet: la calcomania de siempre — el bosque y yo — y debajo
+     el nombre. Escritorio: pinar liso a la izquierda, la hoja de hueso a
+     la derecha, y yo de pie entre las dos. -->
 <section class="hero" id="top">
+
+  <!-- El escenario. Solo pinta y respira: nada que leer aqui. -->
+  <div class="hero__stage">
+    <div class="hero__field">
+    </div>
+
+    <!-- El bosque es decoracion pura, asi que vive en el CSS: asi el
+         escritorio, que no lo usa, tampoco lo descarga. -->
+    <span class="hero__forest reveal" aria-hidden="true"></span>
+
+    <!-- Una sola descarga: el navegador elige por ancho, no por CSS. -->
+    <picture class="hero__me reveal">
+      <source media="(min-width: 1200px)" srcset="/assets/img/me-hero.webp" type="image/webp" />
+      <source media="(min-width: 1200px)" srcset="/assets/img/me-hero.png" />
+      <source srcset="/assets/img/just-me.webp" type="image/webp" />
+      <img src="/assets/img/just-me.png" width="179" height="191"
+           alt="Juanjo, con abrigo azul, mirando por encima del hombro"
+           decoding="async" fetchpriority="high" />
+    </picture>
+  </div>
+
   <div class="hero__identity">
-    <!-- El nombre, escrito. La firma dibujada cede su sitio al retrato. -->
-    <h1 class="hero__name">Juanjo López Ramírez</h1>
-    <p class="hero__role">{t('hero.role')}</p>
-    <SocialRow t={t} />
+    <h1 class="hero__name" data-lift>
+      <span class="hero__name-line">Juanjo López</span>
+      <span class="hero__name-line">Ramírez</span>
+    </h1>
+    <p class="hero__role" data-lift>{t('hero.role')}</p>
+
+    <!-- Dos puertas, para que elegir sea facil -->
+    <nav class="hero__doors" aria-labelledby="doors-title" data-lift>
+      <h2 class="hero__doors-title" id="doors-title">{t('hero.explore')}</h2>
+      <ul class="hero__doors-list">
+        {DOORS.map((dr) => (
+          <li>
+            <a class:list={['door', { 'is-soon': dr.soon }]} href={`/${lang}/${dr.slug}/`}>
+              <span>{t(dr.key)}</span>
+              {dr.soon && <span class="door__badge">{t('soon.badge')}</span>}
+              <Icon id="corner" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div data-lift><SocialRow t={t} /></div>
   </div>
 
-  <div class="hero__portrait">
-    <figure class="portrait">
-      <img class="portrait__forest reveal" src="/assets/img/forest-only.png" alt="" decoding="async" />
-      <img class="portrait__me reveal" src="/assets/img/just-me.png"
-           alt="Juanjo, wearing a navy coat, looking to the side" decoding="async" />
-    </figure>
-  </div>
+  <!-- La hoja de hueso: de donde sale el trabajo, y para quien es. -->
+  <section class="hero__panel" aria-labelledby="offer-title">
+    <div class="hero__offer" data-lift>
+      <h2 class="hero__offer-title" id="offer-title">{t('panel.title')}</h2>
+      <ul class="hero__offer-list">
+        <li>{t('panel.p1')}</li>
+        <li>{t('panel.p2')}</li>
+        <li>{t('panel.p3')}</li>
+      </ul>
+    </div>
 
-  <p class="hero__tagline" data-glossary>
-    <span>{t('hero.tagline1')}</span>
-    <em class="script">{t('hero.lightly')}</em><span>{t('hero.comma')}</span><br />
-    <span>{t('hero.tagline2')}</span> <span class="ahava">{t('hero.ahava')}</span>
-  </p>
+    <div class="hero__available" data-glossary data-lift>
+      <p class="hero__status">
+        <span class="hero__status-dot" aria-hidden="true"></span>
+        {t('hero.availableFor')}
+      </p>
+      <p class="hero__emet">{t('hero.emet')}</p>
+    </div>
+
+    <Rhema t={t} where="panel" />
+  </section>
 
   <a class="scroll-cue" href="#about">
     <span class="scroll-cue__sticker">{t('scroll.label')}</span>

@@ -51,5 +51,22 @@ export const TERMS = {
         fr: 'Amour qui décide et donne sans attendre de retour. Il apparaît plus de 300 fois dans le Nouveau Testament ; eros, pas une seule.'
       },
       source: 'Bauer, W., Danker, F. W., Arndt, W. F., & Gingrich, F. W. (2000). A Greek-English lexicon of the New Testament and other early Christian literature (3rd ed.). University of Chicago Press. (Strong G26)'
+},
+
+    /* ---------------------------------------------------------- */
+    rhema: {
+      script:   'ῥῆμα',
+      dir:      'ltr',
+      language: { es: 'Griego del Nuevo Testamento', en: 'New Testament Greek', pt: 'Grego do Novo Testamento', fr: 'Grec du Nouveau Testament', it: 'Greco del Nuovo Testamento' },
+      title:    { es: 'Rhema', en: 'Rhema', pt: 'Rhema', fr: 'Rhèma', it: 'Rhema' },
+      forms:    ['rhema', 'rhēma', 'rema'],
+      def: {
+        es: 'La palabra dicha. Frente a logos —la Palabra entera, el mensaje— rhema es la que se pronuncia en un momento concreto, para alguien concreto. No es una frase que se elige: es una que se recibe, y después se carga.',
+        en: 'The spoken word. Against logos — the whole Word, the message — rhema is the one uttered at a particular moment, to a particular person. Not a phrase you choose: one you receive, and then carry.',
+        pt: 'A palavra dita. Diante de logos — a Palavra inteira, a mensagem — rhema é a que se pronuncia num momento concreto, para alguém concreto. Não é uma frase que se escolhe: é uma que se recebe, e depois se carrega.',
+        it: 'La parola detta. Rispetto a logos — la Parola intera, il messaggio — rhema è quella pronunciata in un momento preciso, per qualcuno preciso. Non è una frase che si sceglie: è una che si riceve, e poi si porta.',
+        fr: 'La parole dite. Face à logos — la Parole entière, le message — rhèma est celle qui se prononce à un moment précis, pour quelqu’un de précis. Non une phrase que l’on choisit : une que l’on reçoit, et que l’on porte ensuite.'
+      },
+      source: 'Bauer, W., Danker, F. W., Arndt, W. F., & Gingrich, F. W. (2000). A Greek-English lexicon of the New Testament and other early Christian literature (3rd ed.). University of Chicago Press. (Strong G4487)'
     }
   };

@@ -2,6 +2,7 @@
 import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import Hero from '../../components/Hero.astro';
+import Rhema from '../../components/Rhema.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -10,10 +11,15 @@ const { lang } = Astro.params;
 const t = useT(lang);
 ---
 <Base lang={lang} path="">
-  <Hero t={t} />
+  <Hero lang={lang} t={t} />
 
   <section class="about" id="about" aria-labelledby="about-title" data-glossary>
     <h2 class="sr-only" id="about-title">{t('scroll.label')}</h2>
+
+    <!-- En movil la palabra abre la seccion: se lee antes que el texto.
+         Desde 600px vive en la hoja del hero. -->
+    <Rhema t={t} where="about" />
+
     <p class="reveal">{t('about.p1')}</p>
     <p class="reveal">{t('about.p2')}</p>
     <p class="reveal">{t('about.p3')}</p>

@@ -21,6 +21,33 @@ function lockScroll(on) {
   if (!d.body.getAttribute('style')) d.body.removeAttribute('style');
 }
 
+/* ---------- Cabecera ----------------------------------------
+   En escritorio la cabecera flota transparente sobre el hero. En
+   cuanto la pagina se mueve, vuelve a ponerse el pinar detras para
+   que la pastilla no quede suelta sobre la seccion de hueso.      */
+function initHeader() {
+  const header = d.querySelector('.site-header');
+  if (!header) return;
+  const hero = d.querySelector('.hero');
+  let ticking = false;
+
+  const sync = () => {
+    header.classList.toggle('is-scrolled', scrollY > 24);
+
+    /* La firma espera a que el nombre grande salga de pantalla. Sin hero
+       —las paginas interiores— no hay nada que esperar. */
+    header.classList.toggle('is-past-hero', !hero || scrollY > hero.offsetHeight * 0.6);
+
+    ticking = false;
+  };
+  addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(sync);
+  }, { passive: true });
+  sync();
+}
+
 /* ---------- Menu ------------------------------------------- */
 function initNav() {
   const btn = d.querySelector('.nav-toggle');
@@ -96,6 +123,37 @@ function initLang() {
   });
 }
 
+/* ---------- Lo que aun no esta -------------------------------
+   Un boton marcado con data-soon dice por que no lleva a ningun sitio.
+   El aviso se anuncia solo (role=status) y se retira a los seis segundos. */
+function initSoon() {
+  const box = d.getElementById('toast');
+  const text = d.getElementById('toast-text');
+  if (!box || !text) return;
+  let timer;
+
+  const hide = () => {
+    clearTimeout(timer);
+    box.classList.remove('is-open');
+    setTimeout(() => { if (!box.classList.contains('is-open')) box.hidden = true; }, 320);
+  };
+  const show = (key) => {
+    text.textContent = t(key);
+    box.hidden = false;
+    void box.offsetHeight;                 // punto de partida para la transicion
+    box.classList.add('is-open');
+    clearTimeout(timer);
+    timer = setTimeout(hide, 6000);
+  };
+
+  d.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-soon]');
+    if (btn) { show(btn.getAttribute('data-soon')); return; }
+    if (e.target.closest('[data-close-toast]')) hide();
+  });
+  d.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) hide(); });
+}
+
 /* ---------- Glosario ---------------------------------------- */
 const LETTER = /[0-9A-Za-zÀ-ÖØ-öø-ÿ]/;
 
@@ -161,34 +219,65 @@ function initGlossary() {
   });
 }
 
-/* ---------- Entradas ---------------------------------------- */
+/* ---------- Entradas ----------------------------------------
+   Dos comportamientos, no uno:
+
+   .reveal     — las imagenes. Entran una vez y ahi se quedan.
+   [data-lift] — los textos. Se levantan cada vez que vuelven a pasar
+                 por la ventana, escalonados dentro de su propio bloque,
+                 asi que cada scroll los vuelve a escribir.            */
 function initReveal() {
-  const targets = d.querySelectorAll('.reveal');
-  if (!targets.length) return;
+  const settle = d.querySelectorAll('.reveal');
+  const lift = d.querySelectorAll('[data-lift]');
+  if (!settle.length && !lift.length) return;
+
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced || !('IntersectionObserver' in window)) return;   // el CSS ya los muestra
 
   d.documentElement.classList.add('js-reveal');
-  const io = new IntersectionObserver((entries, obs) => {
+
+  /* El escalonado se calcula una vez, por bloque padre: lo que va junto
+     entra junto, en orden, y no de golpe. */
+  const groups = new Map();
+  lift.forEach((el) => {
+    const key = el.closest('.hero__identity, .hero__panel, .about, .page') || d.body;
+    const i = groups.get(key) || 0;
+    groups.set(key, i + 1);
+    el.style.setProperty('--d', i * 90 + 'ms');
+  });
+
+  const once = new IntersectionObserver((entries, obs) => {
     entries.forEach((e) => {
       if (!e.isIntersecting) return;
       e.target.classList.add('is-visible');
       obs.unobserve(e.target);
     });
   }, { rootMargin: '0px 0px 10% 0px', threshold: 0.01 });
-  targets.forEach((el) => io.observe(el));
+  settle.forEach((el) => once.observe(el));
 
-  // Red de seguridad: nada puede quedarse invisible.
+  /* Sin unobserve: al salir se rearman, y al volver se escriben otra vez. */
+  const again = new IntersectionObserver((entries) => {
+    entries.forEach((e) => e.target.classList.toggle('is-in', e.isIntersecting));
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  lift.forEach((el) => again.observe(el));
+
+  // Red de seguridad: nada puede quedarse invisible, pase lo que pase.
   setTimeout(() => {
     d.querySelectorAll('.reveal:not(.is-visible)').forEach((el) => {
       if (el.getBoundingClientRect().top < innerHeight * 1.5) el.classList.add('is-visible');
     });
+    d.querySelectorAll('[data-lift]:not(.is-in)').forEach((el) => {
+      const b = el.getBoundingClientRect();
+      if (b.top < innerHeight && b.bottom > 0) el.classList.add('is-in');
+    });
   }, 3000);
 }
 
+initHeader();
 initNav();
 initSocial();
 initLang();
+initSoon();
 initGlossary();
 initReveal();
 d.documentElement.classList.add('js-ready');

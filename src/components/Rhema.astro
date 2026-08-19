@@ -1,0 +1,25 @@
+---
+import Icon from './Icon.astro';
+const { t, where = 'panel' } = Astro.props;
+---
+<!-- La palabra que me sostiene. En escritorio vive en la hoja del hero;
+     en movil baja a la seccion de hueso, donde hay sitio para leerla. -->
+<figure class={`rhema rhema--${where}`} data-glossary data-lift>
+  <Icon id="quote" />
+  <blockquote class="rhema__text">
+    <span>{t('hero.tagline1')}</span>
+    <em class="script">{t('hero.lightly')}</em><span>{t('hero.comma')}</span><br />
+    <span>{t('hero.tagline2')}</span> <span class="ahava">{t('hero.ahava')}</span>
+  </blockquote>
+  <figcaption class="rhema__by">
+    <picture class="rhema__face">
+      <source srcset="/assets/img/me-face.webp" type="image/webp" />
+      <img src="/assets/img/me-face.jpg" alt="" width="512" height="512"
+           loading="lazy" decoding="async" />
+    </picture>
+    <span>
+      <b>Juanjo López Ramírez</b>
+      <small>{t('quote.who')}</small>
+    </span>
+  </figcaption>
+</figure>

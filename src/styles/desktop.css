@@ -1,48 +1,85 @@
 /* =============================================================
-   Escritorio — 1024px y mas. Ya no hay aviso de "en construccion":
-   esta version existe.
+   Escritorio.
 
-   La cabecera se alarga: marca a la izquierda, secciones al centro,
-   idioma y menu a la derecha. El hero conserva las dos columnas.
+   Dos tramos, no uno:
+
+   Desde 1024px — la cabecera moderna. Las secciones caben en una
+   pastilla, asi que el menu de hamburguesa desaparece.
+
+   Desde 1200px — la pagina se parte en dos. A la izquierda un pinar
+   que respira: tres luces lentas en ciclos que no encajan entre si,
+   y el bosque dentro, recortado por la costura. A la derecha una hoja
+   de hueso con lo que hago y la palabra que me sostiene. Y de pie
+   sobre la costura, yo: el pinar me pasa por detras, las fichas de la
+   hoja me pasan por delante.
    ============================================================= */
 @media (min-width: 1024px) {
 
-  :root { --gutter: 3.5rem; }
+  :root {
+    --gutter: 3.5rem;
+    --shell: 84rem;         /* el ancho del que cuelga lo que se lee */
+    --header-h: 5.6rem;
+    --pill-h: 3.75rem;
+    --lockup-h: 2.4rem;
 
-  /* ---- Cabecera larga ---- */
-  .site-header {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 2rem;
-    padding: 1.15rem var(--gutter);
+    /* El borde comun. Cada elemento resuelve ese 100% contra el ancho
+       del cuerpo, asi que todo arranca en la misma linea. */
+    --edge: max(var(--gutter), calc((100% - var(--shell)) / 2 + var(--gutter)));
   }
-  .brand__mark { width: 17px; }
-  .brand__name { font-size: 1.15rem; }
 
-  /* El centro solo aparece aqui. Hay que deshacer el posicionamiento
-     del menu desplegable, que esta version no usa. */
+  /* =============================================================
+     Cabecera
+     ============================================================= */
+  .site-header { padding: 1.1rem var(--edge); }
+
+  /* ---- Las dos pastillas ---- */
+  .brand { padding-inline: 1.15rem; }
+  /* Mientras el nombre esta a la vista en el hero, arriba solo hace falta
+     la marca. Al salir de el, la firma asoma detras. */
+  /* Recortado justo por donde acaba el pez —los primeros 41 de 78 de
+     alto—, no un poco despues: ese sobrante lo dejaba descentrado
+     dentro de su propia pastilla. */
+  .brand__clip {
+    overflow: hidden;
+    max-width: calc(var(--lockup-h) * 41 / 78);
+    transition: max-width .55s var(--ease-smooth);
+  }
+  .site-header.is-past-hero .brand__clip { max-width: 10rem; }
+
+  .header-bar { gap: .3rem; padding-inline: 1.5rem 1.35rem; }
+
+  /* Las secciones caben en la pastilla, asi que el desplegable sobra. */
+  .nav-toggle { display: none; }
+  .site-nav--drop { display: none; }
+
   .site-nav--wide {
     display: block;
-    justify-self: center;
     position: static;
+    /* tablet.css le da un ancho fijo al desplegable; aqui esto no es un
+       desplegable, es la fila de secciones, y mide lo que mide su texto. */
+    width: auto;
+    flex: 0 0 auto;
     max-height: none;
     overflow: visible;
     background: none;
     border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
   .site-nav__wide-list {
     display: flex;
     align-items: center;
-    gap: 2.1rem;
+    gap: 1.6rem;
   }
   .site-nav__wide-list a {
     position: relative;
     display: block;
-    padding: .35rem 0;
-    font-size: .92rem;
+    padding: .3rem 0;
+    font-size: .75rem;
     font-weight: 600;
-    letter-spacing: .02em;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    white-space: nowrap;                  /* una seccion, una linea */
     color: var(--pine-200);
     transition: color .25s var(--ease);
   }
@@ -53,7 +90,7 @@
   .site-nav__wide-list a::after {
     content: "";
     position: absolute;
-    left: 0; right: 0; bottom: -2px;
+    left: 0; right: 0; bottom: -1px;
     height: 2px;
     background: var(--iris);
     scale: 0 1;
@@ -63,37 +100,38 @@
   .site-nav__wide-list a:hover::after,
   .site-nav__wide-list a.is-current::after { scale: 1 1; }
 
-  .site-header__tools { justify-self: end; }
-
-  /* Con el centro visible, el desplegable sobra */
-  .nav-toggle { display: none; }
-  .site-nav:not(.site-nav--wide) { display: none; }
-
-  /* ---- Hero ---- */
-  .hero {
-    max-width: 74rem;
-    margin-inline: auto;
-    column-gap: 4rem;
-    padding-top: 4rem;
+  /* Escribirme no es una seccion mas: es lo unico que pido. Va en hueso,
+     que es lo unico claro dentro de una pastilla verde. */
+  .site-nav__write { flex: 0 0 auto; margin-left: .5rem; }
+  .site-nav__wide-list .nav-cta {
+    padding: .62rem 1.15rem;
+    border-radius: 999px;
+    background: var(--bone);
+    color: var(--pine);
+    transition: background-color .25s var(--ease);
   }
-  .hero__name .sig { width: min(100%, 24rem); }
-  .hero__role { font-size: 1.05rem; letter-spacing: .08em; }
-  .links { margin-top: 2.4rem; }
-  .link-chip { width: 3.4rem; height: 3.4rem; }
-  .link-chip .icon { width: 2rem; height: 2rem; }
+  .site-nav__wide-list .nav-cta::after { display: none; }
+  .site-nav__wide-list .nav-cta:hover { background: var(--bone-panel); }
+  .nav-cta__badge { background: rgba(38, 59, 40, .14); color: var(--pine); }
 
-  .portrait { width: min(100%, 30rem); }
-  .hero__tagline { max-width: 30rem; font-size: 1.15rem; }
+  /* ---- Idioma ---- */
+  .site-header__tools { gap: .4rem; }
+  .site-header__tools::before {
+    content: "";
+    width: 1px; height: 1.4rem;
+    margin-left: 1rem;
+    background: rgba(241, 239, 233, .18);
+  }
+  .site-header__tools .lang { margin-inline: .35rem 0; }
+  .lang__option,
+  .lang__current { width: 1.85rem; height: 1.85rem; }
+  .lang__badge { background: var(--bone); color: var(--pine); }
 
-  .scroll-cue { margin-top: 3rem; padding-bottom: 3.5rem; }
-
-  /* ---- Lectura ---- */
+  /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
+          arranca en la misma linea que el nombre ---- */
   .about,
-  .page {
-    max-width: 74rem;
-    margin-inline: auto;
-    padding-inline: var(--gutter);
-  }
+  .page { padding-inline: var(--edge); }
+  .page { padding-top: 3.5rem; }
   .about p { font-size: 1.1rem; }
   .page__title { font-size: 3rem; }
 
@@ -106,14 +144,178 @@
   .social-panel__sheet,
   .term-panel__sheet {
     width: min(52rem, calc(100vw - 6rem));
-    border-radius: 2px;
+    border-radius: 32px;
     translate: 0 24px;
   }
   .social-panel.is-open .social-panel__sheet,
   .term-panel.is-open .term-panel__sheet { translate: 0 0; }
 }
 
-/* Pantallas muy anchas: la lectura no se estira sin limite */
+
+/* =============================================================
+   La costura — desde 1200px hay sitio para las dos mitades y para mi
+   en medio. Por debajo de eso el hero sigue siendo el de tablet.
+   ============================================================= */
+@media (min-width: 1200px) {
+
+  :root {
+    --panel: 38rem;         /* la hoja llega al hueco entre Proyectos y Escritos */
+    --me-cross: 12rem;      /* cuanto cruzo la costura */
+  }
+
+  .hero {
+    position: relative;
+    display: block;                       /* el reparto lo hace la costura */
+    min-height: 100svh;
+    padding: 0;
+    text-align: left;
+    overflow: hidden;                     /* las luces no se salen */
+  }
+
+  /* ---- El escenario ----
+     Sin z-index propio: asi el pinar, yo y las fichas de la hoja se
+     ordenan entre si y no cada uno dentro de su caja. */
+  .hero__stage {
+    position: absolute; inset: 0;
+    z-index: auto;
+    width: auto; aspect-ratio: auto; margin: 0;
+    pointer-events: none;
+  }
+
+  /* Pinar liso. Sin degradado y sin neblina: el color hace el trabajo. */
+  .hero__field {
+    z-index: 0;
+    inset: 0 var(--panel) 0 0;
+    background: var(--pine);
+  }
+
+  /* ---- Yo, sobre la costura ----
+     El borde derecho cae siempre a la misma distancia dentro de la
+     hoja, asi que el cruce no cambia con el ancho de la pantalla. */
+  /* La foto viene cortada al borde del encuadre por abajo y por la
+     izquierda. Abajo cae en el filo de la pantalla, asi que no se nota.
+     El derecho tiene 76px limpios, y por ahi cruzo la costura sin
+     ensenar ningun canto. Solo el izquierdo pide ayuda: se apaga en un
+     palmo para que parezca que salgo de la sombra, no que me cortaron. */
+  .hero__me {
+    left: auto;
+    right: calc(var(--panel) - var(--me-cross));
+    bottom: 0;
+    width: min(clamp(20rem, 30vw, 34rem), calc(100svh - 6rem));
+    translate: 0;
+    z-index: 3;
+  }
+  .hero__me img {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 7%);
+    mask-image: linear-gradient(to right, transparent 0, #000 7%);
+  }
+
+  /* ---- Lo que se lee, sobre el pinar ---- */
+  .hero__identity {
+    position: relative;
+    z-index: 2;
+    width: min(34rem, calc(100% - var(--panel) - var(--edge) - 8rem));
+    margin-left: var(--edge);
+    padding-top: calc(var(--header-h) + 4vh);
+  }
+
+  .hero__name {
+    font-size: clamp(3.4rem, 4.6vw, 5.2rem);
+    line-height: 1.02;
+  }
+  .hero__role { font-size: .74rem; letter-spacing: .18em; margin-bottom: .9rem; }
+
+  .hero__doors { margin-top: 1.9rem; }
+  .hero__doors-list { gap: .55rem; }
+
+  .links { margin-top: 1.9rem; }
+  .link-chip { width: 2.9rem; height: 2.9rem; }
+  .link-chip .icon { width: 1.75rem; height: 1.75rem; }
+
+  /* ---- La hoja de hueso ----
+     Sin z-index propio tampoco: el fondo se queda detras de mi y las
+     fichas se me ponen delante, como en una foto de estudio. */
+  /* De arriba abajo: la costura tiene que ser una linea recta, o deja de
+     leerse como dos columnas. Las pastillas de la cabecera son opacas,
+     asi que pueden pasar por encima sin partirse. */
+  .hero__panel {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    z-index: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;              /* una columna compuesta, no dos extremos */
+    gap: 2.75rem;
+    width: var(--panel);
+    max-width: none;
+    margin: 0;
+    padding: calc(var(--header-h) + 2vh) var(--gutter) 4vh;
+    background: none;
+    text-align: left;
+  }
+  .hero__panel::before {
+    content: "";
+    position: absolute; inset: 0;
+    z-index: 1;                           /* sobre el pinar, debajo de mi */
+    background: var(--bone);
+  }
+  .hero__panel > * {
+    position: relative;
+    z-index: 4;                           /* delante de mi */
+    width: min(100%, 22rem);
+  }
+
+  .hero__offer-title { font-size: 1.5rem; color: var(--slate); }
+  .hero__offer-list { margin-top: .9rem; font-size: .8rem; color: #5A6B74; }
+  .hero__offer-list li::before { background: var(--ring); }
+
+  .hero__available { margin: 0; }
+  .hero__status { color: #5A6B74; }
+  .hero__status-dot { background: var(--iris-700); }
+  .hero__emet {
+    font-size: .8rem;
+    line-height: 1.6;
+    color: var(--slate);
+  }
+
+  .rhema {
+    margin: 0;                            /* la palabra cierra la columna */
+    padding: 1.15rem 1.2rem 1.1rem;
+    background: var(--bone-panel);
+    box-shadow: 0 18px 40px -22px rgba(11, 20, 13, .45);
+  }
+  .rhema__text { font-size: .88rem; margin: .6rem 0 .9rem; }
+  .rhema__face { width: 2.4rem; height: 2.4rem; }
+
+  /* ---- El camino, abajo del todo, sobre el verde ---- */
+  .scroll-cue {
+    position: absolute;
+    left: var(--edge); bottom: 3.5vh;
+    z-index: 2;
+    flex-direction: row;
+    align-items: center;
+    gap: .85rem;
+    width: fit-content;
+    margin: 0;
+    padding: .78rem 1.5rem .78rem 1.7rem;
+    border: 2px solid rgba(241, 239, 233, .55);
+    border-radius: 999px;
+    rotate: -1.6deg;
+    transition: background-color .3s var(--ease), color .3s var(--ease),
+                border-color .3s var(--ease);
+  }
+  .scroll-cue:hover { background: var(--bone); color: var(--pine); border-color: var(--bone); }
+  .scroll-cue__sticker {
+    padding: 0; border: 0; background: none; rotate: 0deg; animation: none;
+  }
+  .scroll-cue:hover .scroll-cue__sticker { background: none; color: inherit; }
+  .scroll-cue .icon { width: 1.05rem; height: .62rem; }
+  .scroll-cue:hover .icon { color: inherit; }
+}
+
+/* Pantallas anchas: la hoja crece con la pantalla, el nombre casi no. */
 @media (min-width: 1600px) {
-  .hero, .about, .page { max-width: 80rem; }
+  :root { --shell: 90rem; --panel: 42rem; }
+  .hero__panel > * { width: min(100%, 24rem); }
 }

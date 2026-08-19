@@ -12,10 +12,23 @@ export const SOCIAL = [
   { id: 'x',         name: 'X',         row: false, href: 'https://x.com/juanjolopezr' }
 ];
 
-/* Las secciones del sitio. Añade una aquí y aparece en el menú y en el pie. */
+/* Las secciones del sitio. Añade una aquí y aparece en el menú y en el pie.
+
+   `soon: true` = la página existe pero todavía no tiene nada dentro. Se
+   muestra apagada y avisa a quien lee con el oído. Cuando escribas la
+   página, borra esa línea y vuelve a encenderse sola. */
 export const NAV = [
-  { slug: 'work',     key: 'nav.work' },
-  { slug: 'projects', key: 'nav.projects' },
-  { slug: 'writing',  key: 'nav.writing' },
-  { slug: 'about',    key: 'nav.about' }
+  { slug: 'work',     key: 'nav.work',     soon: true },
+  { slug: 'projects', key: 'nav.projects', soon: true },
+  { slug: 'writing',  key: 'nav.writing',  soon: true },
+  { slug: 'about',    key: 'nav.about',    soon: true }
 ];
+
+/* Escribirme será por WhatsApp. Mientras no haya número, no hay enlace:
+   un <a> sin destino es una promesa que no se cumple, así que es un
+   botón que lo dice. Pon el número aquí y quita `soon`. */
+export const CONTACT = {
+  channel: 'whatsapp',
+  href: '',
+  soon: true
+};

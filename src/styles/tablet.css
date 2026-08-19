@@ -1,61 +1,66 @@
 /* =============================================================
    Tablet — 600px y mas.
-   Aqui el hero se parte en dos columnas: identidad a la izquierda,
-   retrato a la derecha, y el boton del camino al centro, debajo.
+   Aparecen las dos puertas y la hoja de hueso: hay sitio para ellas.
+   El hero se parte en dos, con la hoja cruzada debajo.
    ============================================================= */
 @media (min-width: 600px) {
 
-  :root { --gutter: 2.5rem; }
+  :root { --gutter: 2.5rem; --header-h: 4.1rem; --pill-h: 3.5rem; --lockup-h: 2.1rem; }
 
-  .site-header { padding-block: 1.1rem; }
+  .site-header { padding-block: .95rem; }
 
-  /* El selector deja de flotar y ocupa su sitio junto al menu */
-  .site-header__lang { position: static; z-index: auto; }
-  .lang__list { bottom: auto; top: calc(100% + .55rem); }
-  .lang__list li { translate: 0 -12px; }
-  .brand__name { font-size: 1.1rem; }
-
-  .site-nav__list { padding-inline: 2.5rem; }
-  .site-nav__list a { font-size: 1.1rem; padding-block: 1rem; }
+  .site-nav { left: auto; right: var(--gutter); width: min(21rem, calc(100vw - 5rem)); }
+  .site-nav__list { padding-inline: 1.5rem; }
+  .site-nav__list a { font-size: 1.05rem; padding-block: .9rem; }
 
   /* ---- Hero en dos columnas ---- */
   .hero {
-    display: grid;
+    display: grid;                        /* la rejilla ignora el `order` de movil */
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
-      "identity portrait"
-      "tagline  tagline"
+      "identity stage"
+      "panel    panel"
       "cue      cue";
     align-items: center;
     column-gap: 2.5rem;
-    padding: 3rem var(--gutter) 0;
+    padding: calc(var(--header-h) + 2rem) var(--gutter) 0;
     text-align: left;
   }
   .hero__identity { grid-area: identity; }
-  .hero__portrait { grid-area: portrait; }
-  .hero__tagline  { grid-area: tagline; }
+  .hero__stage    { grid-area: stage; }
+  .hero__panel    { grid-area: panel; }
   .scroll-cue     { grid-area: cue; }
 
-  .hero__name { font-size: clamp(2.6rem, 6.4vw, 3.6rem); }
-  .hero__role { font-size: .95rem; margin-top: .8rem; justify-content: flex-start; }
+  .hero__name { margin-top: 0; font-size: clamp(2.6rem, 6.2vw, 3.5rem); }
+  .hero__role { justify-content: flex-start; font-size: .78rem; }
 
-  .links { margin-top: 1.9rem; text-align: left; }
+  /* Aqui ya caben las dos puertas */
+  .hero__doors { display: block; margin-top: 1.7rem; }
+  .hero__doors-title { font-size: .72rem; }
+
+  .links { margin-top: 1.8rem; text-align: left; }
   .links__title { font-size: 1rem; margin-bottom: 1rem; }
-  .links__list { justify-content: flex-start; gap: 1.1rem; }
-  .link-chip { width: 3.1rem; height: 3.1rem; }
-  .link-chip .icon { width: 1.85rem; height: 1.85rem; }
+  .links__list { justify-content: flex-start; gap: 1.1rem; flex-wrap: nowrap; }
+  /* Con espacio de sobra, "ver todas" vuelve a la fila */
+  .links__list li:last-child { flex-basis: auto; margin-top: 0; }
+  .link-chip { width: 3rem; height: 3rem; }
+  .link-chip .icon { width: 1.8rem; height: 1.8rem; }
 
-  /* El retrato manda en su columna; la altura ya no lo limita */
-  .portrait {
-    width: min(100%, 26rem);
-    margin: 0 auto;
+  /* El campo manda en su columna; la altura ya no lo limita */
+  .hero__stage { width: min(100%, 26rem); margin: 0 auto; }
+
+  /* La hoja cruza por debajo, centrada, sin estirarse */
+  .hero__panel {
+    display: block;
+    max-width: 34rem;
+    margin: 2.4rem auto 0;
   }
-  .hero__tagline {
-    max-width: 26rem;
-    margin: 1.4rem auto 0;
-    font-size: 1.05rem;
-    text-align: center;
-  }
+  .hero__offer-title { font-size: 1.6rem; }
+  .hero__available { margin-top: 1.6rem; }
+
+  /* La palabra vuelve a la hoja del hero */
+  .rhema--panel { display: block; }
+  .rhema--about { display: none; }
 
   .scroll-cue {
     margin: 2.5rem auto 0;
@@ -69,7 +74,7 @@
   .about__mark { width: 20px; margin-top: 2rem; }
 
   /* ---- Paginas interiores ---- */
-  .page { padding: 4rem var(--gutter) 5rem; }
+  .page { padding: 3rem var(--gutter) 5rem; }
   .page__title { font-size: 2.4rem; }
   .page__lead { font-size: 1.15rem; }
 

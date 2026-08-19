@@ -21,9 +21,12 @@ const alt = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
   <title>{title ?? t('doc.title')}</title>
   <meta name="description" content={description ?? t('hero.role')} />
 
-  <link rel="icon" href="/assets/logos/mark-iris.svg" type="image/svg+xml" />
+  <link rel="icon" href="/assets/logos/mark-icon.svg" type="image/svg+xml" />
   {LANGS.map((l) => <link rel="alternate" hreflang={l} href={alt(l)} />)}
   <link rel="alternate" hreflang="x-default" href={alt('es')} />
+
+  <link rel="preload" as="image" href="/assets/img/me-hero.webp" type="image/webp" media="(min-width: 1200px)" />
+  <link rel="preload" as="image" href="/assets/img/just-me.webp" type="image/webp" media="(max-width: 1199px)" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
