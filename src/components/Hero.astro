@@ -18,11 +18,12 @@ const DOORS = [
      la derecha, y yo de pie entre las dos. -->
 <section class="hero" id="top">
 
-  <!-- El escenario. Solo pinta y respira: nada que leer aqui. -->
-  <div class="hero__stage">
-    <div class="hero__field">
-    </div>
+  <!-- El campo: el verde vivo. En movil y tablet es toda la seccion; en
+       escritorio, solo la mitad izquierda. Nada que leer aqui. -->
+  <div class="hero__field" aria-hidden="true"></div>
 
+  <!-- El escenario: la calcomania. Solo en movil y tablet. -->
+  <div class="hero__stage">
     <!-- El bosque es decoracion pura, asi que vive en el CSS: asi el
          escritorio, que no lo usa, tampoco lo descarga. -->
     <span class="hero__forest reveal" aria-hidden="true"></span>
@@ -68,10 +69,12 @@ const DOORS = [
   <section class="hero__panel" aria-labelledby="offer-title">
     <div class="hero__offer" data-lift>
       <h2 class="hero__offer-title" id="offer-title">{t('panel.title')}</h2>
+      <p class="hero__offer-intro">{t('panel.intro')}</p>
       <ul class="hero__offer-list">
         <li>{t('panel.p1')}</li>
         <li>{t('panel.p2')}</li>
         <li>{t('panel.p3')}</li>
+        <li>{t('panel.p4')}</li>
       </ul>
     </div>
 

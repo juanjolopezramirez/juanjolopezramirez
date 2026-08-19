@@ -180,16 +180,9 @@
     pointer-events: none;
   }
 
-  /* El pinar, con su horizonte dentro. El hero deja de llevarlo: aqui el
-     verde no es toda la seccion, es solo esta mitad, y el dibujo tiene
-     que quedarse dentro de ella. */
-  .hero { background-image: none; }
-  .hero__field {
-    z-index: 0;
-    inset: 0 var(--panel) 0 0;
-    background: var(--pine) url("/assets/img/forest-bg.svg") no-repeat bottom center;
-    background-size: 118% auto;
-  }
+  /* Aqui el verde no es toda la seccion: es solo esta mitad. El campo
+     se recorta en la costura y el hueso queda limpio. */
+  .hero__field { inset: 0 var(--panel) 0 0; }
 
 
   /* ---- Yo, sobre la costura ----
@@ -273,6 +266,8 @@
   }
 
   .hero__offer-title { font-size: 1.5rem; color: var(--slate); }
+  /* Sobre la hoja, hueso sobre hueso no se ve: el intro va en slate. */
+  .hero__offer-intro { color: var(--slate); font-size: .84rem; }
   .hero__offer-list { margin-top: .9rem; font-size: .8rem; color: #5A6B74; }
   .hero__offer-list li::before { background: var(--ring); }
 
@@ -337,15 +332,11 @@
   }
 
   /* El pinar, ahora a la derecha */
-  /* En las secciones el verde esta al otro lado y es mas estrecho: el
-     horizonte se ancla al borde de fuera para no quedar partido. */
+  /* En las secciones el verde esta al otro lado. */
   .phero__field {
     display: block;
-    position: absolute;
     inset: 0 0 0 auto;
     width: var(--panel);
-    background: var(--pine) url("/assets/img/forest-bg.svg") no-repeat bottom right;
-    background-size: 128% auto;
   }
 
   /* Lo que se lee ocupa el hueso, y arranca en el borde de siempre */

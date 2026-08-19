@@ -179,6 +179,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   /* Nada flota ni llama si se ha pedido quietud. */
   .hero__forest, .hero__me, .rhema, .phero__seal,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
+  .hero__field::before, .phero__field::before { animation: none !important; }
   .hero__status-dot { animation: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -321,14 +322,17 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: calc(var(--header-h) + .45rem) var(--gutter) 0;
   text-align: center;
 
-  /* El horizonte. Va en night sobre pinar, asi que apenas se separa del
-     fondo: es textura, no dibujo. En movil el hero entero es verde, asi
-     que se apoya en su borde de abajo. */
-  background-image: url("/assets/img/forest-bg.svg");
-  background-repeat: no-repeat;
-  background-position: bottom center;
-  background-size: 150% auto;
+  /* El campo vivo se sale de su caja al girar, asi que el hero lo encierra. */
+  position: relative;
+  overflow: hidden;
 }
+/* Lo que se lee va por delante del campo. Con el mismo peso de selector
+   que las reglas de escritorio —y antes que ellas—, para que alli pueda
+   seguir mandando su propio `position`. */
+.hero__identity,
+.hero__stage,
+.hero__panel,
+.cue { position: relative; z-index: 1; }
 /* En movil se entra por la imagen: primero la calcomania, despues el
    nombre, el oficio, las redes y el camino. */
 .hero__stage    { order: 1; }
@@ -417,7 +421,46 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
-.hero__field { position: absolute; inset: 0; }
+/* =============================================================
+   El campo vivo
+   Un degradado de verdes que gira muy despacio. El lienzo se declara al
+   doble de tamano y desplazado media pantalla porque al rotar sus
+   esquinas se saldrian y dejarian el pinar desnudo; el padre lo recorta.
+   Los 60px de desenfoque son los que deshacen los cortes duros entre
+   parada y parada: lo que queda es ambiente, no un dibujo.
+   ============================================================= */
+.hero__field,
+.phero__field {
+  position: absolute; inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background-color: var(--pine);
+}
+.hero__field::before,
+.phero__field::before {
+  content: "";
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background:
+    /* El velo. Medido, no elegido a ojo: en el punto mas claro del
+       degradado —el lima bajo el velo— el oficio en Iris 300 da 4.89 y el
+       rotulo en Pine 200 da 5.31. Por debajo de .70 el texto pequeno se
+       cae del minimo legible. */
+    linear-gradient(rgba(11, 20, 13, .7), rgba(11, 20, 13, .7)),
+    radial-gradient(circle at 30% 30%, #A5CF4D 0%, transparent 60%),
+    radial-gradient(circle at 70% 70%, #7D9B4E 0%, transparent 60%),
+    linear-gradient(135deg,
+      #A5CF4D 0%, #7D9B4E 27%, #526B3B 48%, #3C5332 63%, var(--pine) 95%);
+  filter: blur(60px);
+  animation: liquidFlow 28s cubic-bezier(.4, 0, .2, 1) infinite alternate;
+  will-change: transform;
+}
+@keyframes liquidFlow {
+  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+  50%  { transform: translate(-5%, 8%) rotate(90deg) scale(1.15); }
+  100% { transform: translate(3%, -4%) rotate(180deg) scale(1); }
+}
 
 /* El bosque es decoracion, asi que es fondo y no <img>: el escritorio,
    que no lo usa, tampoco lo descarga. */
@@ -474,22 +517,29 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   line-height: 1.15; letter-spacing: -.015em;
   color: var(--bone);
 }
+.hero__offer-intro {
+  margin: .9rem 0 0;
+  font-size: .85rem; font-weight: 600;
+  line-height: 1.5;
+  color: var(--bone);
+}
 .hero__offer-list {
-  margin: 1rem 0 0;
-  display: grid; gap: .55rem;
+  margin: .7rem 0 0;
+  display: grid; gap: .5rem;
   font-size: .85rem; font-weight: 300;
   line-height: 1.45;
   color: var(--pine-200);
 }
+/* Una raya y no un punto: no son viñetas de una lista, son propositos —
+   y una raya se lee como quien va enumerando en voz alta. */
 .hero__offer-list li {
   position: relative;
-  padding-left: 1rem;
+  padding-left: 1.35rem;
 }
 .hero__offer-list li::before {
   content: "";
-  position: absolute; left: 0; top: .55em;
-  width: .3rem; height: .3rem;
-  border-radius: 50%;
+  position: absolute; left: 0; top: .62em;
+  width: .62rem; height: 2px;
   background: var(--ring);
 }
 
