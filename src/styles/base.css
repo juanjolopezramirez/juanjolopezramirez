@@ -201,10 +201,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* La llamada: quieto veintiocho segundos y un cabeceo de dos. No es una
    animacion que se vea, es una que se nota cuando llevas rato parado. */
 @keyframes callOut {
-  0%, 93%, 100% { translate: 0 0; }
-  95%           { translate: 0 -4px; }
-  97%           { translate: 0 0; }
-  98.5%         { translate: 0 -2px; }
+  0%, 78%, 100% { translate: 0 0; }
+  84%           { translate: 0 -4px; }
+  90%           { translate: 0 0; }
+  95%           { translate: 0 -2px; }
 }
 
 /* =============================================================
@@ -340,9 +340,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cue            { order: 3; }   /* cierra la primera vista */
 .hero__panel    { order: 4; }   /* y esto ya se descubre bajando */
 
-/* --- El nombre primero, siempre. Nunca por debajo de 28px. --- */
+/* --- El saludo. Va pegado al nombre porque es la misma frase: "Ey,
+   hola! Soy / Juanjo Lopez Ramirez". Pequeno a proposito. --- */
+.hero__greet {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: .95rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: var(--pine-200);
+}
+
+/* --- El nombre. Nunca por debajo de 28px. --- */
 .hero__name {
-  margin: .75rem 0 0;
+  margin: .2rem 0 0;
   font-family: var(--serif);
   font-size: clamp(2.1rem, 10.5vw, 3rem);
   font-weight: 400;
@@ -374,7 +385,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .hero__doors-list { display: flex; flex-wrap: wrap; gap: .6rem; }
 .door {
-  animation: callOut 30s var(--ease) infinite;
+  animation: callOut 8s var(--ease) infinite;
   display: inline-flex; align-items: center; gap: .5rem;
   padding: .62rem 1rem .62rem 1.2rem;
   border: 1px solid rgba(241, 239, 233, .28);
@@ -397,10 +408,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 /* Escalonadas: dos cabezadas a la vez parecen un fallo; una detras de
    otra parece que la pagina respira. */
-.hero__doors-list li:nth-child(2) .door { animation-delay: 1.2s; }
-.phero__doors-list li:nth-child(2) .door { animation-delay: 1.2s; }
-.phero__doors-list li:nth-child(3) .door { animation-delay: 2.4s; }
-.phero__doors-list li:nth-child(4) .door { animation-delay: 3.6s; }
+.hero__doors-list li:nth-child(2) .door { animation-delay: .9s; }
+.phero__doors-list li:nth-child(2) .door { animation-delay: .9s; }
+.phero__doors-list li:nth-child(3) .door { animation-delay: 1.8s; }
+.phero__doors-list li:nth-child(4) .door { animation-delay: 2.7s; }
 
 .door .icon { width: .8rem; height: .8rem; transition: translate .28s var(--ease); }
 .door:hover, .door:focus-visible {
@@ -417,7 +428,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      verdad se ve al entrar. Con `vh` la foto se medía contra una pantalla
      mas alta y empujaba las redes por debajo del pliegue. Los 330px son
      lo que ocupan el nombre, el oficio y los enlaces por debajo. */
-  width: min(94vw, 27rem, max(12rem, calc(100svh - 370px)));
+  width: min(94vw, 27rem, max(12rem, calc(100svh - 382px)));
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
@@ -612,35 +623,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   line-height: 1.15; letter-spacing: -.015em;
   color: var(--bone);
 }
-.hero__offer-intro {
-  margin: .9rem 0 0;
-  font-size: .85rem; font-weight: 600;
-  line-height: 1.5;
-  color: var(--bone);
-}
-.hero__offer-list {
-  margin: .7rem 0 0;
-  display: grid; gap: .5rem;
-  font-size: .85rem; font-weight: 300;
-  line-height: 1.45;
+.hero__offer-body {
+  margin: .95rem 0 0;
+  font-size: .88rem; font-weight: 300;
+  line-height: 1.65;
   color: var(--pine-200);
 }
-/* Una raya y no un punto: no son viñetas de una lista, son propositos —
-   y una raya se lee como quien va enumerando en voz alta. */
-.hero__offer-list li {
-  position: relative;
-  padding-left: 1.35rem;
-}
-.hero__offer-list li::before {
-  content: "";
-  position: absolute; left: 0; top: .62em;
-  width: .62rem; height: 2px;
-  background: var(--ring);
-}
-
-/* En movil la hoja es un bloque suelto y no una columna con `gap`:
-   la separacion entre lo que ofrezco y para quien es va aqui. */
-.hero__available { margin-top: 1.75rem; }
 
 .hero__status {
   display: flex; align-items: center; gap: .45rem;
@@ -802,7 +790,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* Scroll cue */
 .scroll-cue {
-  animation: callOut 30s var(--ease) 4s infinite;
+  animation: callOut 9s var(--ease) 2.5s infinite;
   display: flex; flex-direction: column; align-items: center; gap: .3rem;
   margin: .75rem auto 0;
   padding-bottom: 1.25rem;

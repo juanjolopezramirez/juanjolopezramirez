@@ -104,7 +104,7 @@
      que es lo unico claro dentro de una pastilla verde. */
   .site-nav__write { flex: 0 0 auto; margin-left: .5rem; }
   .site-nav__wide-list .nav-cta {
-    animation: callOut 30s var(--ease) 12s infinite;
+    animation: callOut 10s var(--ease) 5s infinite;
     padding: .62rem 1.15rem;
     border-radius: 999px;
     background: var(--bone);
@@ -266,10 +266,8 @@
   }
 
   .hero__offer-title { font-size: 1.5rem; color: var(--slate); }
-  /* Sobre la hoja, hueso sobre hueso no se ve: el intro va en slate. */
-  .hero__offer-intro { color: var(--slate); font-size: .84rem; }
-  .hero__offer-list { margin-top: .9rem; font-size: .8rem; color: #5A6B74; }
-  .hero__offer-list li::before { background: var(--ring); }
+  /* Sobre la hoja, hueso sobre hueso no se ve: el cuerpo va en slate. */
+  .hero__offer-body { color: #5A6B74; font-size: .85rem; }
 
   .hero__available { margin: 0; }
   .hero__status { color: #5A6B74; }

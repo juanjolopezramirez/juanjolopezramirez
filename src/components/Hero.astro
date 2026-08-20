@@ -45,6 +45,7 @@ const DOORS = [
   </div>
 
   <div class="hero__identity">
+    <p class="hero__greet" data-lift>{t('hero.greet')}</p>
     <h1 class="hero__name" data-lift>
       <span class="hero__name-line">Juanjo López</span>
       <span class="hero__name-line">Ramírez</span>
@@ -74,13 +75,7 @@ const DOORS = [
   <section class="hero__panel" aria-labelledby="offer-title">
     <div class="hero__offer" data-lift>
       <h2 class="hero__offer-title" id="offer-title">{t('panel.title')}</h2>
-      <p class="hero__offer-intro">{t('panel.intro')}</p>
-      <ul class="hero__offer-list">
-        <li>{t('panel.p1')}</li>
-        <li>{t('panel.p2')}</li>
-        <li>{t('panel.p3')}</li>
-        <li>{t('panel.p4')}</li>
-      </ul>
+      <p class="hero__offer-body">{t('panel.body')}</p>
     </div>
 
     <div class="hero__available" data-glossary data-lift>
