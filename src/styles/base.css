@@ -179,7 +179,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   /* Nada flota ni llama si se ha pedido quietud. */
   .hero__forest, .hero__me, .rhema, .phero__seal,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
-  .hero__field::before, .phero__field::before { animation: none !important; }
+  .hero__light, .hero__light::before { animation: none !important; transform: none !important; }
   .hero__status-dot { animation: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -434,32 +434,127 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   position: absolute; inset: 0;
   z-index: 0;
   overflow: hidden;
+  pointer-events: none;
+
+  /* Pine es el suelo. Todo lo demas se apoya encima de el, asi que por
+     mucha luz que pase, el ambiente sigue siendo este. */
   background-color: var(--pine);
 }
+
+/* --- El degradado base. No se anima nunca. -----------------------------
+   Son las paradas de siempre, pero orientadas a 315deg: asi el extremo
+   claro cae abajo a la derecha —detras de la foto, que es donde quiero
+   la vida— y el extremo Pine queda arriba a la izquierda, que es donde
+   se lee el nombre. La opacidad lo mezcla contra Pine en vez de contra
+   negro: apagarlo con un velo oscuro ensuciaba el verde. */
 .hero__field::before,
 .phero__field::before {
   content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(315deg,
+    #A5CF4D  0%,
+    #7D9B4E 27%,
+    #678345 38%,
+    #526B3B 48%,
+    #3C5332 63%,
+    #31472D 71%,
+    var(--pine) 78%,
+    var(--pine) 95%);
+  opacity: .42;
+}
+
+/* --- Las luces ---------------------------------------------------------
+   Tres focos enormes y desenfocados. Cada uno es dos piezas: la de fuera
+   recoge la influencia del raton, la de dentro lleva su propia deriva.
+   Separadas, porque una sola no puede tener dos `transform` a la vez.
+   La actividad se concentra en el centro y el centro-derecha; la esquina
+   Pine se queda quieta. */
+.hero__light {
   position: absolute;
-  top: -50%; left: -50%;
-  width: 200%; height: 200%;
-  background:
-    /* El velo. Medido, no elegido a ojo: en el punto mas claro del
-       degradado —el lima bajo el velo— el oficio en Iris 300 da 4.89 y el
-       rotulo en Pine 200 da 5.31. Por debajo de .70 el texto pequeno se
-       cae del minimo legible. */
-    linear-gradient(rgba(11, 20, 13, .7), rgba(11, 20, 13, .7)),
-    radial-gradient(circle at 30% 30%, #A5CF4D 0%, transparent 60%),
-    radial-gradient(circle at 70% 70%, #7D9B4E 0%, transparent 60%),
-    linear-gradient(135deg,
-      #A5CF4D 0%, #7D9B4E 27%, #526B3B 48%, #3C5332 63%, var(--pine) 95%);
-  filter: blur(60px);
-  animation: liquidFlow 28s cubic-bezier(.4, 0, .2, 1) infinite alternate;
+  will-change: transform;
+  /* --mx y --my los escribe el raton, entre -1 y 1. --depth es cuanto
+     le hace caso cada capa: nunca mas de 20px. */
+  transform: translate3d(calc(var(--mx, 0) * var(--depth)),
+                         calc(var(--my, 0) * var(--depth)), 0);
+}
+.hero__light::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: 50%;
   will-change: transform;
 }
-@keyframes liquidFlow {
-  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
-  50%  { transform: translate(-5%, 8%) rotate(90deg) scale(1.15); }
-  100% { transform: translate(3%, -4%) rotate(180deg) scale(1); }
+
+/* Iris, la luz principal: centro, un poco a la derecha. */
+.hero__light--a {
+  --depth: 16px;
+  left: 26%; top: 16%;
+  width: 62%; aspect-ratio: 1;
+}
+.hero__light--a::before {
+  background: radial-gradient(circle,
+    rgba(125, 155, 78, .22) 0%, rgba(125, 155, 78, .09) 38%, transparent 70%);
+  filter: blur(70px);
+  animation: lightA 19s ease-in-out infinite;
+}
+
+/* Mas abajo y mas a la derecha: la que pasa por detras de la foto. */
+.hero__light--b {
+  --depth: 10px;
+  left: 46%; top: 42%;
+  width: 46%; aspect-ratio: 1;
+}
+.hero__light--b::before {
+  background: radial-gradient(circle,
+    rgba(125, 155, 78, .16) 0%, rgba(103, 131, 69, .07) 40%, transparent 72%);
+  filter: blur(90px);
+  animation: lightB 24s ease-in-out infinite;
+}
+
+/* La mas grande y la mas debil: da profundidad, no luz. */
+.hero__light--c {
+  --depth: 20px;
+  left: 4%; top: 34%;
+  width: 88%; aspect-ratio: 1;
+}
+.hero__light--c::before {
+  background: radial-gradient(circle,
+    rgba(103, 131, 69, .13) 0%, rgba(82, 107, 59, .06) 42%, transparent 74%);
+  filter: blur(110px);
+  animation: lightC 31s ease-in-out infinite;
+}
+
+/* Recorridos cerrados: cada uno vuelve exactamente a donde empezo, asi
+   que el bucle no tiene corte. Y ninguno va en linea recta — son lazos,
+   con la escala respirando entre .96 y 1.07. */
+@keyframes lightA {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  24%  { transform: translate3d(28px, -20px, 0) scale(1.06); }
+  49%  { transform: translate3d(12px, 30px, 0) scale(.97); }
+  73%  { transform: translate3d(-24px, 14px, 0) scale(1.03); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes lightB {
+  0%   { transform: translate3d(0, 0, 0) scale(1.02); }
+  29%  { transform: translate3d(-30px, 18px, 0) scale(.96); }
+  55%  { transform: translate3d(20px, 34px, 0) scale(1.07); }
+  78%  { transform: translate3d(34px, -12px, 0) scale(1); }
+  100% { transform: translate3d(0, 0, 0) scale(1.02); }
+}
+@keyframes lightC {
+  0%   { transform: translate3d(0, 0, 0) scale(.98); }
+  21%  { transform: translate3d(18px, 26px, 0) scale(1.05); }
+  46%  { transform: translate3d(-26px, 10px, 0) scale(1.01); }
+  70%  { transform: translate3d(-10px, -28px, 0) scale(1.07); }
+  100% { transform: translate3d(0, 0, 0) scale(.98); }
+}
+
+/* En pantalla pequena la luz cuesta mas de lo que aporta: se queda en
+   dos capas, con menos desenfoque y recorridos mas cortos. */
+@media (max-width: 599px) {
+  .hero__light--c { display: none; }
+  .hero__light--a::before { filter: blur(48px); }
+  .hero__light--b::before { filter: blur(56px); }
+  .hero__light { --depth: 0px; }
 }
 
 /* El bosque es decoracion, asi que es fondo y no <img>: el escritorio,

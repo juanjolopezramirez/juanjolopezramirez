@@ -52,6 +52,38 @@ function initHeader() {
   sync();
 }
 
+/* ---------- La luz del campo --------------------------------
+   El raton no arrastra la luz: la influye. Se guarda la posicion como
+   dos numeros entre -1 y 1 y el CSS decide cuanto le hace caso cada capa
+   (nunca mas de 20px). La interpolacion va por detras, en un solo
+   requestAnimationFrame, y solo escribe dos variables: no se toca el
+   layout ni una vez.                                                  */
+function initFieldLight() {
+  const field = d.querySelector('.hero__field, .phero__field');
+  if (!field) return;
+  /* Sin raton no hay nada que seguir, y si se ha pedido quietud, menos. */
+  if (matchMedia('(hover: none)').matches) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let tx = 0, ty = 0, x = 0, y = 0, raf = 0;
+
+  const tick = () => {
+    x += (tx - x) * 0.04;                 // inercia larga: la luz llega tarde
+    y += (ty - y) * 0.04;
+    field.style.setProperty('--mx', x.toFixed(4));
+    field.style.setProperty('--my', y.toFixed(4));
+    /* Cuando ya practicamente ha llegado, se para: nada gira en vacio. */
+    raf = (Math.abs(tx - x) > 0.002 || Math.abs(ty - y) > 0.002)
+      ? requestAnimationFrame(tick) : 0;
+  };
+
+  addEventListener('pointermove', (e) => {
+    tx = (e.clientX / innerWidth - 0.5) * 2;
+    ty = (e.clientY / innerHeight - 0.5) * 2;
+    if (!raf) raf = requestAnimationFrame(tick);
+  }, { passive: true });
+}
+
 /* ---------- Menu ------------------------------------------- */
 function initNav() {
   const btn = d.querySelector('.nav-toggle');
@@ -278,6 +310,7 @@ function initReveal() {
 }
 
 initHeader();
+initFieldLight();
 initNav();
 initSocial();
 initLang();
