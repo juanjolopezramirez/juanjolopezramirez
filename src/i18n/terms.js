@@ -68,5 +68,96 @@ export const TERMS = {
         fr: 'La parole dite. Face à logos — la Parole entière, le message — rhèma est celle qui se prononce à un moment précis, pour quelqu’un de précis. Non une phrase que l’on choisit : une que l’on reçoit, et que l’on porte ensuite.'
       },
       source: 'Bauer, W., Danker, F. W., Arndt, W. F., & Gingrich, F. W. (2000). A Greek-English lexicon of the New Testament and other early Christian literature (3rd ed.). University of Chicago Press. (Strong G4487)'
+    },
+    /* ---------------------------------------------------------- */
+    /* No es una palabra, es un nombre — pero se explica igual: quien lee
+       "el espiritu de Timoteo" y no sabe quien fue, no tiene por que */
+    timoteo: {
+      script:   'Τιμόθεος',
+      dir:      'ltr',
+      language: { es: 'Griego del Nuevo Testamento', en: 'New Testament Greek', pt: 'Grego do Novo Testamento', fr: 'Grec du Nouveau Testament', it: 'Greco del Nuovo Testamento' },
+      title:    { es: 'Timoteo', en: 'Timothy', pt: 'Timóteo', fr: 'Timothée', it: 'Timoteo' },
+      forms:    ['timoteo', 'timóteo', 'timothy', 'timothée'],
+
+      /* Este termino no se explica en una frase como los demas: lleva su
+         propio titulo, un segundo bloque y un acordeon. Los campos son
+         opcionales — el resto del glosario no los tiene y el panel los
+         salta sin enterarse. */
+      defTitle: {
+        es: '¿Quién fue Timoteo?',
+        en: 'Who was Timothy?',
+        pt: 'Quem foi Timóteo?',
+        fr: 'Qui était Timothée ?',
+        it: 'Chi era Timoteo?'
+      },
+      def: {
+        es: 'Un joven líder y colaborador de confianza del apóstol Pablo, reconocido por su carácter probado, su lealtad y su capacidad para resguardar la esencia de un mensaje sin buscar el protagonismo personal ni dejarse mover por el entorno.',
+        en: 'A young leader and trusted co-worker of the apostle Paul, known for his proven character, his loyalty, and his ability to guard the essence of a message without seeking the spotlight or being swayed by his surroundings.',
+        pt: 'Um jovem líder e colaborador de confiança do apóstolo Paulo, reconhecido pelo seu carácter provado, pela sua lealdade e pela sua capacidade de resguardar a essência de uma mensagem sem procurar protagonismo pessoal nem se deixar mover pelo ambiente.',
+        fr: 'Un jeune dirigeant et collaborateur de confiance de l’apôtre Paul, reconnu pour son caractère éprouvé, sa loyauté et sa capacité à préserver l’essence d’un message sans chercher les projecteurs ni se laisser emporter par son entourage.',
+        it: 'Un giovane leader e collaboratore di fiducia dell’apostolo Paolo, riconosciuto per il suo carattere provato, la sua lealtà e la sua capacità di custodire l’essenza di un messaggio senza cercare il protagonismo personale né lasciarsi muovere dall’ambiente.'
+      },
+
+      sections: [{
+        title: {
+          es: 'Contar historias con su espíritu',
+          en: 'Telling stories with his spirit',
+          pt: 'Contar histórias com o seu espírito',
+          fr: 'Raconter des histoires avec son esprit',
+          it: 'Raccontare storie con il suo spirito'
+        },
+        body: {
+          es: 'Es comunicar desde la custodia del origen. Significa construir narrativas con intención trascendente, donde el diseño y el audiovisual no buscan el aplauso efímero ni la manipulación comercial, sino revelar la verdad de un proyecto con audacia, sentido de servicio y criterio impecable.',
+          en: 'It means communicating as a custodian of the origin. Building narratives with lasting intent, where design and film chase neither fleeting applause nor commercial manipulation, but reveal the truth of a project with boldness, a sense of service, and impeccable judgement.',
+          pt: 'É comunicar a partir da custódia da origem. Significa construir narrativas com intenção transcendente, onde o design e o audiovisual não procuram o aplauso efémero nem a manipulação comercial, mas revelar a verdade de um projeto com audácia, sentido de serviço e critério impecável.',
+          fr: 'C’est communiquer en gardien de l’origine. Bâtir des récits à l’intention durable, où le design et l’audiovisuel ne cherchent ni l’applaudissement éphémère ni la manipulation commerciale, mais révèlent la vérité d’un projet avec audace, sens du service et jugement impeccable.',
+          it: 'È comunicare come custode dell’origine. Costruire narrazioni con intenzione duratura, dove il design e l’audiovisivo non cercano l’applauso effimero né la manipolazione commerciale, ma rivelano la verità di un progetto con audacia, senso del servizio e criterio impeccabile.'
+        }
+      }],
+
+      pillars: {
+        title: {
+          es: 'Los tres pilares (2 Timoteo 1:7)',
+          en: 'The three pillars (2 Timothy 1:7)',
+          pt: 'Os três pilares (2 Timóteo 1:7)',
+          fr: 'Les trois piliers (2 Timothée 1:7)',
+          it: 'I tre pilastri (2 Timoteo 1:7)'
+        },
+        items: [
+          {
+            n: '01',
+            label: { es: 'Poder — Audacia', en: 'Power — Boldness', pt: 'Poder — Audácia', fr: 'Puissance — Audace', it: 'Potenza — Audacia' },
+            body: {
+              es: 'Crear con carácter y firmeza. Proponer estrategias valientes que asumen riesgos calculados, evitando soluciones tibias o genéricas.',
+              en: 'Creating with character and firmness. Proposing brave strategies that take calculated risks, avoiding lukewarm or generic solutions.',
+              pt: 'Criar com carácter e firmeza. Propor estratégias corajosas que assumem riscos calculados, evitando soluções mornas ou genéricas.',
+              fr: 'Créer avec caractère et fermeté. Proposer des stratégies courageuses qui prennent des risques calculés, en évitant les solutions tièdes ou génériques.',
+              it: 'Creare con carattere e fermezza. Proporre strategie coraggiose che assumono rischi calcolati, evitando soluzioni tiepide o generiche.'
+            }
+          },
+          {
+            n: '02',
+            label: { es: 'Amor — Intención', en: 'Love — Intent', pt: 'Amor — Intenção', fr: 'Amour — Intention', it: 'Amore — Intenzione' },
+            body: {
+              es: 'Poner el propósito y el impacto humano en el centro. Trabajar para construir el valor real del cliente, no para alimentar el ego del creador.',
+              en: 'Putting purpose and human impact at the centre. Working to build the client’s real value, not to feed the maker’s ego.',
+              pt: 'Colocar o propósito e o impacto humano no centro. Trabalhar para construir o valor real do cliente, não para alimentar o ego do criador.',
+              fr: 'Mettre le propos et l’impact humain au centre. Travailler à bâtir la valeur réelle du client, non à nourrir l’ego du créateur.',
+              it: 'Mettere il proposito e l’impatto umano al centro. Lavorare per costruire il valore reale del cliente, non per alimentare l’ego del creatore.'
+            }
+          },
+          {
+            n: '03',
+            label: { es: 'Dominio propio — Rigor', en: 'Self-control — Rigour', pt: 'Domínio próprio — Rigor', fr: 'Maîtrise de soi — Rigueur', it: 'Padronanza di sé — Rigore' },
+            body: {
+              es: 'Diseñar con disciplina, cabeza fría y filtro. Mantener el orden visual y la coherencia técnica sin dejarse arrastrar por modas pasajeras.',
+              en: 'Designing with discipline, a cool head and a filter. Holding visual order and technical coherence without being dragged along by passing trends.',
+              pt: 'Desenhar com disciplina, cabeça fria e filtro. Manter a ordem visual e a coerência técnica sem se deixar arrastar por modas passageiras.',
+              fr: 'Concevoir avec discipline, sang-froid et filtre. Tenir l’ordre visuel et la cohérence technique sans se laisser entraîner par les modes passagères.',
+              it: 'Progettare con disciplina, testa fredda e filtro. Mantenere l’ordine visivo e la coerenza tecnica senza farsi trascinare dalle mode passeggere.'
+            }
+          }
+        ]
+      }
     }
   };

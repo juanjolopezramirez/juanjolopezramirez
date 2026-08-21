@@ -52,10 +52,7 @@ const to = (slug) => `/${lang}/${slug}/`;
       <li><a href={`/${lang}/`}>{t('nav.start')}</a></li>
       {NAV.map((n) => (
         <li>
-          <a href={to(n.slug)} class:list={[{ 'is-soon': n.soon }]}>
-            {t(n.key)}
-            {n.soon && <span class="drop-badge">{t('soon.badge')}</span>}
-          </a>
+          <a href={to(n.slug)}>{t(n.key)}</a>
         </li>
       ))}
       <li>

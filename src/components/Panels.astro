@@ -60,7 +60,15 @@ const { t } = Astro.props;
     <p class="term-panel__script" id="term-panel-script" lang="he" dir="rtl"></p>
     <h2 class="term-panel__title" id="term-panel-title"></h2>
     <p class="term-panel__meta" id="term-panel-meta"></p>
+
+    <!-- La mayoria de las palabras se explican en un parrafo y ya. Timoteo
+         no: lleva titulo propio, un segundo bloque y el acordeon de los
+         tres pilares. Los tres huecos se quedan vacios y ocultos cuando la
+         palabra no los trae. -->
+    <h3 class="term-panel__deftitle" id="term-panel-deftitle" hidden></h3>
     <p class="term-panel__def" id="term-panel-def"></p>
+    <div class="term-panel__sections" id="term-panel-sections" hidden></div>
+    <div class="term-panel__pillars" id="term-panel-pillars" hidden></div>
     <footer class="term-panel__cite">
       <h3 class="term-panel__cite-label" id="term-panel-source-label">{t('term.source')}</h3>
       <p class="term-panel__source" id="term-panel-source"></p>

@@ -177,7 +177,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .js-reveal .reveal { opacity: 1; transform: rotate(var(--rot)); transition: none; }
   .js-reveal [data-lift] { opacity: 1; transform: none; transition: none; }
   /* Nada flota ni llama si se ha pedido quietud. */
-  .hero__forest, .hero__me, .rhema, .phero__seal, .hero__available,
+  .hero__forest, .hero__me, .rhema, .phero__seal, .hero__available, .about__print,
+  .rhema__line,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
   .hero__status-dot { animation: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
@@ -303,12 +304,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .site-nav.is-open { max-height: 24rem; }
 .site-nav__list { padding: .35rem 1.25rem .9rem; }
 .site-nav__list li + li { border-top: 1px solid rgba(241, 239, 233, .09); }
-.site-nav__list a {
-  display: block; padding: .8rem 0;
+/* Escribirme es un boton y las secciones son enlaces, pero en la lista
+   son la misma fila y tienen que medir lo mismo. Un <button> no hereda
+   ni el ancho ni la alineacion de un <a>, asi que se declaran juntos:
+   si se separan, el boton se encoge a su contenido y se va al centro. */
+.site-nav__list a,
+.drop-write {
+  display: block; width: 100%;
+  padding: .8rem 0;
   font-size: 1rem; letter-spacing: -.01em;
+  text-align: left;
   color: var(--bone);
+  transition: color .2s var(--ease);
 }
-.site-nav__list a:hover { color: var(--iris-300); }
+.site-nav__list a:hover,
+.drop-write:hover { color: var(--iris-300); }
 
 /* =============================================================
    Hero
@@ -616,6 +626,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-align: left;
 }
 
+/* El titular se dice distinto segun el ancho: en movil en gerundio, en
+   pantalla grande en primera persona. Van los dos en el documento y el
+   ancho elige — `display: none` tambien lo salta el lector de pantalla,
+   asi que nunca se oye dos veces. */
+.hero__offer-title .is-narrow { display: none; }
+@media (max-width: 599px) {
+  .hero__offer-title .is-narrow { display: inline; }
+  .hero__offer-title .is-wide { display: none; }
+}
+
 .hero__offer-title {
   margin: 0;
   font-family: var(--serif);
@@ -739,6 +759,75 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* En movil la palabra vive sobre el hueso de la seccion siguiente;
    desde tablet vuelve a la hoja del hero. */
 .rhema--panel { display: none; }
+/* Los renglones sustituyen al <br>: mismo salto, pero cada uno es una caja
+   que se puede descubrir por separado. */
+.rhema__line { display: block; }
+
+/* =============================================================
+   MOVIL — la palabra sale de su caja
+   Sube a la cabecera de la hoja, justo debajo del sticker de Sobre mi y
+   encima del titular, y ahi deja de ser una ficha: sin fondo, sin borde
+   y sin relleno. Solo la letra, en Iris, y la cara debajo.
+
+   Se escribe sola. Cada renglon se descubre de izquierda a derecha, uno
+   detras de otro, como una mano que va dejando la frase — el mismo gesto
+   que la firma de la portada. Arranca cuando entra en pantalla, no al
+   cargar: si no, se escribe para nadie.
+   ============================================================= */
+@media (max-width: 599px) {
+  /* La hoja se vuelve flexible solo para poder mandar la palabra arriba
+     sin tocar el orden del documento — en escritorio cierra la columna,
+     y ahi se queda. */
+  .hero__panel { display: flex; flex-direction: column; }
+  .rhema--panel { display: block; order: -1; }
+  .rhema--about { display: none; }
+
+  .rhema--panel {
+    margin: 0 0 2.25rem;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    color: var(--bone);
+    animation: none;                      /* aqui no flota: se escribe */
+  }
+  .rhema--panel .icon--quote { color: var(--ring-300); }
+
+  /* Iris 300 y no Iris a secas: sobre el pinar cerrado, el primero da
+     7.6:1 y el segundo se queda en 4.5. */
+  .rhema--panel .rhema__text {
+    margin: .55rem 0 .9rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--iris-300);
+  }
+  .rhema--panel .rhema__text .ahava { color: var(--ring-300); }
+
+  .rhema--panel .rhema__by {
+    border-top: 1px solid rgba(241, 239, 233, .16);
+  }
+  .rhema--panel .rhema__by b { color: var(--bone); }
+  .rhema--panel .rhema__by small { color: var(--pine-200); }
+
+  /* Nada se esconde hasta que el script se hace cargo: sin JavaScript la
+     frase esta escrita desde el primer momento. */
+  .js-reveal .rhema--panel .rhema__line {
+    clip-path: inset(-12% 101% -12% -4%);
+  }
+  .js-reveal .rhema--panel.is-in .rhema__line {
+    animation: writeLine 820ms var(--ease) forwards;
+  }
+  .js-reveal .rhema--panel.is-in .rhema__line + .rhema__line {
+    animation-delay: 700ms;
+  }
+}
+
+/* El renglon se descubre de izquierda a derecha. `clip-path` y no `width`:
+   el texto no se recoloca mientras aparece, solo se destapa. */
+@keyframes writeLine {
+  to { clip-path: inset(-12% -4% -12% -4%); }
+}
+
 .rhema--about {
   max-width: var(--measure);
   margin: 1rem 0 2.75rem;                 /* aire, sobre todo por debajo */
@@ -909,22 +998,64 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* =============================================================
    About — the room with the light on
    ============================================================= */
+/* =============================================================
+   Sobre mi
+   Dos piezas: el retrato y el hueso. En movil y tablet van apiladas —el
+   retrato a sangre, haciendo de bisagra entre el pinar y el hueso— y
+   desde 1024px se ponen lado a lado y el retrato deja de ser una banda
+   para ser una copia enmarcada.
+   ============================================================= */
 .about {
+  display: flex;
+  flex-direction: column;
+}
+
+/* El retrato trae su propio verde de fondo, asi que en movil no hace
+   falta pintar nada debajo: corta el pinar y entrega el hueso. */
+.about__portrait {
+  --ty: 26px;
+  --rot: 0deg;
+  margin: 0;
+  line-height: 0;
+}
+.about__print { display: block; }
+.about__portrait img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 50% 22%;      /* la cara, no el pecho */
+}
+
+.about__body {
   background: var(--bone);
   color: var(--slate);
   border-top: 3px solid var(--iris);
-  padding: 2.5rem var(--gutter) 2rem;
+  padding: 2.5rem var(--gutter) 2.5rem;
 }
-.about p {
+.about__body p {
   max-width: var(--measure);
   margin: 0 0 1.15rem;
   font-size: .9rem;
   line-height: 1.75;
 }
-.about p:first-of-type::first-line { font-weight: 600; }
-.about__mark {
-  width: 16px; height: auto;
-  margin: 1.5rem auto 0;
+
+/* El titular repite la palabra del hero a proposito: es el estribillo de
+   la casa. `ligero` va a mano, como en la cita. */
+.about__heading {
+  max-width: var(--measure);
+  margin: 0 0 1.4rem;
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--slate);
+}
+.about__heading .script {
+  font-family: var(--hand);
+  font-style: normal;
+  font-size: 1.24em;
+  line-height: 0;                /* la cursiva es alta y abriria el renglon */
 }
 
 /* =============================================================
@@ -991,8 +1122,30 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .term-panel.is-open .term-panel__scrim { opacity: 1; }
 .term-panel.is-open .term-panel__sheet { translate: 0 0; }
 
+/* La hoja de Timoteo no cabe: con los tres pilares abiertos mide mas que
+   la pantalla, y como el cuerpo esta bloqueado mientras hay hoja abierta,
+   lo que se salia por arriba —el titulo y la definicion— no habia manera
+   de alcanzarlo. Se le pone techo y scroll propio.
+
+   `svh` y no `vh`: la ventana CON la barra del navegador puesta, que es
+   la que de verdad se ve. `overscroll-behavior: contain` para que llegar
+   al final de la hoja no arrastre la pagina de detras. */
+.term-panel__sheet {
+  max-height: 86svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* La equis se queda pegada arriba mientras el texto pasa por debajo.
+
+   En bloque y con `margin-left: auto`, no flotada: un flotante con
+   `sticky` acaba pegandose al final del contenido en vez de al principio.
+   El margen negativo de abajo le devuelve al alfabeto el hueco que la
+   equis ocuparia, asi que la hoja se ve igual que cuando era absoluta. */
 .term-panel__close {
-  position: absolute; top: .5rem; right: .8rem;
+  position: sticky; top: 0; z-index: 2;
+  display: block;
+  margin: -.5rem -.4rem -1.75rem auto;
   width: 2.25rem; height: 2.25rem;
   font-size: 1.6rem; line-height: 1;
   color: #5A6B74;
@@ -1020,6 +1173,82 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 0 0 1.35rem;
   max-width: var(--measure);
   font-size: .95rem; line-height: 1.7;
+}
+
+/* =============================================================
+   Los tres pilares — dentro del panel de Timoteo
+   Un acordeon de `<details>`: abre y cierra solo, se mueve con el
+   teclado, lo lee un lector de pantalla y funciona igual si el script
+   no llega. Lo unico que ponemos aqui es la piel.
+   Vive sobre hueso, como el resto de la hoja del glosario.
+   ============================================================= */
+.term-panel__deftitle {
+  margin: 1.15rem 0 .45rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.term-panel__sections .term-panel__def:last-child { margin-bottom: 0; }
+.term-panel__pillars { margin-top: 1.15rem; }
+.term-panel__pillars .term-panel__deftitle { margin-top: 0; }
+
+.pillar {
+  border-top: 1px solid rgba(43, 58, 67, .16);
+}
+.pillar:last-of-type { border-bottom: 1px solid rgba(43, 58, 67, .16); }
+
+.pillar__head {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .8rem 0;
+  cursor: pointer;
+  list-style: none;                       /* Firefox */
+  transition: color .2s var(--ease);
+}
+.pillar__head::-webkit-details-marker { display: none; }   /* Safari */
+.pillar__head:hover { color: var(--iris-700); }
+
+.pillar__n {
+  flex: 0 0 auto;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .1em;
+  color: #5A6B74;
+  transition: color .2s var(--ease);
+}
+.pillar[open] .pillar__n { color: var(--iris-700); }
+
+.pillar__name {
+  flex: 1 1 auto;
+  font-size: .92rem; font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+/* La cruz no gira entera: se convierte en un menos. Dos barras, una que
+   se queda y otra que desaparece — mas barato que rotar una flecha y se
+   lee igual de rapido. */
+.pillar__mark {
+  position: relative;
+  flex: 0 0 auto;
+  width: .7rem; height: .7rem;
+}
+.pillar__mark::before,
+.pillar__mark::after {
+  content: "";
+  position: absolute; inset: 50% 0 auto 0;
+  height: 1.5px;
+  background: #5A6B74;
+  transition: rotate .3s var(--ease), opacity .3s var(--ease), background .2s var(--ease);
+}
+.pillar__mark::after { rotate: 90deg; }
+.pillar[open] .pillar__mark::after { rotate: 0deg; opacity: 0; }
+.pillar[open] .pillar__mark::before,
+.pillar[open] .pillar__mark::after { background: var(--iris-700); }
+
+.pillar__text {
+  margin: 0;
+  padding: 0 0 1rem;
+  font-size: .84rem; font-weight: 300;
+  line-height: 1.7;
+  color: var(--slate);
 }
 .term-panel__cite { border-top: 1px solid rgba(43, 58, 67, .16); padding-top: .8rem; }
 .term-panel__cite-label {
@@ -1174,18 +1403,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .is-soon { opacity: .55; }
 .is-soon:hover, .is-soon:focus-visible { opacity: .85; }
 
-.drop-badge {
-  margin-left: .5rem;
-  padding: .12em .5em .16em;
-  border-radius: 999px;
-  font-size: .62rem; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase;
-  vertical-align: middle;
-}
-.drop-badge {
-  background: rgba(241, 239, 233, .14);
-  color: var(--pine-200);
-}
 /* =============================================================
    ESCRIBIRME — la hoja de las dos puertas
 

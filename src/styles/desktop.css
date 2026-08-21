@@ -128,10 +128,70 @@
   .lang__badge { background: var(--bone); color: var(--pine); }
 
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
-          arranca en la misma linea que el nombre ---- */
-  .about { padding-inline: var(--edge); }
-  .about p { font-size: 1.1rem; }
+          arranca en la misma linea que el nombre ----
 
+     Aqui la seccion se parte en dos, pero el retrato ya no es una banda
+     a sangre: es una copia de camara instantanea, apoyada en el hueso.
+     Mas pequena, con su marco, su sombra y su inclinacion.
+
+     El retrato va primero en el documento —lo necesita el movil— asi que
+     se coloca por rejilla, que no toca el orden de lectura. */
+  .about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 24rem);
+    align-items: center;
+    gap: 2rem;
+    background: var(--bone);
+    /* Sin filo de Iris: el pinar y el hueso ya se separan solos, y una
+       linea verde cruzando la pagina entera partia la lectura en dos. */
+    border-top: 0;
+  }
+  .about__body {
+    grid-column: 1; grid-row: 1;
+    border-top: 0;
+    /* Aire de sobra por arriba: pegada al hero, la seccion parecia el pie
+       del hero y no el principio de otra cosa. */
+    padding: 7.5rem 0 7rem var(--edge);
+  }
+  .about__body p { font-size: 1.1rem; }
+  .about__heading { font-size: clamp(2rem, 3.1vw, 2.75rem); margin-bottom: 1.9rem; }
+
+  .about__portrait {
+    grid-column: 2; grid-row: 1;
+    justify-self: center;
+    width: min(100%, 19rem);
+    padding-inline: 1rem;
+  }
+
+  /* La copia: marco de hueso, ancho abajo como toda camara instantanea,
+     y la foto en cuadrado dentro. La inclinacion va en `rotate` y el
+     flotar en `translate` — son propiedades sueltas, asi que no se pisan
+     entre ellas ni con el `transform` de la entrada. */
+  .about__print {
+    padding: .85rem .85rem 3.25rem;
+    background: #FBFAF7;
+    border-radius: 2px;
+    box-shadow:
+      0 1px 1px rgba(11, 20, 13, .16),
+      0 18px 34px -18px rgba(11, 20, 13, .45);
+    rotate: -2.6deg;
+    animation: floatY 11s var(--ease-smooth) infinite;
+    transition: rotate .45s var(--ease-smooth), box-shadow .45s var(--ease);
+  }
+  .about__portrait img {
+    aspect-ratio: 1 / 1;          /* cuadrado, como manda el formato */
+    object-position: 50% 20%;
+  }
+
+  /* Al pasar por encima se endereza, como cuando coges una foto de la
+     mesa para mirarla de frente. La sombra crece con ella. */
+  .about__portrait:hover .about__print,
+  .about__portrait:focus-within .about__print {
+    rotate: 0deg;
+    box-shadow:
+      0 2px 2px rgba(11, 20, 13, .18),
+      0 30px 50px -20px rgba(11, 20, 13, .5);
+  }
   .site-footer { padding-bottom: 3.5rem; }
   .site-footer__logo { width: min(100%, 20rem); }
 

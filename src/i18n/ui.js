@@ -50,6 +50,7 @@ export const UI = {
 
       'hero.role':      'Creator & Brand Consultant',
       'hero.greet': 'Hello there! I’m',
+      'panel.titleMobile': 'Crafting brand strategies built from the origin.',
       'panel.title': 'I create brand strategies built from the origin.',
       'panel.body': 'I train strategic heirs and share stories through the spirit of Timothy. From the mountains of Cundinamarca, I approach strategy and design from the root, character, and truth to bring life to brands with a sense of permanence.',
       'hero.emet': 'Projects aligned with Truth (Emet), where purpose is inseparable from the Origin and what endures.',
@@ -77,10 +78,8 @@ export const UI = {
 
       'scroll.label':   'About me',
 
-      'about.p1': 'I create in pursuit of what is right and follow the source itself. Through design, film, and technology, I seek to strengthen character, broaden perspective, and reveal what truly remains.',
-      'about.p2': 'Rooted in the mountains of Cundinamarca, I walk a single path: Ahavah. Inspired by the spirit of Timothy, I create with courage, discipline, and, above all, love — though I am still learning to love in this way (agape).',
-      'about.p3': 'Attention is not the goal. Teaching and making the truth known is. This same pursuit of essential truth (Emet) is what defines my approach to brand strategy.',
-      'about.p4': "I don't separate who I am from what I build. My work is simply the architecture of my convictions, reinforced along a path I am still learning from."
+      'about.heading': 'I am a creator learning to walk',
+      'about.p1': 'Born in Colombia in early 2002, I create in pursuit of what is right and follow the origin itself. Through design, audiovisual content, technology and marketing, I seek to strengthen character, broaden perspective and build on what holds real value (agape).',
     },
 
     es: {
@@ -120,6 +119,7 @@ export const UI = {
 
       'hero.role':      'Creador y Consultor de Marca',
       'hero.greet': 'Ey, hola! Soy',
+      'panel.titleMobile': 'Creando estrategias de marca construidas desde el origen.',
       'panel.title': 'Creo estrategias de marca construidas desde el origen.',
       'panel.body': 'Formo herederos estratégicos y comparto historias a través del espíritu de Timoteo. Desde las montañas de Cundinamarca, trabajo la estrategia y el diseño desde la raíz, el carácter y la verdad para dar vida a marcas con sentido de permanencia.',
       'hero.emet': 'Proyectos alineados con la Verdad (Emet), donde el propósito no se separa del Origen y de lo que permanece.',
@@ -147,10 +147,8 @@ export const UI = {
 
       'scroll.label':   'Sobre mí',
 
-      'about.p1': 'Creo en busca de lo que está bien y sigo el origen mismo. A través del diseño, el cine y la tecnología, busco fortalecer el carácter, ampliar la perspectiva y revelar lo que realmente permanece.',
-      'about.p2': 'Originario de las montañas de Cundinamarca, camino por un solo sendero: Ahavá. Inspirado por el espíritu de Timoteo, creo con valentía, disciplina y, sobre todo, amor — aunque todavía estoy aprendiendo a amar así (ágape).',
-      'about.p3': 'La atención no es el objetivo. Enseñar y dar a conocer la verdad, sí. Esta misma búsqueda de la verdad esencial (Emet) es lo que define mi enfoque en la estrategia de marca.',
-      'about.p4': 'No separo quién soy de lo que construyo: mi trabajo es, simplemente, la arquitectura de mis convicciones, reforzadas en este camino del que sigo aprendiendo.'
+      'about.heading': 'Soy un creador aprendiendo a caminar',
+      'about.p1': 'Nacido en Colombia a inicios del 2002, creo en busca de lo que está bien y sigo el origen mismo. A través del diseño, el contenido audiovisual, la tecnología y el marketing, busco fortalecer el carácter, ampliar la perspectiva y construir sobre lo que tiene valor real (ágape).',
     },
 
     pt: {
@@ -190,6 +188,7 @@ export const UI = {
 
       'hero.role':      'Criador e Consultor de Marca',
       'hero.greet': 'Ei, olá! Sou o',
+      'panel.titleMobile': 'Criando estratégias de marca construídas desde a origem.',
       'panel.title': 'Crio estratégias de marca construídas desde a origem.',
       'panel.body': 'Formo herdeiros estratégicos e compartilho histórias através do espírito de Timóteo. Das montanhas de Cundinamarca, trabalho a estratégia e o design desde a raiz, o caráter e a verdade para dar vida a marcas com sentido de permanência.',
       'hero.emet': 'Projetos alinhados com a Verdade (Emet), onde o propósito não se separa da Origem e do que permanece.',
@@ -217,10 +216,8 @@ export const UI = {
 
       'scroll.label':   'Sobre mim',
 
-      'about.p1': 'Crio em busca do que é certo e sigo a própria origem. Através do design, do cinema e da tecnologia, busco fortalecer o caráter, ampliar a perspectiva e revelar o que realmente permanece.',
-      'about.p2': 'Vindo das montanhas de Cundinamarca, caminho por um só caminho: Ahavá. Inspirado pelo espírito de Timóteo, crio com coragem, disciplina e, acima de tudo, amor — embora ainda esteja aprendendo a amar assim (ágape).',
-      'about.p3': 'A atenção não é o objetivo. Ensinar e dar a conhecer a verdade, sim. Essa mesma busca pela verdade essencial (Emet) é o que define minha abordagem à estratégia de marca.',
-      'about.p4': 'Não separo quem sou daquilo que construo: meu trabalho é, simplesmente, a arquitetura das minhas convicções, reforçadas neste caminho do qual sigo aprendendo.'
+      'about.heading': 'Sou um criador aprendendo a caminhar',
+      'about.p1': 'Nascido na Colômbia no início de 2002, crio em busca do que é certo e sigo a própria origem. Através do design, do conteúdo audiovisual, da tecnologia e do marketing, busco fortalecer o caráter, ampliar a perspectiva e construir sobre o que tem valor real (ágape).',
     },
 
     fr: {
@@ -260,6 +257,7 @@ export const UI = {
 
       'hero.role':      'Créateur & Consultant en Marque',
       'hero.greet': 'Hé, salut ! Je suis',
+      'panel.titleMobile': 'Créer des stratégies de marque construites depuis l’origine.',
       'panel.title': 'Je crée des stratégies de marque construites depuis l’origine.',
       'panel.body': 'Je forme des héritiers stratégiques et partage des histoires à travers l’esprit de Timothée. Depuis les montagnes de Cundinamarca, je travaille la stratégie et le design depuis la racine, le caractère et la vérité pour donner vie à des marques ayant le sens de la permanence.',
       'hero.emet': 'Projets alignés avec la Vérité (Emet), où le sens ne se sépare pas de l’Origine et de ce qui demeure.',
@@ -287,10 +285,8 @@ export const UI = {
 
       'scroll.label':   'À propos de moi',
 
-      'about.p1': "Je crée en quête de ce qui est juste et je suis l'origine elle-même. À travers le design, le cinéma et la technologie, je cherche à fortifier le caractère, élargir la perspective et révéler ce qui demeure vraiment.",
-      'about.p2': "Né dans les montagnes de Cundinamarca, je marche sur un seul chemin : Ahava. Inspiré par l'esprit de Timothée, je crée avec courage, discipline et, par-dessus tout, amour — même si j'apprends encore à aimer ainsi (agapè).",
-      'about.p3': "L'attention n'est pas le but. Enseigner et faire connaître la vérité, si. Cette même quête de la vérité essentielle (Emet) définit mon approche de la stratégie de marque.",
-      'about.p4': "Je ne sépare pas qui je suis de ce que je construis : mon travail est, simplement, l'architecture de mes convictions, renforcées sur un chemin dont je continue d'apprendre."
+      'about.heading': 'Je suis un créateur qui apprend à marcher',
+      'about.p1': 'Né en Colombie au début de 2002, je crée en quête de ce qui est juste et je suis l’origine elle-même. À travers le design, le contenu audiovisuel, la technologie et le marketing, je cherche à fortifier le caractère, élargir la perspective et bâtir sur ce qui a une valeur réelle (agapè).',
     },
     it: {
       'page.about.lead': 'Chi sono, da dove vengo e perché il lavoro ha questo aspetto.',
@@ -329,6 +325,7 @@ export const UI = {
 
       'hero.role':      'Creatore e Consulente di Marca',
       'hero.greet': 'Ehi, ciao! Sono',
+      'panel.titleMobile': 'Creare strategie di marca costruite dall’origine.',
       'panel.title': 'Creo strategie di marca costruite dall’origine.',
       'panel.body': 'Formo eredi strategici e condivido storie attraverso lo spirito di Timoteo. Dalle montagne di Cundinamarca, lavoro sulla strategia e sul design dalla radice, dal carattere e dalla verità per dare vita a marchi con un senso di permanenza.',
       'hero.emet': 'Progetti allineati con la Verità (Emet), dove il proposito non si separa dall’Origine e da ciò che rimane.',
@@ -356,9 +353,7 @@ export const UI = {
 
       'scroll.label':   'Su di me',
 
-      'about.p1': 'Creo alla ricerca di ciò che è giusto e seguo l’origine stessa. Attraverso il design, il cinema e la tecnologia, cerco di rafforzare il carattere, ampliare la prospettiva e rivelare ciò che davvero permane.',
-      'about.p2': 'Cresciuto tra le montagne di Cundinamarca, cammino lungo un solo sentiero: Ahavà. Ispirato dallo spirito di Timoteo, creo con coraggio, disciplina e, soprattutto, amore — anche se sto ancora imparando ad amare così (agape).',
-      'about.p3': 'L’attenzione non è l’obiettivo. Insegnare e far conoscere la verità, sì. Questa stessa ricerca della verità essenziale (Emet) è ciò che definisce il mio approccio alla strategia di marca.',
-      'about.p4': 'Non separo chi sono da ciò che costruisco: il mio lavoro è, semplicemente, l’architettura delle mie convinzioni, rafforzate lungo un cammino da cui continuo a imparare.'
+      'about.heading': 'Sono un creatore che impara a camminare',
+      'about.p1': 'Nato in Colombia all’inizio del 2002, creo alla ricerca di ciò che è giusto e seguo l’origine stessa. Attraverso il design, il contenuto audiovisivo, la tecnologia e il marketing, cerco di rafforzare il carattere, ampliare la prospettiva e costruire su ciò che ha valore reale (agape).',
     }
   };

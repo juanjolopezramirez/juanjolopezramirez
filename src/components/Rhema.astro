@@ -3,13 +3,21 @@ import Icon from './Icon.astro';
 const { t, where = 'panel' } = Astro.props;
 ---
 <!-- La palabra que me sostiene. En escritorio vive en la hoja del hero;
-     en movil baja a la seccion de hueso, donde hay sitio para leerla. -->
+     en movil sube a la cabecera de la hoja, justo debajo del sticker.
+
+     Los dos renglones van en su propio <span> en vez de separados por un
+     <br>: se ven igual, pero asi cada uno se puede descubrir por su
+     cuenta, que es lo que hace falta para que parezca escrito a mano. -->
 <figure class={`rhema rhema--${where}`} data-glossary data-lift>
   <Icon id="quote" />
   <blockquote class="rhema__text">
-    <span>{t('hero.tagline1')}</span>
-    <em class="script">{t('hero.lightly')}</em><span>{t('hero.comma')}</span><br />
-    <span>{t('hero.tagline2')}</span> <span class="ahava">{t('hero.ahava')}</span>
+    <span class="rhema__line">
+      <span>{t('hero.tagline1')}</span>
+      <em class="script">{t('hero.lightly')}</em><span>{t('hero.comma')}</span>
+    </span>
+    <span class="rhema__line">
+      <span>{t('hero.tagline2')}</span> <span class="ahava">{t('hero.ahava')}</span>
+    </span>
   </blockquote>
   <figcaption class="rhema__by">
     <picture class="rhema__face">

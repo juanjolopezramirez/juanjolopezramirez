@@ -16,14 +16,31 @@ const t = useT(lang);
   <section class="about" id="about" aria-labelledby="about-title" data-glossary>
     <h2 class="sr-only" id="about-title">{t('scroll.label')}</h2>
 
-    <!-- En movil la palabra abre la seccion: se lee antes que el texto.
-         Desde 600px vive en la hoja del hero. -->
-    <Rhema t={t} where="about" />
+    <!-- El retrato va primero en el documento a proposito: en movil y
+         tablet cae justo despues del hero, entre el pinar y el hueso, a
+         sangre. Desde 1024px la rejilla lo manda a la derecha y deja de
+         ser una banda para ser una copia enmarcada. -->
+    <figure class="about__portrait reveal">
+      <div class="about__print">
+        <picture>
+          <source srcset="/assets/img/me-quote.webp" type="image/webp" />
+          <img src="/assets/img/me-quote.jpg" width="1080" height="1920"
+               alt="Juanjo, de perfil, mirando hacia arriba"
+               loading="lazy" decoding="async" />
+        </picture>
+      </div>
+    </figure>
 
-    <p class="reveal">{t('about.p1')}</p>
-    <p class="reveal">{t('about.p2')}</p>
-    <p class="reveal">{t('about.p3')}</p>
-    <p class="reveal">{t('about.p4')}</p>
-    <img class="about__mark reveal" src="/assets/logos/mark-ring.svg" alt="" width="19" height="32" />
+    <div class="about__body">
+      <!-- En movil la palabra abre la seccion: se lee antes que el texto.
+           Desde 600px vive en la hoja del hero. -->
+      <Rhema t={t} where="about" />
+
+      <h2 class="about__heading reveal">
+        {t('about.heading')} <em class="script">{t('hero.lightly')}</em>.
+      </h2>
+
+      <p class="reveal">{t('about.p1')}</p>
+    </div>
   </section>
 </Base>

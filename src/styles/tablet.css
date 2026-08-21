@@ -70,9 +70,11 @@
   }
 
   /* ---- About ---- */
-  .about { padding: 3.5rem var(--gutter) 3rem; }
-  .about p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 1.4rem; }
-  .about__mark { width: 20px; margin-top: 2rem; }
+  /* El relleno vive en el hueso, no en la seccion: la seccion ahora
+     tambien lleva el retrato, y el retrato va a sangre. */
+  .about__body { padding: 3.5rem var(--gutter) 3rem; }
+  .about__body p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 1.4rem; }
+  .about__portrait img { aspect-ratio: 16 / 10; object-position: 50% 20%; }
 
   /* ---- Hero de seccion: mas aire, todavia en una columna ---- */
   .phero { padding: calc(var(--header-h) + 3rem) var(--gutter) 4rem; }

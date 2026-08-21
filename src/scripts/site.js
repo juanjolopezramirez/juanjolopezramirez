@@ -141,7 +141,12 @@ function initNav() {
     btn.setAttribute('aria-label', t(open ? 'a11y.menuClose' : 'a11y.menu'));
   };
   btn.addEventListener('click', () => setOpen(btn.getAttribute('aria-expanded') !== 'true'));
-  nav.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
+  /* Elegir una fila cierra el menu, sea la que sea. Escribirme es un
+     boton y no un enlace, asi que sin nombrarlo se quedaba abierto por
+     detras de la hoja — y el menu seguia diciendo que estaba desplegado. */
+  nav.addEventListener('click', (e) => {
+    if (e.target.closest('a, [data-open-contact]')) setOpen(false);
+  });
   d.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { setOpen(false); btn.focus(); }
   });
@@ -303,7 +308,60 @@ function initGlossary() {
     el('term-panel-title').textContent = term.title[lang] || term.title.en;
     el('term-panel-meta').textContent = term.language[lang] || term.language.en;
     el('term-panel-def').textContent = term.def[lang] || term.def.en;
-    el('term-panel-source').textContent = term.source;
+
+    /* Lo que solo tiene Timoteo. Cada hueco se vacia primero: la hoja es
+       una sola y la reutilizan las cinco palabras, asi que lo que dejo la
+       anterior tiene que irse antes de pintar la siguiente. */
+    const pick = (o) => (o ? (o[lang] || o.en || o.es) : '');
+
+    const dt = el('term-panel-deftitle');
+    dt.textContent = pick(term.defTitle);
+    dt.hidden = !term.defTitle;
+
+    const secs = el('term-panel-sections');
+    secs.textContent = '';
+    secs.hidden = !term.sections;
+    (term.sections || []).forEach((sec) => {
+      const h = d.createElement('h3');
+      h.className = 'term-panel__deftitle';
+      h.textContent = pick(sec.title);
+      const b = d.createElement('p');
+      b.className = 'term-panel__def';
+      b.textContent = pick(sec.body);
+      secs.append(h, b);
+    });
+
+    const pil = el('term-panel-pillars');
+    pil.textContent = '';
+    pil.hidden = !term.pillars;
+    if (term.pillars) {
+      const h = d.createElement('h3');
+      h.className = 'term-panel__deftitle';
+      h.textContent = pick(term.pillars.title);
+      pil.appendChild(h);
+      term.pillars.items.forEach((it) => {
+        const det = d.createElement('details');
+        det.className = 'pillar';
+        const sum = d.createElement('summary');
+        sum.className = 'pillar__head';
+        sum.innerHTML = '<span class="pillar__n" aria-hidden="true"></span>' +
+                        '<span class="pillar__name"></span>' +
+                        '<span class="pillar__mark" aria-hidden="true"></span>';
+        sum.querySelector('.pillar__n').textContent = it.n;
+        sum.querySelector('.pillar__name').textContent = pick(it.label);
+        const body = d.createElement('p');
+        body.className = 'pillar__text';
+        body.textContent = pick(it.body);
+        det.append(sum, body);
+        pil.appendChild(det);
+      });
+    }
+
+    /* No todas las palabras llevan fuente. La de Timoteo se explica sola
+       y la ficha se queda mas limpia sin el aparato bibliografico. */
+    const cite = d.querySelector('.term-panel__cite');
+    el('term-panel-source').textContent = term.source || '';
+    if (cite) cite.hidden = !term.source;
     s.open();
   });
 }
