@@ -24,11 +24,16 @@ export const NAV = [
   { slug: 'about',    key: 'nav.about',    soon: true }
 ];
 
-/* Escribirme será por WhatsApp. Mientras no haya número, no hay enlace:
-   un <a> sin destino es una promesa que no se cumple, así que es un
-   botón que lo dice. Pon el número aquí y quita `soon`. */
-export const CONTACT = {
-  channel: 'whatsapp',
-  href: '',
-  soon: true
-};
+/* Escribirme ya no es una sola puerta: son dos, y elige quien escribe.
+   El boton de la cabecera abre la hoja, y la hoja las ofrece.
+
+   `href` es el destino y es lo unico que se guarda: ni el numero ni el
+   correo se escriben en la pagina. La ficha dice "WhatsApp" o "Correo",
+   y el dato viaja dentro del enlace, no en el texto.
+
+   Una puerta sin `href` no se enciende: sale apagada y avisa, porque un
+   <a> sin destino es una promesa que no se cumple. */
+export const CONTACT = [
+  { id: 'whatsapp', key: 'contact.whatsapp', href: 'https://wa.me/573155278033' },
+  { id: 'mail',     key: 'contact.mail',     href: 'mailto:juanjo7opezramirez@gmail.com' }
+];

@@ -177,9 +177,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .js-reveal .reveal { opacity: 1; transform: rotate(var(--rot)); transition: none; }
   .js-reveal [data-lift] { opacity: 1; transform: none; transition: none; }
   /* Nada flota ni llama si se ha pedido quietud. */
-  .hero__forest, .hero__me, .rhema, .phero__seal,
+  .hero__forest, .hero__me, .rhema, .phero__seal, .hero__available,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
-  .hero__light, .hero__light::before { animation: none !important; transform: none !important; }
   .hero__status-dot { animation: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -440,132 +439,133 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    Los 60px de desenfoque son los que deshacen los cortes duros entre
    parada y parada: lo que queda es ambiente, no un dibujo.
    ============================================================= */
+/* =============================================================
+   EL CAMPO VERDE
+   Una sola pieza y una sola logica. No hay capas flotando encima del
+   fondo: lo que se mueve es el degradado mismo. Su centro, su tamano y
+   su respiracion son variables, y el bucle de site.js las va cambiando
+   con senos — de ahi que acelere y frene solo, sin saltos.
+
+   LOS MANDOS, por si hay que afinarlo despues:
+     --iris-cycle       velocidad (un ciclo completo)
+     --iris-w / --iris-h  tamano de la masa de luz
+     --iris-x-mid/-amp  posicion horizontal: centro y recorrido
+     --iris-y-mid/-amp  posicion vertical
+     --iris-breath-amp  cuanto se expande y se contrae
+     --iris-pull        cuanto la empuja el raton
+   ============================================================= */
 .hero__field,
 .phero__field {
+  --iris-cycle: 11s;
+  --iris-w: 42%;
+  --iris-h: 60%;
+  /* Centro-derecha y hacia abajo, cerca de la foto. No es solo estetica:
+     barriendo el ciclo entero, con la luz mas arriba y mas a la izquierda
+     el oficio caia a 2.37 de contraste. Asi el peor momento da 5.26. */
+  --iris-x-mid: 74;
+  --iris-x-amp: 7;          /* 67% .. 81% del campo verde */
+  --iris-y-mid: 70;
+  --iris-y-amp: 7;
+  --iris-breath-amp: .16;
+  --iris-pull: 2;
+
+  /* El primer fotograma. Si el bucle no llega a correr —o si se ha
+     pedido quietud— el fondo se queda exactamente asi: Pine mandando
+     desde la izquierda y la luz hacia el centro-derecha, como el diseno. */
+  --iris-x: 74%;
+  --iris-y: 70%;
+  --iris-breath: 1;
+
   position: absolute; inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
 
-  /* Pine es el suelo. Todo lo demas se apoya encima de el, asi que por
-     mucha luz que pase, el ambiente sigue siendo este. */
-  background-color: var(--pine);
+  /* Pine es el suelo, y lo unico que hay debajo de todo. La luz se
+     apoya encima y se apaga hasta el propio Pine antes de llegar a
+     ningun borde: por eso no hay linea entre uno y otro, solo una
+     transicion larga que pasa por los cuatro verdes intermedios. */
+  background:
+    radial-gradient(
+      ellipse calc(var(--iris-w) * var(--iris-breath))
+              calc(var(--iris-h) * var(--iris-breath))
+      at var(--iris-x) var(--iris-y),
+      /* Meseta, no pico. Si el centro fuera mas claro que su alrededor
+         se veria un punto, y un punto es un objeto. Al mantener Iris
+         plano durante el primer tramo no hay nucleo que senalar: solo
+         una zona iluminada que se apaga hacia Pine por los cuatro
+         verdes intermedios. */
+      #7D9B4E  0%,
+      #7D9B4E 20%,
+      #678345 38%,
+      #526B3B 54%,
+      #3C5332 68%,
+      #31472D 82%,
+      rgba(38, 59, 40, 0) 100%),
+    var(--pine);
 }
 
-/* --- El degradado base. No se anima nunca. -----------------------------
-   Son las paradas de siempre, pero orientadas a 315deg: asi el extremo
-   claro cae abajo a la derecha —detras de la foto, que es donde quiero
-   la vida— y el extremo Pine queda arriba a la izquierda, que es donde
-   se lee el nombre. La opacidad lo mezcla contra Pine en vez de contra
-   negro: apagarlo con un velo oscuro ensuciaba el verde. */
-.hero__field::before,
-.phero__field::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: linear-gradient(315deg,
-    #A5CF4D  0%,
-    #7D9B4E 27%,
-    #678345 38%,
-    #526B3B 48%,
-    #3C5332 63%,
-    #31472D 71%,
-    var(--pine) 78%,
-    var(--pine) 95%);
-  opacity: .42;
-}
 
-/* --- Las luces ---------------------------------------------------------
-   Tres focos enormes y desenfocados. Cada uno es dos piezas: la de fuera
-   recoge la influencia del raton, la de dentro lleva su propia deriva.
-   Separadas, porque una sola no puede tener dos `transform` a la vez.
-   La actividad se concentra en el centro y el centro-derecha; la esquina
-   Pine se queda quieta. */
-.hero__light {
-  position: absolute;
-  will-change: transform;
-  /* --mx y --my los escribe el raton, entre -1 y 1. --depth es cuanto
-     le hace caso cada capa: nunca mas de 20px. */
-  transform: translate3d(calc(var(--mx, 0) * var(--depth)),
-                         calc(var(--my, 0) * var(--depth)), 0);
-}
-.hero__light::before {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  will-change: transform;
-}
+/* ---- MOVIL -----------------------------------------------------------
+   Aqui el campo es toda la pantalla, y la pantalla esta de pie: la
+   diagonal de Figma, tal cual, deja la esquina clara abajo a la derecha,
+   que en vertical es justo donde cae la hoja. Ahi no se lee nada.
 
-/* Iris, la luz principal: centro, un poco a la derecha. */
-.hero__light--a {
-  --depth: 16px;
-  left: 26%; top: 16%;
-  width: 62%; aspect-ratio: 1;
-}
-.hero__light--a::before {
-  background: radial-gradient(circle,
-    rgba(125, 155, 78, .22) 0%, rgba(125, 155, 78, .09) 38%, transparent 70%);
-  filter: blur(70px);
-  animation: lightA 19s ease-in-out infinite;
-}
+   Asi que se conserva la logica del diseno, no las coordenadas. En
+   escritorio la esquina clara esta donde esta la foto; en vertical la
+   foto sube, y la luz sube con ella. El degradado cae de arriba abajo
+   con una pizca de inclinacion —195 grados, lo justo para que no parezca
+   una persiana— y llega a Pine cerrado al 56%: de la mitad para abajo,
+   donde vive todo el texto, el suelo es uniforme.
 
-/* Mas abajo y mas a la derecha: la que pasa por detras de la foto. */
-.hero__light--b {
-  --depth: 10px;
-  left: 46%; top: 42%;
-  width: 46%; aspect-ratio: 1;
-}
-.hero__light--b::before {
-  background: radial-gradient(circle,
-    rgba(125, 155, 78, .16) 0%, rgba(103, 131, 69, .07) 40%, transparent 72%);
-  filter: blur(90px);
-  animation: lightB 24s ease-in-out infinite;
-}
-
-/* La mas grande y la mas debil: da profundidad, no luz. */
-.hero__light--c {
-  --depth: 20px;
-  left: 4%; top: 34%;
-  width: 88%; aspect-ratio: 1;
-}
-.hero__light--c::before {
-  background: radial-gradient(circle,
-    rgba(103, 131, 69, .13) 0%, rgba(82, 107, 59, .06) 42%, transparent 74%);
-  filter: blur(110px);
-  animation: lightC 31s ease-in-out infinite;
-}
-
-/* Recorridos cerrados: cada uno vuelve exactamente a donde empezo, asi
-   que el bucle no tiene corte. Y ninguno va en linea recta — son lazos,
-   con la escala respirando entre .96 y 1.07. */
-@keyframes lightA {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  24%  { transform: translate3d(28px, -20px, 0) scale(1.06); }
-  49%  { transform: translate3d(12px, 30px, 0) scale(.97); }
-  73%  { transform: translate3d(-24px, 14px, 0) scale(1.03); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes lightB {
-  0%   { transform: translate3d(0, 0, 0) scale(1.02); }
-  29%  { transform: translate3d(-30px, 18px, 0) scale(.96); }
-  55%  { transform: translate3d(20px, 34px, 0) scale(1.07); }
-  78%  { transform: translate3d(34px, -12px, 0) scale(1); }
-  100% { transform: translate3d(0, 0, 0) scale(1.02); }
-}
-@keyframes lightC {
-  0%   { transform: translate3d(0, 0, 0) scale(.98); }
-  21%  { transform: translate3d(18px, 26px, 0) scale(1.05); }
-  46%  { transform: translate3d(-26px, 10px, 0) scale(1.01); }
-  70%  { transform: translate3d(-10px, -28px, 0) scale(1.07); }
-  100% { transform: translate3d(0, 0, 0) scale(.98); }
-}
-
-/* En pantalla pequena la luz cuesta mas de lo que aporta: se queda en
-   dos capas, con menos desenfoque y recorridos mas cortos. */
+   Los ocho colores son los mismos y en el mismo orden. Lo unico que
+   cambia es el reparto.
+   ============================================================= */
 @media (max-width: 599px) {
-  .hero__light--c { display: none; }
-  .hero__light--a::before { filter: blur(48px); }
-  .hero__light--b::before { filter: blur(56px); }
-  .hero__light { --depth: 0px; }
+  .hero__field {
+    /* La luz deja de barrer el texto y se queda detras de la foto:
+       ancha, baja de techo y arriba del todo. Antes medía 52% de un
+       campo de 1192px —620px de alto— y se comia la hoja entera. */
+    --iris-w: 42%;
+    --iris-h: 12%;
+    --iris-x-mid: 57;
+    --iris-x-amp: 5;        /* 52% .. 62% del ancho */
+    --iris-y-mid: 21;
+    --iris-y-amp: 3;        /* 18% .. 24%, la banda de la calcomania */
+    --iris-pull: 0;         /* sin raton que valga */
+    --iris-x: 57%;
+    --iris-y: 21%;
+
+    --field-veil: rgba(0, 0, 0, .2);
+
+    background:
+      /* 1. La luz, detras de la foto */
+      radial-gradient(
+        ellipse calc(var(--iris-w) * var(--iris-breath))
+                calc(var(--iris-h) * var(--iris-breath))
+        at var(--iris-x) var(--iris-y),
+        rgba(165, 207, 77, .26)  0%,
+        rgba(165, 207, 77, .26) 20%,
+        rgba(140, 176, 74, .16) 42%,
+        rgba( 90, 120, 60, .07) 68%,
+        rgba( 38,  59,  40,  0) 100%),
+
+      /* 2. El velo negro del estilo de Figma */
+      linear-gradient(var(--field-veil), var(--field-veil)),
+
+      /* 3. Las ocho paradas, apretadas contra el techo */
+      linear-gradient(195deg,
+        #A5CF4D  0%,
+        #7D9B4E 12%,
+        #678345 20%,
+        #526B3B 28%,
+        #3C5332 38%,
+        #31472D 46%,
+        #263B28 56%,
+        #263B28 100%),
+
+      var(--pine);
+  }
 }
 
 /* El bosque es decoracion, asi que es fondo y no <img>: el escritorio,
@@ -654,6 +654,40 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   line-height: 1.55;
   color: var(--bone);
 }
+
+/* ---- MOVIL: la disponibilidad, en ficha propia -----------------------
+   La palabra tiene su hoja de hueso; esto no puede ser lo mismo o serian
+   dos veces la misma caja. Esta se queda en el pinar —un paso por delante
+   del fondo, no encima de el—, la cierra un filo de iris y la luz le entra
+   por el hombro derecho.
+   El movimiento tambien se separa: nueve segundos en vez de doce y un
+   grado escaso de inclinacion, asi las dos cajas no respiran nunca a la
+   vez ni de la misma manera.
+   Desde 600px se deshace sola: en la hoja no hace falta caja. */
+@media (max-width: 599px) {
+  .hero__available {
+    margin-top: 1.75rem;
+    padding: 1.05rem 1.15rem 1.15rem;
+    border-radius: 22px;
+    background:
+      radial-gradient(120% 92% at 88% 0%, rgba(169, 196, 127, .15), transparent 62%),
+      linear-gradient(160deg, rgba(30, 47, 32, .88), rgba(22, 35, 26, .66));
+    border: 1px solid rgba(169, 196, 127, .22);
+    box-shadow: 0 18px 36px -22px rgba(11, 20, 13, .85);
+    -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
+    animation: floatTilt 9s var(--ease-smooth) infinite;
+  }
+  /* Dentro de la ficha el rotulo puede subir el tono: hay caja que lo
+     sostenga, y asi el punto verde deja de ir solo. */
+  .hero__available .hero__status { color: var(--iris-300); }
+  .hero__available .hero__emet { margin-top: .6rem; }
+}
+
+/* Ni sube recto ni tanto como la palabra: cinco pixeles y una pizca de
+   hombro. `translate` y `rotate` son propiedades sueltas, asi que no se
+   pisan con el transform de la entrada. */
+@keyframes floatTilt { 50% { translate: 0 -5px; rotate: -.4deg; } }
 
 /* La palabra, en su propia caja. */
 /* La palabra nunca esta del todo quieta. Doce segundos de ida y vuelta:
@@ -757,6 +791,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--brand-fg, var(--pine-900));
   animation: chipBounce .4s linear;
 }
+/* Una pantalla que se toca no tiene raton que pase por encima: ahi
+   `:hover` no ocurre nunca, y la ficha se quedaba muerta. El mismo
+   relleno responde al dedo mientras se pulsa, asi que el gesto es el
+   mismo en las tres pantallas. El destello gris del navegador se quita:
+   estorba al color de la casa, que es el que tiene que verse. */
+.link-chip { -webkit-tap-highlight-color: transparent; }
+.link-chip:active {
+  background: var(--brand-bg, var(--iris));
+  color: var(--brand-fg, var(--pine-900));
+}
 
 /* Animating `scale` rather than `transform` keeps the reveal's
    translate/rotate intact underneath. */
@@ -781,6 +825,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .net--tiktok    { --brand-bg: linear-gradient(45deg, #25F4EE 0%, #010101 50%, #FE2C55 100%); --brand-fg: #FFFFFF; }
 .net--youtube   { --brand-bg: #FF0000; --brand-fg: #FFFFFF; }
 .net--x         { --brand-bg: #000000; --brand-fg: #FFFFFF; }
+/* Las dos puertas de escribirme viven en la misma tabla: la ficha es la
+   misma pieza, asi que el color de su casa se declara igual que el resto.
+   El verde de WhatsApp es claro, asi que el glifo va en verde cerrado y no
+   en blanco — blanco sobre #25D366 se queda en 1.9:1 y no se lee. */
+.net--whatsapp  { --brand-bg: #25D366; --brand-fg: #08300F; }
+.net--mail      { --brand-bg: var(--iris); --brand-fg: var(--pine-900); }
 
 .link-chip--more {
   color: var(--pine-200);
@@ -1124,8 +1174,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .is-soon { opacity: .55; }
 .is-soon:hover, .is-soon:focus-visible { opacity: .85; }
 
-.drop-badge,
-.nav-cta__badge {
+.drop-badge {
   margin-left: .5rem;
   padding: .12em .5em .16em;
   border-radius: 999px;
@@ -1137,20 +1186,77 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: rgba(241, 239, 233, .14);
   color: var(--pine-200);
 }
-.nav-cta__badge {
-  background: rgba(241, 239, 233, .18);
+/* =============================================================
+   ESCRIBIRME — la hoja de las dos puertas
+
+   Misma hoja que la de las plataformas: sube desde abajo, mismo velo,
+   mismo filo de Iris arriba. Lo que cambia es lo que lleva dentro —
+   ahi son iconos en rejilla, aqui son dos filas que se leen.
+
+   Cada puerta se pinta con el color de su casa al tocarla, igual que
+   las fichas de las redes: es lo unico que entra de fuera de los cinco,
+   y solo al contacto.
+   ============================================================= */
+.contact-panel {
+  position: fixed; inset: 0; z-index: 70;
+  display: grid; align-items: end;
+}
+.contact-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .74);
+  opacity: 0;
+  transition: opacity .32s var(--ease);
+}
+.contact-panel__sheet {
+  position: relative;
+  padding: 1.6rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
+  background: var(--pine-700);
+  border-top: 3px solid var(--iris);
+  border-radius: 32px 32px 0 0;
+  translate: 0 100%;
+  transition: translate .42s var(--ease);
+}
+.contact-panel.is-open .contact-panel__scrim { opacity: 1; }
+.contact-panel.is-open .contact-panel__sheet { translate: 0 0; }
+
+.contact-panel__title {
+  margin: 0 0 1.15rem;
+  font-family: var(--serif);
+  font-size: 1.15rem; font-weight: 400;
+  letter-spacing: -.015em;
   color: var(--bone);
 }
+.contact-panel__close {
+  position: absolute; top: .6rem; right: .9rem;
+  width: 2.25rem; height: 2.25rem;
+  font-size: 1.6rem; line-height: 1;
+  color: var(--pine-200);
+  transition: color .2s var(--ease);
+}
+.contact-panel__close:hover { color: var(--bone); }
 
-/* Escribirme, mientras no haya numero, es un boton — no un enlace. */
-.drop-soon {
-  display: flex; align-items: center;
-  width: 100%;
-  padding: .8rem 0;
-  font-size: 1rem; letter-spacing: -.01em;
-  text-align: left;
-  color: var(--bone);
-  opacity: .55;
+/* Dos fichas y su nombre debajo — la misma pieza y el mismo gesto que la
+   rejilla de las plataformas. No hay fila, ni borde, ni flecha: la ficha
+   ya dice todo lo que hay que decir, y al tocarla se llena del color de
+   su casa y da su bote. Aqui son dos, asi que van centradas en vez de
+   repartidas en columnas. */
+.contact-panel__grid {
+  display: flex;
+  justify-content: center;
+  gap: 2.75rem;
+}
+.contact-panel__item {
+  display: grid; justify-items: center; gap: .45rem;
+  opacity: 0;
+  translate: 0 14px;
+  transition: opacity .34s var(--ease), translate .34s var(--ease);
+  transition-delay: var(--d, 0ms);
+}
+.contact-panel.is-open .contact-panel__item { opacity: 1; translate: 0 0; }
+.contact-panel__name {
+  font-size: .68rem; font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--pine-200);
 }
 
 /* El aviso. Aparece abajo, lo lee el lector de pantalla, y se va solo. */

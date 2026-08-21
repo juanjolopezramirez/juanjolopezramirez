@@ -25,11 +25,30 @@ const langs = JSON.stringify(LANGS);
   <noscript><meta http-equiv="refresh" content={`0; url=/${DEFAULT_LANG}/`} /></noscript>
   <style>
     html, body { height: 100%; }
+    /* El mismo suelo que el hero: la diagonal de ocho paradas del estilo
+       "The Gradient" con su velo negro al 20% encima. Aqui va en crudo y
+       sin variables porque esta hoja se pinta antes que ninguna otra: es
+       el primer pixel de la sesion y no puede esperar a un CSS externo.
+       La firma va centrada, y el centro de una diagonal cae siempre en
+       su punto medio sea cual sea la pantalla: #3F532E, verde medio, con
+       la firma en hueso encima. La esquina de arriba a la izquierda es el
+       extremo cerrado (#1E2F20) y la de abajo a la derecha el claro. */
     body {
       margin: 0;
       display: grid;
       place-items: center;
-      background: #263B28;
+      background:
+        linear-gradient(rgba(0, 0, 0, .2), rgba(0, 0, 0, .2)),
+        linear-gradient(to top left,
+          #A5CF4D  0%,
+          #7D9B4E 27%,
+          #678345 38%,
+          #526B3B 48%,
+          #3C5332 63%,
+          #31472D 71%,
+          #263B28 78%,
+          #263B28 95%),
+        #263B28;
       color: #F1EFE9;
     }
     /* Mas pequeno: la firma ocupaba media pantalla para un segundo de

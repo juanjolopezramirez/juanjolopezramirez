@@ -52,36 +52,81 @@ function initHeader() {
   sync();
 }
 
-/* ---------- La luz del campo --------------------------------
-   El raton no arrastra la luz: la influye. Se guarda la posicion como
-   dos numeros entre -1 y 1 y el CSS decide cuanto le hace caso cada capa
-   (nunca mas de 20px). La interpolacion va por detras, en un solo
-   requestAnimationFrame, y solo escribe dos variables: no se toca el
-   layout ni una vez.                                                  */
-function initFieldLight() {
+/* ---------- El campo verde ----------------------------------
+   La UNICA logica que mueve el fondo. No anima elementos: mueve el
+   degradado, escribiendo tres variables que el CSS usa para colocar y
+   dimensionar la masa de luz.
+
+   Va con senos y no con fotogramas a proposito. Un seno frena solo al
+   llegar a los extremos y cambia de sentido sin canto — es el easing,
+   no algo aplicado encima. Y como los tres van a periodos que no encajan
+   entre si, el conjunto no vuelve nunca a repetirse igual.
+
+   Los margenes de movimiento no estan aqui: los declara el CSS, que es
+   quien sabe si estamos en movil o en escritorio. Este bucle solo los
+   lee y se mueve dentro de ellos.                                     */
+function initFieldGlow() {
   const field = d.querySelector('.hero__field, .phero__field');
   if (!field) return;
-  /* Sin raton no hay nada que seguir, y si se ha pedido quietud, menos. */
-  if (matchMedia('(hover: none)').matches) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  let tx = 0, ty = 0, x = 0, y = 0, raf = 0;
+  const TAU = Math.PI * 2;
+  let cfg, raf = 0, last = 0, onScreen = true;
+  let mx = 0, my = 0, tmx = 0, tmy = 0;
 
-  const tick = () => {
-    x += (tx - x) * 0.04;                 // inercia larga: la luz llega tarde
-    y += (ty - y) * 0.04;
-    field.style.setProperty('--mx', x.toFixed(4));
-    field.style.setProperty('--my', y.toFixed(4));
-    /* Cuando ya practicamente ha llegado, se para: nada gira en vacio. */
-    raf = (Math.abs(tx - x) > 0.002 || Math.abs(ty - y) > 0.002)
-      ? requestAnimationFrame(tick) : 0;
+  /* El CSS manda: aqui solo se leen los limites que haya puesto para
+     este ancho de pantalla. Se relee al cambiar de tamano. */
+  const readCfg = () => {
+    const cs = getComputedStyle(field);
+    const n = (k, f) => { const v = parseFloat(cs.getPropertyValue(k)); return isNaN(v) ? f : v; };
+    cfg = {
+      cycle: n('--iris-cycle', 11) * 1000,
+      xMid:  n('--iris-x-mid', 69), xAmp: n('--iris-x-amp', 9),
+      yMid:  n('--iris-y-mid', 61), yAmp: n('--iris-y-amp', 8),
+      breath: n('--iris-breath-amp', .17),
+      pull:  n('--iris-pull', 2)
+    };
   };
 
-  addEventListener('pointermove', (e) => {
-    tx = (e.clientX / innerWidth - 0.5) * 2;
-    ty = (e.clientY / innerHeight - 0.5) * 2;
-    if (!raf) raf = requestAnimationFrame(tick);
-  }, { passive: true });
+  const tick = (now) => {
+    /* A ~30 por segundo basta: lo que se mueve tarda once segundos en dar
+       la vuelta, y repintar la mitad de veces cuesta la mitad. */
+    if (now - last > 32) {
+      last = now;
+      const t = (now / cfg.cycle) * TAU;
+      mx += (tmx - mx) * 0.03;            // el raton llega tarde, a proposito
+      my += (tmy - my) * 0.03;
+      const x = cfg.xMid + cfg.xAmp * Math.sin(t)              + mx * cfg.pull;
+      const y = cfg.yMid + cfg.yAmp * Math.sin(t * 0.73 + 1.1) + my * cfg.pull;
+      const b = 1 + cfg.breath * Math.sin(t * 0.61 + 2.3);
+      field.style.setProperty('--iris-x', x.toFixed(2) + '%');
+      field.style.setProperty('--iris-y', y.toFixed(2) + '%');
+      field.style.setProperty('--iris-breath', b.toFixed(4));
+    }
+    raf = requestAnimationFrame(tick);
+  };
+
+  const start = () => { if (!raf && onScreen && !d.hidden) raf = requestAnimationFrame(tick); };
+  const stop  = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
+
+  readCfg();
+  addEventListener('resize', readCfg, { passive: true });
+
+  /* Nada se pinta si el hero no esta a la vista, ni si la pestana lo esta. */
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; onScreen ? start() : stop(); })
+      .observe(field);
+  }
+  d.addEventListener('visibilitychange', () => (d.hidden ? stop() : start()));
+
+  if (!matchMedia('(hover: none)').matches) {
+    addEventListener('pointermove', (e) => {
+      tmx = (e.clientX / innerWidth  - 0.5) * 2;
+      tmy = (e.clientY / innerHeight - 0.5) * 2;
+    }, { passive: true });
+  }
+
+  start();
 }
 
 /* ---------- Menu ------------------------------------------- */
@@ -133,6 +178,14 @@ function initSocial() {
   const s = sheet('social-panel', 'data-close-social');
   const opener = d.querySelector('[data-open-social]');
   if (s && opener) opener.addEventListener('click', s.open);
+}
+/* Escribirme abre la misma clase de hoja que las plataformas. Hay dos
+   botones que la abren —el de la barra ancha y el del menu desplegable—
+   asi que se cablean todos, no solo el primero. */
+function initContact() {
+  const s = sheet('contact-panel', 'data-close-contact');
+  if (!s) return;
+  d.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', s.open));
 }
 
 /* ---------- Selector de idioma ------------------------------
@@ -310,11 +363,19 @@ function initReveal() {
 }
 
 initHeader();
-initFieldLight();
+initFieldGlow();
 initNav();
 initSocial();
+initContact();
 initLang();
 initSoon();
 initGlossary();
 initReveal();
+/* Safari en iOS no aplica `:active` a nada si la pagina no escucha el
+   tacto en ningun sitio: sin esto, la ficha se enciende al pulsarla en
+   Android y no hace nada en un iPhone. Un oyente vacio y pasivo basta
+   para que el sistema lo de por bueno; no corre codigo ni estorba al
+   desplazamiento. */
+d.addEventListener('touchstart', function () {}, { passive: true });
+
 d.documentElement.classList.add('js-ready');

@@ -1,5 +1,5 @@
 ---
-import { NAV, CONTACT } from '../data/social.js';
+import { NAV } from '../data/social.js';
 import LangPicker from './LangPicker.astro';
 import Icon from './Icon.astro';
 const { lang, t, path = '', active = '' } = Astro.props;
@@ -28,15 +28,10 @@ const to = (slug) => `/${lang}/${slug}/`;
           </li>
         ))}
         <li class="site-nav__write">
-          {CONTACT.soon ? (
-            /* Sin numero no hay destino, y un enlace sin destino miente.
-               Mientras tanto es un boton que dice lo que pasa. */
-            <button class="nav-cta" type="button" data-soon="soon.whatsapp">
-              {t('nav.write')}<span class="nav-cta__badge">{t('soon.badge')}</span>
-            </button>
-          ) : (
-            <a class="nav-cta" href={CONTACT.href}>{t('nav.write')}</a>
-          )}
+          <!-- Ya no promete un destino: abre la hoja y que elija quien escribe. -->
+          <button class="nav-cta" type="button" data-open-contact aria-haspopup="dialog">
+            {t('nav.write')}
+          </button>
         </li>
       </ul>
     </nav>
@@ -64,13 +59,9 @@ const to = (slug) => `/${lang}/${slug}/`;
         </li>
       ))}
       <li>
-        {CONTACT.soon ? (
-          <button class="drop-soon" type="button" data-soon="soon.whatsapp">
-            {t('nav.write')}<span class="drop-badge">{t('soon.badge')}</span>
-          </button>
-        ) : (
-          <a href={CONTACT.href}>{t('nav.write')}</a>
-        )}
+        <button class="drop-write" type="button" data-open-contact aria-haspopup="dialog">
+          {t('nav.write')}
+        </button>
       </li>
     </ul>
   </nav>

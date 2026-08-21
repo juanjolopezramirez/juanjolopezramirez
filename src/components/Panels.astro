@@ -1,5 +1,5 @@
 ---
-import { SOCIAL } from '../data/social.js';
+import { SOCIAL, CONTACT } from '../data/social.js';
 import Icon from './Icon.astro';
 const { t } = Astro.props;
 ---
@@ -16,6 +16,36 @@ const { t } = Astro.props;
             <Icon id={s.id} /><span class="sr-only">{s.name}</span>
           </a>
           <span class="social-panel__name">{s.name}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>
+
+<!-- Escribirme: dos puertas, y elige quien escribe. La hoja es la misma
+     que la de las plataformas — misma altura, mismo gesto, mismo cierre.
+     Una puerta sin destino no se enciende: sale apagada y lo dice, en vez
+     de fingir un enlace que no lleva a ningun sitio. -->
+<div class="contact-panel" id="contact-panel" hidden>
+  <div class="contact-panel__scrim" data-close-contact></div>
+  <div class="contact-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="contact-panel-title">
+    <button class="contact-panel__close" type="button" data-close-contact aria-label={t('a11y.closePanel')}>&times;</button>
+    <h2 class="contact-panel__title" id="contact-panel-title">{t('contact.title')}</h2>
+    <ul class="contact-panel__grid">
+      {CONTACT.map((ch) => (
+        <li class="contact-panel__item">
+          {ch.href ? (
+            <a class={`link-chip net--${ch.id}`} href={ch.href}
+               target={ch.id === 'whatsapp' ? '_blank' : undefined}
+               rel={ch.id === 'whatsapp' ? 'noopener noreferrer' : undefined}>
+              <Icon id={ch.id} /><span class="sr-only">{t(ch.key)}</span>
+            </a>
+          ) : (
+            <button class={`link-chip net--${ch.id} is-soon`} type="button" data-soon="soon.whatsapp">
+              <Icon id={ch.id} /><span class="sr-only">{t(ch.key)}</span>
+            </button>
+          )}
+          <span class="contact-panel__name">{t(ch.key)}</span>
         </li>
       ))}
     </ul>

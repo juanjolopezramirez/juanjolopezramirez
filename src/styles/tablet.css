@@ -88,5 +88,73 @@
   /* ---- Hojas ---- */
   .social-panel__grid { grid-template-columns: repeat(8, 1fr); gap: 1.4rem .5rem; }
   .social-panel__sheet,
+  .contact-panel__sheet,
   .term-panel__sheet { padding-inline: var(--gutter); }
+}
+
+/* =============================================================
+   EL CAMPO EN TABLET — el degradado de Figma, tercera lectura
+
+   Ni lo uno ni lo otro. En movil la foto va arriba y centrada, y el
+   texto debajo; en escritorio la foto se planta abajo a la derecha,
+   sobre la costura. En tablet la pagina se parte de otra manera: el
+   nombre a la izquierda arriba, la calcomania a la derecha —del 53 al
+   95% de ancho, del 13 al 39% de alto— y la hoja cruzada debajo, a lo
+   ancho, del 47% para abajo.
+
+   La regla es la misma de siempre: la esquina clara va donde esta la
+   foto. Aqui eso es arriba a la derecha, asi que la diagonal cae a 225
+   grados. Y cierra pronto —Pine cerrado al 44%, antes que en movil—
+   porque debajo no hay una columna de texto sino dos: la identidad a la
+   izquierda y la hoja entera cruzada.
+
+   El tramo va acotado por arriba a proposito. tablet.css es un solo
+   bloque de `min-width: 600px`, y desktop.css no vuelve a declarar los
+   mandos del campo: sin el tope, estos valores se colarian en el
+   escritorio y le cambiarian la luz por debajo.
+   ============================================================= */
+@media (min-width: 600px) and (max-width: 1199px) {
+  .hero__field {
+    /* Detras de la calcomania, que entre 600 y 1199 se mueve del 73 al
+       79% de ancho y del 26 al 28% de alto. El centro en 75 y 27 los
+       cubre a los dos extremos sin salirse. */
+    --iris-w: 28%;
+    --iris-h: 14%;
+    --iris-x-mid: 75;
+    --iris-x-amp: 5;        /* 70% .. 80% del ancho */
+    --iris-y-mid: 27;
+    --iris-y-amp: 3;        /* 24% .. 30%, la banda de la foto */
+    --iris-x: 75%;
+    --iris-y: 27%;
+
+    --field-veil: rgba(0, 0, 0, .2);
+
+    background:
+      /* 1. La luz, detras de la foto */
+      radial-gradient(
+        ellipse calc(var(--iris-w) * var(--iris-breath))
+                calc(var(--iris-h) * var(--iris-breath))
+        at var(--iris-x) var(--iris-y),
+        rgba(165, 207, 77, .26)  0%,
+        rgba(165, 207, 77, .26) 20%,
+        rgba(140, 176, 74, .16) 42%,
+        rgba( 90, 120, 60, .07) 68%,
+        rgba( 38,  59,  40,  0) 100%),
+
+      /* 2. El velo negro del estilo de Figma */
+      linear-gradient(var(--field-veil), var(--field-veil)),
+
+      /* 3. Las ocho paradas, recogidas en la esquina de la foto */
+      linear-gradient(225deg,
+        #A5CF4D  0%,
+        #7D9B4E  9%,
+        #678345 15%,
+        #526B3B 21%,
+        #3C5332 29%,
+        #31472D 35%,
+        #263B28 44%,
+        #263B28 100%),
+
+      var(--pine);
+  }
 }
