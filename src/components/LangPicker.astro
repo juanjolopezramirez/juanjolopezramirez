@@ -5,17 +5,29 @@ const { lang, t, path = '' } = Astro.props;
 const clean = String(path).replace(/^\/+|\/+$/g, '');
 const to = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
 ---
-<!-- La bandera dice donde estas. Al abrirla, las otras son enlaces reales. -->
+<!-- La bandera puesta es la mia, no la del idioma — y eso ahora lo dice la
+     hoja en voz alta, que era la pega justa: una bandera colombiana no
+     significa "español", significa de donde soy.
+
+     Cada idioma se nombra en su propio idioma. Quien busca el suyo lo
+     reconoce aunque no entienda ni una palabra del que esta leyendo, que
+     es justo lo que un selector de idioma tiene que resolver. -->
 <div class="lang" data-lang>
-  <ul class="lang__list" id="lang-list" hidden aria-label={t('a11y.langList')}>
-    {otherLangs(lang).map((l) => (
-      <li>
-        <a class="lang__option" href={to(l)} lang={l} hreflang={l} title={META[l].name} aria-label={META[l].name}>
-          <img src={META[l].flag} alt="" width="40" height="40" />
-        </a>
-      </li>
-    ))}
-  </ul>
+  <div class="lang__list" id="lang-list" hidden role="group" aria-label={t('a11y.langList')}>
+    <p class="lang__title">{t('lang.title')}</p>
+    <ul class="lang__options">
+      {otherLangs(lang).map((l, i) => (
+        <li style={`--d:${i * 55}ms`}>
+          <a class="lang__option" href={to(l)} lang={l} hreflang={l}>
+            <img src={META[l].flag} alt="" width="40" height="40" />
+            <span class="lang__name">{META[l].name}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p class="lang__note">{t('lang.note')}</p>
+  </div>
+
   <button class="lang__current" type="button" data-lang-toggle
           aria-expanded="false" aria-controls="lang-list" aria-haspopup="true"
           aria-label={t('a11y.lang')} title={t('a11y.lang')}>

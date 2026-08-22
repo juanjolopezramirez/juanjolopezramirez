@@ -1598,43 +1598,86 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .lang { position: relative; display: grid; justify-items: center; }
 
+/* Ya no es una pastilla de banderas: es una hoja con el nombre de cada
+   idioma escrito en su idioma, y una nota al pie que aclara de quien es la
+   bandera. Una bandera sola no dice "idioma" — dice "pais", que es otra
+   cosa y era justo la confusion. */
 .lang__list {
   position: absolute;
   top: calc(100% + .5rem);          /* abre hacia abajo, bajo la cabecera */
   right: 0;
   z-index: 60;
-  display: grid; gap: .45rem; justify-items: center;
-  padding: .4rem;
-  border-radius: 999px;
+  width: max-content;
+  max-width: min(15rem, calc(100vw - 2rem));
+  padding: .8rem .7rem .7rem;
+  border-radius: 20px;
   background: var(--pine-700);
-  box-shadow: 0 0 0 1px rgba(241, 239, 233, .08);
+  box-shadow: 0 0 0 1px rgba(241, 239, 233, .08), 0 18px 34px -20px rgba(11, 20, 13, .8);
+  text-align: left;
 }
+.lang__title {
+  margin: 0 0 .55rem;
+  padding-inline: .45rem;
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.lang__options { display: grid; gap: .1rem; margin: 0; padding: 0; list-style: none; }
+
+/* La nota: pequena, al pie, y sin gritar. Es una aclaracion, no un aviso. */
+.lang__note {
+  margin: .6rem .45rem 0;
+  padding-top: .55rem;
+  border-top: 1px solid rgba(241, 239, 233, .12);
+  font-size: .66rem; font-weight: 300;
+  line-height: 1.45;
+  color: var(--pine-200);
+  text-wrap: pretty;
+}
+/* Entran escalonadas, una detras de otra. Antes tambien giraban: con una
+   bandera sola quedaba bien, pero un renglon de texto girando se lee mal,
+   asi que ahora solo suben y aparecen. */
 .lang__list li {
   opacity: 0;
-  translate: 0 -12px;
-  scale: .5;
-  rotate: -40deg;
+  translate: 0 -10px;
   transition:
-    opacity .5s var(--ease-smooth),
-    translate .5s var(--ease-smooth),
-    scale .5s var(--ease-smooth),
-    rotate .6s var(--ease-smooth);
+    opacity .42s var(--ease-smooth),
+    translate .42s var(--ease-smooth);
   transition-delay: var(--d, 0ms);
 }
-.lang.is-open .lang__list li { opacity: 1; translate: 0 0; scale: 1; rotate: 0deg; }
+.lang.is-open .lang__list li { opacity: 1; translate: 0 0; }
 
-/* Todas las banderas miden lo mismo: la que esta puesta no es mas
-   importante que las que puedes elegir. */
-.lang__option,
+.lang__title, .lang__note {
+  opacity: 0;
+  transition: opacity .42s var(--ease-smooth);
+}
+.lang.is-open .lang__title { opacity: 1; }
+.lang.is-open .lang__note { opacity: 1; transition-delay: .2s; }
+
+/* La bandera de la lista mide lo mismo que la puesta: la que esta no es
+   mas importante que las que puedes elegir. */
 .lang__current {
   position: relative;
   display: grid; place-items: center;
   width: 1.95rem; height: 1.95rem;
   transition: scale .3s var(--ease);
 }
-.lang__option:hover, .lang__current:hover { scale: 1.08; }
-.lang__option:active, .lang__current:active { scale: .95; }
-.lang__option img, .lang__flag { width: 100%; height: 100%; }
+.lang__current:hover { scale: 1.08; }
+.lang__current:active { scale: .95; }
+.lang__flag { width: 100%; height: 100%; }
+
+/* Cada opcion es una fila: bandera y nombre. Se pulsa la fila entera, que
+   en un dedo importa mas que en un raton. */
+.lang__option {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .4rem .45rem;
+  border-radius: 12px;
+  color: var(--bone);
+  transition: background-color .2s var(--ease);
+}
+.lang__option img { flex: 0 0 auto; width: 1.4rem; height: 1.4rem; }
+.lang__name { font-size: .84rem; font-weight: 500; letter-spacing: -.01em; }
+.lang__option:hover, .lang__option:focus-visible { background: rgba(241, 239, 233, .09); }
 
 
 /* Una vuelta entera, sin prisa, al abrir y al cerrar. */
