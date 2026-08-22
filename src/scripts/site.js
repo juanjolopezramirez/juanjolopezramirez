@@ -381,7 +381,70 @@ function initReveal() {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced || !('IntersectionObserver' in window)) return;   // el CSS ya los muestra
 
-  d.documentElement.classList.add('js-reveal');
+  
+/* ---------- El telon ------------------------------------------
+   Al entrar: el telon esta puesto desde el primer pixel y se levanta.
+   Al salir: baja, la firma se escribe, y solo entonces se navega.
+
+   No hay enrutador: cada pagina se carga entera, como siempre. Es a
+   proposito — todo lo que arranca aqui abajo (el glosario, las hojas,
+   la luz del campo, las entradas) se inicializa una vez al cargar, y
+   con un enrutador habria que rehacerlo en cada salto.               */
+function initCurtain() {
+  const el = d.getElementById('curtain');
+  if (!el) return;
+
+  const quiet = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Levantarlo. Si se ha pedido quietud se va sin ceremonia. */
+  const lift = () => {
+    el.classList.add('is-written');
+    requestAnimationFrame(() => el.classList.add('is-lifted'));
+  };
+  if (quiet) { el.classList.add('is-lifted', 'is-written'); }
+  else if (d.readyState === 'complete') lift();
+  else addEventListener('load', lift, { once: true });
+
+  /* Volver con el boton de atras devuelve la pagina tal cual estaba, con
+     el telon a medio bajar. Hay que quitarlo a mano. */
+  addEventListener('pageshow', (e) => {
+    if (e.persisted) { el.classList.remove('is-falling'); el.classList.add('is-written', 'is-lifted'); }
+  });
+
+  if (quiet) return;
+
+  const SAME = (a) => a.origin === location.origin;
+  let leaving = false;
+
+  d.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // abrir en otra pestana
+    const a = e.target.closest('a');
+    if (!a || !a.href) return;
+    if (a.target && a.target !== '_self') return;                   // _blank y compania
+    if (a.hasAttribute('download')) return;
+
+    let url;
+    try { url = new URL(a.href); } catch (_) { return; }
+    if (!SAME(url)) return;                                         // fuera de casa
+    if (url.pathname === location.pathname && url.hash) return;     // un ancla de la misma pagina
+    if (url.href === location.href) return;
+
+    e.preventDefault();
+    if (leaving) return;
+    leaving = true;
+
+    el.classList.remove('is-lifted', 'is-written');
+    void el.offsetHeight;                    // punto de partida para la transicion
+    el.classList.add('is-falling');
+
+    /* 612ms es lo que tarda el ultimo trazo con el escalonado corto. */
+    setTimeout(() => { location.href = url.href; }, 612);
+  });
+}
+
+initCurtain();
+d.documentElement.classList.add('js-reveal');
 
   /* El escalonado se calcula una vez, por bloque padre: lo que va junto
      entra junto, en orden, y no de golpe. */

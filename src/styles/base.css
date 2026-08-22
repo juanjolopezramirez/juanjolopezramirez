@@ -791,7 +791,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     color: var(--bone);
     animation: none;                      /* aqui no flota: se escribe */
   }
-  .rhema--panel .icon--quote { color: var(--ring-300); }
+  .rhema--panel .icon--quote { color: var(--ring); }
 
   /* Iris 300 y no Iris a secas: sobre el pinar cerrado, el primero da
      7.6:1 y el segundo se queda en 4.5. */
@@ -801,7 +801,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     line-height: 1.5;
     color: var(--iris-300);
   }
-  .rhema--panel .rhema__text .ahava { color: var(--ring-300); }
+  .rhema--panel .rhema__text .ahava { color: var(--ring); }
 
   .rhema--panel .rhema__by {
     border-top: 1px solid rgba(241, 239, 233, .16);
@@ -1054,8 +1054,100 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .about__heading .script {
   font-family: var(--hand);
   font-style: normal;
-  font-size: 1.24em;
+  font-size: 2.05em;
   line-height: 0;                /* la cursiva es alta y abriria el renglon */
+}
+
+
+/* =============================================================
+   EL TELON — cambiar de pagina se parece a como empieza el sitio
+
+   La portada de arranque escribe la firma y despues entra. Aqui pasa lo
+   mismo entre paginas: al pulsar un enlace el telon baja y la firma se
+   escribe; al cargar la siguiente, el telon se levanta y deja la pagina
+   a la vista. Cambiar de idioma es un enlace mas, asi que entra solo.
+
+   Nada de esto existe sin JavaScript: `js-curtain` lo pone un script
+   sincrono en el <head>, antes del primer pintado, para que al entrar no
+   se vea la pagina un instante antes de que el telon la tape. Si el
+   script no corre, el telon se queda oculto y los enlaces navegan como
+   siempre — que es justo lo que tiene que pasar.
+   ============================================================= */
+.curtain {
+  position: fixed; inset: 0;
+  z-index: 200;                    /* por encima de las hojas, que van a 70-75 */
+  display: grid; place-items: center;
+
+  /* El mismo suelo que la portada: la diagonal de Figma con su velo. */
+  background:
+    linear-gradient(rgba(0, 0, 0, .2), rgba(0, 0, 0, .2)),
+    linear-gradient(to top left,
+      #A5CF4D  0%,
+      #7D9B4E 27%,
+      #678345 38%,
+      #526B3B 48%,
+      #3C5332 63%,
+      #31472D 71%,
+      #263B28 78%,
+      #263B28 95%),
+    var(--pine);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Al entrar el telon ya esta puesto: se levanta en cuanto la pagina esta
+   lista. `visibility` con retardo para que la transicion de opacidad se
+   vea entera antes de que el telon deje de existir. */
+.js-curtain .curtain {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .42s var(--ease), visibility 0s;
+}
+.js-curtain .curtain.is-lifted {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .42s var(--ease), visibility 0s linear .42s;
+}
+
+/* Al salir baja mas rapido de lo que sube: esperar a que se vaya la
+   pagina cansa mas que esperar a que llegue la siguiente. */
+.js-curtain .curtain.is-falling {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .18s var(--ease), visibility 0s;
+}
+
+.curtain__lockup {
+  display: grid; justify-items: center; gap: 1rem;
+  width: min(52vw, 12rem);
+}
+.curtain__mark { width: 15px; height: auto; }
+.curtain__sign { width: 100%; height: auto; overflow: visible; color: var(--bone); }
+
+/* La firma se escribe sola, igual que en la portada, pero mas deprisa:
+   alli son 1120ms porque es la primera vez y no hay nada que esperar;
+   aqui hay una pagina detras, y 1120ms por clic se hacen largos. Con 26ms
+   de escalonado y trazos de 240ms, el ultimo cierra en 612ms. */
+.js-curtain .curtain__sign .sig__p {
+  clip-path: inset(-5% 101% -5% -5%);
+}
+.js-curtain .curtain.is-falling .sig__p,
+.js-curtain .curtain.is-written .sig__p {
+  animation: sigWrite 240ms cubic-bezier(.34, .66, .38, 1) forwards;
+  animation-delay: calc(var(--i) * 26ms + 60ms);
+}
+/* Al entrar la firma ya esta escrita: el telon solo tiene que irse. */
+.js-curtain .curtain.is-written .sig__p { animation-duration: .001ms; animation-delay: 0ms; }
+
+@keyframes sigWrite { to { clip-path: inset(-5% -5% -5% -5%); } }
+
+/* Si se ha pedido quietud no hay telon: los enlaces navegan y ya. */
+@media (prefers-reduced-motion: reduce) {
+  .js-curtain .curtain,
+  .js-curtain .curtain.is-falling { opacity: 0; visibility: hidden; transition: none; }
+  .js-curtain .curtain .sig__p { animation: none; clip-path: none; }
 }
 
 /* =============================================================

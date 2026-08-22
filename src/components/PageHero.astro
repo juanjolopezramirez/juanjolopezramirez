@@ -1,5 +1,5 @@
 ---
-import { NAV, CONTACT } from '../data/social.js';
+import { NAV } from '../data/social.js';
 import Icon from './Icon.astro';
 const { lang, t, slug } = Astro.props;
 
@@ -44,18 +44,11 @@ const others = NAV.filter((n) => n.slug !== slug);
           </li>
         ))}
         <li>
-          {CONTACT.soon ? (
-            <button class="door door--write" type="button" data-soon="soon.whatsapp">
-              <span>{t('nav.write')}</span>
-              <span class="door__badge">{t('soon.badge')}</span>
-              <Icon id="corner" />
-            </button>
-          ) : (
-            <a class="door door--write" href={CONTACT.href}>
-              <span>{t('nav.write')}</span>
-              <Icon id="corner" />
-            </a>
-          )}
+          <!-- Abre la hoja de los dos canales, igual que en la cabecera. -->
+          <button class="door door--write" type="button" data-open-contact aria-haspopup="dialog">
+            <span>{t('nav.write')}</span>
+            <Icon id="corner" />
+          </button>
         </li>
       </ul>
     </nav>

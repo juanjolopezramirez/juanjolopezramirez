@@ -20,13 +20,18 @@ const { t, where = 'panel' } = Astro.props;
     </span>
   </blockquote>
   <figcaption class="rhema__by">
+    <!-- En escritorio la cara es el recorte del hero, sin fondo; por
+         debajo de 1200px sigue el retrato de siempre. El navegador elige
+         por ancho, asi que solo se descarga una. -->
     <picture class="rhema__face">
+      <source media="(min-width: 1200px)" srcset="/assets/img/me-quote-face.webp" type="image/webp" />
+      <source media="(min-width: 1200px)" srcset="/assets/img/me-quote-face.jpg" />
       <source srcset="/assets/img/me-face.webp" type="image/webp" />
       <img src="/assets/img/me-face.jpg" alt="" width="512" height="512"
            loading="lazy" decoding="async" />
     </picture>
     <span>
-      <b>Juanjo López Ramírez</b>
+      <b>Juan José López Ramírez</b>
       <small>{t('quote.who')}</small>
     </span>
   </figcaption>

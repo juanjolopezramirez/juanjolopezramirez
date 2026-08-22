@@ -130,9 +130,9 @@
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
           arranca en la misma linea que el nombre ----
 
-     Aqui la seccion se parte en dos, pero el retrato ya no es una banda
-     a sangre: es una copia de camara instantanea, apoyada en el hueso.
-     Mas pequena, con su marco, su sombra y su inclinacion.
+     Aqui hay sitio para las dos columnas: el texto a la izquierda y la
+     copia a la derecha. El marco, la inclinacion y el flote los trae ya
+     tablet.css — esto solo cambia donde se pone cada cosa.
 
      El retrato va primero en el documento —lo necesita el movil— asi que
      se coloca por rejilla, que no toca el orden de lectura. */
@@ -141,14 +141,13 @@
     grid-template-columns: minmax(0, 1fr) minmax(15rem, 24rem);
     align-items: center;
     gap: 2rem;
-    background: var(--bone);
+    padding-top: 0;
     /* Sin filo de Iris: el pinar y el hueso ya se separan solos, y una
        linea verde cruzando la pagina entera partia la lectura en dos. */
     border-top: 0;
   }
   .about__body {
     grid-column: 1; grid-row: 1;
-    border-top: 0;
     /* Aire de sobra por arriba: pegada al hero, la seccion parecia el pie
        del hero y no el principio de otra cosa. */
     padding: 7.5rem 0 7rem var(--edge);
@@ -159,39 +158,8 @@
   .about__portrait {
     grid-column: 2; grid-row: 1;
     justify-self: center;
-    width: min(100%, 19rem);
-    padding-inline: 1rem;
   }
 
-  /* La copia: marco de hueso, ancho abajo como toda camara instantanea,
-     y la foto en cuadrado dentro. La inclinacion va en `rotate` y el
-     flotar en `translate` — son propiedades sueltas, asi que no se pisan
-     entre ellas ni con el `transform` de la entrada. */
-  .about__print {
-    padding: .85rem .85rem 3.25rem;
-    background: #FBFAF7;
-    border-radius: 2px;
-    box-shadow:
-      0 1px 1px rgba(11, 20, 13, .16),
-      0 18px 34px -18px rgba(11, 20, 13, .45);
-    rotate: -2.6deg;
-    animation: floatY 11s var(--ease-smooth) infinite;
-    transition: rotate .45s var(--ease-smooth), box-shadow .45s var(--ease);
-  }
-  .about__portrait img {
-    aspect-ratio: 1 / 1;          /* cuadrado, como manda el formato */
-    object-position: 50% 20%;
-  }
-
-  /* Al pasar por encima se endereza, como cuando coges una foto de la
-     mesa para mirarla de frente. La sombra crece con ella. */
-  .about__portrait:hover .about__print,
-  .about__portrait:focus-within .about__print {
-    rotate: 0deg;
-    box-shadow:
-      0 2px 2px rgba(11, 20, 13, .18),
-      0 30px 50px -20px rgba(11, 20, 13, .5);
-  }
   .site-footer { padding-bottom: 3.5rem; }
   .site-footer__logo { width: min(100%, 20rem); }
 
@@ -305,10 +273,12 @@
      El borde derecho cae siempre a la misma distancia dentro de la
      hoja, asi que el cruce no cambia con el ancho de la pantalla. */
   /* La foto viene cortada al borde del encuadre por abajo y por la
-     izquierda. Abajo cae en el filo de la pantalla, asi que no se nota.
-     El derecho tiene 76px limpios, y por ahi cruzo la costura sin
-     ensenar ningun canto. Solo el izquierdo pide ayuda: se apaga en un
-     palmo para que parezca que salgo de la sombra, no que me cortaron. */
+     izquierda, y se queda asi: sin mascara, a canto vivo.
+
+     Antes el borde izquierdo se apagaba en un degradado para disimular el
+     corte. Con el recorte de la chaqueta vaquera ya casi no hace falta: el
+     canto solo toca el borde en el ultimo 7% de la altura, abajo del todo,
+     que es justo donde la foto se apoya en el filo de la pantalla. */
   /* Aqui no floto: en la costura soy el ancla, y un ancla que se mueve
      deja de serlo. */
   .hero__me {
@@ -319,10 +289,6 @@
     width: min(clamp(20rem, 30vw, 34rem), calc(100svh - 6rem));
     translate: 0;
     z-index: 3;
-  }
-  .hero__me img {
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 7%);
-    mask-image: linear-gradient(to right, transparent 0, #000 7%);
   }
 
   /* ---- Lo que se lee, sobre el pinar ---- */
@@ -450,18 +416,62 @@
   /* La franja de las secciones es mucho mas estrecha que el campo del
      home: con la misma luz se llenaria entera y Pine dejaria de mandar.
      Aqui va mas pequena y mas abajo, cerca del sello y las puertas. */
+  /* El mismo suelo que el hero, y quiere decir el mismo: la diagonal de
+     ocho paradas del estilo "The Gradient", su velo negro al 20% y la luz
+     viva encima. Mismas paradas y mismo `to top left`, sin espejar.
+
+     Lo espeje primero, que parecia lo logico —aqui la costura esta a la
+     izquierda, asi que la esquina clara deberia apoyarse ahi— pero en esta
+     pagina la esquina de abajo a la izquierda es justo donde viven el sello
+     y las puertas, y el titulo se quedaba en 2.61 de contraste. Sin espejar,
+     el claro cae abajo a la derecha, que aqui no lo ocupa nada, y sube a
+     5.73. La legibilidad manda sobre la simetria.
+
+     La luz se va con el: del 64% al 78% de ancho y del 74% al 86% de alto,
+     por debajo de las puertas, que acaban en el 74%. */
   .phero__field {
     display: block;
     inset: 0 0 0 auto;
     width: var(--panel);
+
     --iris-w: 32%;
     --iris-h: 40%;
-    --iris-x-mid: 64;
-    --iris-x-amp: 8;
-    --iris-y-mid: 74;
-    --iris-y-amp: 8;
-    --iris-x: 64%;
-    --iris-y: 74%;
+    --iris-x-mid: 78;
+    --iris-x-amp: 6;
+    --iris-y-mid: 86;
+    --iris-y-amp: 6;
+    --iris-x: 78%;
+    --iris-y: 86%;
+
+    --field-veil: rgba(0, 0, 0, .2);
+
+    background:
+      /* 1. La luz que se mueve — traslucida, para que el suelo se lea */
+      radial-gradient(
+        ellipse calc(var(--iris-w) * var(--iris-breath))
+                calc(var(--iris-h) * var(--iris-breath))
+        at var(--iris-x) var(--iris-y),
+        rgba(165, 207, 77, .26)  0%,
+        rgba(165, 207, 77, .26) 20%,
+        rgba(140, 176, 74, .16) 42%,
+        rgba( 90, 120, 60, .07) 68%,
+        rgba( 38,  59,  40,  0) 100%),
+
+      /* 2. El velo negro del estilo de Figma */
+      linear-gradient(var(--field-veil), var(--field-veil)),
+
+      /* 3. La diagonal, con sus ocho paradas exactas */
+      linear-gradient(to top left,
+        #A5CF4D  0%,
+        #7D9B4E 27%,
+        #678345 38%,
+        #526B3B 48%,
+        #3C5332 63%,
+        #31472D 71%,
+        #263B28 78%,
+        #263B28 95%),
+
+      var(--pine);
   }
 
   /* Lo que se lee ocupa el hueso, y arranca en el borde de siempre */

@@ -3,6 +3,7 @@ import { useT, LANGS, META } from '../i18n/utils.js';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Panels from '../components/Panels.astro';
+import Curtain from '../components/Curtain.astro';
 import '../styles/base.css';
 import '../styles/tablet.css';
 import '../styles/desktop.css';
@@ -30,6 +31,9 @@ const alt = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Antes de pintar nada: si hay JavaScript, el telon esta puesto. Si no,
+       no se pone nunca y los enlaces navegan como siempre. -->
+  <script is:inline>document.documentElement.classList.add('js-curtain');</script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss&display=swap" />
 </head>
 
@@ -39,6 +43,7 @@ const alt = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
   <main id="main"><slot /></main>
   <Footer t={t} />
   <Panels t={t} />
+  <Curtain />
   <script>import '../scripts/site.js';</script>
 </body>
 </html>

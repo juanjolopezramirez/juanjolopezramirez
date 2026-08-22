@@ -31,11 +31,13 @@ const DOORS = [
 
     <!-- Una sola descarga: el navegador elige por ancho, no por CSS. -->
     <picture class="hero__me reveal">
+      <!-- En escritorio, el retrato con fondo; por debajo de 1200px, la
+           calcomania recortada de siempre. -->
       <source media="(min-width: 1200px)" srcset="/assets/img/me-hero.webp" type="image/webp" />
       <source media="(min-width: 1200px)" srcset="/assets/img/me-hero.png" />
       <source srcset="/assets/img/just-me.webp" type="image/webp" />
       <img src="/assets/img/just-me.png" width="179" height="191"
-           alt="Juanjo, con abrigo azul, mirando por encima del hombro"
+           alt="Juanjo López Ramírez, mirando hacia un lado"
            decoding="async" fetchpriority="high" />
     </picture>
   </div>

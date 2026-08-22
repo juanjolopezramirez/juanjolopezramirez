@@ -1,0 +1,19 @@
+---
+import Signature from './Signature.astro';
+---
+<!-- El telon.
+
+     La misma firma de la portada de arranque, pero aqui hace de puerta:
+     se cierra al salir de una pagina y se abre al entrar en la siguiente.
+     Asi cambiar de seccion o de idioma se parece a como empieza el sitio,
+     en vez de a un parpadeo del navegador.
+
+     Va oculto salvo que el script se haga cargo (`js-curtain` en <html>):
+     sin JavaScript no hay telon que levantar, y un telon que no se levanta
+     es una pagina en blanco. -->
+<div class="curtain" id="curtain" aria-hidden="true">
+  <div class="curtain__lockup">
+    <img class="curtain__mark" src="/assets/logos/mark-bone.svg" alt="" width="19" height="32" />
+    <Signature cls="curtain__sign" />
+  </div>
+</div>
