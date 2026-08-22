@@ -76,6 +76,26 @@ const { t } = Astro.props;
   </article>
 </div>
 
+<!-- Ya estas aqui.
+
+     Salta cuando alguien pulsa en el menu la seccion que ya esta viendo.
+     Va centrado y con velo: hay que cerrarlo para seguir, que es justo lo
+     que evita el segundo clic a ciegas. Cerrar con la equis, con el velo o
+     con Escape — las tres, porque un aviso del que no se sale es peor que
+     el despiste que viene a arreglar. -->
+<div class="here-panel" id="here-panel" hidden>
+  <div class="here-panel__scrim" data-close-here></div>
+  <div class="here-panel__sheet" role="dialog" aria-modal="true"
+       aria-labelledby="here-panel-title" aria-describedby="here-panel-body">
+    <button class="here-panel__close" type="button" data-close-here
+            aria-label={t('a11y.closePanel')}>&times;</button>
+    <p class="here-panel__mark" aria-hidden="true"><Icon id="mark" /></p>
+    <h2 class="here-panel__title" id="here-panel-title">{t('here.title')}</h2>
+    <p class="here-panel__body" id="here-panel-body">{t('here.body')}</p>
+    <button class="here-panel__ok" type="button" data-close-here>{t('here.ok')}</button>
+  </div>
+</div>
+
 <!-- Lo que todavia no esta. Se anuncia y se va solo. -->
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
   <p class="toast__text" id="toast-text"></p>

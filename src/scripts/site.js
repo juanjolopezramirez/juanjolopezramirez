@@ -396,9 +396,12 @@ function initReveal() {
    menu. Vale para la barra ancha igual que para el desplegable, porque
    el enlace muerto estaba en las dos.                                */
 function initCurrent() {
+  const here = sheet('here-panel', 'data-close-here');
   d.addEventListener('click', (e) => {
     const a = e.target.closest('a[aria-current="page"]');
-    if (a) e.preventDefault();
+    if (!a) return;
+    e.preventDefault();
+    if (here) here.open();
   });
 }
 

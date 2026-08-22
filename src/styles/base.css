@@ -1176,13 +1176,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hero__offer-title,
 .hero__doors-title,
 .phero__title,
-.phero__eyebrow,
 .links__title,
 .social-panel__title,
 .contact-panel__title,
 .term-panel__title,
 .term-panel__deftitle,
 .hero__emet,
+.phero__lead,
 .door span,
 .scroll-cue__sticker {
   text-wrap: balance;
@@ -1190,7 +1190,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .about__body p,
 .hero__offer-body,
-.phero__lead,
 .term-panel__def,
 .pillar__text,
 .site-footer__meta {
@@ -1271,18 +1270,29 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .partners__run {
   display: flex; align-items: center;
-  gap: clamp(2.25rem, 6vw, 3.75rem);
-  margin: 0; padding: 0 clamp(1.15rem, 3vw, 1.9rem) 0 0;
+  gap: clamp(.75rem, 2.5vw, 1.5rem);
+  margin: 0; padding: 0 clamp(.4rem, 1.2vw, .75rem) 0 0;
   list-style: none;
 }
-.partners__item { flex: 0 0 auto; }
 
-/* Cada logo se mide por alto, que es lo unico que tienen en comun: uno es
-   apaisado y el otro casi cuadrado. El ancho lo pone su propia forma. */
+/* Todos los logos ocupan la misma ranura. Es lo que hace que la
+   separacion se vea pareja: si cada uno midiera lo que le da la gana, el
+   hueco entre dos anchos y entre dos estrechos no seria el mismo aunque
+   el `gap` si lo fuera. */
+.partners__item {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: clamp(6.5rem, 21vw, 8.5rem);
+  height: 3rem;
+}
+
+/* La altura la pone la escala optica de cada logo, no una medida comun:
+   un logotipo apaisado a la misma altura que una letra suelta pesa el
+   triple. El numero viene de los datos; aqui solo se aplica. */
 .partners__item img {
-  height: clamp(1.7rem, 4vw, 2.2rem);
-  width: auto;
-  max-width: 9.5rem;
+  max-width: 100%;
+  max-height: calc(clamp(1.6rem, 3.8vw, 2.2rem) * var(--s, 1));
+  width: auto; height: auto;
   object-fit: contain;
 }
 
@@ -1726,6 +1736,81 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--pine-200);
 }
 
+/* =============================================================
+   YA ESTAS AQUI
+
+   El unico panel de la casa que sale centrado en todos los anchos: los
+   demas suben desde abajo en movil y se centran de 1024 para arriba.
+   Este no — es una interrupcion, y una interrupcion se pone delante, no
+   asoma por el borde.
+   ============================================================= */
+.here-panel {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  padding: var(--gutter);
+}
+.here-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .74);
+  opacity: 0;
+  transition: opacity .32s var(--ease);
+}
+.here-panel__sheet {
+  position: relative;
+  width: min(23rem, 100%);
+  padding: 2rem 1.6rem 1.6rem;
+  background: var(--bone);
+  color: var(--slate);
+  border-radius: 26px;
+  border-top: 3px solid var(--iris);
+  text-align: center;
+  opacity: 0;
+  scale: .94;
+  transition: opacity .3s var(--ease), scale .3s var(--ease-smooth);
+}
+.here-panel.is-open .here-panel__scrim { opacity: 1; }
+.here-panel.is-open .here-panel__sheet { opacity: 1; scale: 1; }
+
+.here-panel__close {
+  position: absolute; top: .5rem; right: .8rem;
+  width: 2.25rem; height: 2.25rem;
+  font-size: 1.6rem; line-height: 1;
+  color: #5A6B74;
+  transition: color .2s var(--ease);
+}
+.here-panel__close:hover { color: var(--slate); }
+
+.here-panel__mark {
+  margin: 0 0 .9rem;
+  display: grid; place-items: center;
+}
+.here-panel__mark .icon { width: 1.5rem; height: auto; color: var(--iris-700); }
+
+.here-panel__title {
+  margin: 0 0 .5rem;
+  font-family: var(--serif);
+  font-size: 1.25rem; font-weight: 400;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+}
+.here-panel__body {
+  margin: 0 0 1.4rem;
+  font-size: .88rem; font-weight: 300;
+  line-height: 1.6;
+  color: #5A6B74;
+  text-wrap: pretty;
+}
+.here-panel__ok {
+  width: 100%;
+  padding: .72rem 1.2rem;
+  border-radius: 999px;
+  background: var(--pine);
+  color: var(--bone);
+  font-size: .88rem; font-weight: 600;
+  transition: background-color .22s var(--ease);
+}
+.here-panel__ok:hover { background: var(--pine-700); }
+
 /* El aviso. Aparece abajo, lo lee el lector de pantalla, y se va solo. */
 .toast {
   position: fixed;
@@ -1777,12 +1862,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .phero__field { display: none; }           /* el pinar solo existe en la costura */
 
-.phero__eyebrow {
-  margin: 0;
-  font-size: .68rem; font-weight: 700;
-  letter-spacing: .16em; text-transform: uppercase;
-  color: #5A6B74;                          /* Slate 400 — texto secundario */
-}
 .phero__title {
   margin: .55rem 0 0;
   font-family: var(--serif);

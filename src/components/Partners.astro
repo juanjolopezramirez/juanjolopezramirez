@@ -1,14 +1,33 @@
 ---
-import { PARTNERS } from '../data/partners.js';
-const { t } = Astro.props;
+const { items = [], title } = Astro.props;
 
-/* La cinta tiene que llenar su caja antes de repetirse, y ahora mismo solo
-   hay dos casas. Se repiten hasta juntar seis y esa es una vuelta; cuando
-   haya mas logos, `reps` baja solo y deja de repetir. */
-const reps = Math.max(1, Math.ceil(6 / PARTNERS.length));
-const run = Array.from({ length: reps }, () => PARTNERS).flat();
+/* Dos logotipos largos seguidos se leen como un bloque: uno pisa al otro y
+   la fila pierde el ritmo. Asi que no salen en el orden de los datos —
+   salen alternando ancho y estrecho.
+
+   Se ordenan por lo que van a medir de verdad (la proporcion por su escala
+   optica, no el tamano del fichero) y se van tomando por los dos extremos:
+   el mas ancho, el mas estrecho, el segundo mas ancho, el segundo mas
+   estrecho. Asi ninguno de los anchos toca a otro, y la vuelta cierra por
+   el lado estrecho, que es donde el salto no se nota.
+
+   Vale igual con cuatro que con quince: al anadir un logo se recoloca todo
+   solo, sin tener que pensar donde ponerlo. */
+const width = (p) => (p.w / p.h) * (p.scale ?? 1);
+const byWidth = [...items].sort((a, b) => width(b) - width(a));
+const zigzag = [];
+for (let i = 0, j = byWidth.length - 1; i <= j; ) {
+  zigzag.push(byWidth[i++]);
+  if (i <= j) zigzag.push(byWidth[j--]);
+}
+
+/* La cinta tiene que llenar su caja antes de repetirse. Con dos o tres
+   logos hay que repetirlos; con seis o mas ya no, y `reps` baja solo. */
+const reps = Math.max(1, Math.ceil(6 / Math.max(zigzag.length, 1)));
+const run = Array.from({ length: reps }, () => zigzag).flat();
 ---
-<!-- Con quienes he caminado.
+<!-- La cinta de logos: la misma pieza para trabajos y para proyectos —
+     solo cambian la lista y el rotulo.
 
      El rotulo se queda fuera, sobre el hueso; la banda va a sangre y
      pegada al borde de abajo de la hoja, sin pasarse a la mitad verde.
@@ -24,29 +43,34 @@ const run = Array.from({ length: reps }, () => PARTNERS).flat();
      de su ancho y vuelve al punto de partida, asi que el salto cae donde
      la segunda vuelta empieza y no se ve. La segunda va con `aria-hidden`
      — es la misma lista, y a quien la escucha no hay que leersela dos
-     veces. -->
+     veces.
+
+     Sin `loading="lazy"`: los logos entran y salen por una caja con
+     `overflow: hidden` mientras la cinta se desplaza, y una imagen
+     diferida puede llegar tarde y aparecer en blanco justo cuando pasa.
+     Son cinco ficheros de pocos KB, asi que salen de una vez. -->
 <section class="partners" aria-labelledby="partners-title">
-  <h2 class="partners__title" id="partners-title">{t('door.work')}</h2>
+  <h2 class="partners__title" id="partners-title">{title}</h2>
 
   <div class="partners__window">
     <div class="partners__track">
       <div class="partners__belt">
         <ul class="partners__run">
           {run.map((p) => (
-            <li class="partners__item">
+            <li class="partners__item" style={`--s:${p.scale ?? 1}`}>
               <picture>
                 {p.webp && <source srcset={p.webp} type="image/webp" />}
-                <img src={p.src} alt={p.name} width={p.w} height={p.h} loading="lazy" decoding="async" />
+                <img src={p.src} alt={p.name} width={p.w} height={p.h} decoding="async" />
               </picture>
             </li>
           ))}
         </ul>
         <ul class="partners__run" aria-hidden="true">
           {run.map((p) => (
-            <li class="partners__item">
+            <li class="partners__item" style={`--s:${p.scale ?? 1}`}>
               <picture>
                 {p.webp && <source srcset={p.webp} type="image/webp" />}
-                <img src={p.src} alt="" width={p.w} height={p.h} loading="lazy" decoding="async" />
+                <img src={p.src} alt="" width={p.w} height={p.h} decoding="async" />
               </picture>
             </li>
           ))}
