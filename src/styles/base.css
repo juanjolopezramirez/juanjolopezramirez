@@ -1350,6 +1350,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* =============================================================
    Glossary — a word that is not ours, and can be asked about.
    ============================================================= */
+/* El termino y su puntuacion van juntos y no se parten. Tiene que ser esta
+   caja de fuera y no el boton: un <button> ignora `display: inline` —el
+   navegador lo trata como objeto atomico haga lo que haga el CSS—, asi que
+   `nowrap` puesto en el se aplicaria solo a su texto, no al parentesis que
+   tiene al lado, que es justo lo que se caia de renglon. */
+.term-wrap { white-space: nowrap; }
+
 .term {
   padding: 0;
   font: inherit;

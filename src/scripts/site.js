@@ -307,14 +307,34 @@ function linkTerms() {
       while ((m = re.exec(text)) !== null) {
         const start = m.index, end = start + m[0].length;
         if (LETTER.test(text.charAt(start - 1) || '') || LETTER.test(text.charAt(end) || '')) continue;
-        if (start > last) frag.appendChild(d.createTextNode(text.slice(last, start)));
+        /* Un <button> es una caja atomica para el navegador, y eso abre un
+           punto de corte a su lado donde las reglas normales no lo
+           permitirian: "la Verdad (Emet)" partia justo detras del
+           parentesis y lo dejaba solo al final del renglon. No se arregla
+           desde CSS —un boton ignora `display: inline`—, asi que la
+           puntuacion que abre antes y la que cierra despues se meten con el
+           termino en una misma caja que no se puede partir. */
+        let pre = text.slice(last, start);
+        const open = (pre.match(/[([«¿¡"'\u2018\u201C]+$/) || [''])[0];
+        if (open) pre = pre.slice(0, -open.length);
+        const close = (text.slice(end).match(/^[)\]»"'.,;:!?\u2019\u201D]+/) || [''])[0];
+
+        if (pre) frag.appendChild(d.createTextNode(pre));
+
         const b = d.createElement('button');
         b.type = 'button';
         b.className = 'term';
         b.setAttribute('data-term', lookup[m[0].toLowerCase()]);
         b.textContent = m[0];
-        frag.appendChild(b);
-        last = end;
+
+        const wrap = d.createElement('span');
+        wrap.className = 'term-wrap';
+        if (open) wrap.appendChild(d.createTextNode(open));
+        wrap.appendChild(b);
+        if (close) wrap.appendChild(d.createTextNode(close));
+        frag.appendChild(wrap);
+
+        last = end + close.length;
       }
       if (!last) return;
       if (last < text.length) frag.appendChild(d.createTextNode(text.slice(last)));
