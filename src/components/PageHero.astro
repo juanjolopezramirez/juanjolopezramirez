@@ -6,11 +6,15 @@ const { lang, t, slug } = Astro.props;
 const here = NAV.find((n) => n.slug === slug);
 /* Las otras puertas de la casa: desde aqui se sigue, no se vuelve atras. */
 const others = NAV.filter((n) => n.slug !== slug);
+
+/* Si la seccion trae pie, la hoja deja de tener relleno abajo: lo que se
+   apoya ahi va a sangre y pegado al borde, no dentro de un margen. */
+const hasFoot = Astro.slots.has('foot');
 ---
 <!-- El mismo hero del home, con los lados cambiados: aqui el hueso esta a
      la izquierda y el pinar a la derecha. Movil primero — una columna, lo
      que se lee arriba — y desde 1200px la costura, al reves. -->
-<section class="phero" id="top">
+<section class:list={['phero', { 'phero--foot': hasFoot }]} id="top">
 
   <div class="phero__field" aria-hidden="true"></div>
 
@@ -25,6 +29,7 @@ const others = NAV.filter((n) => n.slug !== slug);
         {t('soon.section')}
       </p>
     )}
+
   </div>
 
   <!-- Sobre el pinar: la marca, y por donde seguir desde aqui. -->
@@ -53,4 +58,7 @@ const others = NAV.filter((n) => n.slug !== slug);
       </ul>
     </nav>
   </div>
+
+  <!-- El pie de la seccion: a sangre, pegado al borde de abajo del hueso. -->
+  <slot name="foot" />
 </section>

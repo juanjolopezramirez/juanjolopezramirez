@@ -390,6 +390,18 @@ function initReveal() {
    proposito — todo lo que arranca aqui abajo (el glosario, las hojas,
    la luz del campo, las entradas) se inicializa una vez al cargar, y
    con un enrutador habria que rehacerlo en cada salto.               */
+/* ---------- Donde estas -------------------------------------
+   Pulsar la pagina en la que ya estas recargaba la misma pantalla: se
+   ve como si el sitio no respondiera. Ahora no navega — solo cierra el
+   menu. Vale para la barra ancha igual que para el desplegable, porque
+   el enlace muerto estaba en las dos.                                */
+function initCurrent() {
+  d.addEventListener('click', (e) => {
+    const a = e.target.closest('a[aria-current="page"]');
+    if (a) e.preventDefault();
+  });
+}
+
 function initCurtain() {
   const el = d.getElementById('curtain');
   if (!el) return;
@@ -444,6 +456,7 @@ function initCurtain() {
   });
 }
 
+initCurrent();
 initCurtain();
 d.documentElement.classList.add('js-reveal');
 

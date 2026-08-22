@@ -41,6 +41,7 @@ export const UI = {
       'desktop.body':   'This experience was designed for phone and tablet first. The wide layout is still being built — for now, here is the mobile one.',
 
       'nav.start':      'Start',
+      'nav.here':       'Here',
       'nav.links':      'Find me',
       'nav.about':      'About the journey',
       'nav.write':      'Write to me',
@@ -110,6 +111,7 @@ export const UI = {
       'desktop.body':   'Esta experiencia se diseñó primero para móvil y tablet. La versión ancha todavía se está construyendo — por ahora, esta es la móvil.',
 
       'nav.start':      'Inicio',
+      'nav.here':       'Aquí',
       'nav.links':      'Encuéntrame',
       'nav.about':      'Sobre el camino',
       'nav.write':      'Escríbeme',
@@ -179,6 +181,7 @@ export const UI = {
       'desktop.body':   'Esta experiência foi pensada primeiro para celular e tablet. A versão ampla ainda está sendo construída — por enquanto, esta é a móvel.',
 
       'nav.start':      'Início',
+      'nav.here':       'Aqui',
       'nav.links':      'Onde me encontrar',
       'nav.about':      'Sobre o caminho',
       'nav.write':      'Escreva para mim',
@@ -248,6 +251,7 @@ export const UI = {
       'desktop.body':   "Cette expérience a d'abord été conçue pour mobile et tablette. La version large est encore en construction — pour l'instant, voici la version mobile.",
 
       'nav.start':      'Accueil',
+      'nav.here':       'Ici',
       'nav.links':      'Me trouver',
       'nav.about':      'À propos du chemin',
       'nav.write':      'Écrivez-moi',
@@ -316,6 +320,7 @@ export const UI = {
       'desktop.body':   'Questa esperienza è stata pensata prima per cellulare e tablet. La versione ampia è ancora in costruzione — per ora, ecco quella mobile.',
 
       'nav.start':      'Inizio',
+      'nav.here':       'Qui',
       'nav.links':      'Dove trovarmi',
       'nav.about':      'Sul cammino',
       'nav.write':      'Scrivimi',

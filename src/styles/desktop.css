@@ -475,6 +475,24 @@
   }
 
   /* Lo que se lee ocupa el hueso, y arranca en el borde de siempre */
+  /* Aqui la hoja mide una pantalla entera. Con pie, deja de ser un bloque
+     y se reparte: el panel se queda con lo que sobra y la banda cierra por
+     abajo, las dos dentro de la misma pantalla. El pinar y el sello son
+     absolutos, asi que no entran en el reparto. */
+  .phero--foot { display: flex; flex-direction: column; }
+  .phero--foot .phero__panel { min-height: 0; flex: 1 1 auto; }
+
+  /* La banda es del hueso, asi que llega hasta la costura y ni un pixel
+     mas: `--panel` es lo que ocupa el pinar a la derecha, y eso es justo
+     lo que hay que descontar. Sin esto cruzaba por debajo del verde. */
+  .partners {
+    padding-top: 0;
+    width: calc(100% - var(--panel));
+    align-self: flex-start;
+  }
+  .partners__title { padding-inline: var(--edge); }
+  .partners__window { margin-inline: 0; padding-block: 1.35rem 1.45rem; }
+
   .phero__panel {
     position: relative;
     z-index: 2;

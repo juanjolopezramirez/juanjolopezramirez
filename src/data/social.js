@@ -15,13 +15,16 @@ export const SOCIAL = [
 /* Las secciones del sitio. Añade una aquí y aparece en el menú y en el pie.
 
    `soon: true` = la página existe pero todavía no tiene nada dentro. Se
-   muestra apagada y avisa a quien lee con el oído. Cuando escribas la
-   página, borra esa línea y vuelve a encenderse sola. */
+   muestra apagada y avisa a quien lee con el oído.
+
+   Ahora mismo no la lleva ninguna: todas las secciones se muestran
+   encendidas. El mecanismo se queda — añade `soon: true` a cualquiera
+   y vuelve a marcarse sola, en el menú, en las puertas y en su página. */
 export const NAV = [
-  { slug: 'work',     key: 'nav.work',     soon: true },
-  { slug: 'projects', key: 'nav.projects', soon: true },
-  { slug: 'writing',  key: 'nav.writing',  soon: true },
-  { slug: 'about',    key: 'nav.about',    soon: true }
+  { slug: 'work',     key: 'nav.work'     },
+  { slug: 'projects', key: 'nav.projects' },
+  { slug: 'writing',  key: 'nav.writing'  },
+  { slug: 'about',    key: 'nav.about'    }
 ];
 
 /* Escribirme ya no es una sola puerta: son dos, y elige quien escribe.

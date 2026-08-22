@@ -49,10 +49,26 @@ const to = (slug) => `/${lang}/${slug}/`;
 
   <nav class="site-nav site-nav--drop" id="site-nav" aria-label="Menu">
     <ul class="site-nav__list">
-      <li><a href={`/${lang}/`}>{t('nav.start')}</a></li>
+      <!-- La fila de la pagina en la que ya estas se marca y no lleva a
+           ningun sitio: pulsarla recargaba lo mismo que ya se estaba
+           mirando, que es justo lo que despista. `aria-current` no es
+           decoracion — es lo que hace que el lector de pantalla lo diga. -->
+      <li>
+        <a href={`/${lang}/`}
+           class:list={[{ 'is-here': active === '' }]}
+           aria-current={active === '' ? 'page' : undefined}>
+          {t('nav.start')}
+          {active === '' && <span class="drop-here">{t('nav.here')}</span>}
+        </a>
+      </li>
       {NAV.map((n) => (
         <li>
-          <a href={to(n.slug)}>{t(n.key)}</a>
+          <a href={to(n.slug)}
+             class:list={[{ 'is-here': active === n.slug }]}
+             aria-current={active === n.slug ? 'page' : undefined}>
+            {t(n.key)}
+            {active === n.slug && <span class="drop-here">{t('nav.here')}</span>}
+          </a>
         </li>
       ))}
       <li>

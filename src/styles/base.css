@@ -320,6 +320,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .site-nav__list a:hover,
 .drop-write:hover { color: var(--iris-300); }
 
+/* Donde estas. La fila se enciende en Iris y lleva su etiqueta al lado,
+   asi que no hace falta pulsarla para saberlo. Como no navega, tampoco
+   se comporta como si fuera a hacerlo: ni cursor de mano ni cambio al
+   pasar por encima. */
+.site-nav__list a.is-here,
+.site-nav__list a.is-here:hover { color: var(--iris-300); cursor: default; }
+.drop-here {
+  margin-left: .55rem;
+  padding: .12em .5em .16em;
+  border-radius: 999px;
+  background: rgba(169, 196, 127, .16);
+  color: var(--iris-300);
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  vertical-align: middle;
+}
+
 /* =============================================================
    Hero
    Movil: solo lo esencial — el nombre, el oficio, las redes, la foto
@@ -1138,6 +1155,157 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .js-curtain .curtain,
   .js-curtain .curtain.is-falling { opacity: 0; visibility: hidden; transition: none; }
   .js-curtain .curtain .curtain__mark { animation: none; opacity: 1; scale: 1; }
+}
+
+/* =============================================================
+   COMO SE PARTEN LOS RENGLONES
+
+   El navegador rompe donde le cabe, y en pantallas estrechas eso deja
+   titulares con una palabra suelta —o un punto suelto— en la ultima
+   linea. Se ve mal y no hace falta aguantarlo.
+
+   `balance` reparte las lineas de un titular para que midan parecido:
+   es para textos cortos, y el navegador solo lo aplica hasta unas pocas
+   lineas. `pretty` es para los parrafos: no rehace el bloque entero, solo
+   se ocupa de que la ultima linea no quede huerfana.
+
+   Donde no llega, no pasa nada: es una mejora, y el navegador que no la
+   entienda parte como siempre.
+   ============================================================= */
+.about__heading,
+.hero__offer-title,
+.hero__doors-title,
+.phero__title,
+.phero__eyebrow,
+.links__title,
+.social-panel__title,
+.contact-panel__title,
+.term-panel__title,
+.term-panel__deftitle,
+.hero__emet,
+.door span,
+.scroll-cue__sticker {
+  text-wrap: balance;
+}
+
+.about__body p,
+.hero__offer-body,
+.phero__lead,
+.term-panel__def,
+.pillar__text,
+.site-footer__meta {
+  text-wrap: pretty;
+}
+
+/* `ligero.` es una sola cosa: la palabra escrita a mano y su punto. Si se
+   separan, el punto aparece solo al principio del renglon siguiente. */
+.about__heading-end { white-space: nowrap; }
+
+
+/* =============================================================
+   CON QUIENES HE CAMINADO — la cinta de logos
+
+   El rotulo va sobre el hueso, fuera de la banda. La banda va a sangre,
+   de lado a lado, con los cantos rectos y pegada al borde de abajo de la
+   hoja: por eso `.phero--foot` se queda sin relleno inferior y la banda
+   sale de los margenes laterales con margen negativo.
+
+   El verde es Night, el de las pastillas de la cabecera. Los logos de una
+   casa vienen en blanco sobre transparente, y blanco sobre hueso no se ve
+   — de ahi la banda oscura, que ademas la ata a la cabecera.
+
+   El movimiento es una sola traslacion: el carril lleva dos vueltas
+   identicas y se corre la mitad de su ancho. Al llegar, la segunda esta
+   exactamente donde estaba la primera, asi que reiniciar no se nota.
+   ============================================================= */
+/* Doble clase a proposito: .phero se declara mas abajo en este mismo
+   fichero, y con la misma especificidad ganaria el ultimo — su relleno
+   inferior dejaba 52px de hueso por debajo de la banda. */
+.phero.phero--foot { padding-bottom: 0; }
+
+.partners {
+  /* La seccion crece para llenar la ventana, asi que sin esto la banda se
+     quedaba flotando a media altura con hueso debajo. `auto` la manda al
+     fondo cuando sobra sitio; el relleno le deja aire cuando no sobra, que
+     es lo que un margen automatico no puede hacer. */
+  margin-top: auto;
+  padding-top: 2.75rem;
+  position: relative;
+  z-index: 3;                       /* por delante del pinar de la costura */
+}
+
+/* Sobre hueso, asi que en el slate secundario y no en verde claro. */
+.partners__title {
+  margin: 0 0 .85rem;
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #5A6B74;
+}
+
+/* La ventana es la banda: a sangre, recta y quieta. Solo pone el verde y
+   recorta lo que sobra — sin mascara, para que el fondo no se abra. */
+.partners__window {
+  margin-inline: calc(var(--gutter) * -1);
+  padding-block: 1.15rem 1.25rem;
+  background: var(--night);
+  overflow: hidden;
+}
+
+/* El carril si lleva la mascara, y por eso lo que se apaga son los logos y
+   no la banda: al hacerse transparentes dejan ver el verde que tienen
+   detras, no el hueso de la pagina. Antes la mascara estaba en la ventana
+   y abria un agujero en los dos extremos — se veia el hueso, y de ahi que
+   el difuminado saliera claro.
+
+   Va en una caja aparte del carril porque la mascara tiene que quedarse
+   quieta mientras los logos pasan por delante. */
+.partners__track {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%);
+}
+
+.partners__belt {
+  display: flex;
+  width: max-content;
+  animation: beltRun 34s linear infinite;
+}
+.partners__run {
+  display: flex; align-items: center;
+  gap: clamp(2.25rem, 6vw, 3.75rem);
+  margin: 0; padding: 0 clamp(1.15rem, 3vw, 1.9rem) 0 0;
+  list-style: none;
+}
+.partners__item { flex: 0 0 auto; }
+
+/* Cada logo se mide por alto, que es lo unico que tienen en comun: uno es
+   apaisado y el otro casi cuadrado. El ancho lo pone su propia forma. */
+.partners__item img {
+  height: clamp(1.7rem, 4vw, 2.2rem);
+  width: auto;
+  max-width: 9.5rem;
+  object-fit: contain;
+}
+
+/* Media vuelta: justo el ancho de una de las dos listas. */
+@keyframes beltRun {
+  to { translate: -50% 0; }
+}
+
+/* Al pasar por encima se para, que es lo que hace falta para mirar uno. */
+.partners__belt:hover { animation-play-state: paused; }
+
+/* Si se ha pedido quietud, la cinta no corre: se queda la primera vuelta,
+   centrada, y la segunda sobra. Sin movimiento tampoco hace falta apagar
+   los extremos, porque nada entra ni sale. */
+@media (prefers-reduced-motion: reduce) {
+  .partners__track { -webkit-mask-image: none; mask-image: none; }
+  .partners__belt {
+    animation: none;
+    width: 100%;
+    justify-content: center;
+  }
+  .partners__belt .partners__run:last-child { display: none; }
+  .partners__run { flex-wrap: wrap; justify-content: center; row-gap: 1.15rem; padding-right: 0; }
 }
 
 /* =============================================================

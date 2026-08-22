@@ -37,7 +37,10 @@ const t = useT(lang);
       <Rhema t={t} where="about" />
 
       <h2 class="about__heading reveal">
-        {t('about.heading')} <em class="script">{t('hero.lightly')}</em>.
+        {/* La palabra a mano y el punto van juntos en la misma caja: el
+            punto es un nodo de texto aparte y se caia solo al renglon
+            siguiente cuando el ancho no daba. */}
+        {t('about.heading')} <span class="about__heading-end"><em class="script">{t('hero.lightly')}</em>.</span>
       </h2>
 
       <p class="reveal">{t('about.p1')}</p>

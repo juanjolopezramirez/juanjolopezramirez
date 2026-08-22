@@ -1,0 +1,57 @@
+---
+import { PARTNERS } from '../data/partners.js';
+const { t } = Astro.props;
+
+/* La cinta tiene que llenar su caja antes de repetirse, y ahora mismo solo
+   hay dos casas. Se repiten hasta juntar seis y esa es una vuelta; cuando
+   haya mas logos, `reps` baja solo y deja de repetir. */
+const reps = Math.max(1, Math.ceil(6 / PARTNERS.length));
+const run = Array.from({ length: reps }, () => PARTNERS).flat();
+---
+<!-- Con quienes he caminado.
+
+     El rotulo se queda fuera, sobre el hueso; la banda va a sangre y
+     pegada al borde de abajo de la hoja, sin pasarse a la mitad verde.
+     Su verde es el de las pastillas de la cabecera, asi que se lee como
+     algo de la casa.
+
+     Tres cajas, y cada una hace una cosa: la ventana pone el verde y no
+     se mueve; el carril lleva la mascara, asi que lo que se apaga en los
+     extremos son los logos y no el fondo —se van sobre el verde, no sobre
+     el hueso—; y la cinta solo se desplaza.
+
+     Dos vueltas identicas dentro de la cinta: se desplaza justo la mitad
+     de su ancho y vuelve al punto de partida, asi que el salto cae donde
+     la segunda vuelta empieza y no se ve. La segunda va con `aria-hidden`
+     — es la misma lista, y a quien la escucha no hay que leersela dos
+     veces. -->
+<section class="partners" aria-labelledby="partners-title">
+  <h2 class="partners__title" id="partners-title">{t('door.work')}</h2>
+
+  <div class="partners__window">
+    <div class="partners__track">
+      <div class="partners__belt">
+        <ul class="partners__run">
+          {run.map((p) => (
+            <li class="partners__item">
+              <picture>
+                {p.webp && <source srcset={p.webp} type="image/webp" />}
+                <img src={p.src} alt={p.name} width={p.w} height={p.h} loading="lazy" decoding="async" />
+              </picture>
+            </li>
+          ))}
+        </ul>
+        <ul class="partners__run" aria-hidden="true">
+          {run.map((p) => (
+            <li class="partners__item">
+              <picture>
+                {p.webp && <source srcset={p.webp} type="image/webp" />}
+                <img src={p.src} alt="" width={p.w} height={p.h} loading="lazy" decoding="async" />
+              </picture>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
