@@ -124,14 +124,23 @@ un subrayado Iris que marca dónde estás, e idioma + menú a la derecha.
 
 **El botón de idioma cambia de sitio según el ancho**, y a propósito:
 
-| Ancho | Dónde vive | Cómo se abre |
+| Ancho | Dónde aparece la hoja | Velo detrás |
 |---|---|---|
-| Móvil (< 600 px) | Flotando abajo a la derecha, sobre la página | Hacia **arriba** |
-| Tablet y escritorio (≥ 600 px) | En la cabecera, junto al menú | Hacia **abajo** |
+| Móvil (< 600 px) | **Centrada** en la pantalla | Sí |
+| Tablet y escritorio (≥ 600 px) | Colgando del botón, arriba a la derecha | No |
 
-En móvil el pulgar llega abajo, no arriba; en pantallas anchas hay sitio en la cabecera y
-flotando estorbaría. Es la misma pieza y el mismo componente: solo cambia `position` en
-`tablet.css`, y el desplegable se voltea con `top`/`bottom`.
+El botón vive siempre en la cabecera. Lo que cambia es dónde se abre la hoja: en una pantalla
+estrecha, centrada cabe el nombre entero de cada idioma y el pulgar llega igual a las cinco
+filas; en una ancha, el botón está a la vista y centrarla obligaría a cruzar la página con la
+mirada. Es el mismo componente: solo cambia `position` en `tablet.css`.
+
+La hoja entra acercándose y aclarándose (`scale` + `opacity`), y las filas se escalonan
+encima de eso. Al cerrar no se esconde hasta que termina la salida — si no, no habría salida.
+
+**La bandera y el icono de información.** Una bandera no dice «idioma», dice «país», y esa era
+la confusión. Por eso cada idioma se nombra en su propio idioma, y la aclaración vive detrás de
+un icono ⓘ junto a las banderas: la encuentra quien la busca y no interrumpe a quien no.
+El texto está en `lang.note` (cinco idiomas) y la etiqueta del icono en `a11y.langNote`.
 
 **Hero en dos columnas** (desde 600 px):
 

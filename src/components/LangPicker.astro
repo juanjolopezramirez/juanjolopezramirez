@@ -5,16 +5,31 @@ const { lang, t, path = '' } = Astro.props;
 const clean = String(path).replace(/^\/+|\/+$/g, '');
 const to = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
 ---
-<!-- La bandera puesta es la mia, no la del idioma — y eso ahora lo dice la
-     hoja en voz alta, que era la pega justa: una bandera colombiana no
-     significa "español", significa de donde soy.
-
-     Cada idioma se nombra en su propio idioma. Quien busca el suyo lo
-     reconoce aunque no entienda ni una palabra del que esta leyendo, que
-     es justo lo que un selector de idioma tiene que resolver. -->
+<!-- Una bandera sola no dice "idioma" — dice "pais", que es otra cosa y era
+     justo la confusion. Por eso cada idioma se nombra en su propio idioma
+     (quien busca el suyo lo reconoce sin entender el que esta leyendo) y la
+     aclaracion vive detras de un icono de informacion, junto a las banderas.
+     Ahi la encuentra quien la necesita, y no interrumpe a quien no. -->
 <div class="lang" data-lang>
+  <!-- Solo en movil: la hoja se centra y esto oscurece lo de detras. -->
+  <div class="lang__scrim" data-lang-close></div>
+
   <div class="lang__list" id="lang-list" hidden role="group" aria-label={t('a11y.langList')}>
-    <p class="lang__title">{t('lang.title')}</p>
+    <div class="lang__head">
+      <p class="lang__title">{t('lang.title')}</p>
+      <button class="lang__info" type="button" data-lang-info
+              aria-expanded="false" aria-controls="lang-note"
+              aria-label={t('a11y.langNote')} title={t('a11y.langNote')}>
+        <Icon id="info" />
+      </button>
+    </div>
+
+    <div class="lang__note-wrap" id="lang-note">
+      <div class="lang__note-inner">
+        <p class="lang__note">{t('lang.note')}</p>
+      </div>
+    </div>
+
     <ul class="lang__options">
       {otherLangs(lang).map((l, i) => (
         <li style={`--d:${i * 55}ms`}>
@@ -25,11 +40,10 @@ const to = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
         </li>
       ))}
     </ul>
-    <p class="lang__note">{t('lang.note')}</p>
   </div>
 
   <button class="lang__current" type="button" data-lang-toggle
-          aria-expanded="false" aria-controls="lang-list" aria-haspopup="true"
+          aria-expanded="false" aria-controls="lang-list"
           aria-label={t('a11y.lang')} title={t('a11y.lang')}>
     <img class="lang__flag" src={META[lang].flag} alt="" width="40" height="40" />
     <span class="lang__badge" aria-hidden="true"><Icon id="globe" /></span>

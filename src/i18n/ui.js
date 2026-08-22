@@ -35,9 +35,11 @@ export const UI = {
       'a11y.closePanel':'Close',
       'a11y.dismiss':   'Dismiss',
       'a11y.lang':      'Language: English. Change language',
-      'a11y.langList':  'Choose a language',
+      'a11y.langList':  'Choose a language',
+
       'lang.title':     'Language',
-      'lang.note':      'The flag is mine, not the language’s — I am Colombian.',
+      'a11y.langNote': 'What do the flags mean?',
+      'lang.note':      'A flag doesn’t define a language, it marks a history. Here they only accompany each language’s name; Spanish carries Colombia’s, the soil I was born on and the start of my journey.',
 
       'desktop.title':  'The desktop version is on its way.',
       'desktop.body':   'This experience was designed for phone and tablet first. The wide layout is still being built — for now, here is the mobile one.',
@@ -110,9 +112,11 @@ export const UI = {
       'a11y.closePanel':'Cerrar',
       'a11y.dismiss':   'Cerrar',
       'a11y.lang':      'Idioma: Español. Cambiar de idioma',
-      'a11y.langList':  'Elige un idioma',
+      'a11y.langList':  'Elige un idioma',
+
       'lang.title':     'Idioma',
-      'lang.note':      'La bandera es mía, no del idioma: soy colombiano.',
+      'a11y.langNote': '¿Qué significan las banderas?',
+      'lang.note':      'Una bandera no define una lengua, marca una historia. Aquí solo acompañan el nombre de cada idioma; el español lleva la de Colombia, el suelo donde nací y el inicio de mi trayectoria.',
 
       'desktop.title':  'La versión de escritorio está en camino.',
       'desktop.body':   'Esta experiencia se diseñó primero para móvil y tablet. La versión ancha todavía se está construyendo — por ahora, esta es la móvil.',
@@ -185,9 +189,11 @@ export const UI = {
       'a11y.closePanel':'Fechar',
       'a11y.dismiss':   'Fechar',
       'a11y.lang':      'Idioma: Português. Mudar de idioma',
-      'a11y.langList':  'Escolha um idioma',
+      'a11y.langList':  'Escolha um idioma',
+
       'lang.title':     'Idioma',
-      'lang.note':      'A bandeira é minha, não do idioma: sou colombiano.',
+      'a11y.langNote': 'O que significam as bandeiras?',
+      'lang.note':      'Uma bandeira não define uma língua, marca uma história. Aqui elas apenas acompanham o nome de cada idioma; o espanhol leva a da Colômbia, o solo onde nasci e o início do meu percurso.',
 
       'desktop.title':  'A versão para desktop está a caminho.',
       'desktop.body':   'Esta experiência foi pensada primeiro para celular e tablet. A versão ampla ainda está sendo construída — por enquanto, esta é a móvel.',
@@ -260,9 +266,11 @@ export const UI = {
       'a11y.closePanel':'Fermer',
       'a11y.dismiss':   'Fermer',
       'a11y.lang':      'Langue : Français. Changer de langue',
-      'a11y.langList':  'Choisissez une langue',
+      'a11y.langList':  'Choisissez une langue',
+
       'lang.title':     'Langue',
-      'lang.note':      'Le drapeau est le mien, pas celui de la langue : je suis colombien.',
+      'a11y.langNote': 'Que signifient les drapeaux ?',
+      'lang.note':      'Un drapeau ne définit pas une langue, il marque une histoire. Ici, ils accompagnent seulement le nom de chaque langue ; l’espagnol porte celui de la Colombie, la terre où je suis né et le début de mon parcours.',
 
       'desktop.title':  'La version bureau arrive bientôt.',
       'desktop.body':   "Cette expérience a d'abord été conçue pour mobile et tablette. La version large est encore en construction — pour l'instant, voici la version mobile.",
@@ -334,9 +342,11 @@ export const UI = {
       'a11y.closePanel':'Chiudi',
       'a11y.dismiss':   'Chiudi',
       'a11y.lang':      'Lingua: Italiano. Cambia lingua',
-      'a11y.langList':  'Scegli una lingua',
+      'a11y.langList':  'Scegli una lingua',
+
       'lang.title':     'Lingua',
-      'lang.note':      'La bandiera è mia, non della lingua: sono colombiano.',
+      'a11y.langNote': 'Cosa significano le bandiere?',
+      'lang.note':      'Una bandiera non definisce una lingua, segna una storia. Qui accompagnano soltanto il nome di ogni lingua; lo spagnolo porta quella della Colombia, la terra dove sono nato e l’inizio del mio percorso.',
 
       'desktop.title':  'La versione desktop è in arrivo.',
       'desktop.body':   'Questa esperienza è stata pensata prima per cellulare e tablet. La versione ampia è ancora in costruzione — per ora, ecco quella mobile.',

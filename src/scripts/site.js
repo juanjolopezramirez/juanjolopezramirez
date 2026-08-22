@@ -199,19 +199,51 @@ function initContact() {
 function initLang() {
   const root = d.querySelector('[data-lang]');
   if (!root) return;
-  const btn = root.querySelector('[data-lang-toggle]');
+  const btn  = root.querySelector('[data-lang-toggle]');
   const list = root.querySelector('.lang__list');
+  const info = root.querySelector('[data-lang-info]');
+  let hideTimer = null;
+
+  const setNote = (open) => {
+    root.classList.toggle('is-note-open', open);
+    if (info) info.setAttribute('aria-expanded', String(open));
+  };
 
   const setOpen = (open) => {
-    root.classList.toggle('is-open', open);
+    clearTimeout(hideTimer);
     btn.setAttribute('aria-expanded', String(open));
-    list.hidden = !open;
-    if (open) { void list.offsetHeight; root.classList.add('has-used'); }
+
+    if (open) {
+      list.hidden = false;
+      void list.offsetHeight;              // punto de partida para la entrada
+      root.classList.add('is-open', 'has-used');
+    } else {
+      root.classList.remove('is-open');
+      setNote(false);                      // la nota no sobrevive al cierre
+      // Se esconde al terminar la salida, no antes: si no, no hay salida.
+      hideTimer = setTimeout(() => {
+        if (!root.classList.contains('is-open')) list.hidden = true;
+      }, 440);
+    }
   };
+
   btn.addEventListener('click', () => setOpen(!root.classList.contains('is-open')));
+
+  if (info) {
+    info.addEventListener('click', () =>
+      setNote(!root.classList.contains('is-note-open')));
+  }
+
+  root.querySelectorAll('[data-lang-close]').forEach((el) =>
+    el.addEventListener('click', () => setOpen(false)));
+
   d.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && root.classList.contains('is-open')) { setOpen(false); btn.focus(); }
+    if (e.key !== 'Escape' || !root.classList.contains('is-open')) return;
+    // Escape cierra primero la nota; el segundo cierra la hoja.
+    if (root.classList.contains('is-note-open')) { setNote(false); return; }
+    setOpen(false); btn.focus();
   });
+
   d.addEventListener('click', (e) => {
     if (!root.contains(e.target) && root.classList.contains('is-open')) setOpen(false);
   });

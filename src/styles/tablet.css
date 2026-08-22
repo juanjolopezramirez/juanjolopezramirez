@@ -5,6 +5,21 @@
    ============================================================= */
 @media (min-width: 600px) {
 
+  /* ---- Idioma: de vuelta a colgar del boton, no centrado ----
+     En una pantalla ancha el boton esta a la vista y la hoja cabe debajo;
+     centrarla obligaria a cruzar la pagina entera con la mirada. */
+  .lang__scrim { display: none; }
+  .lang__list {
+    position: absolute;
+    left: auto; top: calc(100% + .5rem); right: 0;
+    translate: 0 0;
+    width: max-content;
+    max-width: min(17rem, calc(100vw - 2rem));
+    transform-origin: top right;
+    scale: .96;                       /* se despliega desde el boton */
+    box-shadow: 0 0 0 1px rgba(241, 239, 233, .08), 0 18px 34px -20px rgba(11, 20, 13, .8);
+  }
+
   :root { --gutter: 2.5rem; --header-h: 4.1rem; --pill-h: 3.5rem; --lockup-h: 2.1rem; }
 
   .site-header { padding-block: .95rem; }
