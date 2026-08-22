@@ -438,8 +438,9 @@ function initCurtain() {
     void el.offsetHeight;                    // punto de partida para la transicion
     el.classList.add('is-falling');
 
-    /* 612ms es lo que tarda el ultimo trazo con el escalonado corto. */
-    setTimeout(() => { location.href = url.href; }, 612);
+    /* Sin firma que escribir, el telon solo tiene que cerrarse: 180ms de
+       fundido y la marca asentandose. 420ms y a la siguiente. */
+    setTimeout(() => { location.href = url.href; }, 420);
   });
 }
 

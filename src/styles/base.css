@@ -1119,35 +1119,25 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: opacity .18s var(--ease), visibility 0s;
 }
 
-.curtain__lockup {
-  display: grid; justify-items: center; gap: 1rem;
-  width: min(52vw, 12rem);
+/* La marca, sola en medio. Entra con un respiro —aparece y se asienta—
+   y se va con el telon. Nada de trazos: eso es del arranque. */
+.curtain__mark {
+  width: 30px; height: auto;
+  opacity: 0;
+  scale: .82;
 }
-.curtain__mark { width: 15px; height: auto; }
-.curtain__sign { width: 100%; height: auto; overflow: visible; color: var(--bone); }
-
-/* La firma se escribe sola, igual que en la portada, pero mas deprisa:
-   alli son 1120ms porque es la primera vez y no hay nada que esperar;
-   aqui hay una pagina detras, y 1120ms por clic se hacen largos. Con 26ms
-   de escalonado y trazos de 240ms, el ultimo cierra en 612ms. */
-.js-curtain .curtain__sign .sig__p {
-  clip-path: inset(-5% 101% -5% -5%);
+.js-curtain .curtain.is-falling .curtain__mark {
+  animation: curtainMark .34s var(--ease-smooth) forwards;
 }
-.js-curtain .curtain.is-falling .sig__p,
-.js-curtain .curtain.is-written .sig__p {
-  animation: sigWrite 240ms cubic-bezier(.34, .66, .38, 1) forwards;
-  animation-delay: calc(var(--i) * 26ms + 60ms);
+@keyframes curtainMark {
+  to { opacity: 1; scale: 1; }
 }
-/* Al entrar la firma ya esta escrita: el telon solo tiene que irse. */
-.js-curtain .curtain.is-written .sig__p { animation-duration: .001ms; animation-delay: 0ms; }
-
-@keyframes sigWrite { to { clip-path: inset(-5% -5% -5% -5%); } }
 
 /* Si se ha pedido quietud no hay telon: los enlaces navegan y ya. */
 @media (prefers-reduced-motion: reduce) {
   .js-curtain .curtain,
   .js-curtain .curtain.is-falling { opacity: 0; visibility: hidden; transition: none; }
-  .js-curtain .curtain .sig__p { animation: none; clip-path: none; }
+  .js-curtain .curtain .curtain__mark { animation: none; opacity: 1; scale: 1; }
 }
 
 /* =============================================================
