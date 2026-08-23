@@ -1,0 +1,48 @@
+---
+/* El mundo, girando, con sus estrellas.
+
+   Viene de una pagina en React y aqui no hace falta React para nada: es un
+   mapa equirectangular repetido a lo ancho y una animacion que lo empuja
+   exactamente un ancho de baldosa. Al llegar al final esta otra vez en el
+   principio, asi que no hay salto que disimular — el borde izquierdo del
+   mapa y el derecho son el mismo oceano.
+
+   Lo unico que se ha cambiado del original son los numeros: alli el
+   planeta media 315px clavados y todo lo demas —la sombra que lo redondea,
+   el sitio de cada estrella, el empujon del giro— iba en pixeles atados a
+   esos 315. Aqui el diametro es una variable y el resto se calcula con
+   ella, asi que el mismo dibujo sirve a 10rem en un movil y a 19rem en la
+   costura sin que nada se descoloque.
+
+   Las estrellas no son un caracter tipografico ni un SVG: son cuatro cajas
+   de 4x5px con una esquina redondeada cada una, puestas en cuadro. Lo que
+   se ve es el hueco que dejan entre ellas — una estrella concava de cuatro
+   puntas. Es del original y merece la pena conservarla: pesa cero y no se
+   parece a las estrellas de todo el mundo.
+
+   `x` e `y` van en porcentaje del diametro, no en pixeles. Las dos que
+   caen mas a la izquierda se retiran en pantallas estrechas: ahi el
+   planeta esta centrado y se saldrian por el borde. */
+const STARS = [
+  { id: 1, x:   -9.8, y:   0,   dur: 3   },
+  { id: 2, x:  -20,   y:  14.3, dur: 2,   wide: true },
+  { id: 3, x:  -14.3, y:  45.7, dur: 4,   wide: true },
+  { id: 4, x:  100,   y:  91.4, dur: 3   },
+  { id: 5, x:    5.7, y: 100,   dur: 1.5 },
+  { id: 6, x:  100,   y: -14.3, dur: 4   },
+  { id: 7, x:  110.2, y:   5.7, dur: 2   }
+];
+---
+<!-- Decoracion pura: no hay nada que leer aqui, asi que el lector de
+     pantalla se lo salta entero. -->
+<div class="planet" aria-hidden="true">
+  <span class="planet__globe">
+    {STARS.map((s) => (
+      <span class:list={['planet__star', { 'is-wide': s.wide }]}
+            style={`--x:${s.x}%; --y:${s.y}%; --twinkle:${s.dur}s`}>
+        <span class="planet__row"><i class="cc cc--br"></i><i class="cc cc--bl"></i></span>
+        <span class="planet__row"><i class="cc cc--tr"></i><i class="cc cc--tl"></i></span>
+      </span>
+    ))}
+  </span>
+</div>

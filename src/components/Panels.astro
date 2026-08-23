@@ -80,13 +80,26 @@ const { t } = Astro.props;
       <ul class="account-panel__list" data-account-group={s.id} hidden>
         {s.accounts.map((a) => (
           <li>
-            <a class={`account-opt net--${s.id}`} href={a.href} target="_blank" rel="noopener noreferrer">
-              <img class="account-opt__flag" src={META[a.lang].flag} alt="" width="40" height="40" />
-              <span class="account-opt__text">
-                <span class="account-opt__lang" lang={a.lang}>{META[a.lang].name}</span>
-                <span class="account-opt__handle">{a.handle}</span>
-              </span>
-            </a>
+            {/* Con destino es un enlace; sin el, un boton que lo explica.
+                Un <a href> vacio se ve igual y no lleva a ningun sitio. */}
+            {a.href ? (
+              <a class={`account-opt net--${s.id}`} href={a.href} target="_blank" rel="noopener noreferrer">
+                <img class="account-opt__flag" src={META[a.lang].flag} alt="" width="40" height="40" />
+                <span class="account-opt__text">
+                  <span class="account-opt__lang" lang={a.lang}>{META[a.lang].name}</span>
+                  <span class="account-opt__handle">{a.handle}</span>
+                </span>
+              </a>
+            ) : (
+              <button class={`account-opt net--${s.id} is-soon`} type="button" data-soon="soon.account">
+                <img class="account-opt__flag" src={META[a.lang].flag} alt="" width="40" height="40" />
+                <span class="account-opt__text">
+                  <span class="account-opt__lang" lang={a.lang}>{META[a.lang].name}</span>
+                  <span class="account-opt__handle">{a.handle}</span>
+                </span>
+                <span class="account-opt__badge">{t('soon.badge')}</span>
+              </button>
+            )}
           </li>
         ))}
       </ul>

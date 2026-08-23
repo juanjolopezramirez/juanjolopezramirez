@@ -23,6 +23,25 @@
   --ring-300: #E0B778;
   --bone-panel:#E7E4DB;
 
+  /* El espacio. Vienen del concepto original y no se han retocado: son
+     hsl(120 30% 3%), hsl(120 15% 8%) y hsl(120 40% 14%). Tono 120 clavado
+     —el rojo y el azul valen lo mismo— asi que no tienen la pizca de
+     amarillo que lleva Iris. Esa pizca es la que hacia que el fondo del
+     planeta pareciera musgo en vez de espacio: los verdes de la casa
+     estan hechos para un pinar, no para el vacio. */
+  --space-900: #050A05;
+  --space-700: #111711;
+  --space-400: #153215;
+  /* El cielo se declara una vez y lo piden los dos: la seccion entera
+     por debajo de la costura, y solo la franja verde por encima. */
+  --space-sky:
+    linear-gradient(135deg,
+      #050A05   0%,
+      #111711  20%,
+      #153215  45%,
+      #111711  72%,
+      #050A05 100%);
+
   /* Este no es un color de la casa: es el que trae la foto del retrato
      en su fondo: la media de la primera fila que se llega a ver de ella,
      medida pixel a pixel. Ojo con medirla sobre un bloque en vez de sobre
@@ -190,6 +209,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .js-reveal [data-lift] { opacity: 1; transform: none; transition: none; }
   /* Nada flota ni llama si se ha pedido quietud. */
   .hero__forest, .hero__me, .rhema, .phero__seal, .hero__available, .about__print,
+  .planet__globe, .planet__star, .phero--sky,
   .rhema__line,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
   .hero__status-dot { animation: none; }
@@ -1118,6 +1138,203 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 
 /* =============================================================
+   EL MUNDO, GIRANDO
+
+   El planeta es un circulo con el mapa de baldosa y una animacion que lo
+   empuja exactamente un ancho de baldosa. Por eso el giro no tiene
+   principio ni final: al terminar esta donde empezo.
+
+   `--map` es la proporcion del mapa (1205x640). El ancho del fondo se
+   fija con ella en vez de dejarlo en `auto`, y el empujon del giro usa el
+   mismo numero. Mientras esos dos sean el mismo calculo, el giro es
+   continuo a cualquier diametro — que es lo que permite que el planeta
+   mida una cosa en el movil y otra en la costura.
+
+   Las tres sombras de dentro son las del original, pasadas a fracciones
+   del diametro: dos oscuras arriba a la izquierda que hunden el borde y
+   una clara en la esquina contraria que lo levanta. Es lo unico que hace
+   que un circulo con una foto dentro parezca una esfera.
+   ============================================================= */
+.planet {
+  --planet: clamp(10rem, 42vw, 15rem);
+  --map: 2;                               /* equirectangular: 360 x 180 */
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.planet__globe {
+  position: relative;
+  display: block;
+  width: var(--planet); height: var(--planet);
+  border-radius: 50%;
+  /* Dos ficheros del mismo mapa. En movil el planeta mide 160px y el
+     mapa se pinta a 320: uno de 700 ya va sobrado y pesa un tercio. El
+     grande solo baja donde el planeta crece de verdad. */
+  background-image: url("/assets/img/world-sm.png");
+  background-image: image-set(
+    url("/assets/img/world-sm.webp") type("image/webp"),
+    url("/assets/img/world-sm.png") type("image/png"));
+  background-size: calc(var(--planet) * var(--map)) 100%;
+  background-repeat: repeat;
+  /* Tres sombras, y las tres con desenfoque — que es lo que faltaba.
+     Las de antes iban a cero de blur: eran dos medias lunas de borde
+     recto pegadas dentro del circulo, y a tamano grande se veia que eran
+     recortes y no luz.
+
+       1. fuera, suave y centrada: despega el planeta del cielo. Sin ella
+          el disco se confunde con el fondo, que aqui es casi negro.
+       2. dentro, desde abajo a la derecha: es la que hace la esfera.
+          Mucho desenfoque, porque el terminador de un planeta no tiene
+          filo — es la curva la que se va apagando.
+       3. dentro, arriba a la izquierda: el brillo. De ahi viene la luz,
+          y por eso la sombra esta justo enfrente.
+
+     Van en fracciones del diametro para que la esfera se vea igual a
+     10rem en el movil que a 19rem en la costura. Los numeros salen de la
+     receta original medida sobre 315px. */
+  box-shadow:
+    0 0 calc(var(--planet) * .048) calc(var(--planet) * .006) rgba(0, 0, 0, .40),
+    inset calc(var(--planet) * -.079) calc(var(--planet) * -.079) calc(var(--planet) * .159) 0 rgba(0, 0, 0, .60),
+    inset calc(var(--planet) *  .016) calc(var(--planet) *  .016) calc(var(--planet) * .063) 0 rgba(241, 239, 233, .10);
+  animation: planetSpin 45s linear infinite;
+}
+
+@media (min-width: 1024px) {
+  .planet__globe {
+    background-image: url("/assets/img/world.png");
+    background-image: image-set(
+      url("/assets/img/world.webp") type("image/webp"),
+      url("/assets/img/world.png") type("image/png"));
+  }
+}
+
+@keyframes planetSpin {
+  from { background-position: 0 0; }
+  to   { background-position: calc(var(--planet) * var(--map)) 0; }
+}
+
+/* Cada estrella se coloca en porcentaje del diametro, asi que acompana al
+   planeta cuando cambia de tamano. Las dos de mas a la izquierda se
+   retiran en pantallas estrechas: ahi el planeta va centrado y se
+   saldrian por el borde. */
+.planet__star {
+  position: absolute;
+  left: var(--x); top: var(--y);
+  animation: twinkling var(--twinkle, 3s) infinite;
+}
+@media (max-width: 1023px) {
+  .planet__star.is-wide { display: none; }
+}
+
+@keyframes twinkling {
+  0%, 100% { opacity: .1; }
+  50%      { opacity: 1; }
+}
+
+/* La estrella no se dibuja: se recorta. Cuatro cajas de 4x5 con una
+   esquina redondeada cada una, en cuadro, y lo que se ve es el hueco que
+   dejan en medio — una estrella concava de cuatro puntas. La curva la da
+   una `box-shadow` de un circulo que asoma justo por esa esquina. */
+.planet__row { display: flex; }
+.cc {
+  display: block; position: relative;
+  width: 4px; height: 5px;
+  overflow: hidden;
+}
+.cc::before {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 200%; height: 200%;
+  border-radius: 50%;
+}
+.cc--bl::before { bottom: 0; left: 0;  box-shadow: -5px  5px 0 0 var(--bone); }
+.cc--br::before { bottom: 0; right: 0; box-shadow:  5px  5px 0 0 var(--bone); }
+.cc--tl::before { top: 0;    left: 0;  box-shadow: -5px -5px 0 0 var(--bone); }
+.cc--tr::before { top: 0;    right: 0; box-shadow:  5px -5px 0 0 var(--bone); }
+
+
+/* =============================================================
+   EL CIELO — solo donde hay planeta, y solo por debajo de la costura
+
+   De 1200 para arriba esta seccion ya tiene su pinar a la derecha y el
+   planeta se apoya ahi. Por debajo no habia verde ninguno: la pagina era
+   hueso de arriba abajo, y un planeta sobre hueso no es un planeta, es un
+   sello. Asi que aqui el suelo cambia.
+
+   Es el mismo gesto que el campo del home —un verde que se mueve— pero
+   mas cerrado: alli la diagonal sube hasta Iris claro porque detras hay
+   una foto a la que dar luz; aqui detras hay un mundo de noche y lo que
+   hace falta es que las estrellas se vean. Ninguno de los seis colores es
+   nuevo: son Pine y sus pasos, los mismos que ya usa la casa.
+
+   El movimiento no lleva JavaScript. El degradado se declara al triple de
+   la caja y lo que viaja es su posicion, asi que no se repinta nada: el
+   navegador mueve una imagen que ya tiene hecha.
+   ============================================================= */
+@media (max-width: 1199px) {
+  /* Doble clase, por lo mismo que .phero--foot: .phero se declara mas
+     abajo en este mismo archivo y con una sola clase le ganaria el hueso. */
+  .phero.phero--sky {
+    background: var(--space-sky);
+    background-size: 300% 300%;
+    animation: skyFlow 16s ease-in-out infinite;
+    color: var(--bone);
+  }
+
+  /* Lo que estaba escrito para leerse sobre hueso, ahora sobre verde. */
+  .phero.phero--sky .phero__status,
+  .phero.phero--sky .phero__doors-title { color: var(--pine-200); }
+  .phero.phero--sky .phero__aside { border-top-color: rgba(241, 239, 233, .16); }
+  .phero.phero--sky .door {
+    border-color: rgba(241, 239, 233, .28);
+    color: var(--bone);
+  }
+  .phero.phero--sky .door__badge { background: rgba(241, 239, 233, .16); }
+  .phero.phero--sky .door:hover,
+  .phero.phero--sky .door:focus-visible {
+    background: var(--bone); color: var(--pine); border-color: var(--bone);
+  }
+  .phero.phero--sky .door:hover .door__badge,
+  .phero.phero--sky .door:focus-visible .door__badge { background: rgba(38, 59, 40, .14); }
+
+  /* En vertical el planeta abre la seccion: se ve antes que el titulo.
+     Es lo unico que hay que mirar en esta pagina, y mandarlo debajo del
+     texto era esconderlo detras de un scroll. `order` sirve porque la
+     seccion ya es una columna flexible; en la costura manda la posicion
+     absoluta de la franja y esto no le afecta.
+
+     El hueco de arriba no es decoracion: las estrellas asoman por encima
+     del planeta —la mas alta, un 14% del diametro, y todavia su propio
+     alto por encima— y justo ahi flota la cabecera. Sin este margen se
+     metian debajo del boton del menu. Va en fracciones del diametro
+     porque es el diametro el que decide cuanto suben.
+
+     Ya no hay lista que separar, asi que la raya sobra. */
+  .phero.phero--sky .phero__aside {
+    order: -1;
+    border-top: 0;
+    margin: 0 0 2.25rem;
+    padding-top: 0;
+  }
+  /* El hueco va en `.planet` y no en el hueco que lo contiene: `--planet`
+     se declara ahi dentro, y desde el padre el calc no resuelve —se cae
+     entero y el margen acaba valiendo cero, que es justo lo que pasaba. */
+  .phero.phero--sky .planet { margin-top: calc(var(--planet) * .22); }
+}
+
+@keyframes skyFlow {
+  0%   { background-position:   0% 50%; }
+  25%  { background-position:  50% 75%; }
+  50%  { background-position: 100% 50%; }
+  75%  { background-position:  50% 25%; }
+  100% { background-position:   0% 50%; }
+}
+
+
+/* =============================================================
    EL TELON — cambiar de pagina se parece a como empieza el sitio
 
    La portada de arranque escribe la firma y despues entra. Aqui pasa lo
@@ -1649,12 +1866,28 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* =============================================================
    Footer
    ============================================================= */
+/* El pie no llevaba nada de aire por arriba y cinco rem por abajo: el
+   renglon quedaba pegado a lo que tuviera encima —el hueso del cuerpo,
+   la banda de los logos, el cielo— y debajo sobraba un palmo de hueso
+   vacio, que es lo que hacia pensar que faltaba algo por cargar. Son 20
+   pixeles de texto: el aire tiene que repartirse a los dos lados, no
+   amontonarse en uno. Abajo se le suma lo que pida el movil por su
+   barra, que para eso esta `env()`. */
 .site-footer {
   background: var(--bone);
   color: var(--slate);
   text-align: center;
-  padding: 0 var(--gutter) 5rem;
+  padding: 2.25rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
 }
+
+/* La unica pagina que termina en espacio no puede rematar con una tira
+   de hueso encendida debajo del vacio. El pie se va al negro verdoso del
+   cielo y la pagina acaba donde venia cayendo. */
+main:has(.phero--sky) + .site-footer {
+  background: var(--space-900);
+  color: var(--pine-200);
+}
+main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200); }
 /* Dim the wrapper, not the image: `.reveal` owns the image's opacity
    and the two would override each other. */
 .site-footer__line {
@@ -2258,6 +2491,28 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: .86rem; font-weight: 600;
   letter-spacing: -.01em;
 }
+/* Una cuenta reservada pero sin abrir sale apagada y no se enciende al
+   tocarla: encenderse es lo que hace una fila que lleva a algun sitio, y
+   esta no lleva. Lo dice la pastilla, y al pulsarla sale el aviso de
+   abajo con el porque. La opacidad la pone `.is-soon`, que ya existe. */
+.account-opt { width: 100%; text-align: left; }
+.account-opt.is-soon { cursor: default; }
+.account-opt.is-soon:hover,
+.account-opt.is-soon:focus-visible,
+.account-opt.is-soon:active {
+  background: rgba(241, 239, 233, .05);
+  color: inherit;
+}
+.account-opt__badge {
+  margin-left: auto;
+  padding: .15rem .5rem;
+  border-radius: 999px;
+  background: rgba(241, 239, 233, .16);
+  font-size: .58rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  white-space: nowrap;
+}
+
 /* El arroba es el dato, asi que va en cifras del sans y sin adornos. */
 .account-opt__handle {
   font-size: .74rem; font-weight: 300;

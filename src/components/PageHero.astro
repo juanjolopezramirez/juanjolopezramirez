@@ -1,7 +1,10 @@
 ---
 import { NAV } from '../data/social.js';
 import Icon from './Icon.astro';
-const { lang, t, slug } = Astro.props;
+/* `sky` cambia el suelo de la seccion por debajo de la costura: en vez
+   de hueso, un verde que se mueve. Lo pide quien lo necesita —hoy solo
+   el camino, que lleva el planeta— y el resto sigue en hueso. */
+const { lang, t, slug, sky = false } = Astro.props;
 
 const here = NAV.find((n) => n.slug === slug);
 /* Las otras puertas de la casa: desde aqui se sigue, no se vuelve atras. */
@@ -14,7 +17,7 @@ const hasFoot = Astro.slots.has('foot');
 <!-- El mismo hero del home, con los lados cambiados: aqui el hueso esta a
      la izquierda y el pinar a la derecha. Movil primero — una columna, lo
      que se lee arriba — y desde 1200px la costura, al reves. -->
-<section class:list={['phero', { 'phero--foot': hasFoot }]} id="top">
+<section class:list={['phero', { 'phero--foot': hasFoot, 'phero--sky': sky }]} id="top">
 
   <div class="phero__field" aria-hidden="true"></div>
 

@@ -8,18 +8,25 @@ export const SOCIAL = [
      ingles. `href` se queda —es el destino de siempre y el unico que
      vale sin JavaScript— y `accounts` es lo que se ofrece cuando si lo
      hay. El idioma de cada cuenta se nombra con la clave de LANGS, asi
-     que la bandera y el nombre salen de META y no se repiten aqui. */
+     que la bandera y el nombre salen de META y no se repiten aqui.
+
+     Las dos en ingles estan reservadas pero todavia no abiertas, asi que
+     van sin `href`: la misma regla que las puertas de escribirme — sin
+     destino no se encienden. Se siguen enseñando a proposito, apagadas,
+     porque saber que vienen tambien es informacion; al tocarlas sale el
+     aviso con el porque. El dia que abran se les pone el `href` y se les
+     quita `soon`, y no hay que tocar nada mas. */
   { id: 'instagram', name: 'Instagram', row: true,  href: 'https://www.instagram.com/juanjolopezramirez',
     accounts: [
       { lang: 'es', handle: '@juanjolopezramirez', href: 'https://www.instagram.com/juanjolopezramirez' },
-      { lang: 'en', handle: '@juanjo7opezramirez', href: 'https://www.instagram.com/juanjo7opezramirez' }
+      { lang: 'en', handle: '@juanjo7opezramirez', soon: true }
     ] },
   { id: 'vsco',      name: 'VSCO',      row: true,  href: 'https://vsco.co/juanjolopezramirez' },
   { id: 'facebook',  name: 'Facebook',  row: false, href: 'https://www.facebook.com/juanjolopezramirez' },
   { id: 'tiktok',    name: 'TikTok',    row: false, href: 'https://www.tiktok.com/@juanjolopezramirez',
     accounts: [
       { lang: 'es', handle: '@juanjolopezramirez', href: 'https://www.tiktok.com/@juanjolopezramirez' },
-      { lang: 'en', handle: '@juanjo7opezramirez', href: 'https://www.tiktok.com/@juanjo7opezramirez' }
+      { lang: 'en', handle: '@juanjo7opezramirez', soon: true }
     ] },
   { id: 'youtube',   name: 'YouTube',   row: false, href: 'https://www.youtube.com/@juanjolopezramirez' },
   { id: 'x',         name: 'X',         row: false, href: 'https://x.com/juanjolopezr' }

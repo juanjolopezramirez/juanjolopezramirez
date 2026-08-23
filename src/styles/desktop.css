@@ -543,6 +543,36 @@
   }
   .phero__aside > * { width: min(100%, 22rem); }
 
+  /* En esta pagina la franja verde deja de ser pinar y pasa a ser
+     espacio: el mismo cielo que abajo. Sin la luz de Iris encima —que
+     es lo que hacia raro el color— y sin el velo, porque estos verdes
+     ya vienen cerrados de fabrica. Las demas secciones no se enteran. */
+  .phero.phero--sky .phero__field {
+    background: var(--space-sky);
+    background-size: 300% 300%;
+    animation: skyFlow 16s ease-in-out infinite;
+  }
+
+  /* El hueco entero para el planeta, y el planeta en su centro de verdad.
+     El relleno de arriba de esta franja lleva el alto de la cabecera, que
+     flota por encima: con el, el planeta se iba 45px por debajo del centro
+     de la banda verde. Aqui arriba ya no hay nada con lo que chocar —ni
+     sello ni puertas—, asi que el relleno se iguala y el centro es el que
+     se ve. */
+  .phero.phero--sky .phero__aside {
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    padding-block: var(--gutter);
+  }
+  .phero.phero--sky .phero__aside > * { width: 100%; }
+
+  /* Aqui hay sitio de verdad, asi que el planeta crece. Flota como
+     flotaba el sello al que releva — el giro es suyo, el vaiven es del
+     hueco donde se apoya. */
+  .planet { --planet: clamp(13rem, 17vw, 19rem); }
+  .planet__globe { animation: planetSpin 45s linear infinite, floatY 9s var(--ease-smooth) infinite; }
+
   .phero__seal {
     animation: floatY 9s var(--ease-smooth) infinite;
     display: block;

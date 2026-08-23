@@ -2,6 +2,7 @@
 import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
+import Planet from '../../components/Planet.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -11,5 +12,9 @@ const t = useT(lang);
 const title = t('page.about.title');
 ---
 <Base lang={lang} path="about" active="about" title={`${title} — Juanjo López Ramírez`}>
-  <PageHero lang={lang} t={t} slug="about" />
+  <PageHero lang={lang} t={t} slug="about" sky>
+    <!-- `aside` y no `seal`: releva el hueco entero, asi que aqui no hay
+         puertas ni boton de escribirme. El camino se mira, no se navega. -->
+    <Planet slot="aside" />
+  </PageHero>
 </Base>
