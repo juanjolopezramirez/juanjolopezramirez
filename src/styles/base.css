@@ -23,6 +23,18 @@
   --ring-300: #E0B778;
   --bone-panel:#E7E4DB;
 
+  /* Este no es un color de la casa: es el que trae la foto del retrato
+     en su fondo: la media de la primera fila que se llega a ver de ella,
+     medida pixel a pixel. Ojo con medirla sobre un bloque en vez de sobre
+     la fila: la foto se aclara rapido hacia abajo y la media de un bloque
+     da un verde que no esta en ninguna parte del borde. Vive aqui porque
+     lo usan dos sitios que
+     tienen que acabar en el mismo verde exacto —el pie del hero y la
+     cama del retrato— y declarado dos veces se separarian a la primera.
+     Si algun dia cambia la foto, se vuelve a medir y se cambia aqui. */
+  --print-green:   #0E2E1F;
+  --print-green-0: rgba(14, 46, 31, 0);   /* el mismo, transparente */
+
   /* Type */
   --serif:  "Young Serif", Georgia, "Times New Roman", serif;
   --sans:   "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -566,6 +578,27 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     --field-veil: rgba(0, 0, 0, .2);
 
     background:
+      /* 0. La costura con el retrato.
+
+         El campo acaba en #1E2F20 —Pine con el velo negro encima— y la
+         foto de abajo empieza en #0E2E1F. El verde es casi el mismo; lo
+         que cambia es el rojo, 30 contra 14, asi que el de la foto es un
+         verde mas puro y el del campo tira a gris. Bastaba para dejar una
+         raya recta de lado a lado, y esa raya es la que hacia que la
+         pagina pareciera cortada en dos trozos en vez de seguir.
+
+         Asi que los ultimos 6rem del campo se van tinendo hasta el verde
+         exacto de la foto. Cuando llega al borde son el mismo color y no
+         hay nada que cruzar. Va la primera —encima del velo— porque tiene
+         que dar el color final exacto y no uno oscurecido despues.
+
+         Lo que no se toca es la foto: la cara empieza al 8% de lo que se
+         ve de ella y cualquier velo por arriba se la ensuciaria. Todo el
+         arreglo vive de este lado de la juntura. */
+      linear-gradient(to bottom,
+        var(--print-green-0) calc(100% - 6rem),
+        var(--print-green)   100%),
+
       /* 1. La luz, detras de la foto */
       radial-gradient(
         ellipse calc(var(--iris-w) * var(--iris-breath))
@@ -1027,8 +1060,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   flex-direction: column;
 }
 
-/* El retrato trae su propio verde de fondo, asi que en movil no hace
-   falta pintar nada debajo: corta el pinar y entrega el hueso. */
+/* El retrato entra con el resto —se aclara y sube—, y mientras lo hace
+   deja ver lo que tiene detras. Si eso es Pine, durante ese segundo hay
+   dos verdes distintos pegados y la juntura salta a la vista justo
+   cuando se esta mirando. Asi que debajo se pinta el verde de la propia
+   foto: entra sobre su mismo color y no hay nada que ver aparecer.
+   El hueso de `.about__body` tapa esta cama de ahi para abajo. */
+@media (max-width: 599px) {
+  .about { background: var(--print-green); }
+}
+
 .about__portrait {
   --ty: 26px;
   --rot: 0deg;
@@ -1331,9 +1372,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    ============================================================= */
 .covers {
   display: grid; justify-items: center;
-  /* El ancho de una portada. Vive aqui y no en la tarjeta porque el
-     hueco de encima se calcula a partir de el. */
+  /* El ancho de una portada y lo que sube al levantarse. Viven aqui y
+     no en la tarjeta porque el hueco de encima se calcula con los dos. */
   --card: clamp(5.5rem, 26vw, 8.5rem);
+  --lift: 18px;
 }
 
 .covers__title {
@@ -1350,11 +1392,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    1.16, y ese 16% de mas crece hacia arriba tanto como hacia abajo: un
    8% de su alto, que a su vez es 1.777 veces su ancho. Se comia casi
    entero 1.6rem de margen y el subtitulo acababa rozando las portadas.
-   Asi que el margen lleva la mordida ya sumada y el aire de verdad
-   —1.9rem— es el mismo a cualquier ancho. */
+   Asi que el margen lleva la mordida ya sumada y el aire de verdad es el
+   mismo a cualquier ancho. Y media zancada mas, porque la portada que se
+   levanta se mete otros 18px en ese hueco: en reposo sobra sitio y en lo
+   alto del salto todavia queda aire. */
 .covers__lead {
   max-width: 24rem;
-  margin: .7rem 0 calc(1.9rem + var(--card) * .142);
+  margin: .7rem 0 calc(1.9rem + var(--card) * .142 + var(--lift) * .5);
   font-family: var(--serif);
   font-size: clamp(1.02rem, 3.4vw, 1.22rem);
   font-weight: 400;
@@ -1393,18 +1437,34 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   overflow: hidden;
   background: var(--pine-900);
   box-shadow: 0 18px 34px -20px rgba(11, 20, 13, .85);
-  animation: coverLift 15s var(--ease-smooth) infinite;
+  animation: coverLift 7.2s var(--ease-smooth) infinite;
 }
 .covers__card img { width: 100%; height: auto; display: block; }
 
-/* Quince segundos de vuelta y tres turnos: cada tarjeta sube una vez,
-   cinco segundos despues de la anterior. Nunca hay dos moviendose. */
+/* Siete segundos de vuelta y tres turnos: cada portada sube una vez,
+   2.4 despues de la anterior. El salto dura poco mas de dos, asi que
+   sigue sin haber dos moviendose a la vez — que es lo que lo hacia
+   parecer un fallo y no un gesto.
+
+   Antes eran quince segundos y once pixeles: para cuando le tocaba a la
+   tercera ya nadie miraba, y el salto era tan corto que se confundia con
+   un temblor. Ahora sube 18, crece un 4% y la sombra se abre con ella:
+   sube deprisa —tres cuartos de segundo— y baja al doble de despacio,
+   que es como cae una cosa que pesa. */
 .covers__item:nth-child(1) .covers__card { animation-delay: 0s; }
-.covers__item:nth-child(2) .covers__card { animation-delay: 5s; }
-.covers__item:nth-child(3) .covers__card { animation-delay: 10s; }
+.covers__item:nth-child(2) .covers__card { animation-delay: 2.4s; }
+.covers__item:nth-child(3) .covers__card { animation-delay: 4.8s; }
 @keyframes coverLift {
-  0%, 20%, 100% { translate: 0 0;     box-shadow: 0 18px 34px -20px rgba(11, 20, 13, .85); }
-  8%            { translate: 0 -11px; box-shadow: 0 28px 42px -20px rgba(11, 20, 13, .95); }
+  0%, 30%, 100% {
+    translate: 0 0;
+    scale: 1;
+    box-shadow: 0 18px 34px -20px rgba(11, 20, 13, .85);
+  }
+  11% {
+    translate: 0 calc(var(--lift) * -1);
+    scale: 1.04;
+    box-shadow: 0 34px 50px -18px rgba(11, 20, 13, .96);
+  }
 }
 
 /* Al pasar por encima el abanico se abre: solo el angulo, porque el
