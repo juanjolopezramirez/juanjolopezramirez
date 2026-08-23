@@ -33,6 +33,9 @@ const hasFoot = Astro.slots.has('foot');
 
   <!-- Sobre el pinar: la marca, y por donde seguir desde aqui. -->
   <div class="phero__aside">
+    <!-- Lo de dentro se puede relevar: proyectos pone ahi sus portadas en
+         vez del sello y las puertas. Si nadie lo releva, sale esto. -->
+    <slot name="aside">
     <span class="phero__seal" aria-hidden="true"><Icon id="mark" /></span>
 
     <nav class="phero__doors" aria-labelledby="phero-doors" data-lift>
@@ -56,6 +59,7 @@ const hasFoot = Astro.slots.has('foot');
         </li>
       </ul>
     </nav>
+    </slot>
   </div>
 
   <!-- El pie de la seccion: a sangre, pegado al borde de abajo del hueso. -->

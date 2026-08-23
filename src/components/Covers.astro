@@ -1,0 +1,34 @@
+---
+import { VIDEOS } from '../data/videos.js';
+const { t } = Astro.props;
+---
+<!-- Las piezas, en abanico.
+
+     El abanico es una sola puerta: pulsarlo abre la galeria, y ahi si se
+     ven las tres portadas enteras y de frente. Antes cada tarjeta llevaba
+     su icono de informacion encima, pero sobre una portada oscura como la
+     de «Mi único» el icono desaparecia — y taparle un trozo a cada portada
+     para que se viera era pagar el arreglo con lo que se queria enseñar.
+
+     Cada portada se levanta por turnos, una cada cinco segundos, para que
+     la fila no parezca una foto fija. El levantar va en la caja de dentro
+     y el inclinar en la de fuera: son la misma propiedad y puestas en el
+     mismo sitio se pisarian. -->
+<div class="covers">
+  <h2 class="covers__title">{t('videos.title')}</h2>
+  <p class="covers__lead">{t('videos.lead')}</p>
+
+  <button class="covers__fan" type="button" data-covers-open aria-haspopup="dialog"
+          aria-label={t('a11y.videosOpen')}>
+    {VIDEOS.map((v) => (
+      <span class={`covers__item covers__item--${v.id}`}>
+        <span class="covers__card">
+          <picture>
+            <source srcset={v.webp} type="image/webp" />
+            <img src={v.src} alt={v.title.es} width="700" height="1244" decoding="async" />
+          </picture>
+        </span>
+      </span>
+    ))}
+  </button>
+</div>

@@ -4,10 +4,23 @@
 export const SOCIAL = [
   { id: 'linkedin',  name: 'LinkedIn',  row: true,  href: 'https://www.linkedin.com/in/juanjoselopezramirez' },
   { id: 'github',    name: 'GitHub',    row: true,  href: 'https://github.com/juanjolopezramirez' },
-  { id: 'instagram', name: 'Instagram', row: true,  href: 'https://www.instagram.com/juanjolopezramirez' },
+  /* Instagram y TikTok estan repetidos: una casa en español y otra en
+     ingles. `href` se queda —es el destino de siempre y el unico que
+     vale sin JavaScript— y `accounts` es lo que se ofrece cuando si lo
+     hay. El idioma de cada cuenta se nombra con la clave de LANGS, asi
+     que la bandera y el nombre salen de META y no se repiten aqui. */
+  { id: 'instagram', name: 'Instagram', row: true,  href: 'https://www.instagram.com/juanjolopezramirez',
+    accounts: [
+      { lang: 'es', handle: '@juanjolopezramirez', href: 'https://www.instagram.com/juanjolopezramirez' },
+      { lang: 'en', handle: '@juanjo7opezramirez', href: 'https://www.instagram.com/juanjo7opezramirez' }
+    ] },
   { id: 'vsco',      name: 'VSCO',      row: true,  href: 'https://vsco.co/juanjolopezramirez' },
   { id: 'facebook',  name: 'Facebook',  row: false, href: 'https://www.facebook.com/juanjolopezramirez' },
-  { id: 'tiktok',    name: 'TikTok',    row: false, href: 'https://www.tiktok.com/@juanjolopezramirez' },
+  { id: 'tiktok',    name: 'TikTok',    row: false, href: 'https://www.tiktok.com/@juanjolopezramirez',
+    accounts: [
+      { lang: 'es', handle: '@juanjolopezramirez', href: 'https://www.tiktok.com/@juanjolopezramirez' },
+      { lang: 'en', handle: '@juanjo7opezramirez', href: 'https://www.tiktok.com/@juanjo7opezramirez' }
+    ] },
   { id: 'youtube',   name: 'YouTube',   row: false, href: 'https://www.youtube.com/@juanjolopezramirez' },
   { id: 'x',         name: 'X',         row: false, href: 'https://x.com/juanjolopezr' }
 ];

@@ -153,6 +153,7 @@
   .social-panel__grid { grid-template-columns: repeat(8, 1fr); gap: 1.4rem .5rem; }
   .social-panel__sheet,
   .contact-panel__sheet,
+  .account-panel__sheet,
   .term-panel__sheet { padding-inline: var(--gutter); }
 }
 

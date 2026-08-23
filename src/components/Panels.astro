@@ -1,5 +1,7 @@
 ---
 import { SOCIAL, CONTACT } from '../data/social.js';
+import { META } from '../i18n/utils.js';
+import { VIDEOS } from '../data/videos.js';
 import Icon from './Icon.astro';
 const { t } = Astro.props;
 ---
@@ -12,8 +14,11 @@ const { t } = Astro.props;
     <ul class="social-panel__grid">
       {SOCIAL.map((s) => (
         <li class="social-panel__item">
-          <a class={`link-chip net--${s.id}`} href={s.href} target="_blank" rel="noopener noreferrer">
-            <Icon id={s.id} /><span class="sr-only">{s.name}</span>
+          <a class={`link-chip net--${s.id}`} href={s.href} target="_blank" rel="noopener noreferrer"
+             data-accounts={s.accounts ? s.id : undefined}
+             data-account-name={s.accounts ? s.name : undefined}
+             aria-haspopup={s.accounts ? 'dialog' : undefined}>
+            <Icon id={s.id} /><span class="sr-only">{s.name}{s.accounts ? ` — ${t('a11y.accounts')}` : ''}</span>
           </a>
           <span class="social-panel__name">{s.name}</span>
         </li>
@@ -52,6 +57,43 @@ const { t } = Astro.props;
   </div>
 </div>
 
+<!-- Dos cuentas, una por idioma. Instagram y TikTok estan repetidos, y
+     hasta ahora la ficha elegia por ti: llevaba a la de español, y la
+     otra no existia para quien no se la supiera de memoria.
+
+     Es la hoja de escribirme —mismo velo, mismo filo de Iris, mismo
+     cierre— pero dentro van filas y no fichas: lo que separa una opcion
+     de la otra es un idioma, y para eso la casa ya tiene su gramatica,
+     la del selector de idioma: la bandera, el nombre del idioma en su
+     propio idioma, y aqui debajo el arroba.
+
+     Los dos grupos se escriben enteros y el guion ensena el que toca:
+     son unas lineas de HTML de mas y a cambio los cuatro enlaces estan
+     en el documento desde el primer momento. -->
+<div class="account-panel" id="account-panel" hidden>
+  <div class="account-panel__scrim" data-close-account></div>
+  <div class="account-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="account-panel-title">
+    <button class="account-panel__close" type="button" data-close-account aria-label={t('a11y.closePanel')}>&times;</button>
+    <h2 class="account-panel__title" id="account-panel-title"></h2>
+    <p class="account-panel__lead">{t('account.lead')}</p>
+    {SOCIAL.filter((s) => s.accounts).map((s) => (
+      <ul class="account-panel__list" data-account-group={s.id} hidden>
+        {s.accounts.map((a) => (
+          <li>
+            <a class={`account-opt net--${s.id}`} href={a.href} target="_blank" rel="noopener noreferrer">
+              <img class="account-opt__flag" src={META[a.lang].flag} alt="" width="40" height="40" />
+              <span class="account-opt__text">
+                <span class="account-opt__lang" lang={a.lang}>{META[a.lang].name}</span>
+                <span class="account-opt__handle">{a.handle}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ))}
+  </div>
+</div>
+
 <!-- Una palabra que no es nuestra: que significa y quien lo dice -->
 <div class="term-panel" id="term-panel" hidden>
   <div class="term-panel__scrim" data-close-term></div>
@@ -74,6 +116,62 @@ const { t } = Astro.props;
       <p class="term-panel__source" id="term-panel-source"></p>
     </footer>
   </article>
+</div>
+
+<!-- Las piezas: dos pasos en la misma hoja.
+
+     Primero la galeria — las tres portadas enteras, de frente y sin nada
+     encima, en fila en pantalla ancha y deslizables en movil. El boton de
+     informacion va DEBAJO de cada portada, fuera de la imagen: encima
+     desaparecia sobre una portada oscura como la de «Mi único», y taparle
+     un trozo a cada una para que se viera era pagar el arreglo con lo que
+     se queria enseñar.
+
+     Despues la ficha de la pieza elegida. Es la misma hoja cambiando de
+     cara, no una segunda encima: apilar dos ventanas para leer un parrafo
+     obliga a cerrar dos veces. -->
+<div class="video-panel" id="video-panel" hidden>
+  <div class="video-panel__scrim" data-close-video></div>
+  <div class="video-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="video-panel-heading">
+    <button class="video-panel__close" type="button" data-close-video
+            aria-label={t('a11y.closePanel')}>&times;</button>
+
+    <!-- Paso uno: las tres -->
+    <div class="video-gallery" id="video-gallery">
+      <h2 class="video-panel__heading" id="video-panel-heading">{t('videos.title')}</h2>
+      <ul class="video-gallery__row">
+        {VIDEOS.map((v) => (
+          <li class="video-gallery__item">
+            <picture>
+              <source srcset={v.webp} type="image/webp" />
+              <img src={v.src} alt={v.title.es} width="700" height="1244" decoding="async" />
+            </picture>
+            <button class="video-gallery__info" type="button" data-video={v.id}>
+              <Icon id="info" /><span>{t('videos.about')}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p class="video-panel__note">{t('videos.note')}</p>
+    </div>
+
+    <!-- Paso dos: una -->
+    <article class="video-detail" id="video-detail" hidden>
+      <button class="video-detail__back" type="button" data-video-back>
+        <Icon id="arrow" /><span>{t('videos.back')}</span>
+      </button>
+      <picture class="video-detail__cover">
+        <source id="video-detail-webp" type="image/webp" />
+        <img id="video-detail-img" alt="" width="700" height="1244" decoding="async" />
+      </picture>
+      <h3 class="video-detail__title" id="video-detail-title"></h3>
+      <p class="video-detail__orig" id="video-detail-orig" lang="es" hidden></p>
+      <p class="video-detail__blurb" id="video-detail-blurb"></p>
+      <a class="video-detail__link" id="video-detail-link" target="_blank" rel="noopener noreferrer">
+        <span>{t('videos.watch')}</span><Icon id="corner" />
+      </a>
+    </article>
+  </div>
 </div>
 
 <!-- Ya estas aqui.

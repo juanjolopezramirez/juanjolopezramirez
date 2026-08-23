@@ -1319,6 +1319,274 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* =============================================================
+   LAS PIEZAS, EN ABANICO
+
+   Tres portadas solapadas: la de en medio delante y algo mas grande, las
+   de los lados inclinadas hacia fuera. Margenes negativos y no posiciones
+   absolutas, para que la fila siga midiendo lo que ocupa.
+
+   Dos cajas por tarjeta: la de fuera inclina, la de dentro se levanta.
+   Puestas en el mismo elemento se pisarian, y el turno de levantarse
+   mataria la apertura del abanico.
+   ============================================================= */
+.covers {
+  display: grid; justify-items: center;
+  /* El ancho de una portada. Vive aqui y no en la tarjeta porque el
+     hueco de encima se calcula a partir de el. */
+  --card: clamp(5.5rem, 26vw, 8.5rem);
+}
+
+.covers__title {
+  margin: 0;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #5A6B74;
+}
+
+/* El subtitulo: en hueso y con cuerpo de verdad. Antes iba en el slate
+   secundario y a .8rem — se leia como una nota al pie y esto no es una
+   nota, es lo que dice de que va la seccion. */
+/* El hueco de abajo no es el que parece. La portada del medio va al
+   1.16, y ese 16% de mas crece hacia arriba tanto como hacia abajo: un
+   8% de su alto, que a su vez es 1.777 veces su ancho. Se comia casi
+   entero 1.6rem de margen y el subtitulo acababa rozando las portadas.
+   Asi que el margen lleva la mordida ya sumada y el aire de verdad
+   —1.9rem— es el mismo a cualquier ancho. */
+.covers__lead {
+  max-width: 24rem;
+  margin: .7rem 0 calc(1.9rem + var(--card) * .142);
+  font-family: var(--serif);
+  font-size: clamp(1.02rem, 3.4vw, 1.22rem);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -.015em;
+  color: var(--slate);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* El abanico entero es el boton que abre la galeria: una sola puerta, no
+   tres. Hereda el reset de <button>, asi que solo hay que darle el cursor. */
+.covers__fan {
+  display: flex; align-items: center; justify-content: center;
+  margin: 0; padding: 0;
+  cursor: pointer;
+}
+
+/* La caja de fuera: inclina y ordena la profundidad. */
+.covers__item {
+  flex: 0 0 auto;
+  width: var(--card);
+  transition: rotate .45s var(--ease-smooth);
+}
+.covers__item:first-child  { rotate: -7deg; margin-right: -6%; z-index: 1; }
+.covers__item:last-child   { rotate:  7deg; margin-left:  -6%; z-index: 1; }
+.covers__item:nth-child(2) { scale: 1.16; z-index: 2; }
+
+/* La caja de dentro es la tarjeta, y es el boton: la portada entera se
+   pulsa, que en un dedo importa mas que un icono de 16px. */
+.covers__card {
+  display: block;
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--pine-900);
+  box-shadow: 0 18px 34px -20px rgba(11, 20, 13, .85);
+  animation: coverLift 15s var(--ease-smooth) infinite;
+}
+.covers__card img { width: 100%; height: auto; display: block; }
+
+/* Quince segundos de vuelta y tres turnos: cada tarjeta sube una vez,
+   cinco segundos despues de la anterior. Nunca hay dos moviendose. */
+.covers__item:nth-child(1) .covers__card { animation-delay: 0s; }
+.covers__item:nth-child(2) .covers__card { animation-delay: 5s; }
+.covers__item:nth-child(3) .covers__card { animation-delay: 10s; }
+@keyframes coverLift {
+  0%, 20%, 100% { translate: 0 0;     box-shadow: 0 18px 34px -20px rgba(11, 20, 13, .85); }
+  8%            { translate: 0 -11px; box-shadow: 0 28px 42px -20px rgba(11, 20, 13, .95); }
+}
+
+/* Al pasar por encima el abanico se abre: solo el angulo, porque el
+   desplazamiento lo tiene pedido el turno de levantarse. */
+.covers__fan:hover .covers__item:first-child { rotate: -13deg; }
+.covers__fan:hover .covers__item:last-child  { rotate:  13deg; }
+
+
+/* =============================================================
+   LAS PIEZAS, EN GRANDE
+
+   Dos caras de la misma hoja: la galeria y la ficha. Centrada en todos
+   los anchos — es una interrupcion pedida, y se pone delante en vez de
+   asomar por el borde.
+   ============================================================= */
+.video-panel {
+  position: fixed; inset: 0; z-index: 82;
+  display: grid; place-items: center;
+  padding: var(--gutter);
+}
+.video-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .82);
+  opacity: 0;
+  transition: opacity .32s var(--ease);
+}
+.video-panel__sheet {
+  position: relative;
+  width: min(46rem, 100%);
+  max-height: min(88svh, 46rem);
+  overflow-y: auto;
+  padding: 1.6rem 1.4rem 1.7rem;
+  background: var(--bone);
+  color: var(--slate);
+  border-radius: 26px;
+  border-top: 3px solid var(--iris);
+  opacity: 0;
+  scale: .94;
+  transition: opacity .3s var(--ease), scale .3s var(--ease-smooth);
+}
+.video-panel.is-open .video-panel__scrim { opacity: 1; }
+.video-panel.is-open .video-panel__sheet { opacity: 1; scale: 1; }
+
+.video-panel__close {
+  position: absolute; top: .5rem; right: .8rem;
+  z-index: 3;
+  width: 2.25rem; height: 2.25rem;
+  border-radius: 50%;
+  background: rgba(241, 239, 233, .9);
+  font-size: 1.6rem; line-height: 1;
+  color: #5A6B74;
+  transition: color .2s var(--ease);
+}
+.video-panel__close:hover { color: var(--slate); }
+
+.video-panel__heading {
+  margin: 0 0 1.1rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.video-panel__note {
+  margin: 1.1rem 0 0;
+  font-size: .72rem; font-weight: 300;
+  color: #5A6B74;
+}
+
+/* --- Paso uno: las tres, enteras --- */
+/* En pantalla ancha caben las tres en fila. En movil no, asi que se
+   deslizan: `scroll-snap` para que cada portada quede encuadrada sola en
+   vez de a medias, que es lo que hace que un carrusel se entienda. */
+.video-gallery__row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(11rem, 1fr);
+  gap: 1rem;
+  margin: 0; padding: 0 0 .35rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.video-gallery__item {
+  scroll-snap-align: center;
+  display: grid; gap: .55rem;
+}
+.video-gallery__item img {
+  width: 100%; height: auto;
+  display: block;
+  border-radius: 14px;
+  background: var(--pine-900);
+}
+
+/* El boton va debajo de la portada, no encima: sobre una imagen oscura un
+   icono claro desaparece, y taparle un trozo para que se vea seria pagar
+   el arreglo con lo que se quiere enseñar. */
+.video-gallery__info {
+  display: flex; align-items: center; justify-content: center; gap: .4rem;
+  width: 100%;
+  padding: .5rem .7rem;
+  border-radius: 999px;
+  background: rgba(43, 58, 67, .08);
+  color: var(--slate);
+  font-size: .76rem; font-weight: 600;
+  transition: background-color .22s var(--ease), color .22s var(--ease);
+}
+.video-gallery__info .icon { width: .85rem; height: .85rem; }
+.video-gallery__info:hover, .video-gallery__info:focus-visible {
+  background: var(--pine); color: var(--bone);
+}
+
+/* --- Paso dos: una --- */
+.video-detail { display: grid; gap: .55rem; justify-items: start; }
+.video-detail__back {
+  display: inline-flex; align-items: center; gap: .45rem;
+  margin-bottom: .35rem;
+  font-size: .74rem; font-weight: 600;
+  color: #5A6B74;
+  transition: color .2s var(--ease);
+}
+/* La flecha del sitio mira hacia abajo: girada un cuarto, mira hacia atras. */
+.video-detail__back .icon { width: .6rem; height: auto; rotate: 90deg; }
+.video-detail__back:hover { color: var(--slate); }
+
+/* La portada, entera y sin recortar: el titulo va grabado dentro, y un
+   recorte apaisado se lo comeria. Se limita por alto para que quepa junto
+   al texto sin empujarlo fuera de la pantalla. */
+.video-detail__cover {
+  display: block;
+  justify-self: center;
+  max-height: 42svh;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--pine-900);
+}
+.video-detail__cover img {
+  max-height: 42svh;
+  width: auto; height: auto;
+  display: block;
+}
+
+.video-detail__title {
+  margin: .6rem 0 0;
+  font-family: var(--serif);
+  font-size: 1.25rem; font-weight: 400;
+  line-height: 1.2; letter-spacing: -.015em;
+  text-wrap: balance;
+}
+.video-detail__orig {
+  margin: 0;
+  font-size: .74rem; font-weight: 300;
+  color: #5A6B74;
+}
+.video-detail__blurb {
+  max-width: 34rem;
+  margin: .35rem 0 0;
+  font-size: .88rem; font-weight: 300;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.video-detail__link {
+  display: inline-flex; align-items: center; gap: .45rem;
+  margin-top: .6rem;
+  padding: .6rem 1.05rem;
+  border-radius: 999px;
+  background: var(--pine);
+  color: var(--bone);
+  font-size: .84rem; font-weight: 600;
+  transition: background-color .22s var(--ease);
+}
+.video-detail__link .icon { width: .7rem; height: .7rem; }
+.video-detail__link:hover { background: var(--pine-700); }
+
+/* Si se ha pedido quietud, las tarjetas ni se levantan ni se abren. */
+@media (prefers-reduced-motion: reduce) {
+  .covers__card { animation: none; }
+  .covers__item { transition: none; }
+  .covers__fan:hover .covers__item:first-child { rotate: -7deg; }
+  .covers__fan:hover .covers__item:last-child  { rotate:  7deg; }
+}
+
+/* =============================================================
    Footer
    ============================================================= */
 .site-footer {
@@ -1844,6 +2112,96 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: .68rem; font-weight: 600;
   letter-spacing: .01em;
   color: var(--pine-200);
+}
+
+/* =============================================================
+   DOS CUENTAS, UNA POR IDIOMA
+
+   Instagram y TikTok estan repetidos: una casa en español y otra en
+   ingles. La ficha abre esta hoja en vez de llevarte a una de las dos
+   a ciegas.
+
+   Misma hoja que la de escribirme —sube desde abajo, mismo velo, mismo
+   filo de Iris, mismo cierre— pero dentro van filas y no fichas: lo que
+   separa una opcion de la otra es un idioma, y la casa ya sabe decir
+   "idioma" con una bandera y un nombre al lado. Es la fila del selector
+   de idioma, con el arroba debajo.
+   ============================================================= */
+.account-panel {
+  position: fixed; inset: 0; z-index: 84;   /* por encima de la de plataformas */
+  display: grid; align-items: end;
+}
+.account-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .74);
+  opacity: 0;
+  transition: opacity .32s var(--ease);
+}
+.account-panel__sheet {
+  position: relative;
+  padding: 1.6rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
+  background: var(--pine-700);
+  border-top: 3px solid var(--iris);
+  border-radius: 32px 32px 0 0;
+  translate: 0 100%;
+  transition: translate .42s var(--ease);
+}
+.account-panel.is-open .account-panel__scrim { opacity: 1; }
+.account-panel.is-open .account-panel__sheet { translate: 0 0; }
+
+/* El nombre de la plataforma lo pone el guion: la hoja es una y sirve
+   para las dos, asi que el titulo no puede venir escrito. */
+.account-panel__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.15rem; font-weight: 400;
+  letter-spacing: -.015em;
+  color: var(--bone);
+}
+.account-panel__lead {
+  margin: .15rem 0 1.1rem;
+  font-size: .78rem; font-weight: 300;
+  color: var(--pine-200);
+}
+.account-panel__close {
+  position: absolute; top: .6rem; right: .9rem;
+  width: 2.25rem; height: 2.25rem;
+  font-size: 1.6rem; line-height: 1;
+  color: var(--pine-200);
+  transition: color .2s var(--ease);
+}
+.account-panel__close:hover { color: var(--bone); }
+
+.account-panel__list { display: grid; gap: .5rem; }
+
+/* Al tocarla se llena del color de la casa, igual que la ficha que la ha
+   abierto: asi se ve que se sigue estando en Instagram y no en otro
+   sitio. El degradado entra por `--brand-bg` desde `net--*`, que es
+   donde vive la paleta — aqui no se nombra ningun color de fuera. */
+.account-opt {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .6rem .7rem;
+  border-radius: 14px;
+  background: rgba(241, 239, 233, .05);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color .24s var(--ease), color .24s var(--ease);
+}
+.account-opt:hover,
+.account-opt:focus-visible,
+.account-opt:active {
+  background: var(--brand-bg, var(--iris));
+  color: var(--brand-fg, var(--pine-900));
+}
+.account-opt__flag { flex: 0 0 auto; width: 1.6rem; height: 1.6rem; }
+.account-opt__text { display: grid; }
+.account-opt__lang {
+  font-size: .86rem; font-weight: 600;
+  letter-spacing: -.01em;
+}
+/* El arroba es el dato, asi que va en cifras del sans y sin adornos. */
+.account-opt__handle {
+  font-size: .74rem; font-weight: 300;
+  opacity: .82;
 }
 
 /* =============================================================

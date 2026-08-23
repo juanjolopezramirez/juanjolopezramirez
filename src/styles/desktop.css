@@ -166,9 +166,11 @@
   /* ---- Hojas: no ocupan toda la pantalla ---- */
   .social-panel,
   .contact-panel,
+  .account-panel,
   .term-panel { align-items: center; justify-items: center; }
   .social-panel__sheet,
   .contact-panel__sheet,
+  .account-panel__sheet,
   .term-panel__sheet {
     width: min(52rem, calc(100vw - 6rem));
     border-radius: 32px;
@@ -178,9 +180,13 @@
      ni un parrafo: 52rem la dejaban vacia de lado a lado. Se queda con
      lo que ocupa lo que hay dentro. */
   .contact-panel__sheet { width: min(23rem, calc(100vw - 6rem)); }
+  /* Dos filas con bandera, nombre y arroba piden un poco mas de sitio
+     que dos fichas sueltas, pero tampoco mucho mas. */
+  .account-panel__sheet { width: min(25rem, calc(100vw - 6rem)); }
 
   .social-panel.is-open .social-panel__sheet,
   .contact-panel.is-open .contact-panel__sheet,
+  .account-panel.is-open .account-panel__sheet,
   .term-panel.is-open .term-panel__sheet { translate: 0 0; }
 }
 
@@ -273,12 +279,16 @@
      El borde derecho cae siempre a la misma distancia dentro de la
      hoja, asi que el cruce no cambia con el ancho de la pantalla. */
   /* La foto viene cortada al borde del encuadre por abajo y por la
-     izquierda, y se queda asi: sin mascara, a canto vivo.
+     derecha, y se queda asi: sin mascara, a canto vivo.
 
-     Antes el borde izquierdo se apagaba en un degradado para disimular el
-     corte. Con el recorte de la chaqueta vaquera ya casi no hace falta: el
-     canto solo toca el borde en el ultimo 7% de la altura, abajo del todo,
-     que es justo donde la foto se apoya en el filo de la pantalla. */
+     Hubo un degradado para disimular el corte y ya no hace falta: el
+     canto solo toca el borde derecho en el ultimo 12% de la altura,
+     abajo del todo, que es justo donde la foto se apoya en el filo de
+     la pantalla.
+
+     No va espejada: mira hacia la izquierda, que es donde esta el
+     nombre. Volteada, la cara se iria contra la costura y la mirada
+     se saldria de la pagina. */
   /* Aqui no floto: en la costura soy el ancla, y un ancla que se mueve
      deja de serlo. */
   .hero__me {
@@ -511,6 +521,13 @@
   /* El sello y las puertas, sobre el pinar */
   /* Centrado, como la hoja del home: el sello y las puertas leen como un
      bloque, no como dos cosas clavadas a los extremos. */
+  /* Aqui el aside vive sobre el pinar, asi que lo que estaba en slate
+     secundario tiene que subir a un tono claro para leerse. */
+  .covers__title { color: var(--pine-200); }
+  /* El subtitulo va en hueso: sobre el pinar es el que tiene que pesar. */
+  .covers__lead { color: var(--bone); }
+  .covers { --card: clamp(7rem, 11vw, 9.5rem); }
+
   .phero__aside {
     position: absolute;
     top: 0; right: 0; bottom: 0;

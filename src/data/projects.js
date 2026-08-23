@@ -14,6 +14,11 @@
    150px—, asi que se rasteriza una vez y pesa 4KB. El resto son curvas
    de verdad y entran tal cual. */
 export const PROJECTS = [
+  /* La marca propia tambien es un proyecto, asi que la firma entra con
+     el resto. Tira del SVG que ya vive en /logos: es el mismo fichero que
+     firma la portada de arranque, y duplicarlo seria pedir que se separen.
+     Proporcion 2.28 -> escala 0.90 por la misma regla que los demas. */
+  { id: 'juanjo',     name: 'Juanjo López Ramírez', src: '/assets/logos/signature.svg', w: 572, h: 251, scale: 0.90 },
   { id: 'fraterni',   name: 'Fraterni',       src: '/assets/projects/fraterni.png',   w: 600, h: 143, webp: '/assets/projects/fraterni.webp', scale: 0.73 },
   { id: 'u',          name: 'U',              src: '/assets/projects/u.svg',          w: 132, h: 307, scale: 1.30 },
   { id: 'cordillera', name: 'Cordillera UTD', src: '/assets/projects/cordillera.svg', w: 290, h: 308, scale: 1.23 },

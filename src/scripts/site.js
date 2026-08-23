@@ -8,15 +8,22 @@
      · las animaciones de entrada
    ============================================================= */
 import { TERMS } from '../i18n/terms.js';
+import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 
 const d = document;
 const lang = d.documentElement.lang || 'es';
 const t = (k) => (UI[lang] && UI[lang][k]) || UI.en[k] || k;
 
-/* Bloquear el scroll deja un style="" vacio; se retira al soltar. */
+/* Bloquear el scroll deja un style="" vacio; se retira al soltar.
+
+   Se cuenta en vez de encenderse y apagarse porque las hojas se apilan:
+   la de las cuentas se abre desde la de las plataformas, y al cerrar la
+   de encima el scroll tiene que seguir bloqueado por la de debajo. */
+let locks = 0;
 function lockScroll(on) {
-  if (on) { d.body.style.overflow = 'hidden'; return; }
+  locks = Math.max(0, locks + (on ? 1 : -1));
+  if (locks > 0) { d.body.style.overflow = 'hidden'; return; }
   d.body.style.removeProperty('overflow');
   if (!d.body.getAttribute('style')) d.body.removeAttribute('style');
 }
@@ -152,7 +159,13 @@ function initNav() {
   });
 }
 
-/* ---------- Hoja generica ---------------------------------- */
+/* ---------- Hoja generica ----------------------------------
+   Las hojas se pueden apilar —la de las cuentas se abre desde la de las
+   plataformas—, asi que hay una pila. Sirve para dos cosas: que Escape
+   cierre solo la de encima, y que el scroll no se suelte antes de
+   tiempo. */
+const openSheets = [];
+
 function sheet(panelId, closeAttr) {
   const panel = d.getElementById(panelId);
   if (!panel) return null;
@@ -160,14 +173,19 @@ function sheet(panelId, closeAttr) {
   let lastFocus = null;
 
   const open = () => {
+    if (openSheets.includes(panel)) return;
     lastFocus = d.activeElement;
     panel.hidden = false;
     void panel.offsetHeight;              // punto de partida para la transicion
     panel.classList.add('is-open');
+    openSheets.push(panel);
     lockScroll(true);
     if (closeBtn) closeBtn.focus();
   };
   const close = () => {
+    const i = openSheets.indexOf(panel);
+    if (i === -1) return;                 // ya estaba cerrada: no contar de menos
+    openSheets.splice(i, 1);
     panel.classList.remove('is-open');
     lockScroll(false);
     setTimeout(() => { if (!panel.classList.contains('is-open')) panel.hidden = true; }, 420);
@@ -175,7 +193,9 @@ function sheet(panelId, closeAttr) {
   };
 
   panel.querySelectorAll('[' + closeAttr + ']').forEach((el) => el.addEventListener('click', close));
-  d.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) close(); });
+  d.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && openSheets[openSheets.length - 1] === panel) close();
+  });
   return { panel, open, close };
 }
 
@@ -191,6 +211,32 @@ function initContact() {
   const s = sheet('contact-panel', 'data-close-contact');
   if (!s) return;
   d.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', s.open));
+}
+
+/* ---------- Dos cuentas, una por idioma ----------------------
+   Instagram y TikTok tienen casa en español y casa en ingles. La ficha
+   sigue siendo un enlace de verdad: sin JavaScript lleva a la de casa,
+   que es la de español. Aqui se le pone la hoja delante.
+
+   Solo se intercepta el clic limpio. Con Ctrl, con Cmd, con Mayus o con
+   el boton de en medio se abre el enlace tal cual: quien pide una
+   pestana nueva esta pidiendo el destino, no una pregunta. */
+function initAccounts() {
+  const s = sheet('account-panel', 'data-close-account');
+  if (!s) return;
+  const title = d.getElementById('account-panel-title');
+  const groups = d.querySelectorAll('[data-account-group]');
+
+  d.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    const chip = e.target.closest('[data-accounts]');
+    if (!chip) return;
+    e.preventDefault();
+    const id = chip.getAttribute('data-accounts');
+    groups.forEach((g) => { g.hidden = g.getAttribute('data-account-group') !== id; });
+    title.textContent = chip.getAttribute('data-account-name') || '';
+    s.open();
+  });
 }
 
 /* ---------- Selector de idioma ------------------------------
@@ -447,6 +493,57 @@ function initReveal() {
    ve como si el sitio no respondiera. Ahora no navega — solo cierra el
    menu. Vale para la barra ancha igual que para el desplegable, porque
    el enlace muerto estaba en las dos.                                */
+/* La ficha de las piezas: el icono la despliega y la pliega. Misma idea
+   que la nota del selector de idioma — la aclaracion esta ahi para quien
+   la busca y no estorba a quien no. */
+/* Dos pasos: el abanico abre la galeria, y de la galeria se entra en la
+   ficha de una pieza. La hoja es una sola y cambia de cara — volver es
+   ensenar otra vez la galeria, no cerrar y reabrir nada. */
+function initCovers() {
+  const fan = d.querySelector('[data-covers-open]');
+  if (!fan) return;
+  const sheetV = sheet('video-panel', 'data-close-video');
+  if (!sheetV) return;
+  const el = (id) => d.getElementById(id);
+  const gallery = el('video-gallery');
+  const detail = el('video-detail');
+
+  const showGallery = () => { detail.hidden = true; gallery.hidden = false; };
+
+  fan.addEventListener('click', () => { showGallery(); sheetV.open(); });
+
+  d.addEventListener('click', (e) => {
+    if (e.target.closest('[data-video-back]')) { showGallery(); return; }
+
+    const pickBtn = e.target.closest('[data-video]');
+    if (!pickBtn) return;
+    const v = VIDEOS.find((x) => x.id === pickBtn.getAttribute('data-video'));
+    if (!v) return;
+
+    const pick = (o) => (o ? (o[lang] || o.es) : '');
+    el('video-detail-webp').srcset = v.webp || '';
+    el('video-detail-img').src = v.src;
+    el('video-detail-img').alt = v.title.es;
+    el('video-detail-title').textContent = pick(v.title);
+
+    /* El titulo original solo cuando se esta leyendo en otro idioma: es lo
+       que se ve escrito en la portada, y en español no hay nada que aclarar. */
+    const orig = el('video-detail-orig');
+    orig.textContent = v.title.es;
+    orig.hidden = lang === 'es';
+
+    el('video-detail-blurb').textContent = pick(v.blurb);
+
+    const link = el('video-detail-link');
+    link.href = v.href || '';
+    link.hidden = !v.href;
+
+    gallery.hidden = true;
+    detail.hidden = false;
+    detail.scrollTop = 0;
+  });
+}
+
 function initCurrent() {
   const here = sheet('here-panel', 'data-close-here');
   d.addEventListener('click', (e) => {
@@ -511,6 +608,7 @@ function initCurtain() {
   });
 }
 
+initCovers();
 initCurrent();
 initCurtain();
 d.documentElement.classList.add('js-reveal');
@@ -557,6 +655,7 @@ initFieldGlow();
 initNav();
 initSocial();
 initContact();
+initAccounts();
 initLang();
 initSoon();
 initGlossary();

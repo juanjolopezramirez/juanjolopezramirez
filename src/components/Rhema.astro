@@ -20,9 +20,18 @@ const { t, where = 'panel' } = Astro.props;
     </span>
   </blockquote>
   <figcaption class="rhema__by">
-    <!-- En escritorio la cara es el recorte del hero, sin fondo; por
-         debajo de 1200px sigue el retrato de siempre. El navegador elige
-         por ancho, asi que solo se descarga una. -->
+    <!-- Dos caras, una por ancho, y el navegador solo se descarga la suya.
+
+         La de escritorio ya no puede salir del hero: desde que ahi esta
+         la del plumas, repetirla al pie de la cita seria ensenar la misma
+         foto dos veces en la misma pantalla. Asi que aqui va la otra
+         sesion —vaquera y capucha roja—, que es de donde sale tambien la
+         de movil.
+
+         El encuadre esta cerrado a la cara a proposito: esto se ve dentro
+         de un circulo de 38px, y ahi lo unico que llega a leerse es el
+         rostro. El de antes traia medio bosque detras y a ese tamano no
+         se distinguia nada. -->
     <picture class="rhema__face">
       <source media="(min-width: 1200px)" srcset="/assets/img/me-quote-face.webp" type="image/webp" />
       <source media="(min-width: 1200px)" srcset="/assets/img/me-quote-face.jpg" />
