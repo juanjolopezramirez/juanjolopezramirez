@@ -93,50 +93,15 @@
 
      El hueso sube a la seccion entera: con la copia apoyada encima, la
      foto ya no hace de bisagra entre el pinar y el hueso. */
-  .about {
-    background: var(--bone);
-    border-top: 3px solid var(--iris);
-    align-items: center;
-    padding-top: 3.25rem;
-  }
-  .about__body {
-    background: none;
-    border-top: 0;
-    padding: 2.25rem var(--gutter) 3.5rem;
-  }
+  /* El hueso, el filo y el centrado ya vienen de base.css. Aqui la
+     seccion solo respira mas. */
+  .about { padding-top: 3.25rem; }
+  .about__body { padding: 2.25rem var(--gutter) 3.5rem; }
   .about__body p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 1.4rem; }
 
-  .about__portrait { width: min(100%, 19rem); padding-inline: 1rem; }
-
-  /* La copia: marco de hueso, ancho abajo como toda camara instantanea,
-     y la foto en cuadrado dentro. La inclinacion va en `rotate` y el
-     flotar en `translate` — son propiedades sueltas, asi que no se pisan
-     entre ellas ni con el `transform` de la entrada. */
-  .about__print {
-    padding: .85rem .85rem 3.25rem;
-    background: #FBFAF7;
-    border-radius: 2px;
-    box-shadow:
-      0 1px 1px rgba(11, 20, 13, .16),
-      0 18px 34px -18px rgba(11, 20, 13, .45);
-    rotate: -2.6deg;
-    animation: floatY 11s var(--ease-smooth) infinite;
-    transition: rotate .45s var(--ease-smooth), box-shadow .45s var(--ease);
-  }
-  .about__portrait img {
-    aspect-ratio: 1 / 1;          /* cuadrado, como manda el formato */
-    object-position: 50% 20%;
-  }
-
-  /* Al pasar por encima se endereza, como cuando coges una foto de la
-     mesa para mirarla de frente. La sombra crece con ella. */
-  .about__portrait:hover .about__print,
-  .about__portrait:focus-within .about__print {
-    rotate: 0deg;
-    box-shadow:
-      0 2px 2px rgba(11, 20, 13, .18),
-      0 30px 50px -20px rgba(11, 20, 13, .5);
-  }
+  /* La copia vive en base.css desde que tambien sale en movil. Aqui solo
+     crece: hay mas sitio, asi que se le deja mas ancho. */
+  .about__portrait { --orbit: min(16.5rem, calc(50vw - 40px)); margin-block: 0; }
 
   /* ---- Hero de seccion: mas aire, todavia en una columna ---- */
   .phero { padding: calc(var(--header-h) + 3rem) var(--gutter) 4rem; }

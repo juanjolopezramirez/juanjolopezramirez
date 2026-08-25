@@ -42,17 +42,6 @@
       #111711  72%,
       #050A05 100%);
 
-  /* Este no es un color de la casa: es el que trae la foto del retrato
-     en su fondo: la media de la primera fila que se llega a ver de ella,
-     medida pixel a pixel. Ojo con medirla sobre un bloque en vez de sobre
-     la fila: la foto se aclara rapido hacia abajo y la media de un bloque
-     da un verde que no esta en ninguna parte del borde. Vive aqui porque
-     lo usan dos sitios que
-     tienen que acabar en el mismo verde exacto —el pie del hero y la
-     cama del retrato— y declarado dos veces se separarian a la primera.
-     Si algun dia cambia la foto, se vuelve a medir y se cambia aqui. */
-  --print-green:   #0E2E1F;
-  --print-green-0: rgba(14, 46, 31, 0);   /* el mismo, transparente */
 
   /* Type */
   --serif:  "Young Serif", Georgia, "Times New Roman", serif;
@@ -211,6 +200,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .hero__forest, .hero__me, .rhema, .phero__seal, .hero__available, .about__print,
   .planet__globe, .planet__star, .phero--sky,
   .rhema__line,
+  .orbit__item, .print-sign, .print-sign .sig__p,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
   .hero__status-dot { animation: none; }
   .link-chip:hover, .link-chip:focus-visible { animation: none; }
@@ -598,26 +588,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     --field-veil: rgba(0, 0, 0, .2);
 
     background:
-      /* 0. La costura con el retrato.
-
-         El campo acaba en #1E2F20 —Pine con el velo negro encima— y la
-         foto de abajo empieza en #0E2E1F. El verde es casi el mismo; lo
-         que cambia es el rojo, 30 contra 14, asi que el de la foto es un
-         verde mas puro y el del campo tira a gris. Bastaba para dejar una
-         raya recta de lado a lado, y esa raya es la que hacia que la
-         pagina pareciera cortada en dos trozos en vez de seguir.
-
-         Asi que los ultimos 6rem del campo se van tinendo hasta el verde
-         exacto de la foto. Cuando llega al borde son el mismo color y no
-         hay nada que cruzar. Va la primera —encima del velo— porque tiene
-         que dar el color final exacto y no uno oscurecido despues.
-
-         Lo que no se toca es la foto: la cara empieza al 8% de lo que se
-         ve de ella y cualquier velo por arriba se la ensuciaria. Todo el
-         arreglo vive de este lado de la juntura. */
-      linear-gradient(to bottom,
-        var(--print-green-0) calc(100% - 6rem),
-        var(--print-green)   100%),
+      /* El campo termina en Pine y ahi se corta. Hubo un degradado que
+         tenia los ultimos 6rem hasta el verde exacto de la foto de
+         abajo, porque aquella iba a sangre y las dos verdes se tocaban.
+         Desde que el retrato es una copia sobre hueso no hay dos verdes
+         que casar: lo que viene despues es hueso con su filo de Iris, y
+         un corte limpio es justo lo que quiere. */
 
       /* 1. La luz, detras de la foto */
       radial-gradient(
@@ -863,13 +839,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   }
   .rhema--panel .icon--quote { color: var(--ring); }
 
-  /* Iris 300 y no Iris a secas: sobre el pinar cerrado, el primero da
-     7.6:1 y el segundo se queda en 4.5. */
+  /* En hueso y no en Iris. Iris 300 daba 7.6:1 sobre el pinar cerrado y
+     se leia de sobra, pero teñia la frase de verde sobre un fondo que ya
+     es verde, y la palabra escrita a mano se perdia dentro del campo.
+     El hueso la despega —13:1— y deja el color para lo que de verdad lo
+     necesita: el oro de la comilla y el de `ahava`. */
   .rhema--panel .rhema__text {
     margin: .55rem 0 .9rem;
     font-size: 1.05rem;
     line-height: 1.5;
-    color: var(--iris-300);
+    color: var(--bone);
   }
   .rhema--panel .rhema__text .ahava { color: var(--ring); }
 
@@ -1075,40 +1054,337 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    desde 1024px se ponen lado a lado y el retrato deja de ser una banda
    para ser una copia enmarcada.
    ============================================================= */
+/* El hueso sube a la seccion entera y la copia se apoya en el. En movil
+   esto era una banda verde, y hacia falta mientras el retrato iba a
+   sangre y tenia que enganchar con el pinar del hero. Ahora el retrato
+   es una copia con su marco, y una copia se deja sobre la mesa, no sobre
+   el bosque. El filo de Iris marca donde empieza la seccion. */
 .about {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  background: var(--bone);
+  border-top: 3px solid var(--iris);
+  padding-top: 2.5rem;
 }
 
-/* El retrato entra con el resto —se aclara y sube—, y mientras lo hace
-   deja ver lo que tiene detras. Si eso es Pine, durante ese segundo hay
-   dos verdes distintos pegados y la juntura salta a la vista justo
-   cuando se esta mirando. Asi que debajo se pinta el verde de la propia
-   foto: entra sobre su mismo color y no hay nada que ver aparecer.
-   El hueso de `.about__body` tapa esta cama de ahi para abajo. */
-@media (max-width: 599px) {
-  .about { background: var(--print-green); }
-}
+/* La copia instantanea: marco de hueso, ancho abajo como toda camara
+   de revelado, y la foto en cuadrado dentro.
 
+   Antes esto solo existia de 600px para arriba: en movil el retrato iba
+   a sangre, de lado a lado, haciendo de bisagra entre el pinar y el
+   hueso. Pero a sangre no es una foto, es un fondo — y lo que se queria
+   ensenar era una foto. Asi que la copia baja tambien al movil y la
+   banda verde se queda detras, que es donde va bien: una copia apoyada
+   en el verde, no un verde tapado por una copia.
+
+   La inclinacion va en `rotate` y el flotar en `translate`: son
+   propiedades sueltas, asi que no se pisan entre ellas ni con el
+   `transform` de la entrada. */
 .about__portrait {
   --ty: 26px;
   --rot: 0deg;
-  margin: 0;
+  /* Lo que miden los objetos que salen de dentro. Es el ancho de la
+     copia, y vive aqui porque de aqui cuelgan: si la copia crece, se
+     alejan lo mismo en proporcion y el reparto no hay que rehacerlo.
+
+     Era 17rem, y antes de eso un numero fijo a secas. Las dos veces se
+     cortaban objetos, y la segunda por un motivo que no se ve mirando un
+     movil de 375: el viaje se calcula con `--orbit`, asi que si `--orbit`
+     no baja cuando baja la pantalla, la copia se estrecha pero los
+     objetos siguen saliendo igual de lejos. A 320px se cortaban los seis.
+
+     Por eso ahora es una cuenta y no una constante. El termino de vw es
+     el sitio que hay: medio ancho de pantalla, menos lo que ocupa el
+     objeto mas gordo en su punto mas lejano, dividido por lo que se
+     aleja. Lo que sale es el ancho maximo de copia que deja ver los seis
+     enteros — y a partir de 400px ya no manda, porque topa en 14.5rem. */
+  --orbit: min(14.5rem, calc(76vw - 62px));
+  position: relative;
+  align-self: center;
+  width: min(100%, var(--orbit));
+  margin: 2.75rem 0 3rem;
+  padding-inline: 1rem;
   line-height: 0;
 }
-.about__print { display: block; }
-.about__portrait img {
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  object-fit: cover;
-  object-position: 50% 22%;      /* la cara, no el pecho */
+.about__print {
+  display: block;
+  position: relative;
+  padding: .85rem .85rem 3.25rem;
+  background: #FBFAF7;
+  border-radius: 2px;
+  box-shadow:
+    0 1px 1px rgba(11, 20, 13, .16),
+    0 18px 34px -18px rgba(11, 20, 13, .45);
+  rotate: -2.6deg;
+  animation: floatY 11s var(--ease-smooth) infinite;
+  transition: rotate .45s var(--ease-smooth), box-shadow .45s var(--ease);
+}
+/* Al tocarla o pasar por encima se endereza, como cuando coges una foto
+   de la mesa para mirarla de frente. La sombra crece con ella.
+
+   `is-open` va aqui tambien: sin raton no hay `:hover`, asi que en un movil
+   la copia se quedaba torcida mientras salian los objetos — y la firma, que
+   se escribe en el pie, salia girada con ella y parecia descentrada. Se
+   endereza igual se llegue por raton o por dedo. */
+.about__portrait:hover .about__print,
+.about__portrait.is-open .about__print,
+.about__portrait:focus-within .about__print {
+  rotate: 0deg;
+  box-shadow:
+    0 2px 2px rgba(11, 20, 13, .18),
+    0 30px 50px -20px rgba(11, 20, 13, .5);
+}
+/* =============================================================
+   LA FIRMA, EN EL PIE DE LA COPIA
+
+   El pie ancho de una instantanea existe para escribir en el, asi que
+   ahi va la firma — la misma de la portada de arranque, el mismo fichero
+   y los mismos doce trazos.
+
+   Se escribe MIENTRAS los objetos terminan de colocarse, y acaba con
+   ellos. Los seis se posan a los 2.8s —2.1s de animacion mas 700ms del
+   ultimo turno—, y la firma tarda 960ms en escribirse entera, asi que la
+   pluma arranca a 1.85s para dejar el ultimo trazo justo cuando el ultimo
+   objeto llega a su sitio. Antes empezaba a 2.9s y habia que esperarla
+   despues de que todo lo demas ya estuviera quieto.
+
+   Y se escribe en oro. El oro es el color de la casa que se usa para lo
+   que se firma y se fecha —la comilla de la cita, el punto de
+   disponible— y sobre el hueso del pie tiene el brillo justo de una
+   tinta fresca. Cuando termina de escribirse, la tinta se seca: pasa a
+   Pine en algo menos de un segundo. Ese es el gesto — se firma en oro y
+   queda en verde.
+   ============================================================= */
+.print-sign {
+  position: absolute;
+  left: 50%;
+  /* El pie mide 50px y la firma es 2.28 veces mas ancha que alta. Al 47%
+     rozaba el canto de la foto y al 43% seguia pesando demasiado para lo
+     que es: un pie de foto, no un titulo. Al 34% se lee entera y deja que
+     el pie siga siendo un margen. */
+  bottom: .45rem;
+  width: 34%;
+  height: auto;
+  translate: -50%;
+  color: var(--ring);
+  opacity: 0;
+  transition: opacity .6s var(--ease);
 }
 
+/* Cada trazo tapado por la derecha; la animacion lo destapa. Es el mismo
+   recurso de la portada: `clip-path` y no `width`, para que el trazo no
+   se recoloque mientras aparece — solo se descubre. */
+.print-sign .sig__p { clip-path: inset(-8% 101% -8% -8%); }
+
+.about__portrait:hover .print-sign,
+.about__portrait.is-open .print-sign {
+  opacity: 1;
+  transition-delay: 1.85s;
+  animation: printInk .9s var(--ease) 2.85s forwards;
+}
+.about__portrait:hover .print-sign .sig__p,
+.about__portrait.is-open .print-sign .sig__p {
+  animation: printWrite 300ms var(--ease) both;
+  animation-delay: calc(1.85s + var(--i) * 60ms);
+}
+
+@keyframes printWrite { to { clip-path: inset(-8% -8% -8% -8%); } }
+@keyframes printInk   { to { color: var(--pine); } }
+
+
+/* =============================================================
+   LO QUE HAY DENTRO DE LA FOTO
+
+   Van DELANTE de la copia, no detras. Detras estuvieron, y era el
+   error: el marco los partia por la mitad y lo que se veia era un trozo
+   de algo. Aqui van encima y se ven enteros.
+
+   El viaje tiene dos tramos y por eso es una animacion y no una
+   transicion — una transicion solo sabe ir de A a B en linea recta:
+
+     0%   en el centro, diminutos y apagados: dentro de la foto
+     40%  fuera del marco, enteros y un pelo mas grandes de la cuenta
+     100% se posan sobre la foto, a su tamano, como pegatinas
+
+   El punto de fuera es el de pegatina multiplicado por 1.5. Se calcula
+   en vez de escribirse para que ida y vuelta no puedan descuadrarse: un
+   solo juego de numeros manda sobre los dos.
+
+   El multiplicador bajo de 1.9 a 1.5 al mover las pegatinas al borde:
+   si el destino se aleja y el factor se queda, el punto de fuera se sale
+   de la pantalla. Los dos numeros se mueven juntos o no se mueve ninguno.
+
+   Al soltar, la animacion desaparece y el elemento vuelve a su estado de
+   reposo, que no es el centro sino el punto de fuera y apagado. Por eso
+   la salida tambien va hacia afuera: se van por donde vinieron. Poner el
+   reposo ahi es lo que compra esa salida sin una segunda animacion.
+
+   Se escalonan con `--d`: 90ms entre uno y otro, y el ultimo sale 450
+   despues del primero. Es lo que hace que se lea como algo que se abre y
+   no como seis cosas que aparecen a la vez. */
+/* La caja de la orbita cubre la FOTO, no la copia entera. No es lo
+   mismo: el marco de una instantanea lleva un pie ancho abajo, asi que
+   el centro de la copia cae bastante por debajo del centro de la foto.
+   Con `inset: 0` los seis salian desplazados hacia abajo — los de arriba
+   quedaban dentro de la imagen y los de abajo se iban al pie. Recortando
+   por el mismo relleno que usa el marco, el centro vuelve a ser el de la
+   foto y el reparto sale simetrico. */
+/* Esta capa vive DENTRO del marco, asi que no tiene que sincronizar nada:
+   lo que le pasa a la copia le pasa a ella. El flote de `floatY`, la
+   inclinacion de 2.6 grados, el enderezarse al tocarla — todo lo hereda
+   por ser hija.
+
+   Estuvo fuera, imitando el flote con una animacion identica. El flote si
+   cuadraba —al pixel—, pero el giro no: la copia se inclinaba y se
+   enderezaba y los objetos se quedaban rectos, y eso se ve. Dos cosas
+   iguales declaradas en dos sitios cuadran hasta que una de las dos
+   cambia; una sola declarada en el padre no puede descuadrarse nunca.
+
+   El hueco se mide ahora desde el marco, que es el nuevo padre: el mismo
+   relleno que usa el, para que el centro siga siendo el de la foto. */
+.orbit {
+  position: absolute;
+  inset: .85rem .85rem 3.25rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* El reposo: fuera y apagado. Es tambien el destino de la salida. */
+/* El reposo es el centro y apagado: dentro de la foto, que es de donde
+   salen y adonde vuelven.
+
+   La caja es CUADRADA y mide `--s` — no es el ancho del objeto, es el
+   lado mayor del hueco donde cabe. Dentro, la imagen se centra y se
+   ajusta sin deformarse: la bandera llena el ancho y deja aire arriba y
+   abajo, el pez llena el alto y deja aire a los lados. Con la caja
+   cuadrada el centrado es un margen negativo igual en los dos ejes, sin
+   el `translateY(-50%)` que habia antes — que ademas se escalaba junto
+   con `scale` y descolocaba el objeto durante el viaje. */
+.orbit__item {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: var(--s); height: var(--s);
+  margin: calc(var(--s) / -2);
+  translate: 0 0;
+  scale: .15;
+  rotate: 0deg;
+  opacity: 0;
+}
+/* `contents` para que la imagen sea la que se centra en la rejilla y no
+   el <picture>, que si no se queda en medio como una caja inline. */
+.orbit__item picture { display: contents; }
+/* La imagen se estira sobre el cuadro entero —posicionada, no en flujo— y
+   `contain` la mete dentro sin deformarla: toca dos lados y deja aire en
+   los otros dos. Va absoluta a proposito. Como hija en flujo, su alto lo
+   decidia la proporcion de la imagen y no el cuadro, asi que los objetos
+   de pie —el pez, el mate— se salian por arriba y por abajo y acababan
+   midiendo casi el doble que los tumbados. Pegada a los cuatro lados del
+   cuadro, el tamano lo manda `--s` y nada mas. */
+.orbit__item img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* La vuelta es la ida del reves, y por eso son dos animaciones y no una
+   transicion de salida: una transicion iria de la pegatina al centro en
+   linea recta y se saltaria el punto de fuera, que es justo el que hace
+   que el gesto se entienda. Se van por donde vinieron.
+
+   `has-played` la pone el guion en el primer contacto. Sin ella, la
+   salida se ejecutaria sola al cargar la pagina y los seis harian su
+   despedida delante de alguien que no ha tocado nada.
+
+   El orden importa: `has-played` y `:hover` pesan lo mismo, asi que gana
+   el ultimo que se declara. La entrada va despues a proposito. */
+.about__portrait.has-played .orbit__item {
+  animation: stickerOut 1.7s var(--ease-smooth) var(--d, 0ms) both;
+}
+
+/* Con raton, al pasar por encima. Sin raton no hay `:hover` que valga,
+   asi que el guion pone `is-open` al tocar la copia. */
+.about__portrait:hover .orbit__item,
+.about__portrait.is-open .orbit__item {
+  animation: stickerIn 2.1s var(--ease-smooth) var(--d, 0ms) both;
+}
+
+@keyframes stickerIn {
+  0% {
+    translate: 0 0;
+    scale: .15;
+    rotate: 0deg;
+    opacity: 0;
+  }
+  45% {
+    translate:
+      calc(var(--orbit) * var(--x) * 1.5)
+      calc(var(--orbit) * var(--y) * 1.5);
+    scale: 1.12;
+    rotate: var(--r);
+    opacity: 1;
+  }
+  100% {
+    translate: calc(var(--orbit) * var(--x)) calc(var(--orbit) * var(--y));
+    scale: 1;
+    rotate: var(--r);
+    opacity: 1;
+  }
+}
+
+@keyframes stickerOut {
+  0% {
+    translate: calc(var(--orbit) * var(--x)) calc(var(--orbit) * var(--y));
+    scale: 1;
+    rotate: var(--r);
+    opacity: 1;
+  }
+  55% {
+    translate:
+      calc(var(--orbit) * var(--x) * 1.5)
+      calc(var(--orbit) * var(--y) * 1.5);
+    scale: 1.12;
+    rotate: var(--r);
+    opacity: 1;
+  }
+  100% {
+    translate: 0 0;
+    scale: .15;
+    rotate: 0deg;
+    opacity: 0;
+  }
+}
+
+/* OJO CON ESTE SELECTOR. Va con `>` a proposito y tiene que seguir yendo.
+
+   Recorta a cuadrado con `cover`, que es lo que la copia necesita y lo que
+   destroza a cualquier otra imagen que caiga dentro. Y dentro del marco
+   hay mas imagenes: los seis objetos de la orbita. Escrito ancho
+   —`.about__print img`— les caia encima y los partia uno por uno: a la
+   bandera los lados, al pez y al mate la cabeza y los pies. No los
+   recortaba nada de fuera; se lo hacia esta linea.
+
+   Ya paso dos veces. La primera con `.about__portrait img`, y la segunda
+   al meter la orbita dentro del marco, que volvio a ponerla a tiro. Con el
+   combinador de hijo directo apunta solo a la imagen que cuelga del marco
+   —la foto— y no puede alcanzar a nada anidado mas abajo, se mueva lo que
+   se mueva. */
+.about__print > picture img {
+  width: 100%;
+  aspect-ratio: 1 / 1;           /* cuadrado, como manda el formato */
+  object-fit: cover;
+  /* La cara vive al 44% del alto del fichero y del cuadrado se ve el
+     56%: arrancando en el 36% queda en el medio del marco. */
+  object-position: 50% 36%;
+}
+
+/* El hueso y el filo los pone ya la seccion: aqui solo va el texto. */
 .about__body {
-  background: var(--bone);
+  width: 100%;
   color: var(--slate);
-  border-top: 3px solid var(--iris);
-  padding: 2.5rem var(--gutter) 2.5rem;
+  padding: 1.75rem var(--gutter) 2.75rem;
 }
 .about__body p {
   max-width: var(--measure);

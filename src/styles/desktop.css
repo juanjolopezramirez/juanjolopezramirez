@@ -278,17 +278,23 @@
   /* ---- Yo, sobre la costura ----
      El borde derecho cae siempre a la misma distancia dentro de la
      hoja, asi que el cruce no cambia con el ancho de la pantalla. */
-  /* La foto viene cortada al borde del encuadre por abajo y por la
-     derecha, y se queda asi: sin mascara, a canto vivo.
+  /* El retrato de la costura ya no es cuadrado: mide 1001x1709, o sea
+     0.586 de ancho por alto, y eso cambia como se limita.
 
-     Hubo un degradado para disimular el corte y ya no hace falta: el
-     canto solo toca el borde derecho en el ultimo 12% de la altura,
-     abajo del todo, que es justo donde la foto se apoya en el filo de
-     la pantalla.
+     El segundo tope de `min()` esta para que la foto no sea mas alta que
+     la ventana. Con una imagen cuadrada bastaba con topar el ancho —alto y
+     ancho eran el mismo numero—, pero aqui el alto es 1.7 veces el ancho y
+     el tope se quedaba corto: la foto asomaba por encima del techo.
+     Multiplicarlo por la proporcion hace que vuelva a significar lo que
+     decia que significaba: alto maximo, no ancho.
 
-     No va espejada: mira hacia la izquierda, que es donde esta el
-     nombre. Volteada, la cara se iria contra la costura y la mirada
-     se saldria de la pagina. */
+     No va espejada: la mirada sube hacia el hueso y el hombro cae hacia el
+     nombre. Volteada, la cara quedaria contra la costura.
+
+     Y va a canto vivo: el brazo se corta contra el pinar y ahi se queda.
+     Hubo un degradado que lo desvanecia por la izquierda y esta quitado a
+     proposito — se comia el brazo y parecia que la foto se deshacia. Si
+     algun dia el corte molesta, se cambia la foto, no se difumina. */
   /* Aqui no floto: en la costura soy el ancla, y un ancla que se mueve
      deja de serlo. */
   .hero__me {
@@ -296,10 +302,11 @@
     left: auto;
     right: calc(var(--panel) - var(--me-cross));
     bottom: 0;
-    width: min(clamp(20rem, 30vw, 34rem), calc(100svh - 6rem));
+    width: min(clamp(20rem, 30vw, 34rem), calc((100svh - 6rem) * .586));
     translate: 0;
     z-index: 3;
   }
+
 
   /* ---- Lo que se lee, sobre el pinar ---- */
   .hero__identity {

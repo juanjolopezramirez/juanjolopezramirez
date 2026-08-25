@@ -20,23 +20,16 @@ const { t, where = 'panel' } = Astro.props;
     </span>
   </blockquote>
   <figcaption class="rhema__by">
-    <!-- Dos caras, una por ancho, y el navegador solo se descarga la suya.
+    <!-- Una sola cara, la misma en todos los anchos.
 
-         La de escritorio ya no puede salir del hero: desde que ahi esta
-         la del plumas, repetirla al pie de la cita seria ensenar la misma
-         foto dos veces en la misma pantalla. Asi que aqui va la otra
-         sesion —vaquera y capucha roja—, que es de donde sale tambien la
-         de movil.
-
-         El encuadre esta cerrado a la cara a proposito: esto se ve dentro
-         de un circulo de 38px, y ahi lo unico que llega a leerse es el
-         rostro. El de antes traia medio bosque detras y a ese tamano no
-         se distinguia nada. -->
+         Hubo dos —una por debajo de 1200px y otra por encima— y llego a
+         tener sentido cuando eran sesiones distintas. Desde que las dos
+         salieron de la misma tarde, mantener el corte era pedirle al
+         navegador que eligiera entre dos ficheros casi iguales: dos cosas
+         que mantener, una que se ve. Se queda la del plumas. -->
     <picture class="rhema__face">
-      <source media="(min-width: 1200px)" srcset="/assets/img/me-quote-face.webp" type="image/webp" />
-      <source media="(min-width: 1200px)" srcset="/assets/img/me-quote-face.jpg" />
-      <source srcset="/assets/img/me-face.webp" type="image/webp" />
-      <img src="/assets/img/me-face.jpg" alt="" width="512" height="512"
+      <source srcset="/assets/img/me-quote-face.webp" type="image/webp" />
+      <img src="/assets/img/me-quote-face.jpg" alt="" width="512" height="512"
            loading="lazy" decoding="async" />
     </picture>
     <span>

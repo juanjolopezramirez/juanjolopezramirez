@@ -3,6 +3,8 @@ import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import Hero from '../../components/Hero.astro';
 import Rhema from '../../components/Rhema.astro';
+import Orbit from '../../components/Orbit.astro';
+import Signature from '../../components/Signature.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -20,7 +22,7 @@ const t = useT(lang);
          tablet cae justo despues del hero, entre el pinar y el hueso, a
          sangre. Desde 1024px la rejilla lo manda a la derecha y deja de
          ser una banda para ser una copia enmarcada. -->
-    <figure class="about__portrait reveal">
+    <figure class="about__portrait reveal" data-orbit>
       <div class="about__print">
         <picture>
           <source srcset="/assets/img/me-quote.webp" type="image/webp" />
@@ -28,6 +30,13 @@ const t = useT(lang);
                alt="Juanjo, de perfil, mirando hacia arriba"
                loading="lazy" decoding="async" />
         </picture>
+        <!-- El pie ancho de una instantanea esta para escribir en el.
+             Aqui se escribe sola, cuando los objetos ya se han posado. -->
+        <Signature cls="print-sign" />
+        <!-- Dentro del marco, no al lado: asi los objetos heredan todo lo
+             que le pase a la copia —el flote, la inclinacion, el enderezarse
+             al tocarla— en vez de tener que imitarlo desde fuera. -->
+        <Orbit />
       </div>
     </figure>
 

@@ -239,6 +239,26 @@ function initAccounts() {
   });
 }
 
+/* ---------- Lo que sale de la foto --------------------------
+   Con raton los objetos salen al pasar por encima y se recogen al
+   salir; de eso se encarga `:hover` y aqui no hace falta nada.
+
+   En una pantalla tactil no hay `hover`: el primer toque los saca y el
+   segundo los recoge. Es la copia entera la que escucha, no un boton
+   —no hay nada que pulsar, solo una foto que se abre. */
+function initOrbit() {
+  const fig = d.querySelector('[data-orbit]');
+  if (!fig) return;
+
+  /* La salida no puede existir antes del primer contacto: hasta que no
+     han salido una vez, no hay nada de lo que despedirse. */
+  const played = () => fig.classList.add('has-played');
+  fig.addEventListener('pointerenter', played, { once: true });
+
+  if (matchMedia('(hover: hover)').matches) return;   // con raton manda el CSS
+  fig.addEventListener('click', () => { played(); fig.classList.toggle('is-open'); });
+}
+
 /* ---------- Selector de idioma ------------------------------
    Ya no traduce: cada bandera es un enlace a la misma pagina en
    otro idioma. Solo abre y cierra.                              */
@@ -656,6 +676,7 @@ initNav();
 initSocial();
 initContact();
 initAccounts();
+initOrbit();
 initLang();
 initSoon();
 initGlossary();

@@ -1,0 +1,57 @@
+---
+/* Lo que hay dentro de la foto, saliendo y quedandose pegado encima.
+
+   Seis objetos —la bandera, el pez, el portatil, la camara, el mate y el
+   balon— escondidos en el centro de la copia. Al pasar por encima o al
+   tocarla hacen un viaje de ida y media:
+
+     1. salen del centro hacia afuera, hasta pasarse del marco, y ahi se
+        ven enteros y un pelo mas grandes de lo que van a quedarse;
+     2. vuelven hacia dentro y se posan sobre la foto, como pegatinas.
+
+   Y al soltar, se van por donde vinieron: hacia afuera y se apagan.
+
+   Ese rodeo es el que hace que se lean. Antes iban derechos a su sitio y
+   por detras de la copia, y el marco los partia por la mitad: se veia un
+   trozo de algo, no un balon ni una camara. Saliendo del todo primero, da
+   tiempo a reconocer los seis antes de que se posen.
+
+   `x` e `y` son donde acaban y van en multiplos del ancho de la copia,
+   que la hoja guarda en `--orbit`. El punto de fuera no se escribe: es
+   el mismo por 1.5, asi que hay un solo juego de numeros que mantener y
+   la ida y la vuelta no se pueden descuadrar entre ellas.
+
+   Acaban SOBRE EL MARCO, no dentro de la foto. Cuatro en las esquinas y
+   dos en el medio de los lados: .38 deja el centro del objeto justo en
+   el canto de la imagen, y .42 —los del medio, que no tienen esquina que
+   ocupar— un poco mas afuera, ya en el hueso del marco. Dentro de la
+   foto tapaban la cara y parecian pegados encima de ella; en el canto se
+   leen como lo que son, pegatinas en el borde de una copia.
+
+   `s` es el lado del cuadrado donde cabe cada uno, no su ancho. La
+   imagen se ajusta dentro sin deformarse, asi que un objeto apaisado
+   como el portatil llena el ancho y uno de pie como el pez llena el
+   alto. Los numeros estan repartidos para que los seis pesen parecido a
+   la vista, que no es lo mismo que medir lo mismo. */
+const ITEMS = [
+  { id: 'flag',     x: -.38, y: -.38, s: '3.4rem', r: -12, d:  0   },
+  { id: 'fish',     x:  .38, y: -.38, s: '3.2rem', r:   8, d: 140  },
+  { id: 'macbook',  x: -.42, y:  .00, s: '3.6rem', r:  -6, d: 280  },
+  { id: 'camera',   x:  .42, y:  .02, s: '3.2rem', r:  10, d: 420  },
+  { id: 'mate',     x: -.38, y:  .38, s: '3.7rem', r:  -9, d: 560  },
+  { id: 'football', x:  .38, y:  .38, s: '2.9rem', r:   7, d: 700  }
+];
+---
+<!-- Decoracion pura. No hay nada que leer ni nada que pulsar aqui dentro:
+     el lector de pantalla se lo salta entero y el raton lo atraviesa. -->
+<span class="orbit" aria-hidden="true">
+  {ITEMS.map((o) => (
+    <span class="orbit__item"
+          style={`--x:${o.x}; --y:${o.y}; --s:${o.s}; --r:${o.r}deg; --d:${o.d}ms`}>
+      <picture>
+        <source srcset={`/assets/icons/insta/${o.id}.webp`} type="image/webp" />
+        <img src={`/assets/icons/insta/${o.id}.png`} alt="" loading="lazy" decoding="async" />
+      </picture>
+    </span>
+  ))}
+</span>
