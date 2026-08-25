@@ -239,6 +239,24 @@ function initAccounts() {
   });
 }
 
+/* ---------- La altura, quieta --------------------------------
+   `--vh0` se escribe en la cabecera, antes de pintar. Aqui solo se
+   vigila si hace falta volver a medirla.
+
+   La condicion es el ANCHO, no el alto. Esconder la barra del navegador
+   cambia el alto y nada mas; girar el telefono cambia los dos. Mirando
+   solo el ancho se distingue una cosa de la otra sin tener que adivinar:
+   si el ancho no se mueve, no ha pasado nada que justifique recolocar la
+   pagina. Eso deja fuera tambien al teclado, que sube y baja el alto. */
+function initViewportLock() {
+  let w = innerWidth;
+  addEventListener('resize', () => {
+    if (Math.abs(innerWidth - w) < 40) return;
+    w = innerWidth;
+    d.documentElement.style.setProperty('--vh0', innerHeight + 'px');
+  }, { passive: true });
+}
+
 /* ---------- Lo que sale de la foto --------------------------
    Con raton los objetos salen al pasar por encima y se recogen al
    salir; de eso se encarga `:hover` y aqui no hace falta nada.
@@ -673,6 +691,7 @@ d.documentElement.classList.add('js-reveal');
 initHeader();
 initFieldGlow();
 initNav();
+initViewportLock();
 initSocial();
 initContact();
 initAccounts();

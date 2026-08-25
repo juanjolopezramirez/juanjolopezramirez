@@ -578,7 +578,10 @@
      flotaba el sello al que releva — el giro es suyo, el vaiven es del
      hueco donde se apoya. */
   .planet { --planet: clamp(13rem, 17vw, 19rem); }
-  .planet__globe { animation: planetSpin 45s linear infinite, floatY 9s var(--ease-smooth) infinite; }
+  /* El giro vive en el ::before desde que el mapa se separo para poder
+     llevar filtro. Aqui el globo solo flota — y al flotar el, flota todo
+     lo que tiene dentro. */
+  .planet__globe { animation: floatY 9s var(--ease-smooth) infinite; }
 
   .phero__seal {
     animation: floatY 9s var(--ease-smooth) infinite;

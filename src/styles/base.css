@@ -198,7 +198,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .js-reveal [data-lift] { opacity: 1; transform: none; transition: none; }
   /* Nada flota ni llama si se ha pedido quietud. */
   .hero__forest, .hero__me, .rhema, .phero__seal, .hero__available, .about__print,
-  .planet__globe, .planet__star, .phero--sky,
+  .planet__globe, .planet__globe::before, .planet__star, .phero--sky,
   .rhema__line,
   .orbit__item, .print-sign, .print-sign .sig__p,
   .door, .scroll-cue, .nav-cta { animation: none !important; }
@@ -472,11 +472,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    ------------------------------------------------------------------- */
 .hero__stage {
   position: relative;
-  /* `svh` es la ventana CON la barra del navegador puesta — la que de
-     verdad se ve al entrar. Con `vh` la foto se medía contra una pantalla
-     mas alta y empujaba las redes por debajo del pliegue. Los 330px son
-     lo que ocupan el nombre, el oficio y los enlaces por debajo. */
-  width: min(94vw, 27rem, max(12rem, calc(100svh - 382px)));
+  /* La calcomania se mide contra la altura de la ventana para no empujar
+     el nombre y las redes por debajo del pliegue: los 382px son lo que
+     ocupan ellos. El problema no es la cuenta, es contra QUE se mide.
+
+     `svh` deberia ser la ventana con la barra del navegador puesta y
+     no moverse nunca. En Safari y Chrome se porta; en los navegadores
+     que viven dentro de una app —el de Instagram, el de Facebook— no:
+     al esconder la barra en el primer scroll recalculan, la ventana
+     crece ochenta pixeles y la calcomania pega un salto en medio de la
+     pagina. Es exactamente lo que se ve al abrir el enlace desde una
+     historia.
+
+     Asi que ya no se mide contra la ventana, sino contra `--vh0`: la
+     altura leida una vez al entrar y guardada. No la vuelve a tocar
+     nadie salvo que la pantalla cambie de verdad, girandola. Sin
+     JavaScript se cae a `100svh` y se comporta como antes. */
+  width: min(94vw, 27rem, max(12rem, calc(var(--vh0, 100svh) - 382px)));
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
@@ -1440,20 +1452,28 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   height: 100%;
 }
 
+/* El planeta va en tres capas y no en una, y el motivo es el filtro.
+
+   El mapa necesita subir de brillo y de color para que el mar oscuro
+   no se pierda contra el verde del fondo. Pero `filter` no entiende de
+   partes: se aplica a TODO lo que pinta el elemento — el mapa, sus
+   sombras y sus hijos. Puesto en el globo entero aclaraba un 40% la
+   sombra que hace la esfera (la dejaba en nada), aguaba la de fuera que
+   lo despega del cielo, y quemaba las estrellas, que son hijas y ya
+   vienen en hueso.
+
+   Asi que cada cosa a su capa:
+     el globo   la sombra de fuera, y las estrellas dentro
+     ::before   el mapa: gira y lleva el filtro, el solo
+     ::after    las dos sombras de dentro, por encima del mapa
+
+   El orden de pintado lo da el navegador y sale justo: primero el fondo
+   del globo, luego ::before, luego los hijos, luego ::after. */
 .planet__globe {
   position: relative;
   display: block;
   width: var(--planet); height: var(--planet);
   border-radius: 50%;
-  /* Dos ficheros del mismo mapa. En movil el planeta mide 160px y el
-     mapa se pinta a 320: uno de 700 ya va sobrado y pesa un tercio. El
-     grande solo baja donde el planeta crece de verdad. */
-  background-image: url("/assets/img/world-sm.png");
-  background-image: image-set(
-    url("/assets/img/world-sm.webp") type("image/webp"),
-    url("/assets/img/world-sm.png") type("image/png"));
-  background-size: calc(var(--planet) * var(--map)) 100%;
-  background-repeat: repeat;
   /* Tres sombras, y las tres con desenfoque — que es lo que faltaba.
      Las de antes iban a cero de blur: eran dos medias lunas de borde
      recto pegadas dentro del circulo, y a tamano grande se veia que eran
@@ -1470,15 +1490,59 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      Van en fracciones del diametro para que la esfera se vea igual a
      10rem en el movil que a 19rem en la costura. Los numeros salen de la
      receta original medida sobre 315px. */
-  box-shadow:
-    0 0 calc(var(--planet) * .048) calc(var(--planet) * .006) rgba(0, 0, 0, .40),
-    inset calc(var(--planet) * -.079) calc(var(--planet) * -.079) calc(var(--planet) * .159) 0 rgba(0, 0, 0, .60),
-    inset calc(var(--planet) *  .016) calc(var(--planet) *  .016) calc(var(--planet) * .063) 0 rgba(241, 239, 233, .10);
+  /* Solo la de fuera: despega el planeta del cielo, que aqui es casi
+     negro. Se queda en el globo porque se pinta por debajo de todo y el
+     filtro del mapa no la alcanza. */
+  box-shadow: 0 0 calc(var(--planet) * .048) calc(var(--planet) * .006) rgba(0, 0, 0, .40);
+}
+
+/* El mapa. Gira y se aclara — y nada mas que el.
+
+   `brightness` sube el mar, `saturate` le devuelve el azul que se pierde
+   al subirlo, y `contrast` recupera la separacion entre agua y tierra que
+   el brillo aplana. Los tres van en este orden porque asi los encadena el
+   navegador. */
+.planet__globe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* Dos ficheros del mismo mapa. En movil el planeta mide 160px y el
+     mapa se pinta a 320: uno de 700 ya va sobrado y pesa un tercio. El
+     grande solo baja donde el planeta crece de verdad. */
+  background-image: url("/assets/img/world-sm.png");
+  background-image: image-set(
+    url("/assets/img/world-sm.webp") type("image/webp"),
+    url("/assets/img/world-sm.png") type("image/png"));
+  background-size: calc(var(--planet) * var(--map)) 100%;
+  background-repeat: repeat;
+  filter: brightness(1.4) contrast(1.15) saturate(1.4);
   animation: planetSpin 45s linear infinite;
 }
 
+/* La esfera. Va encima del mapa, asi que el filtro no la toca y la
+   sombra sigue pesando lo que tiene que pesar.
+
+     1. desde abajo a la derecha: es la que curva. Mucho desenfoque,
+        porque el terminador de un planeta no tiene filo.
+     2. arriba a la izquierda: el brillo. De ahi viene la luz, y por eso
+        la sombra esta justo enfrente.
+
+   En fracciones del diametro, para que la esfera se vea igual a 10rem en
+   el movil que a 19rem en la costura. */
+.planet__globe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset calc(var(--planet) * -.079) calc(var(--planet) * -.079) calc(var(--planet) * .159) 0 rgba(0, 0, 0, .60),
+    inset calc(var(--planet) *  .016) calc(var(--planet) *  .016) calc(var(--planet) * .063) 0 rgba(241, 239, 233, .10);
+}
+
 @media (min-width: 1024px) {
-  .planet__globe {
+  .planet__globe::before {
     background-image: url("/assets/img/world.png");
     background-image: image-set(
       url("/assets/img/world.webp") type("image/webp"),

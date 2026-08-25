@@ -11,7 +11,14 @@ import '../styles/desktop.css';
 const { lang, path = '', active = '', title, description } = Astro.props;
 const t = useT(lang);
 const clean = String(path).replace(/^\/+|\/+$/g, '');
-const alt = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
+
+/* Absolutas, no relativas. `hreflang` exige direccion completa —con
+   dominio— y con `/es/` a secas el buscador no valida ninguna de las
+   cinco: es lo que tiraba la nota de SEO. El dominio sale de `site` en
+   astro.config.mjs, asi que hay un solo sitio donde cambiarlo. */
+const origin = String(Astro.site ?? '').replace(/\/$/, '');
+const alt = (l) => `${origin}/${l}/${clean ? clean + '/' : ''}`;
+const canonical = alt(lang);
 ---
 <!DOCTYPE html>
 <html lang={lang} data-theme="pine">
@@ -23,6 +30,9 @@ const alt = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
   <meta name="description" content={description ?? t('hero.role')} />
 
   <link rel="icon" href="/assets/logos/mark-icon.svg" type="image/svg+xml" />
+  <!-- Cual es la buena de las cinco. Sin esto, las cinco traducciones
+       compiten entre ellas por la misma consulta. -->
+  <link rel="canonical" href={canonical} />
   {LANGS.map((l) => <link rel="alternate" hreflang={l} href={alt(l)} />)}
   <link rel="alternate" hreflang="x-default" href={alt('es')} />
 
@@ -34,7 +44,33 @@ const alt = (l) => (clean ? `/${l}/${clean}/` : `/${l}/`);
   <!-- Antes de pintar nada: si hay JavaScript, el telon esta puesto. Si no,
        no se pone nunca y los enlaces navegan como siempre. -->
   <script is:inline>document.documentElement.classList.add('js-curtain');</script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss&display=swap" />
+  <!-- La altura de la ventana, tomada una sola vez y antes de pintar.
+       Lo que se mida contra ella deja de moverse cuando el navegador
+       esconde su barra al primer scroll. Va aqui y no en site.js para
+       que el primer fotograma ya salga con la medida buena. -->
+  <script is:inline>document.documentElement.style.setProperty('--vh0', window.innerHeight + 'px');</script>
+  <!-- Las fuentes ya no bloquean el primer pintado.
+
+       Una hoja de estilo normal para el navegador: hasta que no llega,
+       no pinta nada. Y esta viene de otro dominio, asi que antes de
+       pedirla hay que resolver el DNS y abrir la conexion. En un movil
+       con red mala eso es medio segundo de pantalla en blanco por una
+       hoja que solo dice que tipografias usar.
+
+       El truco de `media="print"` la baja igual y con la misma prisa,
+       pero el navegador la da por no aplicable y no espera a ella para
+       pintar. Cuando termina de bajar, `onload` la pasa a `all` y entra.
+       Las letras ya venian con `display=swap`, asi que el texto se ve
+       desde el primer momento con la de respaldo y cambia al llegar la
+       buena — que es exactamente lo que pasaba antes, solo que ahora sin
+       la espera en blanco de delante.
+
+       El `noscript` es para quien no tenga JavaScript: ahi va normal. -->
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss&display=swap" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss&display=swap" />
+  </noscript>
 </head>
 
 <body>
