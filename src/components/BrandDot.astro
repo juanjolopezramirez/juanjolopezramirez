@@ -1,0 +1,42 @@
+---
+import Icon from './Icon.astro';
+/* La cara redonda de una casa.
+
+   Un disco de pinar con su logo dentro y un anillo de luz alrededor. Es la
+   gramatica que ya conoce cualquiera que use redes: circulo y nombre, y
+   sabes de quien es esto antes de leer una palabra.
+
+   Dos maneras de llenarlo, y una casa elige la suya con lo que tenga:
+
+     mark   el id de un icono en linea. Lo usa la casa propia, y no es
+            indiferente: su logo de fichero es la firma —572x251— y dentro
+            de un circulo se lee como un garabato. El sello es una pieza de
+            pie y ahi dentro se sostiene entero.
+     logo   la ruta de un fichero, con su `w` y su `h` de origen.
+
+   EL HUECO DONDE CABE EL LOGO. Un circulo no admite la misma caja para
+   todas las proporciones, y darles una sola era el fallo de antes: con el
+   ancho fijo al 62% el alto quedaba suelto, asi que la U —132x307— pedia
+   el 144% y el disco se la comia por arriba y por abajo, mientras que un
+   logotipo de 6.8:1 se quedaba en una rendija del 9%.
+
+   Ahora se declaran los DOS lados y la imagen se encaja dentro sin
+   deformarse. El alto es siempre el mismo —60 de cada 100 de diametro— y
+   es lo que deja la isla de aire alrededor. El ancho crece con lo
+   apaisada que sea la pieza: en el centro de un circulo cabe mucho mas a
+   lo ancho que en su cuadrado inscrito, pero solo si la pieza es plana.
+   Siete puntos por cada punto de proporcion, y tope en 86 para que ni la
+   mas larga toque el canto. */
+const { mark, logo, w, h, cls = '' } = Astro.props;
+
+const ratio = w && h ? w / h : 1;
+const fitW = Math.min(86, 60 + Math.max(0, ratio - 1) * 7);
+---
+<span class:list={['brand-dot', cls]} aria-hidden="true">
+  <span class="brand-dot__disc">
+    {mark
+      ? <Icon id={mark} />
+      : <img src={logo} alt="" style={`--fw:${fitW.toFixed(0)}%`}
+             loading="lazy" decoding="async" />}
+  </span>
+</span>

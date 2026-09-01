@@ -502,35 +502,6 @@ function initGlossary() {
   });
 }
 
-/* ---------- Entradas ----------------------------------------
-   Dos comportamientos, no uno:
-
-   .reveal     — las imagenes. Entran una vez y ahi se quedan.
-   [data-lift] — los textos. Se levantan cada vez que vuelven a pasar
-                 por la ventana, escalonados dentro de su propio bloque,
-                 asi que cada scroll los vuelve a escribir.            */
-function initReveal() {
-  const settle = d.querySelectorAll('.reveal');
-  const lift = d.querySelectorAll('[data-lift]');
-  if (!settle.length && !lift.length) return;
-
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced || !('IntersectionObserver' in window)) return;   // el CSS ya los muestra
-
-  
-/* ---------- El telon ------------------------------------------
-   Al entrar: el telon esta puesto desde el primer pixel y se levanta.
-   Al salir: baja, la firma se escribe, y solo entonces se navega.
-
-   No hay enrutador: cada pagina se carga entera, como siempre. Es a
-   proposito — todo lo que arranca aqui abajo (el glosario, las hojas,
-   la luz del campo, las entradas) se inicializa una vez al cargar, y
-   con un enrutador habria que rehacerlo en cada salto.               */
-/* ---------- Donde estas -------------------------------------
-   Pulsar la pagina en la que ya estas recargaba la misma pantalla: se
-   ve como si el sitio no respondiera. Ahora no navega — solo cierra el
-   menu. Vale para la barra ancha igual que para el desplegable, porque
-   el enlace muerto estaba en las dos.                                */
 /* La ficha de las piezas: el icono la despliega y la pliega. Misma idea
    que la nota del selector de idioma — la aclaracion esta ahi para quien
    la busca y no estorba a quien no. */
@@ -572,6 +543,18 @@ function initCovers() {
 
     el('video-detail-blurb').textContent = pick(v.blurb);
 
+    /* Para quien se hizo. Las fichas de todas las marcas ya estan escritas:
+       aqui solo se ensena la de esta pieza y se esconden las demas. Si la
+       pieza no declara marca, el apartado entero se va — un rotulo que
+       dice "Realizado para" y debajo nada es peor que no decir nada. */
+    let conMarca = false;
+    d.querySelectorAll('[data-brand]').forEach((p) => {
+      const mia = p.getAttribute('data-brand') === v.for;
+      p.hidden = !mia;
+      if (mia) conMarca = true;
+    });
+    el('video-detail-for').hidden = !conMarca;
+
     const link = el('video-detail-link');
     link.href = v.href || '';
     link.hidden = !v.href;
@@ -582,6 +565,11 @@ function initCovers() {
   });
 }
 
+/* ---------- Donde estas -------------------------------------
+   Pulsar la pagina en la que ya estas recargaba la misma pantalla: se
+   ve como si el sitio no respondiera. Ahora no navega — solo cierra el
+   menu. Vale para la barra ancha igual que para el desplegable, porque
+   el enlace muerto estaba en las dos.                                */
 function initCurrent() {
   const here = sheet('here-panel', 'data-close-here');
   d.addEventListener('click', (e) => {
@@ -591,7 +579,14 @@ function initCurrent() {
     if (here) here.open();
   });
 }
+/* ---------- El telon ------------------------------------------
+   Al entrar: el telon esta puesto desde el primer pixel y se levanta.
+   Al salir: baja, la firma se escribe, y solo entonces se navega.
 
+   No hay enrutador: cada pagina se carga entera, como siempre. Es a
+   proposito — todo lo que arranca aqui abajo (el glosario, las hojas,
+   la luz del campo, las entradas) se inicializa una vez al cargar, y
+   con un enrutador habria que rehacerlo en cada salto.               */
 function initCurtain() {
   const el = d.getElementById('curtain');
   if (!el) return;
@@ -645,11 +640,101 @@ function initCurtain() {
     setTimeout(() => { location.href = url.href; }, 420);
   });
 }
+/* ---------- Filtrar las casas -------------------------------
+   Cuatro ejes: por lo que hice, por el sector, por el ano y por como
+   esta. Los botones los pinta Astro con las etiquetas que de verdad
+   llevan las casas de esta pagina; aqui solo se decide quien pasa.
 
-initCovers();
-initCurrent();
-initCurtain();
-d.documentElement.classList.add('js-reveal');
+   DENTRO de un eje las etiquetas suman, ENTRE ejes se cruzan. Un eje sin
+   nada marcado no filtra: por eso no hace falta un boton de "todas" en
+   cada uno, que es lo que convertiria cuatro filas en un muro.
+
+   Se esconde el <li> y no la tarjeta: lo que ocupa el hueco en la rejilla
+   es la fila, asi que apagando la tarjeta quedaba el agujero.
+
+   `aria-pressed` y no una clase a secas: quien escucha tiene que saber
+   cuales estan puestos, y eso no lo dice un color. */
+function initFilter() {
+  const bar = d.querySelector('[data-filter-bar]');
+  const grid = d.querySelector('.cards__grid');
+  if (!bar || !grid) return;
+  const clear = bar.querySelector('[data-filter-clear]');
+  const none = d.querySelector('[data-filter-none]');
+  const rows = [...grid.querySelectorAll(':scope > li')];
+
+  /* Lo puesto, por eje. Un Set por eje y no una lista suelta: asi
+     preguntar "hay algo marcado en este eje" es mirar su tamano. */
+  const on = new Map();
+  bar.querySelectorAll('[data-axis]').forEach((ax) => on.set(ax.getAttribute('data-axis'), new Set()));
+
+  const apply = () => {
+    let vistas = 0;
+    rows.forEach((li) => {
+      const tags = (li.getAttribute('data-tags') || '').split(' ').filter(Boolean);
+      /* Pasa si, para CADA eje con algo marcado, lleva al menos una suya. */
+      let pasa = true;
+      for (const [, marcadas] of on) {
+        if (!marcadas.size) continue;
+        if (!tags.some((t) => marcadas.has(t))) { pasa = false; break; }
+      }
+      li.hidden = !pasa;
+      if (pasa) vistas++;
+    });
+
+    let algo = false;
+    for (const [, marcadas] of on) if (marcadas.size) { algo = true; break; }
+    if (clear) clear.hidden = !algo;
+    if (none) none.hidden = vistas > 0;
+
+    /* Al filtrar, la fila deslizante de movil se queda donde estaba y
+       parece vacia: se vuelve al principio, que es donde estan las que
+       acaban de quedar. */
+    grid.scrollTo({ left: 0, behavior: 'smooth' });
+  };
+
+  bar.addEventListener('click', (e) => {
+    if (e.target.closest('[data-filter-clear]')) {
+      for (const [, marcadas] of on) marcadas.clear();
+      bar.querySelectorAll('[data-filter]').forEach((b) => {
+        b.classList.remove('is-on');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      apply();
+      return;
+    }
+
+    const btn = e.target.closest('[data-filter]');
+    if (!btn) return;
+    const axis = btn.closest('[data-axis]').getAttribute('data-axis');
+    const tag = btn.getAttribute('data-filter');
+    const marcadas = on.get(axis);
+
+    const ahora = !marcadas.has(tag);
+    ahora ? marcadas.add(tag) : marcadas.delete(tag);
+    btn.classList.toggle('is-on', ahora);
+    btn.setAttribute('aria-pressed', String(ahora));
+    apply();
+  });
+}
+
+/* ---------- Entradas ----------------------------------------
+   Dos comportamientos, no uno:
+
+   .reveal     — las imagenes. Entran una vez y ahi se quedan.
+   [data-lift] — los textos. Se levantan cada vez que vuelven a pasar
+                 por la ventana, escalonados dentro de su propio bloque,
+                 asi que cada scroll los vuelve a escribir.            */
+function initReveal() {
+  const settle = d.querySelectorAll('.reveal');
+  const lift = d.querySelectorAll('[data-lift]');
+  if (!settle.length && !lift.length) return;
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || !('IntersectionObserver' in window)) return;   // el CSS ya los muestra
+
+  /* A partir de aqui el CSS esconde lo que va a entrar. Se pone aqui y no
+     antes: si no hay observador que las descubra, no puede esconderlas.  */
+  d.documentElement.classList.add('js-reveal');
 
   /* El escalonado se calcula una vez, por bloque padre: lo que va junto
      entra junto, en orden, y no de golpe. */
@@ -699,6 +784,10 @@ initOrbit();
 initLang();
 initSoon();
 initGlossary();
+initCovers();
+initCurrent();
+initCurtain();
+initFilter();
 initReveal();
 /* Safari en iOS no aplica `:active` a nada si la pagina no escucha el
    tacto en ningun sitio: sin esto, la ficha se enciende al pulsarla en

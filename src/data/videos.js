@@ -1,3 +1,13 @@
+/* Para quien se hizo cada pieza.
+
+   `for` es el id de una casa —de PARTNERS o de PROJECTS, da igual— y el
+   nombre, el logo y lo que es esa casa salen de alli. Aqui no se repite:
+   el nombre de una casa se escribe una sola vez, y esa es la razon por la
+   que este bloque ya no guarda ninguno.
+
+   Hoy las tres son de casa. El dia que entre el video de un cliente se le
+   pone su id y ya esta. */
+
 /* Las piezas, en el orden en que se abanican: la de en medio va delante y
    mas grande. Tres de las cinco de marzo a junio de 2026.
 
@@ -12,6 +22,7 @@ export const VIDEOS = [
   {
     id: 'mi-unico',
     href: 'https://www.instagram.com/reel/DWrcT7MBE8Q/',
+    for: 'juanjo',
     title: {
       es: 'Mi único',
       en: 'My only one',
@@ -31,6 +42,7 @@ export const VIDEOS = [
   {
     id: 'camino',
     href: 'https://www.instagram.com/reel/DXmgXk7hlOh/',
+    for: 'juanjo',
     title: {
       es: 'Perderte también es parte del camino',
       en: 'Losing your way is also part of the path',
@@ -50,6 +62,7 @@ export const VIDEOS = [
   {
     id: 'parami',
     href: 'https://www.instagram.com/reel/DYc8ZckOZxo/',
+    for: 'juanjo',
     title: {
       es: 'De «se terminó para mí» a Parami',
       en: 'From “it’s over for me” to Parami',

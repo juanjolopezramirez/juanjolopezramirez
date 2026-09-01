@@ -1,5 +1,6 @@
 import { LANGS } from '../i18n/ui.js';
 import { NAV } from '../data/social.js';
+import { ENTITIES, slugOf } from '../data/entities.js';
 
 /* El mapa del sitio, generado de las mismas listas que hacen las paginas.
 
@@ -13,7 +14,11 @@ import { NAV } from '../data/social.js';
    misma en cinco idiomas. */
 export function GET({ site }) {
   const origin = String(site ?? '').replace(/\/$/, '');
-  const paths = ['', ...NAV.map((n) => n.slug)];
+  /* La portada, las cuatro secciones y la pagina de cada casa. Las casas
+     salen de las mismas listas que pintan las tarjetas, asi que anadir
+     una la mete sola en el mapa — que es la razon de que esto no se
+     escriba a mano. */
+  const paths = ['', ...NAV.map((n) => n.slug), ...ENTITIES.map(slugOf)];
 
   const url = (lang, path) => `${origin}/${lang}/${path ? path + '/' : ''}`;
 

@@ -5,6 +5,7 @@ import PageHero from '../../components/PageHero.astro';
 import Partners from '../../components/Partners.astro';
 import Covers from '../../components/Covers.astro';
 import { PROJECTS } from '../../data/projects.js';
+import Cards from '../../components/Cards.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -13,9 +14,11 @@ const { lang } = Astro.params;
 const t = useT(lang);
 const title = t('page.projects.title');
 ---
-<Base lang={lang} path="projects" active="projects" title={`${title} — Juanjo López Ramírez`}>
+<Base lang={lang} path="projects" active="projects" title={`${title} — Juan José López Ramírez`}>
   <PageHero lang={lang} t={t} slug="projects">
     <Covers slot="aside" lang={lang} t={t} />
     <Partners slot="foot" items={PROJECTS} title={t('door.projects')} />
   </PageHero>
+
+  <Cards lang={lang} t={t} items={PROJECTS} kind="projects" title={t('cards.title')} />
 </Base>

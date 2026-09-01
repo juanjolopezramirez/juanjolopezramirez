@@ -2,8 +2,15 @@
 import { SOCIAL, CONTACT } from '../data/social.js';
 import { META } from '../i18n/utils.js';
 import { VIDEOS } from '../data/videos.js';
+import { ENTITY } from '../data/entities.js';
+import BrandDot from './BrandDot.astro';
 import Icon from './Icon.astro';
-const { t } = Astro.props;
+const { lang, t } = Astro.props;
+
+/* Las casas que firman alguna pieza, y solo esas: la ficha de una casa que
+   no ha hecho ningun video no pinta nada en esta hoja. */
+const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
+  .map((id) => ENTITY[id]).filter(Boolean);
 ---
 <!-- Todas las plataformas: una hoja sobre la pagina, nada debajo se mueve -->
 <div class="social-panel" id="social-panel" hidden>
@@ -155,10 +162,27 @@ const { t } = Astro.props;
       <ul class="video-gallery__row">
         {VIDEOS.map((v) => (
           <li class="video-gallery__item">
-            <picture>
-              <source srcset={v.webp} type="image/webp" />
-              <img src={v.src} alt={v.title.es} width="700" height="1244" decoding="async" />
-            </picture>
+            {/* De quien es la pieza, ENCIMA de la portada y no debajo: es el
+                orden de un post —primero de quien, despues que— y es el que
+                hace que el circulo se lea como una cara de perfil. */}
+            {ENTITY[v.for] && (
+              <p class="video-gallery__by">
+                <BrandDot mark={ENTITY[v.for].mark} logo={ENTITY[v.for].src} />
+                <span class="video-gallery__by-name">{ENTITY[v.for].name}</span>
+              </p>
+            )}
+
+            {/* La portada ya no es una imagen quieta: es la puerta al video.
+                Un clic y estas viendolo — la ficha de al lado esta para quien
+                quiera saber antes de mirar, no en medio del camino. */}
+            <a class="video-gallery__cover" href={v.href} target="_blank" rel="noopener noreferrer">
+              <picture>
+                <source srcset={v.webp} type="image/webp" />
+                <img src={v.src} alt={v.title.es} width="700" height="1244" decoding="async" />
+              </picture>
+              <span class="sr-only">— {t('videos.watch')}</span>
+            </a>
+
             <button class="video-gallery__info" type="button" data-video={v.id}>
               <Icon id="info" /><span>{t('videos.about')}</span>
             </button>
@@ -180,6 +204,27 @@ const { t } = Astro.props;
       <h3 class="video-detail__title" id="video-detail-title"></h3>
       <p class="video-detail__orig" id="video-detail-orig" lang="es" hidden></p>
       <p class="video-detail__blurb" id="video-detail-blurb"></p>
+
+      <!-- Para quien se hizo.
+
+           Las marcas se escriben TODAS y el guion ensena la que toca, igual
+           que las cuentas por idioma de aqui arriba: es la misma hoja para
+           las tres piezas, y lo que dejo la anterior tiene que poder irse
+           sin que haya que construir nada nuevo. Con una marca es una fila;
+           con cinco son cinco, y ninguna cuesta una peticion de mas. -->
+      <div class="made-for" id="video-detail-for" hidden>
+        <h4 class="made-for__label">{t('videos.madeFor')}</h4>
+        {creditos.map((e) => (
+          <p class="made-for__who" data-brand={e.id} hidden>
+            <BrandDot mark={e.mark} logo={e.src} />
+            <span class="made-for__text">
+              <b>{e.name}</b>
+              <small>{e.role?.[lang] ?? e.role?.es}</small>
+            </span>
+          </p>
+        ))}
+      </div>
+
       <a class="video-detail__link" id="video-detail-link" target="_blank" rel="noopener noreferrer">
         <span>{t('videos.watch')}</span><Icon id="corner" />
       </a>

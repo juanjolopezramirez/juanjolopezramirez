@@ -183,7 +183,7 @@ Ya está todo preparado. Solo tienes que hacerlo una vez:
 
 **2.** En GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
-**3.** Listo. Cada vez que hagas `git push`, el flujo de `.github/workflows/deploy.yml`
+**3.** Listo. Cada vez que hagas `git push`, el flujo de `.github/workflows/astro.yml`
 construye el sitio y lo publica solo. Puedes ver cómo va en la pestaña **Actions**.
 
 ### Lo único que puede salir mal

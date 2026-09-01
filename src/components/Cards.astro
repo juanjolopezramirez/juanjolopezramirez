@@ -1,0 +1,104 @@
+---
+import BrandDot from './BrandDot.astro';
+import { AXES, slugOf } from '../data/entities.js';
+
+/* Las casas, una por una.
+
+   La cinta de logos de arriba dice QUIENES son, de un vistazo y en
+   movimiento. Esto dice QUE es cada una, y se queda quieto para poder
+   leerse. Son dos registros a proposito: la cinta se mira, la tarjeta
+   se lee.
+
+   La tarjeta es la de un perfil de red social, porque es la forma que
+   todo el mundo sabe leer sin que se la expliquen: una cabecera ancha,
+   la cara redonda montada sobre su canto, y debajo el nombre y una
+   linea de quien es.
+
+   Y es un ENLACE, no un boton: cada casa tiene su propia direccion
+   —/es/recvid/— y desde aqui se entra ahi. Antes abria una hoja encima,
+   que no se puede enlazar ni compartir ni indexar, y de la que el boton
+   de atras no sacaba.
+
+   LA CABECERA, cuando la casa no trae foto: un degradado de la casa con
+   su propio logo detras, grande y tenue, saliendose por el canto
+   derecho. No es un relleno de espera — es lo que hace que diez
+   tarjetas de los mismos colores se distingan sin pedir diez fotos que
+   no existen. El angulo lo mueve `--i`, que es su sitio en la fila, asi
+   que dos vecinas no salen nunca iguales, y la pagina de la casa usa el
+   mismo numero: entrar se lee como abrir la misma tarjeta. */
+const { lang, t, items = [], kind, title } = Astro.props;
+
+const say = (o) => (o ? (o[lang] ?? o.es) : null);
+
+/* Cuantas columnas dejan las filas parejas: la mayor de 4, 3 o 2 que
+   divida al numero de casas. Con seis proyectos salen dos filas de tres;
+   con cuatro trabajos, una fila de cuatro. Si ninguna divide —cinco,
+   siete— se queda en tres, que es donde el hueco suelto menos canta.
+   Solo manda desde 1024px: por debajo la rejilla se reparte sola, y en
+   movil ni siquiera es rejilla. */
+const cols = [4, 3, 2].find((n) => items.length % n === 0) ?? 3;
+
+/* Los filtros salen de las casas, no de una lista escrita aparte: solo se
+   ofrece filtrar por lo que de verdad hay delante en ESTA pagina.
+
+   Se recorren los cuatro ejes y de cada uno se guardan solo las etiquetas
+   que alguna casa lleva puestas; un eje que se queda sin ninguna no se
+   pinta, y si no queda ningun eje no hay barra. Asi la seccion no ensena
+   nunca un filtro que no encuentra nada. */
+const puestas = new Set(items.flatMap((e) => e.tags ?? []));
+const ejes = Object.entries(AXES)
+  .map(([id, a]) => ({ id, label: a.label, tags: Object.keys(a.tags).filter((t) => puestas.has(t)), all: a.tags }))
+  .filter((a) => a.tags.length > 0);
+---
+<section class="cards" aria-labelledby={`cards-${kind}`}>
+  <div class="cards__head">
+    <h2 class="cards__title" id={`cards-${kind}`}>{title}</h2>
+
+    {ejes.length > 0 && (
+      <div class="cards__filter" data-filter-bar>
+        {ejes.map((a) => (
+          <div class="faxis" role="group" aria-label={say(a.label)} data-axis={a.id}>
+            <span class="faxis__label">{say(a.label)}</span>
+            <span class="faxis__chips">
+              {a.tags.map((tag) => (
+                <button class="chip" type="button" data-filter={tag} aria-pressed="false">
+                  {say(a.all[tag])}
+                </button>
+              ))}
+            </span>
+          </div>
+        ))}
+        {/* Solo asoma cuando hay algo que limpiar. */}
+        <button class="cards__clear" type="button" data-filter-clear hidden>{t('filter.clear')}</button>
+      </div>
+    )}
+  </div>
+
+  <ul class="cards__grid" style={`--cols:${cols}`}>
+    {items.map((e, i) => (
+      <li data-tags={(e.tags ?? []).join(' ')}>
+        <a class="ecard" href={`/${lang}/${slugOf(e)}/`}>
+          <span class="ecard__banner" style={`--i:${i}`} aria-hidden="true">
+            <picture>
+              {e.webp && <source srcset={e.webp} type="image/webp" />}
+              <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
+                   loading="lazy" decoding="async" />
+            </picture>
+          </span>
+
+          <BrandDot mark={e.mark} logo={e.src} w={e.w} h={e.h} cls="ecard__dot" />
+
+          <span class="ecard__body">
+            <span class="ecard__name">{e.name}</span>
+            <span class="ecard__kind">{say(e.role) ?? t(`card.kind.${kind}`)}</span>
+            {e.blurb && <span class="ecard__blurb">{say(e.blurb)}</span>}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  {/* Cuatro ejes se pueden cruzar hasta no dejar nada. Sin esto, la
+      seccion se quedaba en blanco y parecia rota. */}
+  <p class="cards__none" data-filter-none hidden>{t('filter.none')}</p>
+</section>

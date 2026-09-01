@@ -2133,6 +2133,103 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: var(--pine); color: var(--bone);
 }
 
+/* --- La cara redonda de una marca --------------------------------
+   Un disco de pinar con el sello dentro y un anillo de luz alrededor.
+
+   El anillo es un degradado conico y vive en un `::before`, no en el borde:
+   asi puede girar sin arrastrar consigo el sello, que tiene que quedarse
+   quieto y de pie. Girar el elemento entero volteaba tambien el pez.
+
+   Gira solo al acercarse. Un anillo dando vueltas todo el rato es un
+   cartel, y esto es una firma: se mueve cuando lo miras y no antes.
+
+   `--dot` es el diametro y lo pone quien lo usa, no el circulo: la fila de
+   la galeria lo quiere pequeno y el apartado de la ficha grande, y son el
+   mismo trozo de CSS. */
+.brand-dot {
+  position: relative;
+  display: grid; place-items: center;
+  width: var(--dot, 1.65rem); aspect-ratio: 1;
+  flex: 0 0 auto;
+}
+.brand-dot::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg,
+    var(--ring)      0deg,
+    var(--iris-300)  95deg,
+    var(--ring-300) 180deg,
+    var(--iris-700) 280deg,
+    var(--ring)     360deg);
+}
+/* El disco deja ver el anillo por el canto: ese par de pixeles es todo el
+   anillo que hay, asi que no puede ir en porcentaje — a 1.65rem y a 2.6rem
+   tiene que medir lo mismo o el pequeno se queda sin borde. */
+.brand-dot__disc {
+  position: relative;
+  display: grid; place-items: center;
+  width: calc(100% - 3px); height: calc(100% - 3px);
+  border-radius: 50%;
+  background: var(--pine-900);
+  color: var(--bone);
+  overflow: hidden;
+}
+/* Los DOS lados declarados, y la pieza encajada dentro sin deformarse.
+
+   El alto es el mismo para todas —60 de cada 100 de diametro— y es lo que
+   deja la isla de aire alrededor. El ancho lo trae `--fw`, que BrandDot
+   calcula con la proporcion de cada logo.
+
+   Antes solo se ataba el ancho, al 62%, y el alto quedaba suelto: la U
+   —132x307— pedia el 144% y el disco se la comia por arriba y por abajo,
+   mientras que un logotipo de 6.8:1 se quedaba en una rendija del 9%. */
+.brand-dot__disc .icon { width: auto; height: 52%; }
+.brand-dot__disc img {
+  width: var(--fw, 60%); height: 60%;
+  /* El disco es una rejilla, y un elemento de rejilla trae `min-height:
+     auto`: el minimo automatico le devolvia a la pieza su alto natural y
+     se comia el 60% de arriba. Es lo que dejaba a la U rozando el canto
+     otra vez despues de atarle los dos lados. */
+  min-width: 0; min-height: 0;
+  max-width: none;
+  object-fit: contain;
+  object-position: center;
+}
+
+@keyframes dotSpin { to { rotate: 360deg; } }
+.video-gallery__item:hover .brand-dot::before,
+.made-for:hover .brand-dot::before { animation: dotSpin 7s linear infinite; }
+
+/* --- La fila de perfil -------------------------------------------
+   Va ENCIMA de la portada, no debajo: es el orden de un post —primero de
+   quien, despues que— y es el que hace que el circulo se lea como una cara
+   de perfil y no como un adorno. */
+.video-gallery__by {
+  display: flex; align-items: center; gap: .45rem;
+  margin: 0;
+  min-width: 0;
+}
+.video-gallery__by-name {
+  font-size: .74rem; font-weight: 600;
+  color: var(--slate);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* --- La portada es la puerta ---------------------------------------
+   Se levanta un pelo al acercarse y proyecta sombra: lo justo para que se
+   note que se puede pulsar. Nada mas — la imagen es lo que se mira. */
+.video-gallery__cover {
+  display: block;
+  border-radius: 14px;
+  transition: translate .28s var(--ease), box-shadow .28s var(--ease);
+}
+.video-gallery__cover:hover,
+.video-gallery__cover:focus-visible {
+  translate: 0 -3px;
+  box-shadow: 0 .7rem 1.4rem rgba(22, 35, 26, .22);
+}
+
 /* --- Paso dos: una --- */
 .video-detail { display: grid; gap: .55rem; justify-items: start; }
 .video-detail__back {
@@ -2182,6 +2279,39 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   line-height: 1.65;
   text-wrap: pretty;
 }
+
+/* --- Para quien se hizo -------------------------------------------
+   El mismo circulo de la galeria, mas grande, y debajo del nombre lo que es
+   esa casa. Separado del texto por una linea porque no es parte de lo que
+   cuenta la pieza: es de quien es. */
+.made-for {
+  width: 100%;
+  margin-top: .9rem;
+  padding-top: .85rem;
+  border-top: 1px solid rgba(43, 58, 67, .14);
+}
+.made-for__label {
+  margin: 0 0 .55rem;
+  font-size: .66rem; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.made-for__who {
+  --dot: 2.6rem;
+  display: flex; align-items: center; gap: .65rem;
+  margin: 0;
+}
+.made-for__text { display: grid; min-width: 0; }
+.made-for__text b {
+  font-size: .9rem; font-weight: 600;
+  line-height: 1.25;
+  color: var(--slate);
+}
+.made-for__text small {
+  font-size: .74rem; font-weight: 300;
+  color: #5A6B74;
+}
+
 .video-detail__link {
   display: inline-flex; align-items: center; gap: .45rem;
   margin-top: .6rem;
@@ -2198,9 +2328,343 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* Si se ha pedido quietud, las tarjetas ni se levantan ni se abren. */
 @media (prefers-reduced-motion: reduce) {
   .covers__card { animation: none; }
+  .brand-dot::before { animation: none !important; }
+  .video-gallery__cover { transition: none; }
   .covers__item { transition: none; }
   .covers__fan:hover .covers__item:first-child { rotate: -7deg; }
   .covers__fan:hover .covers__item:last-child  { rotate:  7deg; }
+}
+
+/* =============================================================
+   LAS CASAS, UNA POR UNA
+
+   La cinta de logos dice quienes son, de un vistazo y en movimiento.
+   Esto dice que es cada una, y se queda quieto para poder leerse.
+
+   El suelo es hueso de panel —un paso mas oscuro que el hueso de la hoja
+   de arriba— y las tarjetas van en hueso claro encima. Ese medio tono es
+   todo lo que separa una seccion de la otra: no hace falta una linea si
+   el suelo ya cambia.
+   ============================================================= */
+.cards {
+  padding: 2.6rem var(--gutter) 3rem;
+  background: var(--bone-panel);
+  color: var(--slate);
+}
+/* El rotulo y los filtros en la misma linea mientras quepan; cuando no,
+   los filtros bajan enteros en vez de partirse por la mitad. */
+.cards__head {
+  display: grid; justify-items: start;
+  gap: .55rem;
+  max-width: var(--shell, 84rem);
+  margin: 0 auto 1.15rem;
+}
+/* Cuatro ejes, uno por renglon: el rotulo a la izquierda y sus fichas al
+   lado. Apilados y no en una sola fila revuelta, porque lo que distingue
+   «2025» de «Activo» es de que eje cuelgan, y en una fila corrida eso se
+   pierde.
+
+   En movil las fichas de un eje se deslizan en su propio renglon en vez
+   de partirse en tres lineas: cuatro ejes envueltos eran media pantalla
+   de filtros antes de ver una sola casa. */
+.cards__filter {
+  display: grid; gap: .45rem;
+  width: 100%;
+  margin-top: .35rem;
+}
+.faxis { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.faxis__label {
+  flex: 0 0 auto;
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.faxis__chips {
+  display: flex; gap: .35rem;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: .1rem;
+  scrollbar-width: none;
+}
+.faxis__chips::-webkit-scrollbar { display: none; }
+.faxis__chips > .chip { flex: 0 0 auto; }
+
+/* Solo asoma cuando hay algo puesto, asi que no necesita competir: va
+   sin fondo y se subraya al acercarse. */
+.cards__clear {
+  justify-self: start;
+  margin-top: .1rem;
+  font-size: .72rem; font-weight: 600;
+  color: #5A6B74;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color .2s var(--ease);
+}
+.cards__clear:hover { color: var(--slate); }
+
+.cards__none {
+  margin: .4rem 0 0;
+  font-size: .84rem; font-weight: 300;
+  color: #5A6B74;
+}
+.chip {
+  padding: .38rem .8rem .42rem;
+  border-radius: 999px;
+  background: rgba(43, 58, 67, .08);
+  color: #5A6B74;
+  font-size: .74rem; font-weight: 600;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.chip:hover { background: rgba(43, 58, 67, .14); color: var(--slate); }
+.chip.is-on { background: var(--pine); color: var(--bone); }
+
+.cards__title {
+  margin: 0;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #5A6B74;
+}
+
+/* EN MOVIL, UNA FILA QUE SE DESLIZA.
+
+   Apiladas, diez casas eran diez pantallas de alto y la seccion se comia
+   la pagina. En fila ocupan una sola altura y se recorren con el pulgar,
+   que es el gesto que ya hace la galeria de las piezas.
+
+   `scroll-snap` para que cada tarjeta quede encuadrada entera y no a
+   medias: es lo que hace que un carrusel se entienda como tal.
+
+   Los margenes negativos la sacan hasta los cantos de la pantalla y el
+   relleno vuelve a meter la primera en su sitio: asi la fila se desliza a
+   sangre pero arranca alineada con el resto de la pagina.
+
+   Desde 600px hay sitio para verlas todas y vuelve a ser rejilla. Eso
+   vive en tablet.css. */
+.cards__grid {
+  display: grid;
+  grid-auto-flow: column;
+  /* 17.5rem y no menos: por debajo de eso la descripcion no cabe en sus
+     cuatro renglones y se corta a media palabra. Ensanchar no cuesta alto
+     —al reves, el texto envuelve menos— y en una pantalla de 375 deja
+     asomar la siguiente tarjeta, que es lo que dice que hay mas. */
+  grid-auto-columns: 17.5rem;
+  gap: .85rem;
+  margin-inline: calc(var(--gutter) * -1);
+  padding: .3rem var(--gutter) .7rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.cards__grid > li { scroll-snap-align: center; }
+
+/* --- La tarjeta ---------------------------------------------------
+   Un boton, no un enlace: no lleva a otra direccion, abre la ficha aqui
+   mismo. Un <a> sin destino se ve igual y no lleva a ningun sitio. */
+.ecard {
+  display: grid;
+  align-content: start;
+  width: 100%; height: 100%;
+  text-align: left;
+  background: var(--bone);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: translate .28s var(--ease), box-shadow .28s var(--ease);
+}
+.ecard:hover, .ecard:focus-visible {
+  translate: 0 -4px;
+  box-shadow: 0 .9rem 1.8rem rgba(22, 35, 26, .16);
+}
+/* El anillo del sello gira al acercarse, igual que en las piezas. */
+.ecard:hover .brand-dot::before { animation: dotSpin 7s linear infinite; }
+
+/* --- La cabecera --------------------------------------------------
+   Un degradado de la casa con el logo detras, enorme y tenue, saliendose
+   por el canto derecho. El angulo lo mueve --i, que es el sitio de la
+   tarjeta en la fila: 37 grados por puesto, que no divide a 360, asi que
+   la vuelta no cae nunca sobre una vecina.
+
+   El velo negro del 18% es el mismo del suelo del arranque: sin el, los
+   verdes claros del final del degradado dejan el logo sin contra. */
+.ecard__banner,
+.entity__banner {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(0, 0, 0, .18), rgba(0, 0, 0, .18)),
+    linear-gradient(calc(115deg + var(--i, 0) * 37deg),
+      var(--pine-900) 0%,
+      var(--pine) 28%,
+      var(--iris-700) 66%,
+      var(--iris) 100%);
+}
+.ecard__banner { height: 4.6rem; }
+.entity__banner { height: 8.5rem; }
+
+.ecard__banner picture,
+.entity__banner picture { display: block; }
+
+/* Se acota por los DOS lados y con auto en medio: asi un logotipo largo
+   como Capital Mio se rinde por el ancho y una letra de pie como la U se
+   rinde por el alto, y ninguno se sale ni se deforma. Sin el tope de
+   ancho, la marca de agua de un logo 6.8:1 tapaba la tarjeta entera. */
+.ecard__wash {
+  position: absolute;
+  top: 50%; right: -6%;
+  translate: 0 -50%;
+  width: auto; height: auto;
+  max-width: 54%; max-height: 108%;
+  opacity: .15;
+  pointer-events: none;
+}
+
+/* --- La cara, montada sobre el canto ------------------------------
+   El aro de hueso alrededor es lo que la despega de la cabecera: sin el,
+   el circulo parece un agujero en el degradado y no una cara encima. */
+.ecard__dot {
+  --dot: 3.5rem;
+  margin: -1.75rem 0 0 1.05rem;
+  z-index: 2;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--bone);
+}
+
+.ecard__body {
+  display: grid; gap: .18rem;
+  padding: .55rem 1.05rem 1.15rem;
+}
+.ecard__name {
+  font-family: var(--serif);
+  font-size: 1.02rem; font-weight: 400;
+  line-height: 1.25; letter-spacing: -.015em;
+  text-wrap: balance;
+}
+.ecard__kind {
+  font-size: .74rem; font-weight: 300;
+  color: #5A6B74;
+}
+/* El tope es una red de seguridad, no un formato.
+
+   Estuvo en tres y luego en cuatro renglones, y las dos veces cortaba a
+   media palabra en cuanto la tarjeta se estrechaba: en movil mide 280px y
+   ahi lo que en escritorio cabe en cuatro pide cinco. Y una descripcion
+   cortada por la mitad es peor que una fila descuadrada — que ademas no
+   pasa: las tarjetas de una fila se estiran a la mas alta porque la
+   rejilla las iguala, asi que la diferencia de un renglon no descoloca
+   nada.
+
+   Seis es el techo, y esta para que una descripcion que se vaya de las
+   manos no estire la fila entera. Con las de ahora —unos ciento cincuenta
+   caracteres— no llega a actuar en ningun ancho.
+
+   La pagina de la casa no recorta nada: el texto entero esta a un clic. */
+.ecard__blurb {
+  margin-top: .35rem;
+  font-size: .82rem; font-weight: 300;
+  line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* =============================================================
+   LA PAGINA DE UNA CASA
+
+   La misma tarjeta, abierta — pero en su propia direccion y no en una
+   hoja encima. Es la diferencia entre poder mandar /es/recvid/ por un
+   mensaje y no poder mandar nada.
+
+   La caja de lectura es estrecha a proposito: aqui no hay rejilla que
+   llenar, hay un parrafo que leer, y un renglon de ochenta caracteres
+   cansa. El degradado de la cabecera es el mismo que el de su tarjeta,
+   con el mismo `--i`, para que entrar se lea como abrirla y no como
+   llegar a otro sitio.
+   ============================================================= */
+.epage {
+  flex: 1 0 auto;
+  padding: calc(var(--header-h) + 1.5rem) var(--gutter) 3.5rem;
+  background: var(--bone);
+  color: var(--slate);
+  border-top: 3px solid var(--iris);
+}
+.epage__shell { max-width: 44rem; margin-inline: auto; }
+
+/* La flecha de la casa mira hacia abajo: girada un cuarto, mira hacia
+   atras. Es la misma vuelta que da el boton de las piezas. */
+.epage__back {
+  display: inline-flex; align-items: center; gap: .5rem;
+  margin-bottom: 1.1rem;
+  font-size: .76rem; font-weight: 600;
+  color: #5A6B74;
+  transition: color .2s var(--ease);
+}
+.epage__back .icon { width: .62rem; height: auto; rotate: 90deg; }
+.epage__back:hover { color: var(--slate); }
+
+/* La cabecera va a sangre dentro de su caja y con los cantos redondos:
+   es la tarjeta a tamano grande, no una banda de pagina. */
+.entity__banner {
+  border-radius: 18px;
+}
+/* Ojo con el relleno lateral: la cara redonda NO puede llevarlo. Con
+   `box-sizing: border-box` se le come el ancho por dentro mientras
+   `aspect-ratio` mantiene el alto, y el disco sale ovalado con el logo
+   encogido. Aqui la caja de lectura ya coloca todo, asi que no hay
+   relleno por renglon y el problema no puede volver. */
+.entity { display: grid; }
+
+.entity__dot {
+  --dot: 5rem;
+  margin: -2.5rem 0 0 1.5rem;
+  z-index: 2;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--bone);
+}
+.entity__name {
+  margin: .7rem 0 0;
+  font-family: var(--serif);
+  font-size: 1.35rem; font-weight: 400;
+  line-height: 1.2; letter-spacing: -.015em;
+  text-wrap: balance;
+}
+.entity__kind {
+  margin: .15rem 0 0;
+  font-size: .78rem; font-weight: 300;
+  color: #5A6B74;
+}
+.entity__blurb {
+  margin: .7rem 0 0;
+  font-size: .88rem; font-weight: 300;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.entity__works-title {
+  margin: 1.3rem 0 .6rem;
+  padding-top: .9rem;
+  border-top: 1px solid rgba(43, 58, 67, .14);
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.entity__works { display: grid; }
+.entity__work > a,
+.entity__work > span {
+  display: flex; align-items: baseline; gap: .6rem;
+  padding: .55rem 0;
+  border-bottom: 1px solid rgba(43, 58, 67, .09);
+}
+.entity__work > a { transition: color .2s var(--ease); }
+.entity__work > a:hover { color: var(--iris-700); }
+.entity__work-title { flex: 1 1 auto; font-size: .88rem; font-weight: 600; }
+.entity__work-year {
+  font-size: .74rem; font-weight: 300;
+  color: #5A6B74;
+}
+.entity__work .icon { width: .7rem; height: .7rem; flex: 0 0 auto; }
+.entity__empty {
+  margin: 0;
+  font-size: .84rem; font-weight: 300;
+  line-height: 1.6;
+  color: #5A6B74;
 }
 
 /* =============================================================

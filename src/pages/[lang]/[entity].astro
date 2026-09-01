@@ -1,0 +1,94 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import { ENTITIES, slugOf } from '../../data/entities.js';
+import Base from '../../layouts/Base.astro';
+import BrandDot from '../../components/BrandDot.astro';
+import Icon from '../../components/Icon.astro';
+
+/* La pagina de una casa: /es/recvid/, /en/casa-san-pedro/…
+
+   Antes esto era una hoja que se abria encima de la rejilla. Una hoja no
+   tiene direccion: no se puede enlazar, no se puede compartir, no la
+   indexa nadie y el boton de atras no la cierra. Para tres parrafos de
+   una pieza pasa; para la ficha de una casa, que es lo que alguien manda
+   por WhatsApp cuando le preguntan con quien trabajas, no.
+
+   Ahora es una pagina de verdad, con sus cinco traducciones declaradas y
+   su entrada en el mapa del sitio, como cualquier otra. La transicion del
+   telon se encarga de que entrar no se sienta mas lento que abrir una
+   hoja — es un enlace interno como todos.
+
+   `i` es el sitio de la casa en su lista, y es lo que gira el degradado
+   de la cabecera: asi la pagina y la tarjeta de la que vienes pintan
+   exactamente el mismo fondo, y se lee como la misma cosa, abierta. */
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) =>
+    ENTITIES.map((e, i) => ({
+      params: { lang, entity: slugOf(e) },
+      props: { e, i }
+    }))
+  );
+}
+
+const { lang } = Astro.params;
+const { e, i } = Astro.props;
+const t = useT(lang);
+
+const say = (o) => (o ? (o[lang] ?? o.es) : null);
+const que = say(e.role) ?? t(`card.kind.${e.kind}`);
+const desc = say(e.blurb);
+---
+<Base lang={lang} path={slugOf(e)} active={e.kind}
+      title={`${e.name} — Juan José López Ramírez`}
+      description={desc ?? que}>
+  <article class="epage">
+    <div class="epage__shell">
+      <!-- Por donde se volvio: a la seccion de la que cuelga, no al hero. -->
+      <a class="epage__back" href={`/${lang}/${e.kind}/`}>
+        <Icon id="arrow" /><span>{t(`nav.${e.kind}`)}</span>
+      </a>
+
+      <div class="entity">
+        <span class="entity__banner" style={`--i:${i}`} aria-hidden="true">
+          <picture>
+            {e.webp && <source srcset={e.webp} type="image/webp" />}
+            <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
+                 decoding="async" />
+          </picture>
+        </span>
+
+        <BrandDot mark={e.mark} logo={e.src} w={e.w} h={e.h} cls="entity__dot" />
+
+        <h1 class="entity__name">{e.name}</h1>
+        <p class="entity__kind">{que}</p>
+        {desc && <p class="entity__blurb">{desc}</p>}
+
+        <h2 class="entity__works-title">{t('entity.works')}</h2>
+        {e.works && e.works.length ? (
+          <ul class="entity__works">
+            {e.works.map((w) => (
+              <li class="entity__work">
+                {/* Con destino es un enlace; sin el, una fila y ya. Un <a>
+                    vacio se ve igual y no lleva a ningun sitio. */}
+                {w.href ? (
+                  <a href={w.href} target="_blank" rel="noopener noreferrer">
+                    <span class="entity__work-title">{say(w.title)}</span>
+                    {w.year && <span class="entity__work-year">{w.year}</span>}
+                    <Icon id="corner" />
+                  </a>
+                ) : (
+                  <span>
+                    <span class="entity__work-title">{say(w.title)}</span>
+                    {w.year && <span class="entity__work-year">{w.year}</span>}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="entity__empty">{t('entity.empty')}</p>
+        )}
+      </div>
+    </div>
+  </article>
+</Base>

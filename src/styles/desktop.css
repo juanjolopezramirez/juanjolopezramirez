@@ -188,6 +188,12 @@
   .contact-panel.is-open .contact-panel__sheet,
   .account-panel.is-open .account-panel__sheet,
   .term-panel.is-open .term-panel__sheet { translate: 0 0; }
+
+  /* ---- Las casas ----
+     Aqui ya no reparte la rejilla: manda el numero que Cards.astro
+     calcula para que las filas queden parejas. Cuatro tarjetas en una
+     fila de cuatro, seis en dos de tres. */
+  .cards__grid { grid-template-columns: repeat(var(--cols, 3), 1fr); }
 }
 
 

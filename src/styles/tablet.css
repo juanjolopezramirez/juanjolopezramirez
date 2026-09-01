@@ -114,6 +114,23 @@
   .site-footer__logo { width: min(100%, 18rem); }
   .site-footer__meta { font-size: .85rem; }
 
+  /* ---- Las casas ----
+     Hay sitio para verlas todas a la vez: la fila deslizante de movil se
+     deshace y vuelve a ser rejilla. La rejilla cuenta sola cuantas caben
+     —una tarjeta no baja de 16rem— asi que no hace falta otro corte mas
+     arriba para el escritorio. */
+  .cards__grid {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1.1rem;
+    max-width: var(--shell, 84rem);
+    margin-inline: auto;
+    padding: 0;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+  .ecard__banner { height: 5.5rem; }
+
   /* ---- Hojas ---- */
   .social-panel__grid { grid-template-columns: repeat(8, 1fr); gap: 1.4rem .5rem; }
   .social-panel__sheet,

@@ -78,7 +78,7 @@ const canonical = alt(lang);
   <Header lang={lang} t={t} path={path} active={active} />
   <main id="main"><slot /></main>
   <Footer t={t} />
-  <Panels t={t} />
+  <Panels lang={lang} t={t} />
   <Curtain />
   <script>import '../scripts/site.js';</script>
 </body>
