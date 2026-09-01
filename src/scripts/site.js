@@ -8,6 +8,7 @@
      · las animaciones de entrada
    ============================================================= */
 import { TERMS } from '../i18n/terms.js';
+import { CARDS, GLOSS } from '../i18n/term-cards.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 
@@ -427,23 +428,63 @@ function linkTerms() {
   });
 }
 
+/* Ensena una de las tres lecturas y marca su pestana. `aria-selected` no
+   es decoracion: es lo unico que le dice a quien escucha cual esta puesta,
+   y ademas es de lo que cuelga el pez que se termina de dibujar. */
+let pickCard = () => {};
+
 function initGlossary() {
   const s = sheet('term-panel', 'data-close-term');
   if (!s) return;
   const el = (id) => d.getElementById(id);
   linkTerms();
 
+  const tabsBar = el('term-tabs');
+  pickCard = (cards, which) => {
+    const text = cards[which] || cards.now;
+    el('term-panel-card').textContent = text[lang] || text.es;
+    tabsBar.querySelectorAll('[data-card]').forEach((b) => {
+      b.setAttribute('aria-selected', String(b.getAttribute('data-card') === which));
+    });
+  };
+
+  tabsBar.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-card]');
+    if (!b) return;
+    const cards = CARDS[d.querySelector('.term-panel__sheet').getAttribute('data-term')];
+    if (cards) pickCard(cards, b.getAttribute('data-card'));
+  });
+
   d.addEventListener('click', (e) => {
     const btn = e.target.closest('.term');
     if (!btn) return;
     const term = TERMS[btn.getAttribute('data-term')];
     if (!term) return;
+    d.querySelector('.term-panel__sheet').setAttribute('data-term', btn.getAttribute('data-term'));
     el('term-panel-script').textContent = term.script;
     el('term-panel-script').setAttribute('dir', term.dir);
     el('term-panel-script').setAttribute('lang', term.dir === 'rtl' ? 'he' : 'el');
     el('term-panel-title').textContent = term.title[lang] || term.title.en;
-    el('term-panel-meta').textContent = term.language[lang] || term.language.en;
-    el('term-panel-def').textContent = term.def[lang] || term.def.en;
+    /* «Verdad · Hebreo biblico»: la palabra en una palabra, y despues de
+       donde viene. Es el mismo orden del mini-logo. */
+    const gloss = GLOSS[btn.getAttribute('data-term')];
+    const idioma = term.language[lang] || term.language.en;
+    el('term-panel-meta').textContent = gloss ? (gloss[lang] || gloss.es) + ' · ' + idioma : idioma;
+    /* Con tres lecturas manda la barra de pestanas y el parrafo unico se
+       va; sin ellas —Timoteo— vuelve el parrafo de siempre. */
+    const cards = CARDS[btn.getAttribute('data-term')];
+    const tabs = el('term-tabs');
+    const card = el('term-panel-card');
+    const def = el('term-panel-def');
+
+    tabs.hidden = !cards;
+    card.hidden = !cards;
+    def.hidden = !!cards;
+    if (!cards) {
+      def.textContent = term.def[lang] || term.def.en;
+    } else {
+      pickCard(cards, 'now');
+    }
 
     /* Lo que solo tiene Timoteo. Cada hueco se vacia primero: la hoja es
        una sola y la reutilizan las cinco palabras, asi que lo que dejo la

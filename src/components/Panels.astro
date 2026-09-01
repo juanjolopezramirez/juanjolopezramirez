@@ -123,6 +123,41 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     <h2 class="term-panel__title" id="term-panel-title"></h2>
     <p class="term-panel__meta" id="term-panel-meta"></p>
 
+    <!-- TRES LECTURAS DE LA MISMA PALABRA.
+
+         Contemporaneo, historico y teologico. No son tres niveles de
+         dificultad sino tres registros: el primero enseña sin nombrar, el
+         segundo cita, el tercero lo dice de frente.
+
+         El tercero lleva el sello, que es un pez escondido dentro de un
+         siete. Y lo lleva a medias: hasta que no entras en esa lectura, el
+         pez esta dibujado solo hasta la mitad. Al entrar se termina de
+         trazar. Debajo queda su fantasma para que se lea como un dibujo sin
+         acabar y no como un icono roto.
+
+         La barra se esconde entera para las palabras que no traen las tres
+         —Timoteo se explica de otra manera— y entonces vuelve el parrafo
+         unico de siempre. -->
+    <div class="term-tabs" id="term-tabs" hidden>
+      <span class="term-tabs__label">{t('term.readAs')}</span>
+      <span class="term-tabs__row" role="tablist">
+      <button class="term-tab" type="button" role="tab" data-card="now" aria-selected="false">
+        <span>{t('term.tab.now')}</span>
+      </button>
+      <button class="term-tab" type="button" role="tab" data-card="history" aria-selected="false">
+        <span>{t('term.tab.history')}</span>
+      </button>
+      <button class="term-tab term-tab--ictus" type="button" role="tab" data-card="theology" aria-selected="false">
+        <span class="term-tab__fish" aria-hidden="true">
+          <span class="term-tab__ghost"><Icon id="mark" /></span>
+          <span class="term-tab__ink"><Icon id="mark" /></span>
+        </span>
+        <span>{t('term.tab.theology')}</span>
+      </button>
+      </span>
+    </div>
+    <p class="term-panel__card" id="term-panel-card" role="tabpanel" hidden></p>
+
     <!-- La mayoria de las palabras se explican en un parrafo y ya. Timoteo
          no: lleva titulo propio, un segundo bloque y el acordeon de los
          tres pilares. Los tres huecos se quedan vacios y ocultos cuando la
