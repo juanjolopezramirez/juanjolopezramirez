@@ -11,6 +11,8 @@ import { TERMS } from '../i18n/terms.js';
 import { CARDS, GLOSS } from '../i18n/term-cards.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
+import { CONTACT } from '../data/social.js';
+import { MODE_TRAVELS, BUDGET_STOPS } from '../data/enquiry.js';
 
 const d = document;
 const lang = d.documentElement.lang || 'es';
@@ -74,7 +76,7 @@ function initHeader() {
    quien sabe si estamos en movil o en escritorio. Este bucle solo los
    lee y se mueve dentro de ellos.                                     */
 function initFieldGlow() {
-  const field = d.querySelector('.hero__field, .phero__field');
+  const field = d.querySelector('.hero__field, .phero__field, .cpage__field');
   if (!field) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -205,15 +207,6 @@ function initSocial() {
   const opener = d.querySelector('[data-open-social]');
   if (s && opener) opener.addEventListener('click', s.open);
 }
-/* Escribirme abre la misma clase de hoja que las plataformas. Hay dos
-   botones que la abren —el de la barra ancha y el del menu desplegable—
-   asi que se cablean todos, no solo el primero. */
-function initContact() {
-  const s = sheet('contact-panel', 'data-close-contact');
-  if (!s) return;
-  d.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', s.open));
-}
-
 /* ---------- Dos cuentas, una por idioma ----------------------
    Instagram y TikTok tienen casa en español y casa en ingles. La ficha
    sigue siendo un enlace de verdad: sin JavaScript lleva a la de casa,
@@ -222,6 +215,15 @@ function initContact() {
    Solo se intercepta el clic limpio. Con Ctrl, con Cmd, con Mayus o con
    el boton de en medio se abre el enlace tal cual: quien pide una
    pestana nueva esta pidiendo el destino, no una pregunta. */
+/* «Caminemos» abre la hoja de las tres puertas. Hay dos botones que la
+   abren —el de la barra ancha y el del menu— y en las paginas de seccion
+   uno mas, asi que se cablean todos y no solo el primero. */
+function initContact() {
+  const s = sheet('contact-panel', 'data-close-contact');
+  if (!s) return;
+  d.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', s.open));
+}
+
 function initAccounts() {
   const s = sheet('account-panel', 'data-close-account');
   if (!s) return;
@@ -758,6 +760,572 @@ function initFilter() {
   });
 }
 
+/* ---------- La solicitud, paso a paso -----------------------
+   Todos los pasos vienen en el HTML; aqui se enseña el que toca. Sin
+   este guion se ven todos en orden y el formulario se rellena y se envia
+   igual — por eso la barra de progreso empieza escondida: una barra
+   parada al 11% cuando no hay pasos seria mentira.
+
+   DOS PASOS SE SALTAN SOLOS. «Que en concreto» no existe si la linea es
+   «otra cosa»; el sitio solo se pregunta si hay que desplazarse. Y como
+   la cuenta sale de los pasos ACTIVOS, saltarse uno recalcula la barra:
+   nunca promete nueve cuando van a ser siete.
+
+   EL ENVIO: Supabase si esta configurado; si no —o si falla— se abre el
+   correo con todo escrito. La base es una mejora, no un requisito.
+
+   La trampa (`website`) es un campo que ninguna persona ve. Si viene con
+   algo dentro es un robot: se le responde que si y no se envia nada. */
+/* El codigo de una solicitud. Seis caracteres de un alfabeto de treinta
+   —sin I, L, O, 0 ni 1, que son los que se copian mal a mano— dan unos
+   setecientos millones de combinaciones. No es una contraseña, es un
+   secreto portador: quien lo tiene puede mirar SU etapa y nada mas.
+   Se genera aqui y no en la base para que se pueda enseñar en el mismo
+   momento del envio, sin una segunda vuelta. */
+const ALFA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const nuevoCodigo = () => {
+  const n = new Uint32Array(6);
+  crypto.getRandomValues(n);
+  return 'JLR-' + [...n].map((x) => ALFA[x % ALFA.length]).join('');
+};
+
+/* ¿ESTO ES DE VERDAD?
+
+   No se puede saber si alguien se llama como dice. Lo que si se puede es
+   descartar lo que NADIE escribe en serio, que es de lo que se llena un
+   formulario publico: «asdasd», «aaaa», «123456», «qwerty».
+
+   Cuatro reglas, y las cuatro miran la FORMA y no el contenido — no hay
+   lista de palabras prohibidas, que siempre se queda corta y ademas
+   rechaza nombres reales de gente que existe.
+
+   Se aplica solo a partir de cuatro caracteres: «Ana» y «Li» son nombres
+   y no tienen por que pasar por aqui. */
+const FILAS = [
+  'qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'abcdefghijklmnopqrstuvwxyz', '01234567890'
+];
+function esBasura(txt) {
+  const v = String(txt || '').trim().toLowerCase();
+  if (v.length < 4) return false;
+
+  /* 1. Sin una sola vocal no es una palabra de ningun idioma que use
+        este alfabeto. */
+  if (!/[aeiouáéíóúàèìòùâêîôûäëïöüãõå]/.test(v)) return true;
+
+  /* 2. Menos de tres caracteres distintos: «aaaa», «abab». */
+  if (new Set(v.replace(/\s/g, '')).size < 3) return true;
+
+  /* 3. Cuatro iguales seguidos. */
+  if (/(.)\1{3,}/.test(v)) return true;
+
+  /* 4. Cuatro seguidas del teclado, hacia delante o hacia atras. */
+  for (const fila of FILAS) {
+    const atras = [...fila].reverse().join('');
+    for (let i = 0; i + 4 <= fila.length; i++) {
+      if (v.includes(fila.slice(i, i + 4))) return true;
+      if (v.includes(atras.slice(i, i + 4))) return true;
+    }
+  }
+  return false;
+}
+
+/* Un correo de verdad tiene punto en el dominio y una extension de dos
+   letras para arriba. `a@a` pasa la validacion del navegador y no existe. */
+const correoOk = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v) &&
+                        /\.[a-z]{2,}$/i.test(v);
+
+function initContactForm() {
+  const form = d.getElementById('contact-form');
+  if (!form) return;
+
+  const status = d.getElementById('cform-status');
+  const send = form.querySelector('[data-wiz-send]');
+  const next = form.querySelector('[data-wiz-next]');
+  const back = form.querySelector('[data-wiz-back]');
+  const head = d.getElementById('wiz-head');
+  const fill = d.getElementById('wiz-fill');
+  const count = d.getElementById('wiz-count');
+  const steps = [...form.querySelectorAll('[data-step]')];
+
+  const BASE = import.meta.env.PUBLIC_SUPABASE_URL;
+  const KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+  const val = (name) => (form.querySelector('[name="' + name + '"]:checked') || {}).value;
+  const vals = (name) => [...form.querySelectorAll('[name="' + name + '"]:checked')].map((x) => x.value);
+
+  /* Los pasos que cuentan ahora mismo. Se recalcula en cada pintada
+     porque depende de lo que se haya elegido antes. */
+  const activos = () => steps.filter((paso) => {
+    const k = paso.getAttribute('data-step');
+    if (k === 'needs') return vals('line').some((l) => !!form.querySelector('[data-needs="' + l + '"]'));
+    if (k === 'location') return MODE_TRAVELS.indexOf(val('mode')) !== -1;
+    return true;
+  });
+
+  let i = 0;
+  let tope = 0;                      // lo mas lejos que ha llegado la barra
+
+  const pinta = () => {
+    const lista = activos();
+    if (i >= lista.length) i = lista.length - 1;
+    if (i < 0) i = 0;
+    steps.forEach((paso) => { paso.hidden = paso !== lista[i]; });
+
+    /* Dentro del paso de necesidades, el grupo de la linea elegida. Los
+       otros se DESMARCAN: un campo escondido se sigue enviando, y
+       llegarian necesidades de una linea que ya no esta elegida. */
+    const lineas = vals('line');
+    form.querySelectorAll('[data-needs]').forEach((g) => {
+      const mio = lineas.indexOf(g.getAttribute('data-needs')) !== -1;
+      g.hidden = !mio;
+      if (!mio) g.querySelectorAll('input:checked').forEach((x) => { x.checked = false; });
+    });
+
+    /* «Al menos una» no lo sabe hacer el navegador con casillas: `required`
+       en una casilla exige ESA. El apaño estandar es tenerlas todas como
+       obligatorias mientras no haya ninguna marcada —asi el aviso sale— y
+       quitarselo a todas en cuanto hay una. */
+    const cajas = [...form.querySelectorAll('[name="line"]')];
+    cajas.forEach((x) => { x.required = lineas.length === 0; });
+
+    /* Con mas de un tipo de cliente hay que saber cual manda. Con uno
+       solo la pregunta se contesta sola, asi que ni se enseña — y si se
+       queda en uno despues de haber marcado dos, se limpia lo elegido
+       para no mandar un «principal» de algo que ya no esta marcado. */
+    const publicos = vals('audience');
+    const zonaMain = form.querySelector('[data-audience-main]');
+    if (zonaMain) {
+      zonaMain.hidden = publicos.length < 2;
+      form.querySelectorAll('[data-main]').forEach((op) => {
+        const suyo = publicos.indexOf(op.getAttribute('data-main')) !== -1;
+        op.hidden = !suyo;
+        const r = op.querySelector('input');
+        if (!suyo && r.checked) r.checked = false;
+      });
+      if (publicos.length < 2) {
+        form.querySelectorAll('[name="audienceMain"]').forEach((r) => { r.checked = false; });
+      }
+    }
+
+    /* El sitio solo es obligatorio si hay que ir. Y si no, se vacia: si
+       alguien lo escribe y luego cambia a remoto, no viaja un sitio que
+       ya no significa nada. */
+    const loc = form.querySelector('[name="location"]');
+    const viaja = MODE_TRAVELS.indexOf(val('mode')) !== -1;
+    loc.required = viaja;
+    if (!viaja) loc.value = '';
+
+    /* EL DESLIZADOR. Dos tiradores sobre el mismo carril: el de abajo no
+       puede pasar del de arriba, asi que se ordenan antes de pintar. Si
+       se dejaran cruzar, el rango saldria del reves y el trozo marcado
+       tendria anchura negativa. */
+    const cur = val('currency') || 'COP';
+    const from = form.querySelector('[name="budgetFrom"]');
+    const to = form.querySelector('[name="budgetTo"]');
+    let a = Number(from.value);
+    let b = Number(to.value);
+    if (a > b) { const x = a; a = b; b = x; from.value = a; to.value = b; }
+
+    const max = BUDGET_STOPS.length - 1;
+    const sel = d.getElementById('budget-sel');
+    sel.style.left = ((a / max) * 100).toFixed(1) + '%';
+    sel.style.width = (((b - a) / max) * 100).toFixed(1) + '%';
+
+    const tbd = form.querySelector('[name="budgetTbd"]').checked;
+    const zona = d.getElementById('budget-out').closest('.wiz__step');
+    zona.classList.toggle('is-tbd', tbd);
+    from.disabled = tbd;
+    to.disabled = tbd;
+    d.getElementById('budget-out').textContent = tbd
+      ? t('form.budgetTbd')
+      : BUDGET_STOPS[a][cur] + ' – ' + BUDGET_STOPS[b][cur] + ' ' + cur;
+
+    const n = lista.length;
+
+    /* LA BARRA NO PUEDE RETROCEDER, y retrocedia.
+
+       Iba con `(i + 1) / n`. El problema es que `n` CAMBIA: elegir una
+       linea añade el paso de necesidades y elegir presencial añade el del
+       sitio. Estando en el paso 1, pasar de 8 a 9 pasos llevaba la barra
+       de 12.5% a 11.1% — se iba para atras sin moverte del sitio.
+
+       Con `i / (n - 1)` el primer paso es siempre 0 y el ultimo siempre
+       100, asi que cambiar el total ya no mueve el punto de partida. Y por
+       si acaso queda el tope: nunca dibuja menos de lo que ya dibujo. */
+    const pct = n > 1 ? (i / (n - 1)) * 100 : 100;
+    tope = Math.max(tope, pct);
+    fill.style.width = tope.toFixed(1) + '%';
+    count.textContent = t('form.step').replace('{n}', i + 1).replace('{total}', n);
+    back.hidden = i === 0;
+    const ultimo = i === n - 1;
+    next.hidden = ultimo;
+    send.hidden = !ultimo;
+  };
+
+  /* LA UBICACION, CONTRA UN MAPA DE VERDAD.
+
+     No es Google Maps a proposito: su API pide clave y facturacion, y en un
+     sitio estatico esa clave viaja dentro de la pagina — la puede usar
+     cualquiera y la factura llega aqui. Photon (de komoot) busca sobre los
+     mismos datos de OpenStreetMap, sin clave y gratis.
+
+     Y si el servicio no contesta NO PASA NADA: el campo sigue siendo texto
+     libre y la solicitud se envia igual. Un buscador caido no puede dejar a
+     nadie sin poder escribir donde vive.
+
+     Lo que se teclea viaja a un tercero mientras se escribe, y por eso hay
+     una linea debajo del campo que lo dice. */
+  const loc = form.querySelector('[name="location"]');
+  const sug = d.getElementById('loc-sug');
+  let tecla = 0;
+
+  const cierra = () => {
+    sug.hidden = true;
+    sug.textContent = '';
+    loc.setAttribute('aria-expanded', 'false');
+  };
+
+  const busca = async (q) => {
+    try {
+      /* Photon solo habla cuatro idiomas y el sitio habla cinco: con
+         `lang=es` o `lang=pt` devuelve 400 y no sugiere nada. Comprobado
+         contra el servicio. Cuando no lo soporta se omite el parametro, y
+         entonces contesta con el nombre local del sitio — que para un
+         nombre propio suele ser justo lo que se quiere. */
+      const IDIOMAS_PHOTON = ['de', 'en', 'fr', 'it'];
+      const idioma = IDIOMAS_PHOTON.indexOf(lang) !== -1 ? '&lang=' + lang : '';
+      const r = await fetch('https://photon.komoot.io/api/?limit=5' + idioma +
+                           '&q=' + encodeURIComponent(q));
+      if (!r.ok) return cierra();
+      const datos = await r.json();
+      const sitios = (datos.features || []).map((x) => {
+        const p = x.properties || {};
+        return [p.name, p.city, p.state, p.country].filter(Boolean).join(', ');
+      }).filter((x, i, a) => x && a.indexOf(x) === i);
+      if (!sitios.length) return cierra();
+
+      sug.textContent = '';
+      sitios.forEach((nombre) => {
+        const li = d.createElement('li');
+        const b = d.createElement('button');
+        b.type = 'button';
+        b.className = 'wiz__sug-op';
+        b.setAttribute('role', 'option');
+        b.textContent = nombre;
+        b.addEventListener('click', () => { loc.value = nombre; cierra(); loc.focus(); });
+        li.appendChild(b);
+        sug.appendChild(li);
+      });
+      sug.hidden = false;
+      loc.setAttribute('aria-expanded', 'true');
+    } catch (e) {
+      cierra();
+    }
+  };
+
+  if (loc && sug) {
+    loc.addEventListener('input', () => {
+      clearTimeout(tecla);
+      const q = loc.value.trim();
+      if (q.length < 3) return cierra();
+      /* Medio segundo de espera: sin esto sale una peticion por letra y el
+         servicio corta por abuso, con razon. */
+      tecla = setTimeout(() => busca(q), 500);
+    });
+    loc.addEventListener('blur', () => setTimeout(cierra, 180));
+    loc.addEventListener('keydown', (e) => { if (e.key === 'Escape') cierra(); });
+  }
+
+  const alert = d.getElementById('wiz-alert');
+  const alertText = d.getElementById('wiz-alert-text');
+
+  const limpia = () => {
+    alert.hidden = true;
+    form.querySelectorAll('.is-bad').forEach((x) => x.classList.remove('is-bad'));
+    form.querySelectorAll('[aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+  };
+
+  const falla = (el, clave) => {
+    alert.hidden = false;
+    alertText.textContent = t(clave);
+    if (el) {
+      el.classList.add('is-bad');
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.setAttribute('aria-invalid', 'true');
+        try { el.focus({ preventScroll: true }); } catch (e) {}
+      }
+    }
+    return false;
+  };
+
+  /* Antes de avanzar, lo que falte del paso en el que estamos. El aviso lo
+     damos nosotros: el globo del navegador no se puede pintar y solo sabe
+     decir «rellena este campo». */
+  const listo = () => {
+    limpia();
+    const paso = activos()[i];
+    const clave = paso.getAttribute('data-step');
+
+    /* Grupos de eleccion: al menos uno. */
+    const grupo = paso.querySelector('.cform__chips, .cform__cards');
+    const esEleccion = ['line', 'mode', 'audience', 'timing', 'impact'].indexOf(clave) !== -1;
+    if (esEleccion && grupo) {
+      const puestos = paso.querySelectorAll('input:checked').length;
+      if (!puestos) return falla(grupo, 'err.pickOne');
+    }
+
+    /* Con dos o mas publicos, el principal es obligatorio: sin el, saber
+       que hace B2B y B2C no dice por donde empezar. */
+    if (clave === 'audience') {
+      const zona = form.querySelector('[data-audience-main]');
+      if (zona && !zona.hidden && !form.querySelector('[name="audienceMain"]:checked')) {
+        return falla(zona.querySelector('.cform__chips'), 'err.pickMain');
+      }
+    }
+
+    if (clave === 'location') {
+      const el = form.querySelector('[name="location"]');
+      const v = (el.value || '').trim();
+      if (v.length < 3) return falla(el, 'err.location');
+      if (esBasura(v)) return falla(el, 'err.junk');
+    }
+
+    if (clave === 'you') {
+      const nom = form.name;
+      const cor = form.email;
+      const tel = form.phone;
+      const vn = (nom.value || '').trim();
+      if (vn.length < 2) return falla(nom, 'err.name');
+      if (!/[a-záéíóúàèìòùâêîôûäëïöüñãõçA-Z]/.test(vn)) return falla(nom, 'err.name');
+      if (esBasura(vn)) return falla(nom, 'err.junk');
+
+      const vc = (cor.value || '').trim();
+      if (!correoOk(vc)) return falla(cor, 'err.email');
+      if (esBasura(vc.split('@')[0])) return falla(cor, 'err.junk');
+
+      const vt = (tel.value || '').trim();
+      if (vt && (vt.replace(/\D/g, '').length < 7)) return falla(tel, 'err.phone');
+
+      if (!form.querySelector('[name="channel"]:checked')) {
+        return falla(paso.querySelector('.cform__chips'), 'err.pickOne');
+      }
+    }
+
+    if (clave === 'detail') {
+      const det = form.detail;
+      const vd = (det.value || '').trim();
+      if (vd && esBasura(vd)) return falla(det, 'err.junk');
+    }
+
+    return true;
+  };
+
+  next.addEventListener('click', () => {
+    if (!listo()) return;
+    i++;
+    pinta();
+    form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+
+  back.addEventListener('click', () => {
+    i--;
+    pinta();
+    form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+
+  /* Elegir linea, modalidad o moneda cambia lo que viene despues. */
+  /* En cuanto se toca algo, el aviso se va: dejarlo puesto mientras se
+     corrige es regañar dos veces por lo mismo. */
+  form.addEventListener('input', () => { if (!alert.hidden) limpia(); });
+  form.addEventListener('change', () => { if (!alert.hidden) limpia(); });
+
+  /* `input` y no solo `change`: arrastrando el tirador, `change` no salta
+     hasta soltarlo y la cifra se quedaba congelada mientras se mueve. */
+  form.addEventListener('input', (e) => {
+    if (['budgetFrom', 'budgetTo'].indexOf(e.target.name) !== -1) pinta();
+  });
+
+  form.addEventListener('change', (e) => {
+    /* `audience` tiene que estar: es lo que decide si aparece la pregunta
+       de cual manda. Se quedo fuera al principio y el bloque no salia nunca. */
+    if (['line', 'mode', 'audience', 'currency', 'budgetFrom', 'budgetTo', 'budgetTbd']
+        .indexOf(e.target.name) !== -1) pinta();
+  });
+
+  const say = (kind, titulo, cuerpo) => {
+    status.hidden = false;
+    status.className = 'cform__status is-' + kind;
+    status.textContent = titulo + ' ' + cuerpo;
+  };
+
+  const abrirCorreo = (data) => {
+    const dest = (CONTACT.find((c) => c.id === 'mail') || {}).href || '';
+    if (!dest) return;
+    const cuerpo = Object.entries(data).map(([k, v]) => k + ': ' + v).join('\n\n');
+    const asunto = t('page.contact.title') + ' — ' + (data.name || '');
+    location.href = dest + '?subject=' + encodeURIComponent(asunto) +
+                    '&body=' + encodeURIComponent(cuerpo);
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!listo()) return;
+
+    /* `needs` son varias casillas con el mismo nombre, y
+       Object.fromEntries se quedaria solo con la ultima. Se juntan. */
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd);
+    data.needs = fd.getAll('needs').join(', ');
+    data.line = fd.getAll('line').join(', ');
+    data.audience = fd.getAll('audience').join(', ');
+    /* Con un solo publico, el principal es ese: se rellena solo para que
+       la columna nunca venga vacia y se pueda agrupar por ella. */
+    if (!data.audienceMain) data.audienceMain = fd.getAll('audience')[0] || '';
+
+    /* La cifra en letra viaja junto a los indices: los indices sirven para
+       comparar y ordenar, la letra para leerla sin hacer cuentas. */
+    if (data.budgetTbd) {
+      data.budgetFrom = '';
+      data.budgetTo = '';
+      data.budgetLabel = 'tbd';
+    } else {
+      const cur = data.currency || 'COP';
+      data.budgetLabel = BUDGET_STOPS[Number(data.budgetFrom)][cur] + ' – ' +
+                         BUDGET_STOPS[Number(data.budgetTo)][cur] + ' ' + cur;
+    }
+    delete data.budgetTbd;
+
+    if (data.website) {
+      say('ok', t('form.okTitle'), t('form.okBody'));
+      form.reset();
+      i = 0;
+      tope = 0;
+      pinta();
+      return;
+    }
+    delete data.website;
+
+    const antes = send.textContent;
+    send.disabled = true;
+    send.textContent = t('form.sending');
+
+    const code = nuevoCodigo();
+
+    try {
+      if (!BASE || !KEY) throw new Error('sin configurar');
+      const r = await fetch(BASE.replace(/\/$/, '') + '/rest/v1/solicitudes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: KEY,
+          Authorization: 'Bearer ' + KEY,
+          Prefer: 'return=minimal'
+        },
+        body: JSON.stringify({ ...data, code, lang })
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      /* El codigo solo se enseña si de verdad quedo guardado. Darlo
+         cuando el envio cayo al respaldo del correo seria darle un
+         numero que no existe en ninguna parte. */
+      say('ok', t('form.okTitle'), t('form.okBody') + ' ' + t('form.codeIs').replace('{code}', code));
+      form.reset();
+      i = 0;
+      tope = 0;
+      pinta();
+    } catch (err) {
+      abrirCorreo(data);
+      say('err', t('form.errTitle'), t('form.errBody'));
+    } finally {
+      send.disabled = false;
+      send.textContent = antes;
+    }
+  });
+
+  /* A partir de aqui manda el guion: barra visible y un paso cada vez. */
+  head.hidden = false;
+  form.classList.add('is-wiz');
+  pinta();
+}
+
+/* ---------- El portal: sin datos, con WhatsApp ---------------
+   No consulta nada ni enseña nada. Arma el mensaje con lo elegido y lo
+   mete en el enlace de wa.me. Sin guion el enlace sigue llevando al
+   WhatsApp de siempre, solo que con el mensaje generico. */
+function initPortal() {
+  const form = d.getElementById('portal-form');
+  if (!form) return;
+  const send = d.getElementById('portal-send');
+  const base = form.getAttribute('data-wa');
+
+  const texto = (name) => {
+    const el = form.querySelector('[name="' + name + '"]:checked');
+    return el ? el.nextElementSibling.textContent.trim() : '';
+  };
+
+  const arma = () => {
+    const motivo = form.querySelector('[name="reason"]:checked');
+    const soloFecha = form.querySelector('[data-only="date"]');
+    const esFecha = motivo && motivo.value === 'date';
+    soloFecha.hidden = !esFecha;
+
+    const quien = (form.querySelector('[name="who"]').value || '').trim();
+    let m = 'Hola Juanjo — ' + texto('reason');
+    if (esFecha) m += ': ' + texto('thing');
+    if (quien) m += '. Soy ' + quien;
+    send.href = base + '?text=' + encodeURIComponent(m + '.');
+  };
+
+  form.addEventListener('change', arma);
+  form.addEventListener('input', arma);
+  arma();
+}
+
+/* ---------- El estado, por codigo ----------------------------
+   No lee la tabla: llama a una funcion de Postgres que recibe el codigo
+   y devuelve SOLO la etapa. Aunque alguien acertara un codigo, lo unico
+   que obtendria es una palabra. */
+function initStatus() {
+  const form = d.getElementById('status-form');
+  if (!form) return;
+  const out = d.getElementById('status-result');
+  const btn = form.querySelector('.cform__send');
+  const BASE = import.meta.env.PUBLIC_SUPABASE_URL;
+  const KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+  const di = (kind, txt) => {
+    out.hidden = false;
+    out.className = 'cform__status is-' + kind;
+    out.textContent = txt;
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = (form.code.value || '').trim().toUpperCase();
+    if (!code) return;
+
+    const antes = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('status.checking');
+    try {
+      if (!BASE || !KEY) throw new Error('sin configurar');
+      const r = await fetch(BASE.replace(/\/$/, '') + '/rest/v1/rpc/estado_solicitud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY },
+        body: JSON.stringify({ codigo: code })
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      const etapa = await r.json();
+      if (!etapa) { di('err', t('status.notfound')); return; }
+      di('ok', t('status.s.' + etapa) || etapa);
+    } catch (err) {
+      di('err', t('status.error'));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = antes;
+    }
+  });
+}
+
 /* ---------- Entradas ----------------------------------------
    Dos comportamientos, no uno:
 
@@ -829,6 +1397,9 @@ initCovers();
 initCurrent();
 initCurtain();
 initFilter();
+initContactForm();
+initPortal();
+initStatus();
 initReveal();
 /* Safari en iOS no aplica `:active` a nada si la pagina no escucha el
    tacto en ningun sitio: sin esto, la ficha se enciende al pulsarla en

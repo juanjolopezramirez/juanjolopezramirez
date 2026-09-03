@@ -12,6 +12,30 @@
   --iris:   #7D9B4E;
   --ring:   #C08A2E;
 
+  /* LA ESCALA CELTIC, entera.
+
+     El hallazgo que la justifica: CELTIC 900 ES #263B28, que es Pine
+     exactamente. El verde de la casa ya estaba en la escala — esto no la
+     sustituye, la extiende hacia arriba y hacia abajo.
+
+     OJO CON LOS NOMBRES VIEJOS: --pine-700 es #1E2F20 y NO es Celtic 700
+     (#385D3B, mucho mas claro). Los `--pine-*` son de antes y siguen su
+     propia logica; no se renombran porque estan por todo el fichero. Para
+     cosas nuevas, usa --celtic-*, que si es una escala de verdad.
+
+     De 50 a 400 son para texto sobre oscuro; de 600 a 950, para fondos. */
+  --celtic-50:  #F4F9F4;
+  --celtic-100: #E6F2E7;
+  --celtic-200: #CEE4CF;
+  --celtic-300: #A8CDAA;
+  --celtic-400: #7AAE7D;
+  --celtic-500: #57905B;
+  --celtic-600: #447547;
+  --celtic-700: #385D3B;
+  --celtic-800: #304B32;
+  --celtic-900: #263B28;   /* = --pine */
+  --celtic-950: #122114;
+
   /* Steps allowed */
   --pine-900: #16231A;
   --pine-700: #1E2F20;
@@ -516,7 +540,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      --iris-pull        cuanto la empuja el raton
    ============================================================= */
 .hero__field,
-.phero__field {
+.phero__field,
+.cpage__field {
   --iris-cycle: 11s;
   --iris-w: 42%;
   --iris-h: 60%;
@@ -2504,6 +2529,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .ecard__banner picture,
 .entity__banner picture { display: block; }
 
+/* Cuando la casa trae foto, la foto manda: llena la caja entera y se
+   recorta por el centro. El degradado y el logo tenue de detras son el
+   plan para cuando NO hay foto, no un fondo que se vea a traves.
+
+   `cover` y no `contain` porque la caja tiene proporciones distintas en
+   cada sitio —de 3.8:1 en una tarjeta de movil a 5.3:1 en una de
+   escritorio— y una sola foto tiene que servir para las tres sin barras
+   a los lados. Lo que se recorta se recorta arriba y abajo por igual,
+   asi que lo que importe tiene que estar en la banda central. */
+.ecard__photo,
+.entity__photo {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  max-width: none;
+  object-fit: cover; object-position: center;
+}
+
 /* Se acota por los DOS lados y con auto en medio: asi un logotipo largo
    como Capital Mio se rinde por el ancho y una letra de pie como la U se
    rinde por el alto, y ninguno se sale ni se deforma. Sin el tope de
@@ -2600,6 +2642,315 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .epage__back .icon { width: .62rem; height: auto; rotate: 90deg; }
 .epage__back:hover { color: var(--slate); }
 
+/* =============================================================
+   LA SOLICITUD
+
+   Vive en la misma caja de lectura que la pagina de una casa: estrecha,
+   sobre hueso, sin nada que distraiga. Un formulario largo en una caja
+   ancha se lee como un tramite; en una estrecha, como una conversacion.
+
+   Los canales son RADIOS vestidos de ficha. El input no se esconde con
+   `display: none` —eso lo saca del foco y del teclado— sino reducido a un
+   pixel: sigue siendo un radio de verdad, con sus flechas y su estado, y
+   lo que se ve es la ficha de al lado.
+   ============================================================= */
+.cpage__title {
+  margin: 0 0 .5rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  line-height: 1.1; letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.cpage__lead {
+  margin: 0 0 2rem;
+  max-width: 34rem;
+  font-size: 1rem; font-weight: 300; line-height: 1.65;
+  color: #4A5A63;
+  text-wrap: pretty;
+}
+
+.cform { display: grid; gap: 1.6rem; }
+
+/* =============================================================
+   EL ASISTENTE
+
+   Una pregunta por pantalla. La barra de arriba no es adorno: es lo
+   unico que dice cuanto falta, y es lo que hace que alguien llegue al
+   final en vez de cerrar en la tercera.
+
+   `is-wiz` lo pone el guion. Sin el, los pasos se ven todos en orden y
+   el formulario se rellena igual — por eso el alto minimo y la barra
+   solo existen cuando el guion esta al mando.
+   ============================================================= */
+.wiz__head { display: grid; gap: .5rem; }
+.wiz__bar {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(43, 58, 67, .12);
+  overflow: hidden;
+}
+.wiz__fill {
+  display: block; height: 100%; width: 0;
+  border-radius: 999px;
+  background: var(--pine);
+  /* `--ease-smooth` tiene cola larga y sin rebote: la barra llega y se
+     posa. Y `will-change` evita el parpadeo del primer paso, que es el
+     unico que arranca desde cero. */
+  transition: width .52s var(--ease-smooth);
+  will-change: width;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wiz__fill { transition: none; }
+}
+.wiz__count {
+  margin: 0;
+  font-size: .64rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #5A6B74;
+}
+
+/* El paso ocupa un alto minimo para que la navegacion no salte de sitio
+   entre una pregunta de cuatro fichas y otra de dos. */
+.is-wiz .wiz__step { min-height: 11rem; align-content: start; }
+.wiz__step { display: grid; gap: .9rem; margin: 0; padding: 0; border: 0; }
+
+/* UNO A CADA LADO. «Volver» a la izquierda y «Seguir» a la derecha, con
+   el ancho de las preguntas entre medias: es el mismo eje que llevan los
+   pasos, asi que el ojo no tiene que buscar. Y deja el centro de abajo
+   libre para la puerta de los que ya me conocen.
+
+   `space-between` con un solo boton lo dejaria a la izquierda, y el que
+   siempre esta es «Seguir»: por eso «Volver» lleva `margin-right: auto`
+   y empuja. Cuando no esta, «Seguir» se queda solo a la derecha. */
+.wiz__nav {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.wiz__next {
+  padding: .7rem 1.5rem;
+  border-radius: 999px;
+  background: var(--pine);
+  color: var(--bone);
+  font-size: .88rem; font-weight: 600;
+  transition: background-color .22s var(--ease);
+}
+.wiz__next:hover { background: var(--pine-700); }
+/* «Volver» va primero y empuja al otro al extremo. Pesa menos: es la
+   salida, no el camino. */
+.wiz__back {
+  order: -1;
+  margin-right: auto;
+  padding: .7rem .9rem;
+  font-size: .84rem; font-weight: 600;
+  color: #5A6B74;
+  text-decoration: underline; text-underline-offset: 3px;
+  transition: color .2s var(--ease);
+}
+.wiz__back:hover { color: var(--slate); }
+
+/* Las tres monedas. Pequeñas y arriba del todo: eligen como se leen las
+   cifras de abajo, no son una respuesta mas. */
+.wiz__money { display: flex; gap: .3rem; }
+.wiz__cur { position: relative; cursor: pointer; }
+.wiz__cur input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; pointer-events: none; }
+.wiz__cur span {
+  display: inline-block;
+  padding: .25rem .55rem .28rem;
+  border-radius: 999px;
+  font-size: .66rem; font-weight: 700; letter-spacing: .06em;
+  color: #5A6B74;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.wiz__cur:hover span { background: rgba(43, 58, 67, .1); color: var(--slate); }
+.wiz__cur input:checked + span { background: var(--slate); color: var(--bone); }
+.wiz__cur input:focus-visible + span { outline: 2px solid var(--iris-300); outline-offset: 3px; }
+.wiz__amount { font-style: normal; }
+
+/* Fichas con icono: el glifo delante, del tamaño de la letra. */
+.cform__chip--icon span { display: inline-flex; align-items: center; gap: .45rem; }
+.cform__chip--icon .icon { width: .95rem; height: .95rem; }
+
+/* El logo dentro de la tarjeta de linea. Alto fijo y el ancho que pida:
+   son logotipos de proporciones muy distintas y encajarlos en una caja
+   cuadrada los dejaria a tamaños que no se parecen. */
+/* 1.85rem y no 1.5: por debajo de eso el de Let Be —que es el mas fino de
+   los tres— se queda en una mancha. Alto fijo y ancho libre porque son
+   proporciones muy distintas y una caja cuadrada los dejaria a tamaños
+   que no se parecen entre si. */
+.ocard__logo { display: flex; align-items: center; height: 1.85rem; margin-bottom: .25rem; }
+/* `--ls` es la escala optica de cada logo: no todos pueden medir lo mismo
+   de alto. El de Let Be es mucho mas ancho que alto y a la misma altura
+   que los demas pesaba el doble en la fila. */
+.ocard__logo img { max-height: calc(100% * var(--ls, 1)); width: auto; }
+.ocard__logo .icon { width: auto; height: 100%; color: var(--pine); }
+/* El ictus va en oro. Es el sello de la casa entre logos de otras casas:
+   el oro es lo que dice cual de las cuatro es la propia. */
+.ocard__logo .icon--mark { color: var(--ring); }
+/* Sin invertir: los logos vienen en claro sobre transparente —los pide la
+   cinta, que va sobre pinar— y esta pagina tambien es oscura. Invertirlos
+   era lo que dejaba el de Let Be hecho un borron: su SVG lleva mascara, y
+   una mascara invertida no devuelve el dibujo, devuelve su negativo. */
+.cform__legend--inline { margin-top: .4rem; }
+.cform__group { display: grid; gap: .9rem; margin: 0; padding: 0; border: 0; }
+.cform__legend {
+  padding: 0;
+  font-size: .64rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #5A6B74;
+}
+.cform__field { display: grid; gap: .3rem; }
+.cform__label { font-size: .84rem; font-weight: 600; }
+.cform__opt { font-weight: 300; color: #5A6B74; }
+
+/* El canto de abajo y no una caja entera: una caja por campo convierte el
+   formulario en una rejilla de cajas y se lee como una declaracion de la
+   renta. Una linea basta para decir donde se escribe. */
+.cform__input {
+  width: 100%;
+  padding: .5rem .1rem;
+  border: 0; border-bottom: 1px solid rgba(43, 58, 67, .28);
+  border-radius: 0;
+  background: none;
+  color: var(--slate);
+  font: inherit; font-size: .95rem;
+  transition: border-color .22s var(--ease);
+}
+textarea.cform__input { resize: vertical; line-height: 1.55; }
+.cform__input:hover { border-bottom-color: rgba(43, 58, 67, .5); }
+.cform__input:focus {
+  outline: none;
+  border-bottom-color: var(--iris-700);
+}
+/* El aviso del navegador ya dice que falta; esto lo dice tambien en color,
+   pero solo despues de intentar enviar — no mientras se escribe. */
+.cform:invalid .cform__input:invalid { border-bottom-color: rgba(43, 58, 67, .28); }
+.cform__input:user-invalid { border-bottom-color: #A6432F; }
+
+/* La primera pregunta va en tarjetas y no en fichas: cada linea necesita
+   una frase que diga que hace. Nadie tiene por que saberse que es Recvid
+   antes de pedirle nada. */
+/* LAS TRES EN UNA FILA. Eran cuatro y pedian un cuadrado de dos por dos;
+   ahora son tres y una fila las pone al mismo nivel, que es lo que son:
+   tres casas, ninguna por encima de otra. Dos y una seria peor que el
+   cuadrado — la de abajo pareceria un aviso legal.
+
+   El salto va en 40rem y no en 34: a 34 las tres columnas salen a 170px y
+   la frase de cada casa se parte en cinco lineas. Por debajo, apiladas. */
+.cform__cards { display: grid; gap: .6rem; }
+@media (min-width: 40rem) {
+  .cform__cards { grid-template-columns: repeat(3, 1fr); }
+}
+.ocard { position: relative; display: block; cursor: pointer; }
+.ocard input {
+  position: absolute; width: 1px; height: 1px;
+  opacity: 0; margin: 0; pointer-events: none;
+}
+.ocard__box {
+  display: grid; gap: .2rem; height: 100%;
+  padding: .8rem .95rem .9rem;
+  border: 1px solid rgba(43, 58, 67, .18);
+  border-radius: 14px;
+  transition: border-color .2s var(--ease), background-color .2s var(--ease);
+}
+.ocard:hover .ocard__box { border-color: rgba(43, 58, 67, .42); }
+.ocard input:checked + .ocard__box {
+  border-color: var(--pine);
+  background: rgba(38, 59, 40, .06);
+}
+.ocard input:focus-visible + .ocard__box { outline: 2px solid var(--iris-300); outline-offset: 3px; }
+.ocard__name { font-size: .92rem; font-weight: 600; }
+.ocard__hint { font-size: .78rem; font-weight: 300; line-height: 1.45; color: #5A6B74; }
+
+.cform__chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.cform__chip { position: relative; display: inline-flex; cursor: pointer; }
+.cform__chip input {
+  position: absolute; width: 1px; height: 1px;
+  opacity: 0; margin: 0; pointer-events: none;
+}
+.cform__chip span {
+  display: inline-block;
+  padding: .42rem .9rem .46rem;
+  border-radius: 999px;
+  background: rgba(43, 58, 67, .07);
+  color: #5A6B74;
+  font-size: .78rem; font-weight: 600;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.cform__chip:hover span { background: rgba(43, 58, 67, .13); color: var(--slate); }
+.cform__chip input:checked + span { background: var(--pine); color: var(--bone); }
+.cform__chip input:focus-visible + span { outline: 2px solid var(--iris-300); outline-offset: 3px; }
+
+/* Fuera de pantalla, no `display: none`: lo primero que mira un robot que
+   sepa lo que hace es si el campo esta escondido de la manera obvia. */
+.cform__trap {
+  position: absolute; left: -9999px;
+  width: 1px; height: 1px; overflow: hidden;
+}
+
+.cform__send {
+  justify-self: start;
+  padding: .7rem 1.5rem;
+  border-radius: 999px;
+  background: var(--pine);
+  color: var(--bone);
+  font-size: .88rem; font-weight: 600;
+  transition: background-color .22s var(--ease);
+}
+.cform__send:hover { background: var(--pine-700); }
+.cform__send[disabled] { opacity: .6; cursor: progress; }
+
+.cform__status {
+  margin: 0;
+  padding: .8rem 1rem;
+  border-left: 3px solid var(--iris);
+  background: rgba(125, 155, 78, .1);
+  font-size: .88rem; line-height: 1.6;
+}
+.cform__status.is-err { border-left-color: #A6432F; background: rgba(166, 67, 47, .08); }
+
+/* La puerta de los amigos: discreta y al pie. Quien ya me conoce sabe que
+   esta ahi; quien no, no la necesita. */
+/* Centrada y al pie de todo: no compite con el formulario, y quien ya me
+   conoce la encuentra sin que le estorbe a quien no. */
+.cform__friends {
+  margin-top: 3rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(43, 58, 67, .14);
+  text-align: center;
+}
+.cform__friends-body { display: grid; justify-items: center; }
+.cpage .cform__direct { justify-content: center; }
+.cform__friends summary {
+  cursor: pointer;
+  font-size: .82rem; font-weight: 600;
+  color: #5A6B74;
+  transition: color .2s var(--ease);
+}
+.cform__friends summary:hover { color: var(--slate); }
+.cform__friends-body { padding-top: .9rem; }
+.cform__friends-body p { margin: 0 0 .9rem; font-size: .9rem; font-weight: 300; }
+.cform__direct { display: flex; gap: 1.4rem; }
+.cform__direct li { display: grid; justify-items: center; gap: .4rem; }
+.cform__direct-name { font-size: .72rem; font-weight: 600; color: #5A6B74; }
+
+/* `.link-chip` esta hecho para suelo OSCURO: el glifo va en hueso y el
+   color de la plataforma solo aparece al tocarla. Aqui el suelo es hueso,
+   asi que en reposo quedaban hueso sobre hueso — invisibles hasta pasar el
+   raton por encima. En claro se invierte: llenas desde el principio. */
+.cform__direct .link-chip {
+  background: var(--brand-bg, var(--pine));
+  color: var(--brand-fg, var(--bone));
+}
+/* El de VSCO es hueso sobre hueso por su propia marca: ahi hace falta un
+   canto para que el circulo se vea. Vale para cualquiera que sea claro. */
+.cform__direct .link-chip { box-shadow: inset 0 0 0 1px rgba(43, 58, 67, .12); }
+
+/* Se hunde un pelo al pulsar. Es lo unico que separa una ficha de una
+   etiqueta de colores. */
+.cform__chip:active span,
+.ocard:active .ocard__box { scale: .985; }
+
 /* La cabecera va a sangre dentro de su caja y con los cantos redondos:
    es la tarjeta a tamano grande, no una banda de pagina. */
 .entity__banner {
@@ -2687,6 +3038,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* La unica pagina que termina en espacio no puede rematar con una tira
    de hueso encendida debajo del vacio. El pie se va al negro verdoso del
    cielo y la pagina acaba donde venia cayendo. */
+/* El pie hereda el suelo de la seccion que lo precede. Un pie de hueso
+   debajo de una pagina verde corta la pagina en dos justo donde no pasa
+   nada — se lee como si algo no hubiera cargado. */
+main:has(.cpage) + .site-footer {
+  background: var(--pine);
+  color: var(--pine-200);
+}
+main:has(.cpage) + .site-footer a { color: var(--bone); }
+
 main:has(.phero--sky) + .site-footer {
   background: var(--space-900);
   color: var(--pine-200);
@@ -3583,3 +3943,497 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 }
 .door--write { font-family: inherit; }
 
+
+/* =============================================================
+   LA SOLICITUD, SOBRE EL CAMPO VIVO
+
+   El formulario vivia sobre hueso y se leia como un tramite. Sobre el
+   mismo degradado que respira del hero es otra cosa: sigue siendo la
+   pagina, no un formulario pegado encima.
+
+   Los tres colores hacen lo que saben hacer: PINE es el suelo, IRIS lo
+   que hay que pulsar, y HUESO lo que hay que leer. La ficha elegida se
+   llena de hueso —maximo contraste contra el verde— y ahi no hay duda de
+   cual esta marcada.
+
+   Va al final del fichero a proposito: son las mismas reglas de arriba
+   con otro suelo debajo, y lo ultimo escrito es lo que manda.
+   ============================================================= */
+.cpage {
+  position: relative;
+  isolation: isolate;
+  background: var(--pine);
+  color: var(--bone);
+  border-top: 0;
+}
+.cpage > * { position: relative; z-index: 1; }
+
+.cpage .cpage__title { color: var(--bone); }
+.cpage .cpage__lead { color: var(--pine-200); }
+.cpage .cform__legend,
+.cpage .wiz__count,
+.cpage .cform__opt,
+.cpage .ocard__hint { color: var(--pine-200); }
+.cpage .cform__label { color: var(--bone); }
+
+/* Los campos: la linea de abajo en hueso apagado, y viva al escribir. */
+.cpage .cform__input {
+  color: var(--bone);
+  border-bottom-color: rgba(241, 239, 233, .3);
+}
+.cpage .cform__input::placeholder { color: rgba(241, 239, 233, .45); }
+.cpage .cform__input:hover { border-bottom-color: rgba(241, 239, 233, .55); }
+.cpage .cform__input:focus { border-bottom-color: var(--celtic-300); }
+.cpage .cform__input:user-invalid { border-bottom-color: var(--ring-300); }
+
+/* Las fichas. Sin marcar, hueso apagado sobre el verde; marcada, hueso
+   lleno con el texto en pinar — que es el contraste mas alto que da la
+   casa sin salirse de los cinco colores. */
+.cpage .cform__chip span {
+  background: rgba(241, 239, 233, .12);
+  color: var(--bone);
+}
+/* EL HOVER, Y POR QUE LLEVA UN FILO.
+
+   Primero fue hueso translucido y se confundia con la ficha ya marcada.
+   Despues verde solido, y aparecio otro problema: el fondo de esta pagina
+   NO es un color, es un degradado que se mueve entre Pine y Iris. Un verde
+   solido encima desaparece justo cuando la luz pasa por debajo.
+
+   Por eso el hover lleva ademas un filo de hueso muy tenue: el relleno da
+   el color y el filo garantiza que la ficha se recorta contra cualquier
+   punto del degradado. Verde es «puedes», hueso lleno es «elegido».
+
+   Celtic 600 y no 700: sobre la parte clara del degradado el 700 se
+   quedaba corto. Con hueso encima da 4.71, que pasa AA. */
+.cpage .cform__chip:hover span {
+  background: var(--celtic-600);
+  color: var(--bone);
+  box-shadow: inset 0 0 0 1px rgba(241, 239, 233, .35);
+}
+.cpage .cform__chip input:checked + span { background: var(--bone); color: var(--pine); }
+
+.cpage .ocard__box { border-color: rgba(241, 239, 233, .24); }
+.cpage .ocard:hover .ocard__box {
+  border-color: var(--celtic-400);
+  background: var(--celtic-700);
+}
+/* Elegido = hueso. Es la misma regla que las fichas, y asi «elegido» se
+   dice igual en toda la pagina. */
+.cpage .ocard input:checked + .ocard__box {
+  border-color: var(--bone);
+  background: rgba(241, 239, 233, .12);
+}
+.cpage .ocard__name { color: var(--bone); }
+/* Los tres logos en hueso, el ictus incluido. Con Let Be y Recvid en
+   claro, un ictus dorado seria el unico con color de los cuatro y se leeria
+   como un aviso, no como una firma. */
+.cpage .ocard__logo .icon { color: var(--bone); }
+
+/* La barra y la moneda. */
+.cpage .wiz__bar { background: rgba(241, 239, 233, .18); }
+/* Lo ya recorrido va en Ring, el oro de la casa. Es el unico sitio del
+   sitio donde el oro mide algo en vez de decorar: marca el camino que ya
+   se anduvo, que es de lo que va la pagina entera. */
+.cpage .wiz__fill { background: var(--ring); }
+.cpage .wiz__cur span { color: var(--pine-200); }
+.cpage .wiz__cur:hover span { background: var(--celtic-600); color: var(--bone); }
+.cpage .wiz__cur input:checked + span { background: var(--bone); color: var(--pine); }
+
+/* LO QUE HAY QUE PULSAR, EN LA ESCALA Y NO EN IRIS.
+
+   Iris (#7D9B4E) es un verde medio, y sobre un fondo que va de Pine a
+   Iris el boton se confundia con su propio fondo justo cuando la luz del
+   degradado pasaba por debajo. La escala tiene el remedio en el otro
+   extremo: Celtic 300 es verde claro, asi que sobre cualquier punto del
+   degradado sigue siendo lo mas claro de la pantalla — que es lo que
+   tiene que ser un boton principal. */
+.cpage .wiz__next,
+.cpage .cform__send {
+  background: var(--celtic-300);
+  color: var(--celtic-950);
+}
+.cpage .wiz__next:hover,
+.cpage .cform__send:hover { background: var(--celtic-200); }
+.cpage .wiz__back { color: var(--pine-200); }
+.cpage .wiz__back:hover { color: var(--bone); }
+
+.cpage .cform__status {
+  border-left-color: var(--celtic-300);
+  background: rgba(125, 155, 78, .2);
+  color: var(--bone);
+}
+.cpage .cform__status.is-err {
+  border-left-color: var(--ring-300);
+  background: rgba(192, 138, 46, .18);
+}
+
+.cpage .cform__friends { border-top-color: rgba(241, 239, 233, .18); }
+.cpage .cform__friends summary { color: var(--pine-200); }
+.cpage .cform__friends summary:hover { color: var(--bone); }
+.cpage .cform__direct-name { color: var(--pine-200); }
+/* Aqui el suelo vuelve a ser oscuro, asi que las fichas de contacto
+   recuperan su comportamiento de siempre: hueso, y el color de la
+   plataforma al tocarlas. */
+.cpage .cform__direct .link-chip {
+  background: transparent;
+  color: var(--bone);
+  box-shadow: none;
+}
+/* El correo no tiene color de marca propio, asi que caia en el de
+   respaldo, que era Iris. En la escala: Celtic 300, el mismo verde claro
+   de los botones. WhatsApp conserva el suyo, que si es suyo. */
+.cpage .cform__direct .link-chip:hover,
+.cpage .cform__direct .link-chip:focus-visible {
+  background: var(--brand-bg, var(--celtic-300));
+  color: var(--brand-fg, var(--celtic-950));
+}
+.cpage .cform__direct .net--mail { --brand-bg: var(--celtic-300); --brand-fg: var(--celtic-950); }
+
+/* =============================================================
+   LAS TRES PUERTAS DE «CAMINEMOS»
+
+   Una hoja con tres filas, no con tres fichas: cada una necesita una
+   linea que diga a donde lleva. «Gestionar mi ticket» no se explica solo.
+
+   Icono a la izquierda, nombre y explicacion en medio, flecha a la
+   derecha. Al acercarse, la fila se llena y la flecha se va hacia su
+   esquina — el mismo gesto que las puertas del hero, que es el que ya
+   significa «esto lleva a otro sitio» en esta casa.
+   ============================================================= */
+.cdoors { display: grid; gap: .5rem; }
+
+/* La hoja tiene fondo --pine-700, asi que aqui TODO va en claro. Estuvo
+   en --slate un rato: oscuro sobre oscuro, y no se leia nada. */
+.cdoor {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center; gap: .9rem;
+  padding: .85rem 1rem;
+  border: 1px solid rgba(241, 239, 233, .18);
+  border-radius: 14px;
+  color: var(--bone);
+  transition: border-color .22s var(--ease), background-color .22s var(--ease);
+}
+
+/* EL HOVER ES VERDE, NO IRIS. Iris es el color de lo que hay que pulsar y
+   estaba haciendo de dos cosas a la vez. Aqui la fila se ILUMINA subiendo
+   un paso en la escala —Celtic 700 sobre el 800 de la hoja— y el circulo
+   del icono sube otro mas. Es el mismo verde, mas cerca. */
+.cdoor:hover, .cdoor:focus-visible {
+  background: var(--celtic-700);
+  border-color: var(--celtic-600);
+}
+.cdoor__icon {
+  display: grid; place-items: center;
+  width: 2.4rem; height: 2.4rem;
+  border-radius: 50%;
+  background: rgba(241, 239, 233, .1);
+  color: var(--bone);
+}
+.cdoor__icon .icon { width: 1.15rem; height: 1.15rem; }
+/* Los dos dibujos de una puerta van EN LA MISMA CELDA de la rejilla. Sin
+   esto se apilarian en dos filas y el disco se estiraria. */
+.cdoor__pila { display: grid; place-items: center; }
+.cdoor__pila > .icon { grid-area: 1 / 1; }
+.cdoor:hover .cdoor__icon { background: var(--celtic-600); }
+.cdoor__text { display: grid; gap: .12rem; min-width: 0; }
+.cdoor__name { font-size: .92rem; font-weight: 600; }
+.cdoor__hint { font-size: .76rem; font-weight: 300; line-height: 1.45; color: var(--pine-200); }
+/* La flecha se va a su esquina, igual que en las puertas del hero. */
+.cdoor .icon--corner { width: .8rem; height: .8rem; color: var(--pine-200); transition: translate .28s var(--ease), color .22s var(--ease); }
+.cdoor:hover .icon--corner { translate: 2px -2px; color: var(--bone); }
+
+/* =============================================================
+   EL DESLIZADOR DEL PRESUPUESTO
+
+   Dos `input range` de verdad, uno encima del otro. Podrian ser dos divs
+   con `pointerdown` y matematicas, pero entonces habria que reinventar el
+   teclado, el foco y lo que anuncia un lector de pantalla. Asi ya vienen.
+
+   El truco esta en los punteros: los carriles no reciben nada
+   (`pointer-events: none`) y SOLO los tiradores si. De otro modo el de
+   arriba taparia al de abajo en toda su longitud y uno de los dos no se
+   podria coger nunca.
+   ============================================================= */
+.wiz__range { position: relative; height: 2.4rem; display: grid; align-items: center; }
+.wiz__range-track {
+  position: absolute; left: 0; right: 0; height: 4px;
+  border-radius: 999px;
+  background: rgba(241, 239, 233, .18);
+}
+.wiz__range-sel {
+  position: absolute; top: 0; height: 100%;
+  border-radius: 999px;
+  background: var(--celtic-300);
+}
+.wiz__range-in {
+  position: absolute; left: 0; width: 100%;
+  margin: 0; padding: 0;
+  height: 2.4rem;
+  background: none;
+  appearance: none; -webkit-appearance: none;
+  pointer-events: none;
+}
+.wiz__range-in::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 1.35rem; height: 1.35rem;
+  border-radius: 50%;
+  border: 3px solid var(--pine);
+  background: var(--bone);
+  cursor: grab;
+}
+.wiz__range-in::-moz-range-thumb {
+  pointer-events: auto;
+  width: 1.35rem; height: 1.35rem;
+  border-radius: 50%;
+  border: 3px solid var(--pine);
+  background: var(--bone);
+  cursor: grab;
+}
+.wiz__range-in:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--iris-300); outline-offset: 2px; }
+.wiz__range-in:focus-visible::-moz-range-thumb { outline: 2px solid var(--iris-300); outline-offset: 2px; }
+
+/* En Bricolage y NO en Young Serif. La serif es para lo que se lee como
+   prosa; una cifra es un dato, y ademas el cuerpo lleva `tabular-nums`,
+   que hace que los numeros no bailen de ancho mientras se arrastra el
+   tirador. Con la serif cada cambio movia el renglon entero. */
+.wiz__range-out {
+  margin: 0;
+  font-family: var(--sans); font-weight: 600;
+  font-size: 1.25rem; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--bone);
+}
+
+/* Cuando no lo sabe, el deslizador se apaga en vez de irse: quitarlo de la
+   pantalla haria saltar todo lo de abajo. */
+.is-tbd .wiz__range { opacity: .32; pointer-events: none; }
+.is-tbd .wiz__range-out { color: var(--pine-200); font-family: var(--sans); font-size: 1rem; }
+.wiz__tbd { margin-top: .3rem; }
+
+/* =============================================================
+   EL AVISO PROPIO
+
+   El globo del navegador se fue por dos razones. La primera es que no se
+   puede pintar: sale con la tipografia del sistema, en la esquina que el
+   navegador decida, y en cada navegador distinto. La segunda es que solo
+   sabe decir «rellena este campo» — no sabe decir «eso no parece un
+   correo de verdad», que es la mitad de lo que hace falta aqui.
+   ============================================================= */
+.wiz__alert {
+  display: flex; align-items: flex-start; gap: .5rem;
+  margin: 0;
+  padding: .7rem .85rem;
+  border-left: 3px solid var(--ring);
+  background: rgba(192, 138, 46, .16);
+  color: var(--bone);
+  font-size: .84rem; line-height: 1.5;
+}
+.wiz__alert .icon { width: 1rem; height: 1rem; flex: 0 0 auto; margin-top: .12rem; color: var(--ring-300); }
+.wiz__alert[hidden] { display: none; }
+
+/* El campo que falla se marca en el canto, no con un globo encima. */
+.cpage .cform__input.is-bad { border-bottom-color: var(--ring); }
+.cform__chips.is-bad,
+.cform__cards.is-bad { outline: 1px dashed var(--ring); outline-offset: .5rem; border-radius: 4px; }
+
+/* La lista de sitios que propone el buscador. */
+.wiz__sug { display: grid; gap: 1px; margin: -.3rem 0 0; }
+.wiz__sug-op {
+  display: block; width: 100%; text-align: left;
+  padding: .5rem .6rem;
+  border-radius: 8px;
+  color: var(--bone);
+  font-size: .84rem;
+  transition: background-color .18s var(--ease);
+}
+.wiz__sug-op:hover, .wiz__sug-op:focus-visible { background: var(--celtic-600); }
+.wiz__note { margin: 0; font-size: .68rem; font-weight: 300; color: var(--pine-200); }
+
+/* =============================================================
+   LOS TRES ICONOS DE LAS PUERTAS, EN MOVIMIENTO
+
+   Son de relleno y de un solo trazado, asi que no se pueden dibujar por
+   partes como la firma: lo que si se puede es moverlos. Cada uno hace lo
+   que hace ese icono en la vida real, y ahi esta la gracia — no es la
+   misma animacion pintada tres veces.
+
+     paso     da un paso: se adelanta y se posa.
+     mapa     se despliega: gira un poco y crece.
+     brujula  busca el norte: gira entera y se pasa un pelo antes de
+              asentarse, como una aguja de verdad.
+
+   El giro va en la CAJA del icono y no en el `svg`: la caja es un circulo
+   y girar el circulo con su fondo se veria mal. Girando solo lo de dentro,
+   el disco se queda quieto.
+   ============================================================= */
+@keyframes mapaDespliega {
+  0%   { rotate: 0deg; scale: 1; }
+  45%  { rotate: -7deg; scale: 1.14; }
+  100% { rotate: 0deg; scale: 1.06; }
+}
+@keyframes brujulaNorte {
+  0%   { rotate: 0deg; }
+  70%  { rotate: 374deg; }
+  100% { rotate: 360deg; }
+}
+
+.cdoor__icon .icon--step,
+.cdoor__icon .icon--map,
+.cdoor__icon .icon--compass { transition: scale .3s var(--ease); }
+
+/* EL MAPA: el lleno se pone encima del vacio. Como lo contiene entero, el
+   de abajo se queda quieto y lo unico que aparece es la ruta; cruzarlos a
+   medias haria parpadear el papel. */
+.cdoor__pila > .icon { transition: opacity .3s var(--ease); }
+.cdoor__pila > .icon--map { opacity: 0; }
+.cdoor:hover .icon--map { opacity: 1; }
+.cdoor:hover .cdoor__pila:has(.icon--map) { animation: mapaDespliega .5s var(--ease-smooth) both; }
+
+/* EL PASO: UN PIE SE QUEDA. Antes se cruzaban dos dibujos enteros y no se
+   leia como un paso, se leia como un cambio de imagen — porque no habia
+   nada fijo contra lo que medir el movimiento.
+
+   Los dos ficheros del cuaderno son el mismo dibujo movido, asi que el
+   icono lleva los pies separados y solo viaja el derecho. El izquierdo no
+   se toca nunca: es lo que convierte el gesto en un paso.
+
+   Las cifras salen de restar una pose a la otra anclando en el izquierdo,
+   no de mi ojo. */
+.icon--step .paso__movil { transition: translate .4s var(--ease); }
+.cdoor:hover .icon--step .paso__movil { translate: 31.48px -246.71px; }
+/* El pie sale del lienzo al avanzar. El disco no recorta, pero el SVG si:
+   sin esto el paso se come a si mismo. */
+.icon--step { overflow: visible; }
+.cdoor:hover .icon--compass { animation: brujulaNorte 1.1s var(--ease-smooth) both; }
+
+/* Un icono de relleno necesita mas aire dentro del disco que uno de trazo:
+   el trazo deja ver el fondo por dentro y el relleno no. */
+.cdoor__icon .icon--map,
+.cdoor__icon .icon--map-empty,
+.cdoor__icon .icon--compass { width: 1.05rem; height: 1.05rem; }
+/* El paso va un punto mas pequeno que los otros dos, y es a proposito: el
+   pie viaja media altura del lienzo hacia arriba y necesita ese aire para
+   no salirse del disco al avanzar. A 1.05rem tocaba el canto. */
+.cdoor__icon .icon--step { width: .9rem; height: .9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cdoor:hover .cdoor__pila,
+  .cdoor:hover .icon--compass { animation: none; }
+  /* El cambio se vuelve instantaneo en vez de desaparecer: el pie sigue
+     adelantandose y la ruta sigue apareciendo, lo que sobra es el viaje. */
+  .cdoor__pila > .icon,
+  .icon--step .paso__movil { transition: none; }
+}
+
+/* =============================================================
+   LOS ICONOS DE LAS OPCIONES, EN MOVIMIENTO
+
+   Mismo trato que los tres de las puertas: al pasar por encima, cada uno
+   hace lo que ese objeto hace de verdad. Un megafono late, una brujula
+   gira, una flecha avanza, una camara se levanta.
+
+   COMO ESTA MONTADO. Escribir un selector por icono serian cuarenta
+   reglas y nadie las mantendria. En vez de eso, cada icono DECLARA su
+   movimiento en una variable y hay un solo disparador. Añadir un icono
+   nuevo es meterlo en la familia que le toque y ya se mueve.
+
+   Cuatro familias y no veinte animaciones distintas: veinte gestos
+   distintos en la misma pantalla no se leen como un sistema, se leen
+   como ruido.
+   ============================================================= */
+@keyframes icoGira   { to { rotate: 360deg; } }
+@keyframes icoLate {
+  0%   { scale: 1; }
+  35%  { scale: 1.18; }
+  65%  { scale: .95; }
+  100% { scale: 1; }
+}
+@keyframes icoAvanza {
+  0%   { translate: 0 0; }
+  40%  { translate: .22rem 0; }
+  100% { translate: 0 0; }
+}
+@keyframes icoSalta {
+  0%   { translate: 0 0; }
+  40%  { translate: 0 -.2rem; }
+  70%  { translate: 0 .04rem; }
+  100% { translate: 0 0; }
+}
+
+/* Por defecto se levantan: es el gesto mas neutro y sirve para casi todo.
+
+   Va en `.icon` a secas y NO en `.cform__chip--icon .icon`, que es lo que
+   tenia antes: dos clases pesan mas que una, asi que el defecto le ganaba
+   a las familias de abajo y todos los iconos saltaban. Con la misma
+   especificidad que ellas, manda el orden — y las familias van despues. */
+.icon { --ico: icoSalta; --ico-t: .5s; }
+
+/* Lo que gira sobre si mismo. */
+.icon--refresh, .icon--compass, .icon--coin, .icon--globe, .icon--route
+  { --ico: icoGira; --ico-t: .9s; }
+
+/* Lo que emite algo: late. */
+.icon--megaphone, .icon--chat, .icon--bolt, .icon--whatsapp
+  { --ico: icoLate; --ico-t: .5s; }
+
+/* Lo que va hacia delante. */
+.icon--play, .icon--link, .icon--phone, .icon--arrow
+  { --ico: icoAvanza; --ico-t: .45s; }
+
+/* EL UNICO DISPARADOR. Al pasar por encima y tambien al elegir: marcar una
+   opcion sin que nada se mueva se siente a que no se registro. */
+.cform__chip--icon:hover .icon,
+.cform__chip--icon input:checked + span .icon {
+  animation: var(--ico) var(--ico-t) var(--ease) both;
+}
+
+/* Los logos de las tarjetas de linea no son iconos: son marcas de casas
+   ajenas y no se les hace hacer gracias. Solo se acercan un poco. */
+.ocard__logo img, .ocard__logo .icon { transition: scale .3s var(--ease-smooth); }
+.ocard:hover .ocard__logo img, .ocard:hover .ocard__logo .icon { scale: 1.08; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cform__chip--icon:hover .icon,
+  .cform__chip--icon input:checked + span .icon { animation: none; }
+  .ocard:hover .ocard__logo img, .ocard:hover .ocard__logo .icon { scale: 1; }
+}
+
+/* El «cual manda» aparece debajo de los publicos, separado por un filo:
+   es una pregunta de segundo orden y no otra de la misma altura. */
+.wiz__main {
+  margin-top: .9rem;
+  padding-top: .9rem;
+  border-top: 1px solid rgba(241, 239, 233, .16);
+}
+
+/* =============================================================
+   DE QUIEN ES CADA COSA
+
+   Con Let Be y Recvid marcadas a la vez salen doce opciones seguidas y
+   no habia forma de saber cual era de cual. Un rotulo con el logo delante
+   de cada grupo lo resuelve sin que haya que leer nada.
+
+   Se enseña siempre, tambien con una sola linea marcada: ahi no hace
+   falta para distinguir, pero sigue diciendo bajo que casa estas pidiendo,
+   y quitarlo obligaria a que el bloque cambie de forma segun cuantas haya.
+   ============================================================= */
+.wiz__group {
+  display: flex; align-items: center; gap: .45rem;
+  /* El contenedor es flex con reparto, y el rotulo es un hijo mas: sin esto
+     se colocaba en la MISMA fila que las tres primeras fichas y la siguiente
+     arrancaba debajo de el, con la columna descuadrada. Ocupando la fila
+     entera vuelve a ser lo que es: un encabezado. */
+  flex: 0 0 100%;
+  margin: 0 0 .5rem;
+  font-size: .64rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.wiz__group img { height: .95rem; width: auto; }
+.wiz__group .icon { width: auto; height: .95rem; color: var(--bone); }
+/* Entre un grupo y el siguiente, aire: si no, la ultima ficha de Let Be y
+   el rotulo de Recvid se leen como la misma fila. */
+.cform__chips[data-needs] + .cform__chips[data-needs] { margin-top: 1.1rem; }

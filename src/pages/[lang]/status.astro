@@ -1,0 +1,51 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import Base from '../../layouts/Base.astro';
+
+/* «Revisar mi solicitud».
+
+   El codigo que se pide aqui —JLR-7F3K9— se genera al enviar el formulario
+   y se le enseña entonces. NO es el correo ni un numero de cliente, y esa
+   es toda la seguridad: un correo se adivina y un correlativo se recorre,
+   pero seis caracteres de un alfabeto de treinta no.
+
+   Y aun asi la tabla sigue sin poder leerse. Lo que se consulta es una
+   FUNCION de Postgres que recibe el codigo y devuelve solo la etapa — ni
+   el nombre, ni el presupuesto, ni las notas. Aunque alguien acertara un
+   codigo, lo unico que obtendria es una palabra.
+
+   Sin base configurada la pagina lo dice y ofrece el canal directo, en vez
+   de quedarse dando vueltas. */
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+const title = t('page.status.title');
+---
+<Base lang={lang} path="status" title={`${title} — Juan José López Ramírez`}
+      description={t('page.status.lead')}>
+  <article class="epage cpage">
+    <div class="cpage__field" aria-hidden="true"></div>
+    <div class="epage__shell">
+      <h1 class="cpage__title">{title}</h1>
+      <p class="cpage__lead">{t('page.status.lead')}</p>
+
+      <form class="cform" id="status-form">
+        <label class="cform__field">
+          <span class="cform__label">{t('status.code')}</span>
+          {/* `spellcheck` y `autocapitalize` fuera: es un codigo, no una
+              palabra, y el movil se empeñaba en corregirlo. */}
+          <input class="cform__input cform__input--code" type="text" name="code"
+                 placeholder="JLR-XXXXXX" maxlength="12" required
+                 autocomplete="off" autocapitalize="characters" spellcheck="false" />
+        </label>
+
+        <button class="cform__send" type="submit">{t('status.check')}</button>
+
+        <p class="cform__status" id="status-result" role="status" aria-live="polite" hidden></p>
+      </form>
+    </div>
+  </article>
+</Base>

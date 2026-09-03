@@ -18,7 +18,7 @@ export function GET({ site }) {
      salen de las mismas listas que pintan las tarjetas, asi que anadir
      una la mete sola en el mapa — que es la razon de que esto no se
      escriba a mano. */
-  const paths = ['', ...NAV.map((n) => n.slug), ...ENTITIES.map(slugOf)];
+  const paths = ['', ...NAV.map((n) => n.slug), 'contact', 'portal', 'status', ...ENTITIES.map(slugOf)];
 
   const url = (lang, path) => `${origin}/${lang}/${path ? path + '/' : ''}`;
 

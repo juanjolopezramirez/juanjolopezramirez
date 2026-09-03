@@ -28,10 +28,29 @@
                                       un hueco, no como una frase breve.
      tags   ['comunidad', '2025']    Por donde se filtra. Las etiquetas y sus
                                       ejes viven en entities.js.
-     banner '/assets/banners/x.jpg'  La foto de cabecera. Si no esta, la
-                                      tarjeta pinta un degradado de la casa
-                                      con el logo grande y tenue detras — que
-                                      es lo que hay ahora, y no queda a medias.
+     avatar '/assets/avatars/x.svg'  El logo para el circulo. Si no esta, se
+                                      usa el mismo de la cinta, que es lo que
+                                      pasa hoy y funciona. Ponlo solo si el de
+                                      la cinta no se lee en pequeño.
+                                      512px el lado largo, fondo transparente
+                                      y RECORTADO AL DIBUJO: el hueco donde
+                                      cabe se calcula con la proporcion del
+                                      fichero, asi que un margen transparente
+                                      de mas lo encoge. Claro sobre oscuro —
+                                      el disco es casi negro. Si es mapa de
+                                      bits, avatarW y avatarH con sus medidas.
+     banner '/assets/banners/x.jpg'  La foto de cabecera, 1600x420. Si no
+                                      esta, la tarjeta pinta un degradado de la
+                                      casa con el logo grande y tenue detras —
+                                      que es lo que hay ahora, y no queda a
+                                      medias.
+                                      Se recorta por el CENTRO y a distintas
+                                      proporciones segun donde salga, asi que
+                                      lo que importe va en la banda central:
+                                      los 300px de en medio. Los 60 de arriba
+                                      y los 60 de abajo se pierden en la
+                                      tarjeta mas ancha.
+     bannerWebp '/assets/banners/x.webp'  La misma foto en webp, opcional.
      works  [ … ]                     Lo que hice con ellos. Cada uno:
                                         { title: { es, en, … },
                                           year:  '2025',
@@ -121,33 +140,33 @@ export const PROJECTS = [
   { id: 'let-be',     name: 'Let Be',         src: '/assets/projects/let-be.svg',     w: 519, h: 323, scale: 1.02,
     tags: ['software', 'comunidad'],
     role: {
-      es: 'Estudio de desarrollo digital',
-      en: 'Digital development studio',
-      pt: 'Estúdio de desenvolvimento digital',
-      fr: 'Studio de développement numérique',
-      it: 'Studio di sviluppo digitale'
+      es: 'Desarrollo y consultoría de tecnología',
+      en: 'Development and technology consulting',
+      pt: 'Desenvolvimento e consultoria de tecnologia',
+      fr: 'Développement et conseil en technologie',
+      it: 'Sviluppo e consulenza tecnologica'
     },
     blurb: {
-      es: 'Páginas, chatbots y automatizaciones a la medida. Lo que de verdad hace falta, que casi nunca es lo más grande ni lo más caro. Pronto, también comunidad.',
-      en: 'Websites, chatbots and automations, made to measure. What is actually needed, which is almost never the biggest or the priciest. Soon, a community too.',
-      pt: 'Páginas, chatbots e automações à medida. O que faz mesmo falta, que quase nunca é o maior nem o mais caro. Em breve, também comunidade.',
-      fr: 'Sites, chatbots et automatisations sur mesure. Ce dont on a vraiment besoin, qui n’est presque jamais le plus gros ni le plus cher. Bientôt, une communauté.',
-      it: 'Siti, chatbot e automazioni su misura. Quello che serve davvero, che quasi mai è la cosa più grande né la più cara. Presto, anche comunità.'
+      es: 'Páginas, chatbots y automatizaciones a la medida, y el consejo de qué hace falta antes de construirlo. Casi nunca es lo más grande ni lo más caro. Pronto, también comunidad.',
+      en: 'Websites, chatbots and automations, made to measure, and the advice on what is needed before building it. It is almost never the biggest or the priciest. Soon, a community too.',
+      pt: 'Páginas, chatbots e automações à medida, e o conselho do que faz falta antes de construir. Quase nunca é o maior nem o mais caro. Em breve, também comunidade.',
+      fr: 'Sites, chatbots et automatisations sur mesure, et le conseil sur ce qu’il faut avant de le bâtir. Ce n’est presque jamais le plus gros ni le plus cher. Bientôt, une communauté.',
+      it: 'Siti, chatbot e automazioni su misura, e il consiglio su cosa serve prima di costruirlo. Quasi mai è la cosa più grande né la più cara. Presto, anche comunità.'
     } },
   { id: 'recvid',     name: 'Recvid',         src: '/assets/projects/recvid.svg',     w: 290, h: 298, scale: 1.22,
     tags: ['audiovisual', 'comunidad'],
     role: {
-      es: 'Consultora y productora digital',
-      en: 'Digital consultancy and production',
-      pt: 'Consultoria e produtora digital',
-      fr: 'Conseil et production numérique',
-      it: 'Consulenza e produzione digitale'
+      es: 'Marketing y producción digital',
+      en: 'Digital marketing and production',
+      pt: 'Marketing e produção digital',
+      fr: 'Marketing et production numérique',
+      it: 'Marketing e produzione digitale'
     },
     blurb: {
-      es: 'La estrategia y el rodaje en la misma mesa, porque una pieza que se ve bien y no dice nada no sirve para nada. Pronto, también comunidad.',
-      en: 'Strategy and shoot at the same table, because a piece that looks good and says nothing is good for nothing. Soon, a community too.',
-      pt: 'A estratégia e a rodagem na mesma mesa, porque uma peça que se vê bem e não diz nada não serve para nada. Em breve, também comunidade.',
-      fr: 'La stratégie et le tournage à la même table, car une pièce qui rend bien et ne dit rien ne sert à rien. Bientôt, une communauté.',
-      it: 'La strategia e le riprese allo stesso tavolo, perché un pezzo che si vede bene e non dice nulla non serve a niente. Presto, anche comunità.'
+      es: 'El marketing y el rodaje en la misma mesa, porque una pieza que se ve bien y no dice nada no sirve para nada. Pronto, también comunidad.',
+      en: 'Marketing and shoot at the same table, because a piece that looks good and says nothing is good for nothing. Soon, a community too.',
+      pt: 'O marketing e a rodagem na mesma mesa, porque uma peça que se vê bem e não diz nada não serve para nada. Em breve, também comunidade.',
+      fr: 'Le marketing et le tournage à la même table, car une pièce qui rend bien et ne dit rien ne sert à rien. Bientôt, une communauté.',
+      it: 'Il marketing e le riprese allo stesso tavolo, perché un pezzo che si vede bene e non dice nulla non serve a niente. Presto, anche comunità.'
     } }
 ];

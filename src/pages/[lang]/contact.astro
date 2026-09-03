@@ -1,0 +1,35 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import Base from '../../layouts/Base.astro';
+import ContactForm from '../../components/ContactForm.astro';
+
+/* La pagina de la solicitud: /es/contact/, /en/contact/…
+
+   No entra en NAV a proposito. No es una seccion de la casa, es a donde
+   lleva el CTA — y meterla en el menu la pondria a competir con Trabajos y
+   Proyectos, que es justo lo que no debe hacer. Entra en el mapa del sitio
+   por su cuenta, en sitemap.xml.js.
+
+   La direccion va en ingles en los cinco idiomas, como el resto: /es/contact/
+   y no /es/contacto/. Es la misma regla que ya rige work y projects. */
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+const title = t('page.contact.title');
+---
+<Base lang={lang} path="contact" active="contact" title={`${title} — Juan José López Ramírez`}
+      description={t('page.contact.lead')}>
+  <article class="epage cpage">
+    {/* El mismo campo vivo del hero: el degradado que respira, no una
+        imagen. Se anima solo — el guion lo busca por su clase. */}
+    <div class="cpage__field" aria-hidden="true"></div>
+    <div class="epage__shell">
+      <h1 class="cpage__title">{title}</h1>
+      <p class="cpage__lead">{t('page.contact.lead')}</p>
+      <ContactForm lang={lang} t={t} />
+    </div>
+  </article>
+</Base>

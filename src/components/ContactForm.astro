@@ -1,0 +1,293 @@
+---
+import { CONTACT } from '../data/social.js';
+import { LINES, NEEDS, MODE, AUDIENCE, CURRENCIES, BUDGET_STOPS, BUDGET_FROM, BUDGET_TO, TIMING, IMPACT, CHANNELS } from '../data/enquiry.js';
+import Icon from './Icon.astro';
+
+/* La solicitud, una pregunta por pantalla.
+
+   Empezo siendo tres cajas de texto abiertas —diez minutos de redaccion
+   para pedir un presupuesto— y despues fue una pagina larga de preguntas
+   cerradas. Seguia siendo un muro: doce bloques de golpe cansan aunque
+   cada uno sea de un clic.
+
+   Ahora es un paso cada vez. La diferencia no es estetica: una pregunta
+   sola en la pantalla se contesta sin decidir por donde empezar, y la
+   barra de arriba dice cuanto falta, que es lo unico que hace que alguien
+   siga hasta el final.
+
+   TODOS LOS PASOS ESTAN EN EL HTML y el guion enseña el que toca — el
+   mismo patron que las cuentas por idioma y los creditos de las piezas.
+   Ninguno cuesta una peticion de mas.
+
+   DOS PASOS SE SALTAN SOLOS: «que en concreto» no existe si la linea es
+   «otra cosa», y el sitio solo se pregunta si hay que desplazarse. Saltar
+   un paso tambien recalcula la barra, para que no prometa nueve cuando
+   van a ser siete.
+
+   TODO SON RADIOS Y CASILLAS DE VERDAD, vestidos de ficha. Un radio ya
+   trae el estado, el teclado y el envio; un boton con `aria-pressed`
+   necesita tres guiones para lo mismo.
+
+   SIN JAVASCRIPT sigue funcionando: el guion es el que esconde los pasos,
+   asi que si no carga se ven todos, en orden, como una pagina larga. Se
+   puede rellenar y enviar igual. */
+const { lang, t } = Astro.props;
+const say = (o) => (o ? (o[lang] ?? o.es) : '');
+
+/* De que casa es cada grupo de opciones, para poder rotularlo. */
+const CASA = Object.fromEntries(LINES.map((l) => [l.id, l]));
+
+/* Los cuatro grupos que se pintan igual: un rotulo y una fila de fichas. */
+const SIMPLES = [
+  { key: 'timing', legend: 'form.timing', items: TIMING },
+  { key: 'impact', legend: 'form.impact', items: IMPACT }
+];
+---
+<form class="cform wiz" id="contact-form" novalidate>
+
+  {/* La barra. `js-wiz` la enciende el guion: sin el no hay pasos que
+      contar y una barra parada al 11% seria mentira. */}
+  <div class="wiz__head" id="wiz-head" hidden>
+    <div class="wiz__bar"><span class="wiz__fill" id="wiz-fill"></span></div>
+    <p class="wiz__count" id="wiz-count"></p>
+  </div>
+
+  <fieldset class="wiz__step" data-step="line">
+    <legend class="cform__legend">{t('form.line')}</legend>
+    <div class="cform__cards">
+      {LINES.map((l) => (
+        <label class="ocard">
+          {/* CASILLA y no radio: hay quien pide video y web a la vez, y
+              obligarle a mandar dos solicitudes era perder la mitad del
+              encargo. El guion se encarga de que al menos una este marcada. */}
+          <input type="checkbox" name="line" value={l.id} required />
+          <span class="ocard__box">
+            <span class="ocard__logo" aria-hidden="true" style={`--ls:${l.logoScale ?? 1}`}>
+              {l.logo ? <img src={l.logo} alt="" /> : <Icon id={l.mark} />}
+            </span>
+            <span class="ocard__name">{say(l.label)}</span>
+            <span class="ocard__hint">{say(l.hint)}</span>
+          </span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+
+  <fieldset class="wiz__step" data-step="needs">
+    <legend class="cform__legend">{t('form.needs')}</legend>
+    {Object.entries(NEEDS).map(([line, items]) => (
+      <div class="cform__chips" data-needs={line} hidden>
+        {/* De quien es lo que viene debajo. Con dos lineas marcadas salen
+            doce opciones seguidas y sin esto no se sabe cual es de cual. */}
+        <span class="wiz__group">
+          {CASA[line]?.logo
+            ? <img src={CASA[line].logo} alt="" />
+            : CASA[line]?.mark && <Icon id={CASA[line].mark} />}
+          {say(CASA[line]?.label)}
+        </span>
+        {items.map((n) => (
+          <label class="cform__chip cform__chip--icon">
+            <input type="checkbox" name="needs" value={n.id} />
+            <span><Icon id={n.mark} />{say(n.label)}</span>
+          </label>
+        ))}
+      </div>
+    ))}
+  </fieldset>
+
+  <fieldset class="wiz__step" data-step="mode">
+    <legend class="cform__legend">{t('form.mode')}</legend>
+    <div class="cform__chips">
+      {MODE.map((m) => (
+        <label class="cform__chip cform__chip--icon">
+          <input type="radio" name="mode" value={m.id} required />
+          <span><Icon id={m.mark} />{say(m.label)}</span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+
+  <fieldset class="wiz__step" data-step="location">
+    <legend class="cform__legend">{t('form.location')}</legend>
+    <label class="cform__field">
+      <span class="cform__label">{t('form.locationHint')}</span>
+      {/* `autocomplete=off`: la lista de abajo es nuestra, y sin esto el
+          navegador pone encima la suya con lo que se escribio otras veces,
+          y salen dos listas superpuestas. */}
+      <input class="cform__input" type="text" name="location" maxlength="120"
+             autocomplete="off" role="combobox" aria-expanded="false"
+             aria-controls="loc-sug" aria-autocomplete="list" />
+    </label>
+    <ul class="wiz__sug" id="loc-sug" role="listbox" hidden></ul>
+    <p class="wiz__note">{t('form.locationNote')}</p>
+  </fieldset>
+
+  <fieldset class="wiz__step" data-step="audience">
+    <legend class="cform__legend">{t('form.audience')}</legend>
+    <div class="cform__chips">
+      {AUDIENCE.map((o) => (
+        <label class="cform__chip">
+          {/* CASILLA: casi nadie le vende a un solo tipo de cliente. Quien
+              hace B2B y B2C hace dos trabajos distintos, y forzarle a
+              elegir uno era pedirle que mintiera. */}
+          <input type="checkbox" name="audience" value={o.id} />
+          <span>{say(o.label)}</span>
+        </label>
+      ))}
+    </div>
+
+    {/* Y si marca mas de uno, cual manda. Solo aparece entonces: con uno
+        solo la pregunta se contesta sola y estorbaria.
+
+        Estan los cinco escritos y el guion enseña los que toquen — el
+        mismo patron de siempre, y asi no hay que fabricar nada al vuelo. */}
+    <div class="wiz__main" data-audience-main hidden>
+      <p class="cform__legend cform__legend--inline">{t('form.audienceMain')}</p>
+      <div class="cform__chips">
+        {AUDIENCE.map((o) => (
+          <label class="cform__chip" data-main={o.id} hidden>
+            <input type="radio" name="audienceMain" value={o.id} />
+            <span>{say(o.label)}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="wiz__step" data-step="budget">
+    <legend class="cform__legend">{t('form.budget')}</legend>
+
+    {/* La moneda la elige quien escribe. Lo que se guarda son los indices
+        de las paradas, no el texto: la parada 4 es el mismo escalon en las
+        tres, asi que dos solicitudes se pueden comparar. */}
+    <div class="wiz__money">
+      {CURRENCIES.map((c, i) => (
+        <label class="wiz__cur">
+          <input type="radio" name="currency" value={c} checked={i === 0} />
+          <span>{c}</span>
+        </label>
+      ))}
+    </div>
+
+    {/* DOS TIRADORES, no uno. Con uno solo hay que decir un numero exacto
+        que casi nadie tiene; con dos se dice «entre esto y esto», que es
+        como se piensa de verdad un presupuesto.
+
+        Son dos `input range` de verdad, superpuestos: asi el teclado y el
+        lector de pantalla funcionan solos y no hay que inventar nada. */}
+    <p class="wiz__range-out" id="budget-out" aria-live="polite"></p>
+    <div class="wiz__range">
+      <span class="wiz__range-track" aria-hidden="true"><span class="wiz__range-sel" id="budget-sel"></span></span>
+      <input class="wiz__range-in" type="range" name="budgetFrom" min="0" max={BUDGET_STOPS.length - 1} step="1" value={BUDGET_FROM} aria-label={t('form.budgetFrom')} />
+      <input class="wiz__range-in" type="range" name="budgetTo" min="0" max={BUDGET_STOPS.length - 1} step="1" value={BUDGET_TO} aria-label={t('form.budgetTo')} />
+    </div>
+
+    <label class="cform__chip cform__chip--icon wiz__tbd">
+      <input type="checkbox" name="budgetTbd" value="1" />
+      <span><Icon id="coin" />{t('form.budgetTbd')}</span>
+    </label>
+  </fieldset>
+
+  {SIMPLES.map((g) => (
+    <fieldset class="wiz__step" data-step={g.key}>
+      <legend class="cform__legend">{t(g.legend)}</legend>
+      <div class="cform__chips">
+        {g.items.map((o) => (
+          <label class="cform__chip">
+            <input type="radio" name={g.key} value={o.id} required />
+            <span>{say(o.label)}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  ))}
+
+  <fieldset class="wiz__step" data-step="you">
+    <legend class="cform__legend">{t('form.you')}</legend>
+
+    <label class="cform__field">
+      <span class="cform__label">{t('form.name')}</span>
+      <input class="cform__input" type="text" name="name" required autocomplete="name" maxlength="120" />
+    </label>
+
+    <label class="cform__field">
+      <span class="cform__label">{t('form.email')}</span>
+      <input class="cform__input" type="email" name="email" required autocomplete="email" maxlength="200" />
+    </label>
+
+    <label class="cform__field">
+      <span class="cform__label">
+        {t('form.phone')} <small class="cform__opt">{t('form.optional')}</small>
+      </span>
+      <input class="cform__input" type="tel" name="phone" autocomplete="tel" maxlength="40" />
+    </label>
+
+    <p class="cform__legend cform__legend--inline">{t('form.channel')}</p>
+    <div class="cform__chips">
+      {CHANNELS.map((c, i) => (
+        <label class="cform__chip cform__chip--icon">
+          <input type="radio" name="channel" value={c.id} required checked={i === 0} />
+          <span><Icon id={c.mark} />{say(c.label)}</span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+
+  <fieldset class="wiz__step" data-step="detail">
+    <legend class="cform__legend">
+      {t('form.detail')} <small class="cform__opt">{t('form.optional')}</small>
+    </legend>
+    <textarea class="cform__input" name="detail" rows="4" maxlength="600"></textarea>
+
+    {/* La trampa. Un robot rellena todo lo que encuentra; una persona no
+        ve esto y no lo rellena nunca. Fuera de pantalla y no
+        `display: none`, que es lo primero que miran los que saben. */}
+    <div class="cform__trap" aria-hidden="true">
+      <label>No rellenar
+        <input type="text" name="website" tabindex="-1" autocomplete="off" />
+      </label>
+    </div>
+  </fieldset>
+
+  {/* Un solo aviso para todo el formulario, justo encima de la
+      navegacion: siempre en el mismo sitio, asi que quien ya lo vio una
+      vez sabe donde mirar. */}
+  <p class="wiz__alert" id="wiz-alert" role="alert" hidden>
+    <Icon id="info" /><span id="wiz-alert-text"></span>
+  </p>
+
+  <div class="wiz__nav">
+    <button class="wiz__back" type="button" data-wiz-back hidden>{t('form.back')}</button>
+    <button class="wiz__next" type="button" data-wiz-next hidden>{t('form.next')}</button>
+    <button class="cform__send" type="submit" data-wiz-send>{t('form.send')}</button>
+  </div>
+
+  <p class="cform__status" id="cform-status" role="status" aria-live="polite" hidden></p>
+</form>
+
+{/* Quien ya me conoce no tiene por que rellenar una solicitud. Al pie y
+    discreto, que es donde se busca cuando se sabe que esta. */}
+<details class="cform__friends">
+  <summary>{t('form.friends')}</summary>
+  <div class="cform__friends-body">
+    <p>{t('form.friendsBody')}</p>
+    <ul class="cform__direct">
+      {CONTACT.map((ch) => (
+        <li>
+          {ch.href ? (
+            <a class={`link-chip net--${ch.id}`} href={ch.href}
+               target={ch.id === 'whatsapp' ? '_blank' : undefined}
+               rel={ch.id === 'whatsapp' ? 'noopener noreferrer' : undefined}>
+              <Icon id={ch.id} /><span class="sr-only">{t(ch.key)}</span>
+            </a>
+          ) : (
+            <button class={`link-chip net--${ch.id} is-soon`} type="button" data-soon="soon.whatsapp">
+              <Icon id={ch.id} /><span class="sr-only">{t(ch.key)}</span>
+            </button>
+          )}
+          <span class="cform__direct-name">{t(ch.key)}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</details>

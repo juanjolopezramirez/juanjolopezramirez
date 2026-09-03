@@ -1,11 +1,38 @@
 ---
-import { SOCIAL, CONTACT } from '../data/social.js';
+import { SOCIAL } from '../data/social.js';
 import { META } from '../i18n/utils.js';
 import { VIDEOS } from '../data/videos.js';
 import { ENTITY } from '../data/entities.js';
 import BrandDot from './BrandDot.astro';
 import Icon from './Icon.astro';
 const { lang, t } = Astro.props;
+
+/* Las tres puertas de «Caminemos», EN EL ORDEN DEL RECORRIDO y no en el
+   de importancia: se da el primer paso, despues se mira como va lo que
+   se pidio, y al final se ajusta lo que ya esta andando. Quien entra se
+   reconoce en una de las tres sin leer las otras dos.
+
+   Los nombres son narrativos y las lineas de debajo, literales. Es a
+   proposito: «Ajustar lo acordado» dice de que va esto, y «Mover una
+   fecha, ver un contrato» dice que se puede hacer. Quien viene con prisa
+   lee la segunda linea y no se pierde. */
+/* Las tres puertas. Las dos primeras tienen DOS dibujos: el de reposo y el
+   de encima, y el hover pasa de uno a otro.
+
+     mapa   el mapa vacio -> el mapa con la ruta y el punto. El segundo
+            CONTIENE al primero, asi que el de abajo se queda quieto y lo
+            unico que aparece es el camino.
+
+   El paso no esta aqui: no cambia de dibujo, MUEVE UN PIE. Los dos van
+   separados dentro del propio icono y el izquierdo no se toca.
+
+   La brujula se queda con un solo dibujo: ya gira, y no hay un «antes» y
+   un «despues» que contar en ella. */
+const PUERTAS = [
+  { path: 'contact', icon: 'step',                    name: 'door.request', hint: 'door.requestHint' },
+  { path: 'status',  icon: 'map-empty', after: 'map', name: 'door.status',  hint: 'door.statusHint' },
+  { path: 'portal',  icon: 'compass',                 name: 'door.ticket',  hint: 'door.ticketHint' }
+];
 
 /* Las casas que firman alguna pieza, y solo esas: la ficha de una casa que
    no ha hecho ningun video no pinta nada en esta hoja. */
@@ -34,30 +61,36 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
   </div>
 </div>
 
-<!-- Escribirme: dos puertas, y elige quien escribe. La hoja es la misma
-     que la de las plataformas — misma altura, mismo gesto, mismo cierre.
-     Una puerta sin destino no se enciende: sale apagada y lo dice, en vez
-     de fingir un enlace que no lleva a ningun sitio. -->
+<!-- Caminemos: tres puertas.
+
+     Antes esta hoja ofrecia WhatsApp y correo, que son CANALES y no
+     tramites: servian para escribir, no para saber que quieres. Ahora
+     son las tres cosas que de verdad pasan entre alguien y yo — pedir,
+     gestionar lo que ya esta en marcha, y mirar como va.
+
+     Los canales directos no se han perdido: viven al pie del formulario,
+     detras de «¿ya nos conocemos?», que es donde los busca quien no
+     necesita ningun tramite. -->
 <div class="contact-panel" id="contact-panel" hidden>
   <div class="contact-panel__scrim" data-close-contact></div>
   <div class="contact-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="contact-panel-title">
     <button class="contact-panel__close" type="button" data-close-contact aria-label={t('a11y.closePanel')}>&times;</button>
     <h2 class="contact-panel__title" id="contact-panel-title">{t('contact.title')}</h2>
-    <ul class="contact-panel__grid">
-      {CONTACT.map((ch) => (
-        <li class="contact-panel__item">
-          {ch.href ? (
-            <a class={`link-chip net--${ch.id}`} href={ch.href}
-               target={ch.id === 'whatsapp' ? '_blank' : undefined}
-               rel={ch.id === 'whatsapp' ? 'noopener noreferrer' : undefined}>
-              <Icon id={ch.id} /><span class="sr-only">{t(ch.key)}</span>
-            </a>
-          ) : (
-            <button class={`link-chip net--${ch.id} is-soon`} type="button" data-soon="soon.whatsapp">
-              <Icon id={ch.id} /><span class="sr-only">{t(ch.key)}</span>
-            </button>
-          )}
-          <span class="contact-panel__name">{t(ch.key)}</span>
+    <ul class="cdoors">
+      {PUERTAS.map((d) => (
+        <li>
+          <a class="cdoor" href={`/${lang}/${d.path}/`}>
+            <span class="cdoor__icon" aria-hidden="true">
+              {d.after
+                ? <span class="cdoor__pila"><Icon id={d.icon} /><Icon id={d.after} /></span>
+                : <Icon id={d.icon} />}
+            </span>
+            <span class="cdoor__text">
+              <span class="cdoor__name">{t(d.name)}</span>
+              <span class="cdoor__hint">{t(d.hint)}</span>
+            </span>
+            <Icon id="corner" />
+          </a>
         </li>
       ))}
     </ul>

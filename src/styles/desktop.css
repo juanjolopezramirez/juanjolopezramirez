@@ -48,9 +48,32 @@
 
   .header-bar { gap: .3rem; padding-inline: 1.5rem 1.35rem; }
 
-  /* Las secciones caben en la pastilla, asi que el desplegable sobra. */
+  /* Las secciones caben en la pastilla, asi que el desplegable sobra.
+
+     Estuvo un rato al reves —todo dentro de la hamburguesa— para ganar
+     anchura, y el remedio fue peor: esconder cuatro secciones detras de un
+     icono hace que la casa parezca vacia, y quien llega no sabe que hay.
+     La anchura se arregla apretando la pastilla, no borrando el menu. */
   .nav-toggle { display: none; }
   .site-nav--drop { display: none; }
+
+  /* SALVO EN LAS TRES DE «CAMINEMOS».
+
+     En la solicitud, el portal y el estado la fila se recoge en la
+     hamburguesa. No es por anchura: es que ahi se viene a RELLENAR algo, y
+     cuatro secciones a la vista son cuatro invitaciones a irse a otra parte
+     antes de terminar. El menu sigue estando —a un toque— pero deja de
+     tirar del ojo.
+
+     Va con `body:has()` porque la cabecera esta ANTES de `main` en el
+     documento y no existe selector de hermano hacia atras. Es el mismo
+     mecanismo que ya usa el pie para heredar el suelo de su seccion.
+
+     Las tres paginas comparten la clase `.cpage`, asi que anadir una cuarta
+     no pide tocar esto. */
+  body:has(.cpage) .site-nav--wide { display: none; }
+  body:has(.cpage) .nav-toggle { display: grid; }
+  body:has(.cpage) .site-nav--drop { display: block; }
 
   .site-nav--wide {
     display: block;
@@ -123,9 +146,19 @@
     background: rgba(241, 239, 233, .18);
   }
   .site-header__tools .lang { margin-inline: .35rem 0; }
-  .lang__option,
+  /* …pero en las tres de «Caminemos» la fila de secciones no esta, asi que
+     este filo no separa nada de nada: se queda flotando con un hueco vacio a
+     su izquierda, y es lo que desequilibraba la pastilla entera. */
+  body:has(.cpage) .site-header__tools::before { display: none; }
+  body:has(.cpage) .site-header__tools .lang { margin-inline: 0; }
+  /* Solo el boton. Aqui venia tambien `.lang__option`, y esa medida caia
+     sobre el enlace entero de cada idioma: quedaba en un cuadrado de 28px y
+     el nombre —que es lo que uno lee y hacia donde lleva el raton— se salia
+     del area pulsable. Las banderas de la hoja no cambian de tamaño: siguen
+     con su 1.4rem de base. */
   .lang__current { width: 1.85rem; height: 1.85rem; }
   .lang__badge { background: var(--bone); color: var(--pine); }
+
 
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
           arranca en la misma linea que el nombre ----

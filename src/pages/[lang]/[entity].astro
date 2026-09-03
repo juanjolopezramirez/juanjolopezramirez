@@ -50,14 +50,21 @@ const desc = say(e.blurb);
 
       <div class="entity">
         <span class="entity__banner" style={`--i:${i}`} aria-hidden="true">
-          <picture>
-            {e.webp && <source srcset={e.webp} type="image/webp" />}
-            <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
-                 decoding="async" />
-          </picture>
+          {e.banner ? (
+            <picture>
+              {e.bannerWebp && <source srcset={e.bannerWebp} type="image/webp" />}
+              <img class="entity__photo" src={e.banner} alt="" decoding="async" />
+            </picture>
+          ) : (
+            <picture>
+              {e.webp && <source srcset={e.webp} type="image/webp" />}
+              <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
+                   decoding="async" />
+            </picture>
+          )}
         </span>
 
-        <BrandDot mark={e.mark} logo={e.src} w={e.w} h={e.h} cls="entity__dot" />
+        <BrandDot mark={e.mark} logo={e.avatar ?? e.src} w={e.avatarW ?? e.w} h={e.avatarH ?? e.h} cls="entity__dot" />
 
         <h1 class="entity__name">{e.name}</h1>
         <p class="entity__kind">{que}</p>

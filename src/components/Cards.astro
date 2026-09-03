@@ -79,14 +79,21 @@ const ejes = Object.entries(AXES)
       <li data-tags={(e.tags ?? []).join(' ')}>
         <a class="ecard" href={`/${lang}/${slugOf(e)}/`}>
           <span class="ecard__banner" style={`--i:${i}`} aria-hidden="true">
-            <picture>
-              {e.webp && <source srcset={e.webp} type="image/webp" />}
-              <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
-                   loading="lazy" decoding="async" />
-            </picture>
+            {e.banner ? (
+              <picture>
+                {e.bannerWebp && <source srcset={e.bannerWebp} type="image/webp" />}
+                <img class="ecard__photo" src={e.banner} alt="" loading="lazy" decoding="async" />
+              </picture>
+            ) : (
+              <picture>
+                {e.webp && <source srcset={e.webp} type="image/webp" />}
+                <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
+                     loading="lazy" decoding="async" />
+              </picture>
+            )}
           </span>
 
-          <BrandDot mark={e.mark} logo={e.src} w={e.w} h={e.h} cls="ecard__dot" />
+          <BrandDot mark={e.mark} logo={e.avatar ?? e.src} w={e.avatarW ?? e.w} h={e.avatarH ?? e.h} cls="ecard__dot" />
 
           <span class="ecard__body">
             <span class="ecard__name">{e.name}</span>

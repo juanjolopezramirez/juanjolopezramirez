@@ -1,0 +1,103 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import { CONTACT } from '../../data/social.js';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+
+/* «Gestionar mi ticket».
+
+   ESTA PAGINA NO ENSEÑA NINGUN DATO, y no es una limitacion tecnica: es la
+   decision. El sitio es estatico y la clave de Supabase viaja dentro de la
+   pagina — esta pensada para eso. Un numero de cliente NO es una
+   credencial: es corto, correlativo y adivinable. Cualquier politica que
+   dejara leer contratos o cuentas de cobro «por numero de cliente» seria
+   equivalente a publicarlos, y probarlo cuesta un bucle de diez lineas.
+
+   Asi que lo que hace esta pagina es lo unico honesto que puede hacer sin
+   identidad de verdad: recoger QUE necesitas y abrir WhatsApp con el
+   mensaje ya escrito. Los documentos los mando yo, por un canal donde se
+   quien esta al otro lado.
+
+   El dia que haga falta autoservicio de verdad, el camino es Supabase Auth
+   con enlace magico al correo: identidad real, RLS por `auth.uid()`, misma
+   tarifa gratuita. Cuesta que el cliente tenga cuenta, no dinero. Y se
+   puede montar despues sin tirar nada de esto.
+
+   Sin JavaScript el boton sigue funcionando: es un enlace a wa.me y el
+   mensaje se arma en el `href` al vuelo. Si el guion no corre, va el
+   mensaje generico, que tambien sirve. */
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+const title = t('page.portal.title');
+
+const wa = (CONTACT.find((c) => c.id === 'whatsapp') || {}).href || '';
+
+const MOTIVOS = [
+  { id: 'date',     key: 'portal.r.date' },
+  { id: 'contract', key: 'portal.r.contract' },
+  { id: 'invoice',  key: 'portal.r.invoice' },
+  { id: 'other',    key: 'portal.r.other' }
+];
+
+const COSAS = [
+  { id: 'shoot',   key: 'portal.w.shoot' },
+  { id: 'consult', key: 'portal.w.consult' },
+  { id: 'meeting', key: 'portal.w.meeting' }
+];
+---
+<Base lang={lang} path="portal" title={`${title} — Juan José López Ramírez`}
+      description={t('page.portal.lead')}>
+  <article class="epage cpage">
+    <div class="cpage__field" aria-hidden="true"></div>
+    <div class="epage__shell">
+      <h1 class="cpage__title">{title}</h1>
+      <p class="cpage__lead">{t('page.portal.lead')}</p>
+
+      <form class="cform" id="portal-form" data-wa={wa}>
+        <fieldset class="cform__group">
+          <legend class="cform__legend">{t('portal.what')}</legend>
+          <div class="cform__chips">
+            {MOTIVOS.map((m, i) => (
+              <label class="cform__chip">
+                <input type="radio" name="reason" value={m.id} checked={i === 0} />
+                <span>{t(m.key)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset class="cform__group" data-only="date">
+          <legend class="cform__legend">{t('portal.which')}</legend>
+          <div class="cform__chips">
+            {COSAS.map((c, i) => (
+              <label class="cform__chip">
+                <input type="radio" name="thing" value={c.id} checked={i === 0} />
+                <span>{t(c.key)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label class="cform__field">
+          <span class="cform__label">{t('portal.who')}</span>
+          <input class="cform__input" type="text" name="who" maxlength="120" />
+        </label>
+
+        <a class="cform__send" id="portal-send" href={wa} target="_blank" rel="noopener noreferrer">
+          <Icon id="whatsapp" /><span>{t('portal.send')}</span>
+        </a>
+      </form>
+
+      <details class="cform__friends">
+        <summary>{t('portal.why')}</summary>
+        <div class="cform__friends-body">
+          <p>{t('portal.whyBody')}</p>
+        </div>
+      </details>
+    </div>
+  </article>
+</Base>

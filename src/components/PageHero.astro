@@ -54,9 +54,10 @@ const hasFoot = Astro.slots.has('foot');
           </li>
         ))}
         <li>
-          <!-- Abre la hoja de los dos canales, igual que en la cabecera. -->
+          <!-- Abre la misma hoja que la cabecera. Aqui hay sitio para la
+               pregunta entera, que invita mejor que el «Caminemos» corto. -->
           <button class="door door--write" type="button" data-open-contact aria-haspopup="dialog">
-            <span>{t('nav.write')}</span>
+            <span>{t('contact.cta')}</span>
             <Icon id="corner" />
           </button>
         </li>
