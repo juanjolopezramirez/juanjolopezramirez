@@ -156,17 +156,17 @@ export const PROJECTS = [
   { id: 'recvid',     name: 'Recvid',         src: '/assets/projects/recvid.svg',     w: 290, h: 298, scale: 1.22,
     tags: ['audiovisual', 'comunidad'],
     role: {
-      es: 'Marketing y producción digital',
-      en: 'Digital marketing and production',
-      pt: 'Marketing e produção digital',
-      fr: 'Marketing et production numérique',
-      it: 'Marketing e produzione digitale'
+      es: 'Consultoría audiovisual y de marketing',
+      en: 'Audiovisual and marketing consulting',
+      pt: 'Consultoria audiovisual e de marketing',
+      fr: 'Conseil audiovisuel et marketing',
+      it: 'Consulenza audiovisiva e di marketing'
     },
     blurb: {
-      es: 'El marketing y el rodaje en la misma mesa, porque una pieza que se ve bien y no dice nada no sirve para nada. Pronto, también comunidad.',
-      en: 'Marketing and shoot at the same table, because a piece that looks good and says nothing is good for nothing. Soon, a community too.',
-      pt: 'O marketing e a rodagem na mesma mesa, porque uma peça que se vê bem e não diz nada não serve para nada. Em breve, também comunidade.',
-      fr: 'Le marketing et le tournage à la même table, car une pièce qui rend bien et ne dit rien ne sert à rien. Bientôt, une communauté.',
-      it: 'Il marketing e le riprese allo stesso tavolo, perché un pezzo che si vede bene e non dice nulla non serve a niente. Presto, anche comunità.'
+      es: 'Dejó el encargo para rodar lo suyo —sketches y reels— y para asesorar en vez de ejecutar: cámara, edición y marketing se aprenden, y casi nadie los enseña de verdad. Pronto, la plataforma.',
+      en: 'It left commissioned work to shoot its own — sketches and reels — and to advise instead of execute: camera, editing and marketing can be learnt, and almost nobody really teaches them. Soon, the platform.',
+      pt: 'Deixou a encomenda para rodar o seu — sketches e reels — e para aconselhar em vez de executar: câmara, edição e marketing aprendem-se, e quase ninguém os ensina a sério. Em breve, a plataforma.',
+      fr: 'Elle a laissé la commande pour tourner le sien — sketches et reels — et pour conseiller au lieu d’exécuter : caméra, montage et marketing s’apprennent, et presque personne ne les enseigne vraiment. Bientôt, la plateforme.',
+      it: 'Ha lasciato la commissione per girare il proprio — sketch e reel — e per consigliare invece di eseguire: ripresa, montaggio e marketing si imparano, e quasi nessuno li insegna davvero. Presto, la piattaforma.'
     } }
 ];

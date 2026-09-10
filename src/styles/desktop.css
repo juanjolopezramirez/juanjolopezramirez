@@ -14,6 +14,14 @@
    hoja me pasan por delante.
    ============================================================= */
 @media (min-width: 1024px) {
+  /* Las tres casas, en fila. Debajo de este ancho van apiladas: tres
+     columnas de texto en un movil no son tres opciones, son un muro. */
+  .hgrid { grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+  /* Los canales son dos, no tres: repartirlos en la rejilla de las casas
+     dejaria un hueco vacio a la derecha. */
+  .hgrid--dos { grid-template-columns: repeat(2, 1fr); }
+  .agenda__datos { grid-template-columns: repeat(3, auto); justify-content: start; gap: 2.2rem; }
+
 
   :root {
     --gutter: 3.5rem;
@@ -240,6 +248,15 @@
     --panel: 38rem;         /* la hoja llega al hueco entre Proyectos y Escritos */
     --me-cross: 12rem;      /* cuanto cruzo la costura */
   }
+
+  /* El envoltorio de la primera pantalla se desvanece: aqui el reparto lo
+     hacen posiciones absolutas contra el hero, y una caja intermedia les
+     cambiaria el ancla. `display: contents` la borra del arbol de cajas y
+     deja a los hijos donde estaban. */
+  .hero__first { display: contents; }
+  /* Y el hero vuelve a ser UNA pantalla: aqui la hoja de hueso va al lado
+     del nombre, no debajo, asi que no hay nada que partir. */
+  .hero__panel { min-height: 0; }
 
   .hero {
     position: relative;

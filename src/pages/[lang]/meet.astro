@@ -1,0 +1,87 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import { CONTACT } from '../../data/social.js';
+import { AGENDA } from '../../data/meet.js';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+
+/* Cuadremos un rato: /es/meet/, /en/meet/…
+
+   La puerta del mapa. Enseña cuando estoy y por donde se reserva.
+
+   LAS FRANJAS NO SALEN DEL CALENDARIO. Son la promesa general —de tal a tal
+   hora, en tal huso— y no la disponibilidad de esta semana. Quien tiene la
+   disponibilidad de verdad es el sistema de reservas, que si mira el
+   calendario; esta pagina no puede, porque no hay servidor detras que
+   sostenga las credenciales.
+
+   SIN DIRECCION DE RESERVA la pagina sigue sirviendo: enseña las franjas y
+   manda a escribir. No se pinta un boton que no lleva a ningun sitio. */
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+const title = t('page.meet.title');
+const say = (o) => (o ? (o[lang] ?? o.es) : '');
+const wa = CONTACT.find((c) => c.id === 'whatsapp' && c.href);
+const mail = CONTACT.find((c) => c.id === 'mail' && c.href);
+---
+<Base lang={lang} path="meet" active="meet" title={`${title} — Juan José López Ramírez`}
+      description={t('page.meet.lead')}>
+  <article class="epage cpage">
+    <div class="cpage__field" aria-hidden="true"></div>
+    <div class="epage__shell">
+      <h1 class="cpage__title">{title}</h1>
+      <p class="cpage__lead">{t('page.meet.lead')}</p>
+
+      <div class="agenda">
+        <ul class="agenda__datos">
+          <li>
+            <span class="agenda__rotulo">{t('meet.when')}</span>
+            <span class="agenda__dato">{say(AGENDA.franjas)}</span>
+          </li>
+          <li>
+            <span class="agenda__rotulo">{t('meet.zone')}</span>
+            <span class="agenda__dato">{AGENDA.huso}</span>
+          </li>
+          <li>
+            <span class="agenda__rotulo">{t('meet.long')}</span>
+            <span class="agenda__dato">{AGENDA.minutos} min</span>
+          </li>
+        </ul>
+
+        {AGENDA.reserva ? (
+          <a class="agenda__cta" href={AGENDA.reserva} target="_blank" rel="noopener noreferrer">
+            {t('meet.book')}<Icon id="corner" />
+          </a>
+        ) : (
+          /* Todavia sin horario de citas. En vez de un boton muerto, el
+             camino que si funciona hoy. */
+          <div class="agenda__manual">
+            <p>{t('meet.byhand')}</p>
+            <ul class="cform__direct">
+              {wa && (
+                <li>
+                  <a class="link-chip net--whatsapp" href={wa.href} target="_blank" rel="noopener noreferrer">
+                    <Icon id="whatsapp" /><span class="sr-only">{t(wa.key)}</span>
+                  </a>
+                </li>
+              )}
+              {mail && (
+                <li>
+                  <a class="link-chip net--mail" href={mail.href}>
+                    <Icon id="mail" /><span class="sr-only">{t(mail.key)}</span>
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <p class="cpage__foot">{t('page.meet.foot')}</p>
+    </div>
+  </article>
+</Base>

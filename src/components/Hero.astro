@@ -23,6 +23,14 @@ const DOORS = [
        de el, cada una a su ritmo. Nada que leer aqui. -->
   <div class="hero__field" aria-hidden="true"></div>
 
+  <!-- LA PRIMERA PANTALLA: lo que cabe en la ventana. La hoja de hueso que
+       viene despues es otra, y en movil siempre lo fue —el CSS ya la ponia
+       la ultima, para «descubrirla bajando»—. Ahora esta declarado, asi que
+       las dos miden lo mismo y el salto entre ellas es un salto de verdad.
+
+       En escritorio este envoltorio se desvanece con `display: contents`. -->
+  <div class="hero__first">
+
   <!-- El escenario: la calcomania. Solo en movil y tablet. -->
   <div class="hero__stage">
     <!-- El bosque es decoracion pura, asi que vive en el CSS: asi el
@@ -69,6 +77,21 @@ const DOORS = [
     <div data-lift><SocialRow t={t} /></div>
   </div>
 
+  <!-- El boton se queda siempre. Encima, exactamente encima, un gemelo
+       relleno que invita a bajar y se retira al primer scroll: como no
+       ocupa sitio en la fila, al irse no deja ningun hueco. -->
+  <div class="cue">
+    <a class="scroll-cue" href="#about">
+      <span class="scroll-cue__sticker">{t('scroll.label')}</span>
+      <Icon id="arrow" />
+    </a>
+    <span class="scroll-cue scroll-cue--twin" aria-hidden="true">
+      <span class="scroll-cue__sticker">{t('scroll.label')}</span>
+      <Icon id="arrow" />
+    </span>
+  </div>
+  </div>
+
   <!-- La hoja de hueso: de donde sale el trabajo, y para quien es. -->
   <section class="hero__panel" aria-labelledby="offer-title">
     <div class="hero__offer" data-glossary data-lift>
@@ -87,17 +110,4 @@ const DOORS = [
     <Rhema t={t} where="panel" />
   </section>
 
-  <!-- El boton se queda siempre. Encima, exactamente encima, un gemelo
-       relleno que invita a bajar y se retira al primer scroll: como no
-       ocupa sitio en la fila, al irse no deja ningun hueco. -->
-  <div class="cue">
-    <a class="scroll-cue" href="#about">
-      <span class="scroll-cue__sticker">{t('scroll.label')}</span>
-      <Icon id="arrow" />
-    </a>
-    <span class="scroll-cue scroll-cue--twin" aria-hidden="true">
-      <span class="scroll-cue__sticker">{t('scroll.label')}</span>
-      <Icon id="arrow" />
-    </span>
-  </div>
 </section>

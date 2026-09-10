@@ -12,7 +12,6 @@ import { CARDS, GLOSS } from '../i18n/term-cards.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { CONTACT } from '../data/social.js';
-import { MODE_TRAVELS, BUDGET_STOPS } from '../data/enquiry.js';
 
 const d = document;
 const lang = d.documentElement.lang || 'es';
@@ -760,570 +759,256 @@ function initFilter() {
   });
 }
 
-/* ---------- La solicitud, paso a paso -----------------------
-   Todos los pasos vienen en el HTML; aqui se enseña el que toca. Sin
-   este guion se ven todos en orden y el formulario se rellena y se envia
-   igual — por eso la barra de progreso empieza escondida: una barra
-   parada al 11% cuando no hay pasos seria mentira.
+/* ---------- Diapositivas: el scroll que pesa -----------------
 
-   DOS PASOS SE SALTAN SOLOS. «Que en concreto» no existe si la linea es
-   «otra cosa»; el sitio solo se pregunta si hay que desplazarse. Y como
-   la cuenta sale de los pasos ACTIVOS, saltarse uno recalcula la barra:
-   nunca promete nueve cuando van a ser siete.
+   ESTO NO ES `scroll-snap`. Snap es gradual y con iman: sigues arrastrando
+   la pagina pixel a pixel y al soltar te acerca al borde mas cercano. Aqui
+   el scroll CUESTA —hay que empujar hasta pasar un umbral, y mientras tanto
+   la pagina cede un poco y vuelve— y cuando por fin cede, cambia la seccion
+   ENTERA de una, con sus entradas escribiendose otra vez.
 
-   EL ENVIO: Supabase si esta configurado; si no —o si falla— se abre el
-   correo con todo escrito. La base es una mejora, no un requisito.
+   POR QUE ESTA LLENO DE PUERTAS. Quedarse con la rueda del raton es de las
+   cosas que mas facil rompen una pagina: deja contenido inalcanzable si una
+   seccion no cabe, pelea con el dedo en un movil, y se lleva por delante el
+   teclado y el buscar-en-pagina. Asi que solo entra donde no puede hacer
+   daño, y en cuanto una condicion falla la pagina vuelve a ser normal:
 
-   La trampa (`website`) es un campo que ninguna persona ve. Si viene con
-   algo dentro es un robot: se le responde que si y no se envia nada. */
-/* El codigo de una solicitud. Seis caracteres de un alfabeto de treinta
-   —sin I, L, O, 0 ni 1, que son los que se copian mal a mano— dan unos
-   setecientos millones de combinaciones. No es una contraseña, es un
-   secreto portador: quien lo tiene puede mirar SU etapa y nada mas.
-   Se genera aqui y no en la base para que se pueda enseñar en el mismo
-   momento del envio, sin una segunda vuelta. */
-const ALFA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const nuevoCodigo = () => {
-  const n = new Uint32Array(6);
-  crypto.getRandomValues(n);
-  return 'JLR-' + [...n].map((x) => ALFA[x % ALFA.length]).join('');
-};
+     - raton de verdad y pantalla ancha. En tactil no se activa nunca.
+     - TODAS las secciones caben enteras en la ventana. Si una no cabe se
+       apaga entero: no se puede saltar por encima de lo que no se ve.
+     - hacen falta al menos dos paradas, o no hay nada que saltar.
+     - quien pide menos movimiento no lo tiene.
+     - el teclado sigue mandando, con las teclas de siempre.
+     - el gesto lateral se deja pasar: hay carruseles que lo usan.
 
-/* ¿ESTO ES DE VERDAD?
+   LAS SECCIONES CORTAS SE JUNTAN CON LA SIGUIENTE. En proyectos hay una
+   cinta de 122px; convertirla en diapositiva propia dejaria al visitante
+   mirando una tira con setecientos pixeles de vacio debajo. Mientras la
+   suma quepa en la ventana, viajan juntas.
 
-   No se puede saber si alguien se llama como dice. Lo que si se puede es
-   descartar lo que NADIE escribe en serio, que es de lo que se llena un
-   formulario publico: «asdasd», «aaaa», «123456», «qwerty».
+   LAS ENTRADAS NO SE REPROGRAMAN. `[data-lift]` ya usa un observador que se
+   rearma al salir y al entrar, asi que al aterrizar en una seccion sus
+   piezas vuelven a escribirse solas. Aqui no hay que tocar nada. */
+function initDiapositivas() {
+  const main = d.querySelector('main');
+  if (!main) return;
+  /* La puerta del puntero ya no esta. Antes se pedia raton porque en movil
+     las secciones eran mas altas que la ventana y quedarse con el dedo era
+     dejar contenido inalcanzable. Ahora TODAS miden una ventana exacta, asi
+     que no hay nada debajo que rescatar y el gesto vale igual en las tres
+     pantallas. La red de seguridad de abajo —si algo no cabe, esto se
+     apaga— sigue siendo la que manda. */
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-   Cuatro reglas, y las cuatro miran la FORMA y no el contenido — no hay
-   lista de palabras prohibidas, que siempre se queda corta y ademas
-   rechaza nombres reales de gente que existe.
+  const RESISTENCIA = 180;   /* cuanto hay que empujar para que ceda */
+  const CEDE = 18;           /* cuanto se mueve mientras la empujas */
+  const VIAJE = 520;         /* lo que tarda el salto, en ms */
+  const CALMA = 170;         /* sin rueda tanto rato, el esfuerzo se relaja */
 
-   Se aplica solo a partir de cuatro caracteres: «Ana» y «Li» son nombres
-   y no tienen por que pasar por aqui. */
-const FILAS = [
-  'qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'abcdefghijklmnopqrstuvwxyz', '01234567890'
-];
-function esBasura(txt) {
-  const v = String(txt || '').trim().toLowerCase();
-  if (v.length < 4) return false;
+  let paradas = [];
+  let indice = 0;
+  let volando = false;
+  let esfuerzo = 0;
+  let relojCalma = 0;
 
-  /* 1. Sin una sola vocal no es una palabra de ningun idioma que use
-        este alfabeto. */
-  if (!/[aeiouáéíóúàèìòùâêîôûäëïöüãõå]/.test(v)) return true;
+  /* Donde puede pararse la pagina. Se recalcula al cambiar de tamaño porque
+     el texto refluye y una seccion que cabia deja de caber. */
+  function armar() {
+    paradas = [];
+    const max = d.documentElement.scrollHeight - innerHeight;
+    if (max < 40) return;
 
-  /* 2. Menos de tres caracteres distintos: «aaaa», «abab». */
-  if (new Set(v.replace(/\s/g, '')).size < 3) return true;
+    /* EL HERO CUENTA DOBLE, O NO. En movil y tablet son dos pantallas —lo que
+       cabe en la ventana y la hoja de hueso— y en escritorio una sola, porque
+       alli la hoja va al lado del nombre. Preguntarselo al DOM y no al ancho:
+       en escritorio el envoltorio de la primera lleva `display: contents` y no
+       genera caja, asi que mide cero. Si las dos mitades miden, son dos
+       pantallas; si no, el hero entero es una.
 
-  /* 3. Cuatro iguales seguidos. */
-  if (/(.)\1{3,}/.test(v)) return true;
-
-  /* 4. Cuatro seguidas del teclado, hacia delante o hacia atras. */
-  for (const fila of FILAS) {
-    const atras = [...fila].reverse().join('');
-    for (let i = 0; i + 4 <= fila.length; i++) {
-      if (v.includes(fila.slice(i, i + 4))) return true;
-      if (v.includes(atras.slice(i, i + 4))) return true;
-    }
-  }
-  return false;
-}
-
-/* Un correo de verdad tiene punto en el dominio y una extension de dos
-   letras para arriba. `a@a` pasa la validacion del navegador y no existe. */
-const correoOk = (v) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v) &&
-                        /\.[a-z]{2,}$/i.test(v);
-
-function initContactForm() {
-  const form = d.getElementById('contact-form');
-  if (!form) return;
-
-  const status = d.getElementById('cform-status');
-  const send = form.querySelector('[data-wiz-send]');
-  const next = form.querySelector('[data-wiz-next]');
-  const back = form.querySelector('[data-wiz-back]');
-  const head = d.getElementById('wiz-head');
-  const fill = d.getElementById('wiz-fill');
-  const count = d.getElementById('wiz-count');
-  const steps = [...form.querySelectorAll('[data-step]')];
-
-  const BASE = import.meta.env.PUBLIC_SUPABASE_URL;
-  const KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  const val = (name) => (form.querySelector('[name="' + name + '"]:checked') || {}).value;
-  const vals = (name) => [...form.querySelectorAll('[name="' + name + '"]:checked')].map((x) => x.value);
-
-  /* Los pasos que cuentan ahora mismo. Se recalcula en cada pintada
-     porque depende de lo que se haya elegido antes. */
-  const activos = () => steps.filter((paso) => {
-    const k = paso.getAttribute('data-step');
-    if (k === 'needs') return vals('line').some((l) => !!form.querySelector('[data-needs="' + l + '"]'));
-    if (k === 'location') return MODE_TRAVELS.indexOf(val('mode')) !== -1;
-    return true;
-  });
-
-  let i = 0;
-  let tope = 0;                      // lo mas lejos que ha llegado la barra
-
-  const pinta = () => {
-    const lista = activos();
-    if (i >= lista.length) i = lista.length - 1;
-    if (i < 0) i = 0;
-    steps.forEach((paso) => { paso.hidden = paso !== lista[i]; });
-
-    /* Dentro del paso de necesidades, el grupo de la linea elegida. Los
-       otros se DESMARCAN: un campo escondido se sigue enviando, y
-       llegarian necesidades de una linea que ya no esta elegida. */
-    const lineas = vals('line');
-    form.querySelectorAll('[data-needs]').forEach((g) => {
-      const mio = lineas.indexOf(g.getAttribute('data-needs')) !== -1;
-      g.hidden = !mio;
-      if (!mio) g.querySelectorAll('input:checked').forEach((x) => { x.checked = false; });
+       Sin esto el hero entraba como UN hijo de dos ventanas de alto, pasaba de
+       largo la comprobacion de «todo cabe» y apagaba el modulo en movil. */
+    const pantallas = [];
+    [...main.children].forEach((el) => {
+      const mitades = [...el.querySelectorAll(':scope > .hero__first, :scope > .hero__panel')]
+        .filter((p) => p.getBoundingClientRect().height > 8);
+      if (mitades.length >= 2) { mitades.forEach((p) => pantallas.push(p)); return; }
+      pantallas.push(el);
     });
 
-    /* «Al menos una» no lo sabe hacer el navegador con casillas: `required`
-       en una casilla exige ESA. El apaño estandar es tenerlas todas como
-       obligatorias mientras no haya ninguna marcada —asi el aviso sale— y
-       quitarselo a todas en cuanto hay una. */
-    const cajas = [...form.querySelectorAll('[name="line"]')];
-    cajas.forEach((x) => { x.required = lineas.length === 0; });
-
-    /* Con mas de un tipo de cliente hay que saber cual manda. Con uno
-       solo la pregunta se contesta sola, asi que ni se enseña — y si se
-       queda en uno despues de haber marcado dos, se limpia lo elegido
-       para no mandar un «principal» de algo que ya no esta marcado. */
-    const publicos = vals('audience');
-    const zonaMain = form.querySelector('[data-audience-main]');
-    if (zonaMain) {
-      zonaMain.hidden = publicos.length < 2;
-      form.querySelectorAll('[data-main]').forEach((op) => {
-        const suyo = publicos.indexOf(op.getAttribute('data-main')) !== -1;
-        op.hidden = !suyo;
-        const r = op.querySelector('input');
-        if (!suyo && r.checked) r.checked = false;
-      });
-      if (publicos.length < 2) {
-        form.querySelectorAll('[name="audienceMain"]').forEach((r) => { r.checked = false; });
-      }
-    }
-
-    /* El sitio solo es obligatorio si hay que ir. Y si no, se vacia: si
-       alguien lo escribe y luego cambia a remoto, no viaja un sitio que
-       ya no significa nada. */
-    const loc = form.querySelector('[name="location"]');
-    const viaja = MODE_TRAVELS.indexOf(val('mode')) !== -1;
-    loc.required = viaja;
-    if (!viaja) loc.value = '';
-
-    /* EL DESLIZADOR. Dos tiradores sobre el mismo carril: el de abajo no
-       puede pasar del de arriba, asi que se ordenan antes de pintar. Si
-       se dejaran cruzar, el rango saldria del reves y el trozo marcado
-       tendria anchura negativa. */
-    const cur = val('currency') || 'COP';
-    const from = form.querySelector('[name="budgetFrom"]');
-    const to = form.querySelector('[name="budgetTo"]');
-    let a = Number(from.value);
-    let b = Number(to.value);
-    if (a > b) { const x = a; a = b; b = x; from.value = a; to.value = b; }
-
-    const max = BUDGET_STOPS.length - 1;
-    const sel = d.getElementById('budget-sel');
-    sel.style.left = ((a / max) * 100).toFixed(1) + '%';
-    sel.style.width = (((b - a) / max) * 100).toFixed(1) + '%';
-
-    const tbd = form.querySelector('[name="budgetTbd"]').checked;
-    const zona = d.getElementById('budget-out').closest('.wiz__step');
-    zona.classList.toggle('is-tbd', tbd);
-    from.disabled = tbd;
-    to.disabled = tbd;
-    d.getElementById('budget-out').textContent = tbd
-      ? t('form.budgetTbd')
-      : BUDGET_STOPS[a][cur] + ' – ' + BUDGET_STOPS[b][cur] + ' ' + cur;
-
-    const n = lista.length;
-
-    /* LA BARRA NO PUEDE RETROCEDER, y retrocedia.
-
-       Iba con `(i + 1) / n`. El problema es que `n` CAMBIA: elegir una
-       linea añade el paso de necesidades y elegir presencial añade el del
-       sitio. Estando en el paso 1, pasar de 8 a 9 pasos llevaba la barra
-       de 12.5% a 11.1% — se iba para atras sin moverte del sitio.
-
-       Con `i / (n - 1)` el primer paso es siempre 0 y el ultimo siempre
-       100, asi que cambiar el total ya no mueve el punto de partida. Y por
-       si acaso queda el tope: nunca dibuja menos de lo que ya dibujo. */
-    const pct = n > 1 ? (i / (n - 1)) * 100 : 100;
-    tope = Math.max(tope, pct);
-    fill.style.width = tope.toFixed(1) + '%';
-    count.textContent = t('form.step').replace('{n}', i + 1).replace('{total}', n);
-    back.hidden = i === 0;
-    const ultimo = i === n - 1;
-    next.hidden = ultimo;
-    send.hidden = !ultimo;
-  };
-
-  /* LA UBICACION, CONTRA UN MAPA DE VERDAD.
-
-     No es Google Maps a proposito: su API pide clave y facturacion, y en un
-     sitio estatico esa clave viaja dentro de la pagina — la puede usar
-     cualquiera y la factura llega aqui. Photon (de komoot) busca sobre los
-     mismos datos de OpenStreetMap, sin clave y gratis.
-
-     Y si el servicio no contesta NO PASA NADA: el campo sigue siendo texto
-     libre y la solicitud se envia igual. Un buscador caido no puede dejar a
-     nadie sin poder escribir donde vive.
-
-     Lo que se teclea viaja a un tercero mientras se escribe, y por eso hay
-     una linea debajo del campo que lo dice. */
-  const loc = form.querySelector('[name="location"]');
-  const sug = d.getElementById('loc-sug');
-  let tecla = 0;
-
-  const cierra = () => {
-    sug.hidden = true;
-    sug.textContent = '';
-    loc.setAttribute('aria-expanded', 'false');
-  };
-
-  const busca = async (q) => {
-    try {
-      /* Photon solo habla cuatro idiomas y el sitio habla cinco: con
-         `lang=es` o `lang=pt` devuelve 400 y no sugiere nada. Comprobado
-         contra el servicio. Cuando no lo soporta se omite el parametro, y
-         entonces contesta con el nombre local del sitio — que para un
-         nombre propio suele ser justo lo que se quiere. */
-      const IDIOMAS_PHOTON = ['de', 'en', 'fr', 'it'];
-      const idioma = IDIOMAS_PHOTON.indexOf(lang) !== -1 ? '&lang=' + lang : '';
-      const r = await fetch('https://photon.komoot.io/api/?limit=5' + idioma +
-                           '&q=' + encodeURIComponent(q));
-      if (!r.ok) return cierra();
-      const datos = await r.json();
-      const sitios = (datos.features || []).map((x) => {
-        const p = x.properties || {};
-        return [p.name, p.city, p.state, p.country].filter(Boolean).join(', ');
-      }).filter((x, i, a) => x && a.indexOf(x) === i);
-      if (!sitios.length) return cierra();
-
-      sug.textContent = '';
-      sitios.forEach((nombre) => {
-        const li = d.createElement('li');
-        const b = d.createElement('button');
-        b.type = 'button';
-        b.className = 'wiz__sug-op';
-        b.setAttribute('role', 'option');
-        b.textContent = nombre;
-        b.addEventListener('click', () => { loc.value = nombre; cierra(); loc.focus(); });
-        li.appendChild(b);
-        sug.appendChild(li);
-      });
-      sug.hidden = false;
-      loc.setAttribute('aria-expanded', 'true');
-    } catch (e) {
-      cierra();
-    }
-  };
-
-  if (loc && sug) {
-    loc.addEventListener('input', () => {
-      clearTimeout(tecla);
-      const q = loc.value.trim();
-      if (q.length < 3) return cierra();
-      /* Medio segundo de espera: sin esto sale una peticion por letra y el
-         servicio corta por abuso, con razon. */
-      tecla = setTimeout(() => busca(q), 500);
+    const grupos = [];
+    pantallas.forEach((el) => {
+      const c = el.getBoundingClientRect();
+      if (c.height < 8) return;                      /* lo que no se ve no cuenta */
+      const arriba = c.top + scrollY;
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.alto + c.height <= innerHeight) { ultimo.alto += c.height; return; }
+      grupos.push({ arriba: arriba, alto: c.height });
     });
-    loc.addEventListener('blur', () => setTimeout(cierra, 180));
-    loc.addEventListener('keydown', (e) => { if (e.key === 'Escape') cierra(); });
+
+    /* La regla dura: si algo no cabe, aqui no se salta nada. */
+    if (grupos.some((g) => g.alto > innerHeight + 8)) return;
+
+    const crudas = grupos.map((g) => Math.max(0, Math.min(Math.round(g.arriba), max)));
+    /* El recorte contra el final repite paradas; dos a menos de 40px son la
+       misma parada. */
+    paradas = crudas.filter((p, i) => i === 0 || p - crudas[i - 1] > 40);
+    if (paradas.length < 2) paradas = [];
   }
 
-  const alert = d.getElementById('wiz-alert');
-  const alertText = d.getElementById('wiz-alert-text');
+  function cede(px) {
+    main.style.translate = px ? '0 ' + px.toFixed(1) + 'px' : '';
+  }
 
-  const limpia = () => {
-    alert.hidden = true;
-    form.querySelectorAll('.is-bad').forEach((x) => x.classList.remove('is-bad'));
-    form.querySelectorAll('[aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
-  };
+  /* SEGURO CONTRA UN RELOJ PARADO. `requestAnimationFrame` no corre en una
+     pestaña de fondo, asi que un salto empezado justo antes de cambiar de
+     pestaña se queda a medias y `volando` no se apaga nunca: al volver, la
+     rueda estaria muerta. Esto lo desatasca pase lo que pase. */
+  let relojSeguro = 0;
+  /* Cada vuelo lleva numero. Si empieza otro, el anterior se calla al mirar
+     el suyo: sin esto, dos bucles de fotogramas se pelean por la barra de
+     scroll y la pagina tiembla entre dos destinos. */
+  let vuelo = 0;
 
-  const falla = (el, clave) => {
-    alert.hidden = false;
-    alertText.textContent = t(clave);
-    if (el) {
-      el.classList.add('is-bad');
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-        el.setAttribute('aria-invalid', 'true');
-        try { el.focus({ preventScroll: true }); } catch (e) {}
-      }
-    }
-    return false;
-  };
+  function volar(destino) {
+    const mio = ++vuelo;
+    volando = true;
+    cede(0);
+    clearTimeout(relojSeguro);
+    /* Generoso a proposito. Antes eran 520+600 y en una pantalla lenta el
+       seguro saltaba A MITAD del vuelo: desbloqueaba la rueda con el viaje sin
+       terminar y un solo empujon se comia dos secciones. El seguro es para un
+       reloj PARADO, no para uno lento. */
+    relojSeguro = setTimeout(() => {
+      if (mio !== vuelo) return;
+      volando = false; esfuerzo = 0;
+    }, VIAJE + 4000);
+    const desde = scrollY;
+    const tramo = destino - desde;
+    const t0 = performance.now();
+    /* Sale rapido y aterriza suave: es lo que hace que se lea como un cambio
+       de diapositiva y no como un scroll con prisa. */
+    const suave = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const paso = (ahora) => {
+      if (mio !== vuelo) return;               /* otro tomo el relevo */
+      const p = Math.min(1, (ahora - t0) / VIAJE);
+      scrollTo({ top: desde + tramo * suave(p), behavior: 'instant' });
+      if (p < 1) { requestAnimationFrame(paso); return; }
+      esfuerzo = 0;
+      clearTimeout(relojSeguro);
+      /* Un respiro antes de aceptar el siguiente empujon: sin esto, la
+         inercia de un trackpad encadena tres secciones de un gesto. */
+      setTimeout(() => { volando = false; }, 140);
+    };
+    requestAnimationFrame(paso);
+  }
 
-  /* Antes de avanzar, lo que falte del paso en el que estamos. El aviso lo
-     damos nosotros: el globo del navegador no se puede pintar y solo sabe
-     decir «rellena este campo». */
-  const listo = () => {
-    limpia();
-    const paso = activos()[i];
-    const clave = paso.getAttribute('data-step');
-
-    /* Grupos de eleccion: al menos uno. */
-    const grupo = paso.querySelector('.cform__chips, .cform__cards');
-    const esEleccion = ['line', 'mode', 'audience', 'timing', 'impact'].indexOf(clave) !== -1;
-    if (esEleccion && grupo) {
-      const puestos = paso.querySelectorAll('input:checked').length;
-      if (!puestos) return falla(grupo, 'err.pickOne');
-    }
-
-    /* Con dos o mas publicos, el principal es obligatorio: sin el, saber
-       que hace B2B y B2C no dice por donde empezar. */
-    if (clave === 'audience') {
-      const zona = form.querySelector('[data-audience-main]');
-      if (zona && !zona.hidden && !form.querySelector('[name="audienceMain"]:checked')) {
-        return falla(zona.querySelector('.cform__chips'), 'err.pickMain');
-      }
-    }
-
-    if (clave === 'location') {
-      const el = form.querySelector('[name="location"]');
-      const v = (el.value || '').trim();
-      if (v.length < 3) return falla(el, 'err.location');
-      if (esBasura(v)) return falla(el, 'err.junk');
-    }
-
-    if (clave === 'you') {
-      const nom = form.name;
-      const cor = form.email;
-      const tel = form.phone;
-      const vn = (nom.value || '').trim();
-      if (vn.length < 2) return falla(nom, 'err.name');
-      if (!/[a-záéíóúàèìòùâêîôûäëïöüñãõçA-Z]/.test(vn)) return falla(nom, 'err.name');
-      if (esBasura(vn)) return falla(nom, 'err.junk');
-
-      const vc = (cor.value || '').trim();
-      if (!correoOk(vc)) return falla(cor, 'err.email');
-      if (esBasura(vc.split('@')[0])) return falla(cor, 'err.junk');
-
-      const vt = (tel.value || '').trim();
-      if (vt && (vt.replace(/\D/g, '').length < 7)) return falla(tel, 'err.phone');
-
-      if (!form.querySelector('[name="channel"]:checked')) {
-        return falla(paso.querySelector('.cform__chips'), 'err.pickOne');
-      }
-    }
-
-    if (clave === 'detail') {
-      const det = form.detail;
-      const vd = (det.value || '').trim();
-      if (vd && esBasura(vd)) return falla(det, 'err.junk');
-    }
-
+  function saltar(dir) {
+    const siguiente = indice + dir;
+    if (siguiente < 0 || siguiente >= paradas.length) return false;
+    indice = siguiente;
+    volar(paradas[indice]);
     return true;
-  };
+  }
 
-  next.addEventListener('click', () => {
-    if (!listo()) return;
-    i++;
-    pinta();
-    form.scrollIntoView({ block: 'start', behavior: 'smooth' });
-  });
-
-  back.addEventListener('click', () => {
-    i--;
-    pinta();
-    form.scrollIntoView({ block: 'start', behavior: 'smooth' });
-  });
-
-  /* Elegir linea, modalidad o moneda cambia lo que viene despues. */
-  /* En cuanto se toca algo, el aviso se va: dejarlo puesto mientras se
-     corrige es regañar dos veces por lo mismo. */
-  form.addEventListener('input', () => { if (!alert.hidden) limpia(); });
-  form.addEventListener('change', () => { if (!alert.hidden) limpia(); });
-
-  /* `input` y no solo `change`: arrastrando el tirador, `change` no salta
-     hasta soltarlo y la cifra se quedaba congelada mientras se mueve. */
-  form.addEventListener('input', (e) => {
-    if (['budgetFrom', 'budgetTo'].indexOf(e.target.name) !== -1) pinta();
-  });
-
-  form.addEventListener('change', (e) => {
-    /* `audience` tiene que estar: es lo que decide si aparece la pregunta
-       de cual manda. Se quedo fuera al principio y el bloque no salia nunca. */
-    if (['line', 'mode', 'audience', 'currency', 'budgetFrom', 'budgetTo', 'budgetTbd']
-        .indexOf(e.target.name) !== -1) pinta();
-  });
-
-  const say = (kind, titulo, cuerpo) => {
-    status.hidden = false;
-    status.className = 'cform__status is-' + kind;
-    status.textContent = titulo + ' ' + cuerpo;
-  };
-
-  const abrirCorreo = (data) => {
-    const dest = (CONTACT.find((c) => c.id === 'mail') || {}).href || '';
-    if (!dest) return;
-    const cuerpo = Object.entries(data).map(([k, v]) => k + ': ' + v).join('\n\n');
-    const asunto = t('page.contact.title') + ' — ' + (data.name || '');
-    location.href = dest + '?subject=' + encodeURIComponent(asunto) +
-                    '&body=' + encodeURIComponent(cuerpo);
-  };
-
-  form.addEventListener('submit', async (e) => {
+  addEventListener('wheel', (e) => {
+    if (paradas.length < 2) return;                       /* pagina normal */
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;  /* gesto lateral, suyo es */
     e.preventDefault();
-    if (!listo()) return;
+    if (volando) return;
 
-    /* `needs` son varias casillas con el mismo nombre, y
-       Object.fromEntries se quedaria solo con la ultima. Se juntan. */
-    const fd = new FormData(form);
-    const data = Object.fromEntries(fd);
-    data.needs = fd.getAll('needs').join(', ');
-    data.line = fd.getAll('line').join(', ');
-    data.audience = fd.getAll('audience').join(', ');
-    /* Con un solo publico, el principal es ese: se rellena solo para que
-       la columna nunca venga vacia y se pueda agrupar por ella. */
-    if (!data.audienceMain) data.audienceMain = fd.getAll('audience')[0] || '';
+    /* La rueda mide en lineas o en paginas segun el raton; sin normalizar,
+       el umbral significa una cosa distinta en cada maquina. */
+    const dy = e.deltaMode === 1 ? e.deltaY * 16
+             : e.deltaMode === 2 ? e.deltaY * innerHeight
+             : e.deltaY;
+    esfuerzo += dy;
+    clearTimeout(relojCalma);
+    relojCalma = setTimeout(() => { esfuerzo = 0; cede(0); }, CALMA);
 
-    /* La cifra en letra viaja junto a los indices: los indices sirven para
-       comparar y ordenar, la letra para leerla sin hacer cuentas. */
-    if (data.budgetTbd) {
-      data.budgetFrom = '';
-      data.budgetTo = '';
-      data.budgetLabel = 'tbd';
-    } else {
-      const cur = data.currency || 'COP';
-      data.budgetLabel = BUDGET_STOPS[Number(data.budgetFrom)][cur] + ' – ' +
-                         BUDGET_STOPS[Number(data.budgetTo)][cur] + ' ' + cur;
-    }
-    delete data.budgetTbd;
+    const dir = esfuerzo > 0 ? 1 : -1;
+    if (indice + dir < 0 || indice + dir >= paradas.length) { cede(0); return; }
 
-    if (data.website) {
-      say('ok', t('form.okTitle'), t('form.okBody'));
-      form.reset();
-      i = 0;
-      tope = 0;
-      pinta();
-      return;
-    }
-    delete data.website;
+    if (Math.abs(esfuerzo) >= RESISTENCIA) { saltar(dir); return; }
+    cede(-dir * CEDE * (Math.abs(esfuerzo) / RESISTENCIA));
+  }, { passive: false });
 
-    const antes = send.textContent;
-    send.disabled = true;
-    send.textContent = t('form.sending');
-
-    const code = nuevoCodigo();
-
-    try {
-      if (!BASE || !KEY) throw new Error('sin configurar');
-      const r = await fetch(BASE.replace(/\/$/, '') + '/rest/v1/solicitudes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: KEY,
-          Authorization: 'Bearer ' + KEY,
-          Prefer: 'return=minimal'
-        },
-        body: JSON.stringify({ ...data, code, lang })
-      });
-      if (!r.ok) throw new Error(String(r.status));
-      /* El codigo solo se enseña si de verdad quedo guardado. Darlo
-         cuando el envio cayo al respaldo del correo seria darle un
-         numero que no existe en ninguna parte. */
-      say('ok', t('form.okTitle'), t('form.okBody') + ' ' + t('form.codeIs').replace('{code}', code));
-      form.reset();
-      i = 0;
-      tope = 0;
-      pinta();
-    } catch (err) {
-      abrirCorreo(data);
-      say('err', t('form.errTitle'), t('form.errBody'));
-    } finally {
-      send.disabled = false;
-      send.textContent = antes;
-    }
+  /* El teclado no se toca por gusto: si la rueda salta secciones y las
+     flechas siguen desplazando pixel a pixel, la pagina tiene dos verdades. */
+  addEventListener('keydown', (e) => {
+    if (paradas.length < 2 || volando) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    let hecho = false;
+    if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ') hecho = saltar(1);
+    else if (e.key === 'PageUp' || e.key === 'ArrowUp') hecho = saltar(-1);
+    else if (e.key === 'Home') { indice = 0; volar(paradas[0]); hecho = true; }
+    else if (e.key === 'End') { indice = paradas.length - 1; volar(paradas[indice]); hecho = true; }
+    if (hecho) e.preventDefault();
   });
 
-  /* A partir de aqui manda el guion: barra visible y un paso cada vez. */
-  head.hidden = false;
-  form.classList.add('is-wiz');
-  pinta();
-}
+  /* Si la pagina se mueve por su cuenta —un ancla, el buscar-en-pagina, la
+     barra lateral— hay que volver a saber en que parada estamos, o el
+     siguiente empujon salta desde el sitio equivocado. */
+  addEventListener('scroll', () => {
+    if (volando || paradas.length < 2) return;
+    let mejor = 0;
+    let corta = Infinity;
+    paradas.forEach((p, i) => {
+      const dist = Math.abs(p - scrollY);
+      if (dist < corta) { corta = dist; mejor = i; }
+    });
+    indice = mejor;
+  }, { passive: true });
 
-/* ---------- El portal: sin datos, con WhatsApp ---------------
-   No consulta nada ni enseña nada. Arma el mensaje con lo elegido y lo
-   mete en el enlace de wa.me. Sin guion el enlace sigue llevando al
-   WhatsApp de siempre, solo que con el mensaje generico. */
-function initPortal() {
-  const form = d.getElementById('portal-form');
-  if (!form) return;
-  const send = d.getElementById('portal-send');
-  const base = form.getAttribute('data-wa');
+  /* EL DEDO. Mismo modelo que la rueda: se acumula el arrastre, la pagina
+     cede mientras empujas y salta al pasar el umbral.
 
-  const texto = (name) => {
-    const el = form.querySelector('[name="' + name + '"]:checked');
-    return el ? el.nextElementSibling.textContent.trim() : '';
-  };
+     El umbral se mide contra el ALTO DE LA VENTANA y no en pixeles fijos:
+     un pulgar recorre una fraccion parecida de la pantalla en un movil y en
+     una tablet, pero no la misma distancia. Con un numero fijo, en tablet
+     costaria la mitad.
 
-  const arma = () => {
-    const motivo = form.querySelector('[name="reason"]:checked');
-    const soloFecha = form.querySelector('[data-only="date"]');
-    const esFecha = motivo && motivo.value === 'date';
-    soloFecha.hidden = !esFecha;
+     `preventDefault` en `touchmove` es lo que apaga el scroll nativo, y por
+     eso el oyente no puede ser pasivo. Si no hay paradas se sale ANTES de
+     llamarlo: con la pagina normal, el dedo es del navegador. */
+  let dedoY = 0;
+  let dedoActivo = false;
 
-    const quien = (form.querySelector('[name="who"]').value || '').trim();
-    let m = 'Hola Juanjo — ' + texto('reason');
-    if (esFecha) m += ': ' + texto('thing');
-    if (quien) m += '. Soy ' + quien;
-    send.href = base + '?text=' + encodeURIComponent(m + '.');
-  };
+  addEventListener('touchstart', (e) => {
+    if (paradas.length < 2 || volando || e.touches.length !== 1) { dedoActivo = false; return; }
+    dedoActivo = true;
+    dedoY = e.touches[0].clientY;
+    esfuerzo = 0;
+  }, { passive: true });
 
-  form.addEventListener('change', arma);
-  form.addEventListener('input', arma);
-  arma();
-}
-
-/* ---------- El estado, por codigo ----------------------------
-   No lee la tabla: llama a una funcion de Postgres que recibe el codigo
-   y devuelve SOLO la etapa. Aunque alguien acertara un codigo, lo unico
-   que obtendria es una palabra. */
-function initStatus() {
-  const form = d.getElementById('status-form');
-  if (!form) return;
-  const out = d.getElementById('status-result');
-  const btn = form.querySelector('.cform__send');
-  const BASE = import.meta.env.PUBLIC_SUPABASE_URL;
-  const KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  const di = (kind, txt) => {
-    out.hidden = false;
-    out.className = 'cform__status is-' + kind;
-    out.textContent = txt;
-  };
-
-  form.addEventListener('submit', async (e) => {
+  addEventListener('touchmove', (e) => {
+    if (!dedoActivo || paradas.length < 2) return;
     e.preventDefault();
-    const code = (form.code.value || '').trim().toUpperCase();
-    if (!code) return;
+    if (volando) return;
+    esfuerzo = dedoY - e.touches[0].clientY;
+    const umbral = Math.max(70, innerHeight * 0.12);
+    const dir = esfuerzo > 0 ? 1 : -1;
+    if (indice + dir < 0 || indice + dir >= paradas.length) { cede(0); return; }
+    if (Math.abs(esfuerzo) >= umbral) { dedoActivo = false; saltar(dir); return; }
+    cede(-dir * CEDE * (Math.abs(esfuerzo) / umbral));
+  }, { passive: false });
 
-    const antes = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = t('status.checking');
-    try {
-      if (!BASE || !KEY) throw new Error('sin configurar');
-      const r = await fetch(BASE.replace(/\/$/, '') + '/rest/v1/rpc/estado_solicitud', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY },
-        body: JSON.stringify({ codigo: code })
-      });
-      if (!r.ok) throw new Error(String(r.status));
-      const etapa = await r.json();
-      if (!etapa) { di('err', t('status.notfound')); return; }
-      di('ok', t('status.s.' + etapa) || etapa);
-    } catch (err) {
-      di('err', t('status.error'));
-    } finally {
-      btn.disabled = false;
-      btn.textContent = antes;
-    }
+  addEventListener('touchend', () => {
+    dedoActivo = false;
+    if (!volando) { esfuerzo = 0; cede(0); }
+  }, { passive: true });
+
+  let relojMedida = 0;
+  addEventListener('resize', () => {
+    clearTimeout(relojMedida);
+    relojMedida = setTimeout(() => { cede(0); armar(); }, 200);
   });
+
+  /* Se mide despues de que las entradas hayan colocado todo: medir antes es
+     medir una pagina que todavia no existe. */
+  setTimeout(armar, 400);
+  addEventListener('load', () => setTimeout(armar, 200));
 }
 
 /* ---------- Entradas ----------------------------------------
@@ -1397,10 +1082,8 @@ initCovers();
 initCurrent();
 initCurtain();
 initFilter();
-initContactForm();
-initPortal();
-initStatus();
 initReveal();
+initDiapositivas();
 /* Safari en iOS no aplica `:active` a nada si la pagina no escucha el
    tacto en ningun sitio: sin esto, la ficha se enciende al pulsarla en
    Android y no hace nada en un iPhone. Un oyente vacio y pasivo basta

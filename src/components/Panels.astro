@@ -16,22 +16,25 @@ const { lang, t } = Astro.props;
    proposito: «Ajustar lo acordado» dice de que va esto, y «Mover una
    fecha, ver un contrato» dice que se puede hacer. Quien viene con prisa
    lee la segunda linea y no se pierde. */
-/* Las tres puertas. Las dos primeras tienen DOS dibujos: el de reposo y el
-   de encima, y el hover pasa de uno a otro.
+/* Tres puertas, y las tres preguntas que trae quien llega. Ordenadas por
+   cuanto conoce ya la casa:
 
-     mapa   el mapa vacio -> el mapa con la ruta y el punto. El segundo
-            CONTIENE al primero, asi que el de abajo se queda quieto y lo
-            unico que aparece es el camino.
+     paso     no sabe a quien pedirle. Va al directorio de las casas.
+     brujula  sabe lo que quiere y quiere decirlo. Elige canal.
+     mapa     quiere sentarse. Ve las franjas y reserva.
 
-   El paso no esta aqui: no cambia de dibujo, MUEVE UN PIE. Los dos van
-   separados dentro del propio icono y el izquierdo no se toca.
+   Aqui vivio «Ajustar lo acordado», que abria WhatsApp con un mensaje
+   sobre una fecha o una cuenta de cobro. Dejo de tener sentido cuando cada
+   casa paso a atender lo suyo: ya no hay nada acordado en esta pagina.
 
-   La brujula se queda con un solo dibujo: ya gira, y no hay un «antes» y
-   un «despues» que contar en ella. */
+   El mapa recupera sus dos dibujos —vacio en reposo, con la ruta al pasar
+   el raton—: el segundo CONTIENE al primero, asi que el de abajo se queda
+   quieto y lo unico que aparece es el camino. El paso mueve un pie y el
+   izquierdo no se toca nunca. La brujula gira. */
 const PUERTAS = [
   { path: 'contact', icon: 'step',                    name: 'door.request', hint: 'door.requestHint' },
-  { path: 'status',  icon: 'map-empty', after: 'map', name: 'door.status',  hint: 'door.statusHint' },
-  { path: 'portal',  icon: 'compass',                 name: 'door.ticket',  hint: 'door.ticketHint' }
+  { path: 'direct',  icon: 'compass',                 name: 'door.direct',  hint: 'door.directHint' },
+  { path: 'meet',    icon: 'map-empty', after: 'map', name: 'door.meet',    hint: 'door.meetHint' }
 ];
 
 /* Las casas que firman alguna pieza, y solo esas: la ficha de una casa que

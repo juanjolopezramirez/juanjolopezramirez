@@ -1,0 +1,86 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import { CONTACT } from '../../data/social.js';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+
+/* Escribeme directo: /es/direct/, /en/direct/…
+
+   La puerta de la brujula. Antes ahi vivia «Ajustar lo acordado», que abria
+   WhatsApp con un mensaje sobre una fecha o una cuenta de cobro; eso dejo de
+   tener sentido cuando cada casa paso a atender lo suyo.
+
+   Lo que queda es la pregunta que si sigue viva: por donde te escribo. Y no
+   es una pregunta tonta — elegir mal el canal es lo que hace que un asunto
+   largo muera en un chat o que algo urgente se quede tres dias en un correo.
+   Por eso cada canal dice PARA QUE SIRVE y no solo como se llama.
+
+   Sin formulario a proposito: quien llega aqui ya sabe lo que quiere decir.
+
+   La direccion va en ingles en los cinco idiomas, como el resto. */
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+const title = t('page.direct.title');
+
+/* Para que sirve cada canal. Va aqui y no en `social.js` porque es propio de
+   esta pagina: en la cabecera un icono de WhatsApp no necesita explicacion,
+   aqui es justo lo que se viene a decidir. */
+const PARA = {
+  whatsapp: {
+    es: 'Para lo corto y lo que corre. Es donde respondo antes.',
+    en: 'For the short and the urgent. This is where I answer soonest.',
+    pt: 'Para o curto e o que corre. É onde respondo mais depressa.',
+    fr: 'Pour ce qui est court et pressé. C’est là que je réponds le plus vite.',
+    it: 'Per le cose brevi e urgenti. È dove rispondo prima.'
+  },
+  mail: {
+    es: 'Para lo que lleva adjuntos, cifras o un hilo que conviene guardar.',
+    en: 'For anything with attachments, numbers, or a thread worth keeping.',
+    pt: 'Para o que leva anexos, números ou um fio que convém guardar.',
+    fr: 'Pour ce qui porte des pièces jointes, des chiffres ou un fil à garder.',
+    it: 'Per quello che porta allegati, numeri o un filo che conviene tenere.'
+  }
+};
+const say = (o) => (o ? (o[lang] ?? o.es) : '');
+---
+<Base lang={lang} path="direct" active="direct" title={`${title} — Juan José López Ramírez`}
+      description={t('page.direct.lead')}>
+  <article class="epage cpage">
+    <div class="cpage__field" aria-hidden="true"></div>
+    <div class="epage__shell">
+      <h1 class="cpage__title">{title}</h1>
+      <p class="cpage__lead">{t('page.direct.lead')}</p>
+
+      <ul class="hgrid hgrid--dos">
+        {CONTACT.map((ch) => (
+          <li>
+            {ch.href ? (
+              <a class="hcard" href={ch.href}
+                 target={ch.id === 'whatsapp' ? '_blank' : undefined}
+                 rel={ch.id === 'whatsapp' ? 'noopener noreferrer' : undefined}>
+                <span class="hcard__logo hcard__logo--ico" aria-hidden="true"><Icon id={ch.id} /></span>
+                <span class="hcard__name">{t(ch.key)}</span>
+                <span class="hcard__hint">{say(PARA[ch.id])}</span>
+                <span class="hcard__go">{t('direct.open')}<Icon id="corner" /></span>
+              </a>
+            ) : (
+              /* Un canal sin direccion todavia. Mismo molde, sin enlace: el
+                 sitio ya sabe decir «pronto» y lo dice igual aqui. */
+              <button class="hcard is-soon" type="button" data-soon="soon.whatsapp">
+                <span class="hcard__logo hcard__logo--ico" aria-hidden="true"><Icon id={ch.id} /></span>
+                <span class="hcard__name">{t(ch.key)}</span>
+                <span class="hcard__hint">{say(PARA[ch.id])}</span>
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <p class="cpage__foot">{t('page.direct.foot')}</p>
+    </div>
+  </article>
+</Base>

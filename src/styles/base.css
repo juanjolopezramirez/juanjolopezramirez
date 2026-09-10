@@ -391,7 +391,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hero {
   display: flex;
   flex-direction: column;
-  padding: calc(var(--header-h) + .45rem) var(--gutter) 0;
+  /* Solo los costados. El hueco que despeja la cabecera se lo queda la
+     primera pantalla y no el hero: sumado aqui, la primera seccion medía una
+     ventana MAS ochenta y cinco pixeles, y dejaba de medir lo mismo que las
+     demas. */
+  padding: 0 var(--gutter);
   text-align: center;
 
   /* El campo vivo se sale de su caja al girar, asi que el hero lo encierra. */
@@ -4437,3 +4441,225 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 /* Entre un grupo y el siguiente, aire: si no, la ultima ficha de Let Be y
    el rotulo de Recvid se leen como la misma fila. */
 .cform__chips[data-needs] + .cform__chips[data-needs] { margin-top: 1.1rem; }
+
+/* =============================================================
+   EL DIRECTORIO DE LAS CASAS
+
+   Tres en fila y la matriz debajo. Son ENLACES QUE SALEN DEL SITIO, no
+   fichas de formulario, y por eso cada una acaba en su dominio: la unica
+   pista honesta de que al pulsar te vas a otra parte.
+
+   Heredan el suelo oscuro de la pagina —las reglas viven aqui y no en el
+   bloque de `.cpage` porque el molde no depende de esa pagina—, pero el
+   color si: se toma de los tokens que ya pinta `.cpage`.
+   ============================================================= */
+.hgrid {
+  display: grid; gap: .7rem;
+  margin: 1.6rem 0 0; padding: 0;
+  list-style: none;
+}
+.hcard {
+  position: relative;
+  display: grid; gap: .3rem;
+  height: 100%;
+  padding: 1.1rem 1.15rem 1rem;
+  border: 1px solid rgba(241, 239, 233, .24);
+  border-radius: 1.1rem;
+  color: inherit; text-decoration: none;
+  transition: border-color .28s var(--ease), background-color .28s var(--ease),
+              translate .28s var(--ease);
+}
+.hcard:hover {
+  border-color: var(--bone);
+  background: rgba(241, 239, 233, .07);
+  translate: 0 -2px;
+}
+.hcard:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+
+/* El logo, en su caja: cada casa trae una proporcion distinta y sin una
+   altura comun la fila se descuadra. `--ls` corrige a ojo lo que la altura
+   no puede — un logotipo apaisado pesa el doble a la misma altura. */
+.hcard__logo { display: flex; align-items: center; height: 1.85rem; margin-bottom: .35rem; }
+.hcard__logo img { max-height: calc(100% * var(--ls, 1)); width: auto; }
+.hcard__name { font-size: 1.02rem; font-weight: 600; color: var(--bone); }
+/* El oficio en versalita: es la etiqueta, no la frase. Se lee de un golpe
+   y es lo que de verdad separa una casa de otra. */
+.hcard__role {
+  font-size: .63rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ring);
+}
+.hcard__hint { margin-top: .2rem; font-size: .82rem; font-weight: 300; line-height: 1.5; color: var(--pine-200); }
+
+/* El dominio, al pie y en su propia linea. */
+.hcard__go, .holding__go {
+  display: inline-flex; align-items: center; gap: .3rem;
+  margin-top: .8rem;
+  font-size: .72rem; font-weight: 500;
+  color: var(--pine-200);
+  transition: color .22s var(--ease);
+}
+.hcard__go .icon, .holding__go .icon {
+  width: .7rem; height: .7rem;
+  transition: translate .28s var(--ease);
+}
+.hcard:hover .hcard__go, .holding:hover .holding__go { color: var(--bone); }
+.hcard:hover .hcard__go .icon,
+.holding:hover .holding__go .icon { translate: 2px -2px; }
+
+/* LA MATRIZ. Mas ancha, mas plana y sin el filo de las otras: se lee como
+   un pie de pagina con nombre propio y no como una cuarta opcion. */
+.holding {
+  display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+  margin-top: .7rem;
+  padding: .9rem 1.15rem;
+  border: 1px solid rgba(241, 239, 233, .14);
+  border-radius: 1.1rem;
+  background: rgba(241, 239, 233, .04);
+  color: inherit; text-decoration: none;
+  transition: border-color .28s var(--ease), background-color .28s var(--ease);
+}
+.holding:hover { border-color: rgba(241, 239, 233, .4); background: rgba(241, 239, 233, .08); }
+.holding:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.holding__logo { flex: 0 0 auto; display: flex; align-items: center; }
+/* La altura va en unidades absolutas y no en porcentaje. Este logo es el
+   unico que llega envuelto en un <picture> —trae webp y png—, y un
+   porcentaje contra un <picture> sin altura no limita nada: el mapa de bits
+   salia a sus 600px de ancho y se comia la tira entera. */
+.holding__logo img { max-height: calc(1.35rem * var(--ls, 1)); width: auto; }
+.holding__text { flex: 1 1 14rem; display: grid; gap: .15rem; min-width: 0; }
+.holding__name { font-size: .92rem; font-weight: 600; color: var(--bone); }
+/* El oficio va pegado al nombre y no debajo: en una tira, una segunda
+   linea de versalita parte el renglon sin necesidad. */
+.holding__name em {
+  font-style: normal; font-weight: 400;
+  color: var(--pine-200);
+}
+.holding__name em::before { content: "· "; }
+.holding__hint { font-size: .78rem; font-weight: 300; line-height: 1.5; color: var(--pine-200); }
+.holding__go { margin-top: 0; flex: 0 0 auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hcard, .hcard__go .icon, .holding__go .icon { transition: none; }
+  .hcard:hover { translate: none; }
+}
+
+/* =============================================================
+   LAS DOS PUERTAS NUEVAS
+   ============================================================= */
+
+/* Un canal no tiene logotipo, tiene icono. Mismo hueco que el logo de una
+   casa para que las fichas no cambien de forma segun lo que lleven. */
+.hcard__logo--ico .icon { width: auto; height: 1.3rem; color: var(--bone); }
+
+/* La ficha tambien se usa como boton —un canal que aun no esta— y un boton
+   trae fondo, borde y texto centrado de fabrica. */
+.hgrid button.hcard {
+  width: 100%;
+  font: inherit; text-align: left;
+  background: none;
+  cursor: pointer;
+}
+
+/* El pie de estas paginas: lo que decir cuando esta no era tu puerta. */
+.cpage__foot {
+  margin: 2rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(241, 239, 233, .14);
+  font-size: .8rem; font-weight: 300; line-height: 1.55;
+  color: var(--pine-200);
+}
+
+/* LA AGENDA. Tres datos y una salida. */
+.agenda {
+  margin-top: 1.6rem;
+  padding: 1.2rem 1.25rem;
+  border: 1px solid rgba(241, 239, 233, .24);
+  border-radius: 1.1rem;
+}
+.agenda__datos { display: grid; gap: .85rem; margin: 0 0 1.3rem; padding: 0; list-style: none; }
+.agenda__datos li { display: grid; gap: .1rem; }
+.agenda__rotulo {
+  font-size: .63rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ring);
+}
+.agenda__dato { font-size: .95rem; color: var(--bone); }
+
+.agenda__cta {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .75rem 1.15rem;
+  border-radius: 999px;
+  background: var(--bone); color: var(--pine);
+  font-size: .88rem; font-weight: 600;
+  text-decoration: none;
+  transition: scale .22s var(--ease);
+}
+.agenda__cta .icon { width: .8rem; height: .8rem; transition: translate .28s var(--ease); }
+.agenda__cta:hover { scale: 1.03; }
+.agenda__cta:hover .icon { translate: 2px -2px; }
+
+/* Sin reserva en linea. No es un aviso de error: es el camino que si
+   funciona hoy, con los dos canales a mano. */
+.agenda__manual { display: grid; gap: .75rem; justify-items: start; }
+.agenda__manual p { margin: 0; font-size: .84rem; font-weight: 300; color: var(--pine-200); }
+
+@media (prefers-reduced-motion: reduce) {
+  .agenda__cta, .agenda__cta .icon { transition: none; }
+  .agenda__cta:hover { scale: none; }
+}
+
+/* El parallax atado al scroll vivio aqui y se retiro por dos razones.
+
+   LA GORDA: empujaba `.hero__stage` 80px hacia abajo, y la foto de
+   escritorio va anclada al suelo de su caja y a canto vivo. El `overflow:
+   hidden` del hero se comia esos 80px de sujeto. Medido: 18px de recorte a
+   200 de scroll, 36 a 400, 54 al final.
+
+   LA DE FONDO: con las secciones convertidas en pantallas que saltan de
+   una, no queda scroll continuo al que atar nada. La animacion correcta
+   para diapositivas es la ENTRADA de cada una, no el arrastre entre dos.
+   Eso ya lo hace `[data-lift]`, que se rearma al entrar y salir. */
+
+/* =============================================================
+   UNA SECCION, UNA PANTALLA
+
+   Todas miden lo mismo: una ventana. Es lo que hace que el salto entre
+   ellas se lea como cambiar de diapositiva y no como un scroll con prisa,
+   y lo que permite que el mismo gesto valga en movil, tablet y escritorio.
+
+   EL HERO ERA DOS PANTALLAS SIN DECLARARLO. En movil medía 1.62 ventanas y
+   en tablet 1.16, porque el CSS apila foto, nombre, puertas y DESPUES la
+   hoja de hueso —que segun el propio codigo «ya se descubre bajando»—. Asi
+   que no se comprime: se parte donde ya estaba partido. La primera pantalla
+   es lo que se ve; la hoja es la siguiente.
+
+   `svh` y no `vh`: en un movil la barra del navegador se encoge al bajar, y
+   con `vh` cada seccion cambiaria de alto a mitad del gesto.
+   ============================================================= */
+.hero__first {
+  display: flex; flex-direction: column;
+  /* El relleno va DENTRO de la ventana, no encima: con `border-box` el hueco
+     de la cabecera se descuenta de los 100svh en vez de sumarse. */
+  box-sizing: border-box;
+  min-height: 100svh;
+  padding-top: calc(var(--header-h) + .45rem);
+  order: 1;
+}
+/* La hoja de hueso, su propia pantalla.
+
+   Se le quitan los 3.25rem de margen y al hero los de relleno inferior: eran
+   el aire que hacia falta cuando la hoja era el remate del hero y el pinar y
+   el hueso se daban un testarazo. Ahora la hoja es una pantalla entera con el
+   contenido centrado —el aire esta dentro— y ese margen solo servia para que
+   una seccion midiera 52px mas que las demas. */
+.hero__panel { min-height: 100svh; justify-content: center; margin-top: 0; }
+.hero { padding-bottom: 0; }
+
+/* Y las de contenido. Centradas: con altura fija, el texto pegado arriba
+   deja un pie de vacio que parece un fallo de carga. */
+.about { min-height: 100svh; justify-content: center; }
+.cards {
+  min-height: 100svh;
+  display: flex; flex-direction: column; justify-content: center;
+}
