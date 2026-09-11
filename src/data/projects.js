@@ -89,18 +89,18 @@ export const PROJECTS = [
   { id: 'fraterni',   name: 'Fraterni',       src: '/assets/projects/fraterni.png',   w: 600, h: 143, webp: '/assets/projects/fraterni.webp', scale: 0.73,
     tags: ['comunidad'],
     role: {
-      es: 'Comunidad digital',
-      en: 'Digital community',
-      pt: 'Comunidade digital',
-      fr: 'Communauté numérique',
-      it: 'Comunità digitale'
+      es: 'La casa de Let Be y Recvid',
+      en: 'The home of Let Be and Recvid',
+      pt: 'A casa de Let Be e Recvid',
+      fr: 'La maison de Let Be et Recvid',
+      it: 'La casa di Let Be e Recvid'
     },
     blurb: {
-      es: 'Lo colectivo por delante: la hermandad como práctica y no como palabra. Lo que un grupo llega a sostener cuando cada uno deja de ir por su cuenta.',
-      en: 'The collective first: brotherhood as a practice, not as a word. What a group turns out to hold up once each person stops going it alone.',
-      pt: 'O coletivo à frente: a fraternidade como prática e não como palavra. O que um grupo chega a sustentar quando cada um deixa de ir por sua conta.',
-      fr: 'Le collectif d’abord : la fraternité comme pratique, pas comme mot. Ce qu’un groupe finit par porter dès que chacun cesse d’avancer seul.',
-      it: 'Il collettivo davanti: la fratellanza come pratica e non come parola. Ciò che un gruppo arriva a reggere quando ognuno smette di andare per conto suo.'
+      es: 'La marca que junta a Let Be y a Recvid. Lo que aprende una casa le sirve a la otra, y cada proyecto nuevo nace con hermanos en vez de solo.',
+      en: 'The brand that brings Let Be and Recvid together. What one house learns serves the other, and each new project is born with siblings instead of alone.',
+      pt: 'A marca que junta a Let Be e a Recvid. O que uma casa aprende serve à outra, e cada projeto novo nasce com irmãos em vez de sozinho.',
+      fr: 'La marque qui réunit Let Be et Recvid. Ce qu’une maison apprend sert à l’autre, et chaque nouveau projet naît avec des frères plutôt que seul.',
+      it: 'Il marchio che riunisce Let Be e Recvid. Quello che una casa impara serve all’altra, e ogni nuovo progetto nasce con dei fratelli invece che da solo.'
     } },
   /* `u` se lee bien en el codigo pero no en una direccion: /es/u/ no dice
      nada. El id se queda y la direccion se le pone aparte. */
@@ -108,11 +108,11 @@ export const PROJECTS = [
     slug: 'fraterniu',
     tags: ['comunidad'],
     role: {
-      es: 'Comunidad digital',
-      en: 'Digital community',
-      pt: 'Comunidade digital',
-      fr: 'Communauté numérique',
-      it: 'Comunità digitale'
+      es: 'Formación para personas y equipos',
+      en: 'Training for people and teams',
+      pt: 'Formação para pessoas e equipas',
+      fr: 'Formation pour personnes et équipes',
+      it: 'Formazione per persone e squadre'
     },
     blurb: {
       es: 'El crecimiento de cada uno, personal y profesional: primero se forma el carácter, porque encima de él es donde aguanta todo lo demás.',

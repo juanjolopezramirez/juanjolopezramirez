@@ -4,6 +4,8 @@ import { ENTITIES, slugOf } from '../../data/entities.js';
 import Base from '../../layouts/Base.astro';
 import BrandDot from '../../components/BrandDot.astro';
 import Icon from '../../components/Icon.astro';
+import Pregunta from '../../components/Pregunta.astro';
+import { propositoDe } from '../../data/manifesto.js';
 
 /* La pagina de una casa: /es/recvid/, /en/casa-san-pedro/…
 
@@ -36,7 +38,11 @@ const t = useT(lang);
 
 const say = (o) => (o ? (o[lang] ?? o.es) : null);
 const que = say(e.role) ?? t(`card.kind.${e.kind}`);
-const desc = say(e.blurb);
+/* Si la casa tiene manifiesto, la frase de lo que es hace de descripcion
+   —tambien para los buscadores— y el parrafo de proyectos se queda en la
+   rejilla, que es donde se lee al lado de las otras. */
+const p = propositoDe(e.id);
+const desc = p ? say(p.que) : say(e.blurb);
 ---
 <Base lang={lang} path={slugOf(e)} active={e.kind}
       title={`${e.name} — Juan José López Ramírez`}
@@ -68,7 +74,41 @@ const desc = say(e.blurb);
 
         <h1 class="entity__name">{e.name}</h1>
         <p class="entity__kind">{que}</p>
-        {desc && <p class="entity__blurb">{desc}</p>}
+        {p ? (
+          <div class="proposito">
+            <Pregunta texto={say(p.pregunta)} tacha={say(p.tacha)} pone={say(p.pone)} />
+            {/* Aqui el porque va a la vista, pegado a la pregunta: esta es la
+                pagina entera de la casa, y quien llega hasta aqui vino a leer.
+                En el directorio va detras de un boton. */}
+            {p.porque && <p class="proposito__respuesta">{say(p.porque)}</p>}
+            <p class="proposito__que">{say(p.que)}</p>
+            {/* El origen primero: sin el, mision y vision dicen que hace la
+                casa y a donde va, pero no por que existe. */}
+            {p.origen && (
+              <section class="proposito__bloque">
+                <h2 class="proposito__rotulo">{t('house.origen')}</h2>
+                <p class="proposito__corta">{say(p.origen.corta)}</p>
+                <p class="proposito__larga">{say(p.origen.larga)}</p>
+              </section>
+            )}
+            <section class="proposito__bloque">
+              <h2 class="proposito__rotulo">{t('house.mision')}</h2>
+              <p class="proposito__corta">{say(p.mision.corta)}</p>
+              <p class="proposito__larga">{say(p.mision.larga)}</p>
+            </section>
+            <section class="proposito__bloque">
+              <h2 class="proposito__rotulo">{t('house.vision')}</h2>
+              <p class="proposito__corta">{say(p.vision.corta)}</p>
+              <p class="proposito__larga">{say(p.vision.larga)}</p>
+            </section>
+            <section class="proposito__bloque">
+              <h2 class="proposito__rotulo">{t('house.como')}</h2>
+              <p class="proposito__larga">{say(p.como)}</p>
+            </section>
+          </div>
+        ) : (
+          desc && <p class="entity__blurb">{desc}</p>
+        )}
 
         <h2 class="entity__works-title">{t('entity.works')}</h2>
         {e.works && e.works.length ? (

@@ -16,7 +16,34 @@
 @media (min-width: 1024px) {
   /* Las tres casas, en fila. Debajo de este ancho van apiladas: tres
      columnas de texto en un movil no son tres opciones, son un muro. */
-  .hgrid { grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+  /* Dos columnas: Let Be y Recvid arriba, y los dos canales de /direct/.
+     El directorio se ensancha lo justo para que dos fichas lean comodas;
+     la entrada de arriba no, que a ese ancho se leeria como un cartel. */
+  .hgrid { grid-template-columns: repeat(2, 1fr); gap: .9rem; }
+  .cpage--casas .epage__shell { width: min(100%, 64rem); max-width: none; }
+  /* LA FAMILIA FRATERNI, con las pestañas en columna a la izquierda y la
+     ficha a la derecha. Una sola ficha a todo el ancho dejaba renglones de
+     noventa letras; asi se lee como un catalogo, y la lista de productos
+     se ve entera sin desplazar nada. La rejilla va en el marco, no en la
+     seccion: la leyenda con el logotipo de Ventures no cuenta como celda. */
+  .familia.is-js .familia__marco {
+    display: grid; grid-template-columns: 12rem 1fr; column-gap: 2rem; align-items: start;
+    padding: .6rem 1.6rem 1.6rem;
+  }
+  .familia.is-js .familia__pestanas { flex-direction: column; flex-wrap: nowrap; overflow: visible; margin-top: .9rem; }
+  .familia.is-js .familia__rama { flex-direction: column; border-radius: 1rem; }
+  .familia.is-js .familia__pestana { text-align: left; white-space: normal; border-radius: .75rem; }
+  /* En columna, el producto cuelga de su madre con un codo. */
+  .familia.is-js .familia__pestana--hija { position: relative; padding-left: 1.85rem; }
+  .familia.is-js .familia__pestana--hija::before {
+    content: ""; position: absolute; left: 1.05rem; top: .25rem;
+    width: .5rem; height: .8rem;
+    border-left: 1px solid currentColor; border-bottom: 1px solid currentColor;
+    border-bottom-left-radius: .35rem;
+    opacity: .55;
+  }
+  .familia.is-js .familia__paneles { margin-top: .9rem; }
+  .cpage--casas .cpage__lead { max-width: 46rem; }
   /* Los canales son dos, no tres: repartirlos en la rejilla de las casas
      dejaria un hueco vacio a la derecha. */
   .hgrid--dos { grid-template-columns: repeat(2, 1fr); }

@@ -205,3 +205,12 @@
       var(--pine);
   }
 }
+
+/* Let Be y Recvid, lado a lado desde tablet. La familia Fraterni, sin
+   guion, tambien de dos en dos; con guion va una ficha cada vez y ocupa
+   todo el ancho. */
+@media (min-width: 600px) {
+  .hgrid { grid-template-columns: repeat(2, 1fr); }
+  .familia__paneles { grid-template-columns: repeat(2, 1fr); }
+  .familia.is-js .familia__paneles { grid-template-columns: 1fr; }
+}

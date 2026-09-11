@@ -1011,6 +1011,191 @@ function initDiapositivas() {
   addEventListener('load', () => setTimeout(armar, 200));
 }
 
+/* ---------- La familia Fraterni, de una en una ---------------
+
+   Cuatro productos seguidos eran un reguero. Van en pestañas: uno a la vez,
+   y se cambia tocando la pestaña, con las flechas del teclado o deslizando
+   el dedo sobre la ficha. NO AVANZA SOLO: un carrusel que cambia lo que
+   estas leyendo sin que lo pidas es justo lo que las pautas de
+   accesibilidad piden poder parar.
+
+   SIN GUION no hay pestañas —el HTML las trae escondidas— y se ven las
+   cuatro fichas seguidas. Los roles de panel se ponen aqui y no en el HTML:
+   sin guion, un panel que dice ser de una pestaña que no se ve confunde al
+   lector de pantalla. */
+function initFamilia() {
+  d.querySelectorAll('[data-familia]').forEach((caja) => {
+    const lista = caja.querySelector('[role="tablist"]');
+    const tabs = lista ? [...lista.querySelectorAll('[role="tab"]')] : [];
+    const paneles = tabs.map((t) => d.getElementById(t.getAttribute('aria-controls')));
+    if (!tabs.length || paneles.some((p) => !p)) return;
+
+    paneles.forEach((p, i) => {
+      p.setAttribute('role', 'tabpanel');
+      p.setAttribute('aria-labelledby', tabs[i].id);
+      p.tabIndex = 0;
+    });
+
+    let actual = 0;
+    /* Trae la pestaña elegida a la vista DENTRO de su fila, que en movil se
+       desplaza de lado. `scrollIntoView` moveria tambien la pagina. */
+    const traer = (i) => {
+      const t = tabs[i].getBoundingClientRect(), l = lista.getBoundingClientRect();
+      if (t.left < l.left) lista.scrollLeft -= l.left - t.left + 12;
+      else if (t.right > l.right) lista.scrollLeft += t.right - l.right + 12;
+    };
+    const elegir = (i, foco) => {
+      actual = i;
+      tabs.forEach((t, k) => {
+        const si = k === i;
+        t.setAttribute('aria-selected', si ? 'true' : 'false');
+        t.tabIndex = si ? 0 : -1;
+        paneles[k].hidden = !si;
+      });
+      if (foco) tabs[i].focus();
+    };
+
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => { elegir(i, false); traer(i); });
+      /* Las cuatro flechas: en escritorio la fila es una columna, y ahi lo
+         natural es subir y bajar. */
+      t.addEventListener('keydown', (e) => {
+        const n = tabs.length;
+        const j = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % n
+                : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + n) % n
+                : e.key === 'Home' ? 0
+                : e.key === 'End' ? n - 1
+                : null;
+        if (j === null) return;
+        e.preventDefault();
+        elegir(j, true);
+        traer(j);
+      });
+    });
+
+    /* Deslizar el dedo sobre la ficha pasa a la siguiente o a la anterior.
+       Solo si el gesto es claramente de lado: uno diagonal es alguien que
+       baja la pagina, y ese gesto es del navegador. */
+    const zona = caja.querySelector('.familia__paneles');
+    let x0 = null;
+    let y0 = 0;
+    zona.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { x0 = null; return; }
+      x0 = e.touches[0].clientX;
+      y0 = e.touches[0].clientY;
+    }, { passive: true });
+    zona.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      const dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const n = tabs.length;
+      const j = dx < 0 ? (actual + 1) % n : (actual - 1 + n) % n;
+      elegir(j, false);
+      traer(j);
+    }, { passive: true });
+
+    lista.hidden = false;
+    caja.classList.add('is-js');
+    elegir(0, false);
+  });
+}
+
+/* ---------- Las fichas de las casas, del derecho y del reves --
+
+   Cada ficha tiene tres caras apiladas en la misma celda: la de la
+   pregunta, la del «¿Por qué?» y la de la mision y la vision. Los botones
+   del pie le dan la vuelta; pulsar otra vez el mismo la devuelve a la
+   pregunta, y Escape tambien. Como las tres ocupan el mismo sitio, la ficha
+   no cambia de tamaño y la de al lado no se mueve.
+
+   SIN GUION no hay botones —el HTML los trae escondidos— y las tres caras
+   se ven seguidas. */
+function initFichas() {
+  d.querySelectorAll('[data-ficha]').forEach((ficha) => {
+    const botonera = ficha.querySelector('.hcard__botones');
+    const caras = [...ficha.querySelectorAll('.hcard__cara')];
+    if (!botonera || caras.length < 2) return;
+    const frente = caras[0];
+    const botones = [...botonera.querySelectorAll('[aria-controls]')];
+    const destino = (b) => d.getElementById(b.getAttribute('aria-controls'));
+    if (botones.some((b) => !destino(b))) return;
+
+    const ver = (cara) => {
+      caras.forEach((c) => c.classList.toggle('is-vista', c === cara));
+      botones.forEach((b) => b.setAttribute('aria-expanded', String(destino(b) === cara)));
+    };
+
+    botones.forEach((b) => b.addEventListener('click', () => {
+      const cara = destino(b);
+      ver(cara.classList.contains('is-vista') ? frente : cara);
+    }));
+    ficha.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || frente.classList.contains('is-vista')) return;
+      const abierto = botones.find((b) => b.getAttribute('aria-expanded') === 'true');
+      ver(frente);
+      if (abierto) abierto.focus();
+    });
+
+    botonera.hidden = false;
+    ficha.classList.add('is-js');
+    ver(frente);
+  });
+}
+
+/* ---------- Las respuestas de siempre, tachadas en bucle ----
+
+   Cuando la correccion de una pregunta trae varias respuestas de siempre,
+   van pasando en el mismo sitio, una detras de otra y siempre tachadas,
+   mientras la buena se queda quieta al lado: caen todas las de siempre, y
+   la que falta no cambia.
+
+   SOLO SE MUEVE LO QUE SE VE. Fuera de la ventana, o en una pestaña
+   escondida, se para; al volver, sigue por donde iba.
+
+   SE PARA SI TE DETIENES EN ELLA. Un texto que cambia solo y no termina es
+   lo que las pautas de accesibilidad piden poder detener: con el raton o el
+   foco encima de la ficha se queda quieto. Con el movimiento reducido no se
+   mueve nunca: se ve la ultima, que es la que mejor contrasta con la buena. */
+function initTachones() {
+  const preguntas = [...d.querySelectorAll('.pregunta--ciclo')];
+  if (!preguntas.length || !('IntersectionObserver' in window)) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const PASO = 1800;     // lo que se queda cada respuesta tachada
+  const relojes = new Map();
+  const quietas = new Set();
+
+  const avanzar = (p) => {
+    if (quietas.has(p)) return;
+    const ws = [...p.querySelectorAll('.corrige__tacha')];
+    const j = (ws.findIndex((w) => w.classList.contains('is-on')) + 1) % ws.length;
+    ws.forEach((w, k) => w.classList.toggle('is-on', k === j));
+  };
+  const andar = (p) => { if (!relojes.has(p)) relojes.set(p, setInterval(() => avanzar(p), PASO)); };
+  const parar = (p) => { clearInterval(relojes.get(p)); relojes.delete(p); };
+
+  preguntas.forEach((p) => {
+    const zona = p.closest('.hcard, .proposito') || p;
+    const quieta = () => quietas.add(p);
+    const suelta = () => {
+      if (!zona.matches(':hover') && !zona.contains(d.activeElement)) quietas.delete(p);
+    };
+    zona.addEventListener('pointerenter', quieta);
+    zona.addEventListener('pointerleave', suelta);
+    zona.addEventListener('focusin', quieta);
+    /* El foco sale antes de llegar a donde va: se mira en la vuelta
+       siguiente, cuando ya se sabe si se quedo dentro de la ficha. */
+    zona.addEventListener('focusout', () => setTimeout(suelta, 0));
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => (e.isIntersecting ? andar(e.target) : parar(e.target)));
+  }, { threshold: 0.05 });
+  preguntas.forEach((p) => io.observe(p));
+}
+
 /* ---------- Entradas ----------------------------------------
    Dos comportamientos, no uno:
 
@@ -1082,6 +1267,9 @@ initCovers();
 initCurrent();
 initCurtain();
 initFilter();
+initFamilia();
+initFichas();
+initTachones();
 initReveal();
 initDiapositivas();
 /* Safari en iOS no aplica `:active` a nada si la pagina no escucha el

@@ -1,38 +1,51 @@
 /* Las casas, y a cual va cada quien.
 
+   (El texto que se LEE en cada ficha —pregunta, correccion, porque, mision
+   y vision— vive en `manifesto.js`, que tambien lo usa la pagina de cada
+   casa. Aqui quedan la direccion, el logo y la pista corta, que es lo que
+   se enseña si a una casa le falta su manifiesto.)
+
+   `grupo` dice en que bloque del directorio va cada una: 'exposicion'
+   (Let Be y Recvid, arriba y lado a lado) o 'fraterni' (los productos
+   Fraterni, abajo, en pestañas y dentro del marco de Fraterni Ventures).
+
+   `padre` dice de quien es un producto: Fraterni Academy es de FraterniU y
+   Fraterni Business es de Fraterni Us. Las pestañas los ponen juntos, y el
+   orden de esta lista es el suyo: cada madre y, detras, lo suyo. `corto` es
+   como se llama el producto en su pestaña, que ya va pegada a la de su
+   madre: «Fraterni» se leeria dos veces seguidas.
+
+   `wordmark` es el logotipo con el nombre escrito. Si lo hay, la ficha lo
+   pone en lugar del nombre en texto, y `logo` es entonces el simbolo.
+
    ESTA PAGINA YA NO RECOGE NADA. Antes habia un asistente de diez pasos que
    guardaba la solicitud en una base de datos; ahora la solicitud se hace en
    la casa que la va a atender, que es donde esta el equipo y donde estan las
    respuestas. Aqui solo se decide por cual puerta.
 
    Y esa decision es TODO el trabajo de esta pagina. Un directorio que solo
-   pone cuatro nombres obliga al visitante a adivinar; si adivina mal escribe
-   al sitio equivocado y la peticion muere ahi. Por eso cada casa dice dos
-   cosas y en este orden:
+   pone nombres obliga al visitante a adivinar; si adivina mal escribe al
+   sitio equivocado y la peticion muere ahi. De cada casa quedan aqui:
 
-     role   el oficio, en tres palabras. Es lo que se lee primero.
+     role   el oficio, en tres palabras.
      hint   el criterio. Una frase que dice a que se viene y otra que dice
-            con que se sale. Sin la primera, las tres suenan igual.
+            con que se sale. Sin la primera, las casas suenan igual.
 
-   LAS TRES DE ARRIBA NO SON UNA LISTA: que se construye, que se graba y
-   quien lo sostiene. Cada visitante llega con una de esas tres preguntas.
-
-   Y DOS DE ELLAS ENSEÑAN, que es donde alguien puede dudar. La linea que
-   las separa tiene que estar en el texto o no esta en ninguna parte:
-   Recvid asesora en un OFICIO —camara, edicion, marketing— y FraterniU
-   forma a la PERSONA que lo va a ejercer. No compiten: una va antes.
+   DOS DE ELLAS ENSEÑAN, que es donde alguien puede dudar. La linea que las
+   separa tiene que estar en el texto o no esta en ninguna parte: Recvid
+   asesora en un OFICIO —camara, edicion, marketing— y FraterniU forma a la
+   PERSONA que lo va a ejercer. No compiten: una va antes.
 
    RECVID ADEMAS DICE LO QUE YA NO VENDE. Dejo de ejecutar por encargo, y
    no solo el rodaje: tambien el marketing. Lo que ofrece es el consejo
    para que lo hagas tu; hacerlo en tu lugar es la excepcion, no el
    catalogo. Callarlo seria dejar que alguien pida un video de marca o una
-   campaña, se vaya a otra pagina y descubra alli que no era el sitio: la
-   peticion se pierde y la culpa parece suya.
+   campaña, se vaya a otra pagina y descubra alli que no era el sitio.
 
-   FRATERNI VENTURES VA APARTE, y no por jerarquia: es la matriz de las tres.
-   Ponerla como cuarta ficha igual haria elegir entre una empresa y su dueña,
-   que no es una eleccion. Abajo, en otro registro, y para otra conversacion
-   —sociedad, inversion, prensa—.
+   FRATERNI VENTURES VA APARTE, y no por jerarquia: es la matriz. En el
+   directorio no se explica —ni pregunta ni frase—: su logotipo encierra a
+   la familia, y el enlace lleva a su sitio, que es donde se habla de
+   sociedad, inversion y prensa.
 
    El enlace sale del sitio, asi que se enseña el dominio: quien pulsa tiene
    derecho a saber a donde va antes de pulsar. */
@@ -40,6 +53,7 @@
 export const HOUSES = [
   {
     id: 'let-be',
+    grupo: 'exposicion',
     logo: '/assets/projects/let-be.svg',
     /* Escala optica: es mucho mas ancho que alto y a la misma altura que los
        demas pesa el doble en la fila. */
@@ -64,6 +78,7 @@ export const HOUSES = [
   },
   {
     id: 'recvid',
+    grupo: 'exposicion',
     logo: '/assets/projects/recvid.svg',
     logoScale: 1,
     name: 'Recvid',
@@ -86,6 +101,7 @@ export const HOUSES = [
   },
   {
     id: 'fraterniu',
+    grupo: 'fraterni',
     logo: '/assets/projects/u.svg',
     logoScale: 1.3,
     name: 'FraterniU',
@@ -105,30 +121,57 @@ export const HOUSES = [
       fr: 'Le caractère d’abord : c’est sur lui que tient le reste. Pour vous, ou pour ceux qui travaillent avec vous.',
       it: 'Prima il carattere: è su quello che regge tutto il resto. Per te, o per chi lavora con te.'
     }
+  },
+  {
+    /* De FraterniU: es su escuela. Sin sitio todavia, asi que sin enlace y
+       con el aviso: una ficha que lleva a una direccion que no existe es
+       peor que una que dice que aun no abre. Cuando tenga direccion basta
+       con poner aqui `url` y `domain`. */
+    id: 'academy',
+    grupo: 'fraterni',
+    padre: 'fraterniu',
+    corto: 'Academy',
+    logo: '/assets/projects/fraterni-academy-icon.svg',
+    wordmark: '/assets/projects/fraterni-academy.svg',
+    name: 'Fraterni Academy',
+    role: { es: 'La escuela de FraterniU' },
+    hint: { es: 'Entrenamientos cortos para practicar en el día lo que se aprende.' }
+  },
+  {
+    /* Fraterni Us: lo de FraterniU, pero para grupos. Tampoco tiene sitio
+       ni logo todavia: va con un icono de relleno. */
+    id: 'us',
+    grupo: 'fraterni',
+    mark: 'link',
+    name: 'Fraterni Us',
+    role: { es: 'Orden y crecimiento para grupos' },
+    hint: { es: 'Lo mismo que FraterniU, pero para que un grupo avance junto.' }
+  },
+  {
+    /* De Fraterni Us: lo lleva a las empresas. Antes se llamaba Academy,
+       cuando era la de las empresas; Academy paso a ser la escuela de
+       FraterniU, y esta tomo el nombre de a quien sirve. */
+    id: 'business',
+    grupo: 'fraterni',
+    padre: 'us',
+    corto: 'Business',
+    logo: '/assets/projects/fraterni-business-icon.svg',
+    wordmark: '/assets/projects/fraterni-business.svg',
+    name: 'Fraterni Business',
+    role: { es: 'Fraterni Us para empresas' },
+    hint: { es: 'Enseña a las empresas a que sus clientes vuelvan y sus ventas no se detengan.' }
   }
 ];
 
-/* La matriz. Mismo molde, otro sitio y otra conversacion. */
+/* La matriz. Solo su logotipo, que encierra a la familia, y el enlace a su
+   sitio. `w` y `h` son los del SVG: con ellos el navegador reserva el hueco
+   antes de que llegue la imagen. */
 export const HOLDING = {
   id: 'ventures',
-  logo: '/assets/projects/fraterni.png',
-  webp: '/assets/projects/fraterni.webp',
-  logoScale: 0.73,
+  logo: '/assets/projects/fraterni-ventures.svg',
+  w: 565,
+  h: 219,
   name: 'Fraterni Ventures',
   url: 'https://fraterniventures.com',
-  domain: 'fraterniventures.com',
-  role: {
-    es: 'La matriz de las tres',
-    en: 'The parent company of the three',
-    pt: 'A matriz das três',
-    fr: 'La maison mère des trois',
-    it: 'La capogruppo delle tre'
-  },
-  hint: {
-    es: 'Aquí se habla de sociedad, inversión y prensa. Los encargos van por las casas de arriba.',
-    en: 'This is where partnership, investment and press are discussed. Commissions go through the houses above.',
-    pt: 'Aqui fala-se de sociedade, investimento e imprensa. Os pedidos vão pelas casas acima.',
-    fr: 'Ici on parle d’association, d’investissement et de presse. Les commandes passent par les maisons ci-dessus.',
-    it: 'Qui si parla di società, investimento e stampa. Gli incarichi passano dalle case qui sopra.'
-  }
+  domain: 'fraterniventures.com'
 };

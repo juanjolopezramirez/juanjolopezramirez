@@ -45,6 +45,15 @@
   --iris-300: #A9C47F;
   --iris-700: #5E7639;
   --ring-300: #E0B778;
+  /* EL ORO OSCURO, para el oro sobre hueso. --ring ahi da 2.6 y no alcanza
+     ni para letra grande; este da 4.1. Lo usa la nota escrita a mano en la
+     pagina de cada casa. (Las fichas pasaron
+     por dos amarillos, #E89B2B y #F4A000, y volvieron al oro: sobre el
+     pinar los dos gritaban.) */
+  --ring-700: #9A6A1F;
+  /* EL TACHON ROJO, solo en las paginas de proyectos: da 3.7 sobre el
+     hueso. En el directorio el tachon va en el oro de la casa. */
+  --tachon: #E5383B;
   --bone-panel:#E7E4DB;
 
   /* El espacio. Vienen del concepto original y no se han retocado: son
@@ -4445,7 +4454,8 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 /* =============================================================
    EL DIRECTORIO DE LAS CASAS
 
-   Tres en fila y la matriz debajo. Son ENLACES QUE SALEN DEL SITIO, no
+   Let Be y Recvid en fila y, debajo, la familia Fraterni dentro del marco
+   de Fraterni Ventures. Son ENLACES QUE SALEN DEL SITIO, no
    fichas de formulario, y por eso cada una acaba en su dominio: la unica
    pista honesta de que al pulsar te vas a otra parte.
 
@@ -4482,65 +4492,25 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .hcard__logo { display: flex; align-items: center; height: 1.85rem; margin-bottom: .35rem; }
 .hcard__logo img { max-height: calc(100% * var(--ls, 1)); width: auto; }
 .hcard__name { font-size: 1.02rem; font-weight: 600; color: var(--bone); }
-/* El oficio en versalita: es la etiqueta, no la frase. Se lee de un golpe
-   y es lo que de verdad separa una casa de otra. */
-.hcard__role {
-  font-size: .63rem; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ring);
-}
 .hcard__hint { margin-top: .2rem; font-size: .82rem; font-weight: 300; line-height: 1.5; color: var(--pine-200); }
 
 /* El dominio, al pie y en su propia linea. */
-.hcard__go, .holding__go {
+.hcard__go {
   display: inline-flex; align-items: center; gap: .3rem;
   margin-top: .8rem;
   font-size: .72rem; font-weight: 500;
   color: var(--pine-200);
   transition: color .22s var(--ease);
 }
-.hcard__go .icon, .holding__go .icon {
+.hcard__go .icon {
   width: .7rem; height: .7rem;
   transition: translate .28s var(--ease);
 }
-.hcard:hover .hcard__go, .holding:hover .holding__go { color: var(--bone); }
-.hcard:hover .hcard__go .icon,
-.holding:hover .holding__go .icon { translate: 2px -2px; }
-
-/* LA MATRIZ. Mas ancha, mas plana y sin el filo de las otras: se lee como
-   un pie de pagina con nombre propio y no como una cuarta opcion. */
-.holding {
-  display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
-  margin-top: .7rem;
-  padding: .9rem 1.15rem;
-  border: 1px solid rgba(241, 239, 233, .14);
-  border-radius: 1.1rem;
-  background: rgba(241, 239, 233, .04);
-  color: inherit; text-decoration: none;
-  transition: border-color .28s var(--ease), background-color .28s var(--ease);
-}
-.holding:hover { border-color: rgba(241, 239, 233, .4); background: rgba(241, 239, 233, .08); }
-.holding:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
-.holding__logo { flex: 0 0 auto; display: flex; align-items: center; }
-/* La altura va en unidades absolutas y no en porcentaje. Este logo es el
-   unico que llega envuelto en un <picture> —trae webp y png—, y un
-   porcentaje contra un <picture> sin altura no limita nada: el mapa de bits
-   salia a sus 600px de ancho y se comia la tira entera. */
-.holding__logo img { max-height: calc(1.35rem * var(--ls, 1)); width: auto; }
-.holding__text { flex: 1 1 14rem; display: grid; gap: .15rem; min-width: 0; }
-.holding__name { font-size: .92rem; font-weight: 600; color: var(--bone); }
-/* El oficio va pegado al nombre y no debajo: en una tira, una segunda
-   linea de versalita parte el renglon sin necesidad. */
-.holding__name em {
-  font-style: normal; font-weight: 400;
-  color: var(--pine-200);
-}
-.holding__name em::before { content: "· "; }
-.holding__hint { font-size: .78rem; font-weight: 300; line-height: 1.5; color: var(--pine-200); }
-.holding__go { margin-top: 0; flex: 0 0 auto; }
+.hcard:hover .hcard__go { color: var(--bone); }
+.hcard:hover .hcard__go .icon { translate: 2px -2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hcard, .hcard__go .icon, .holding__go .icon { transition: none; }
+  .hcard, .hcard__go .icon { transition: none; }
   .hcard:hover { translate: none; }
 }
 
@@ -4662,4 +4632,312 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .cards {
   min-height: 100svh;
   display: flex; flex-direction: column; justify-content: center;
+}
+
+/* =============================================================
+   LA PREGUNTA QUE SE CORRIGE A MANO
+
+   Una pregunta y, debajo, su correccion: la respuesta de siempre tachada y
+   la que falta de verdad escrita a mano al lado.
+
+   LA TACHADA DA VUELTAS; LA BUENA SE QUEDA. Si lo tachado es una lista, las
+   opciones se apilan en la misma celda y van pasando en bucle, siempre con
+   su tachon (lo hace `initTachones`). La caja mide lo que la mas ancha, asi
+   que la nota de al lado no se mueve. La nota va siempre a la vista y
+   derecha: inclinada se leia como un adorno, y es la respuesta.
+
+   AL LADO Y NO ENCIMA. Encima, la nota se salia de la tarjeta en pantallas
+   estrechas y pisaba la linea de arriba. En la misma fila ocupa su sitio:
+   si no cabe, baja entera, y no puede tapar nada.
+
+   EL ORO ES EL DE --ring, el de la casa (paso por dos amarillos, #E89B2B y
+   #F4A000, y los dos gritaban sobre el pinar); sobre hueso, --ring-700. Lo
+   lleva la nota y, en el directorio, tambien el tachon. En las paginas de
+   proyectos el tachon va en rojo (--tachon). Todo lo demas va en los tonos
+   del pinar.
+
+   El tachon es un trazo SVG y no un `line-through`: una raya recta se lee
+   como un precio rebajado, y esto tiene que leerse como una mano que se
+   corrige. Se probo recto y rojo en todas partes, y volvio a la curva.
+   `non-scaling-stroke` le deja el mismo grueso aunque la caja se estire.
+   ============================================================= */
+.pregunta { margin: 1rem 0 0; }
+.pregunta__texto {
+  margin: 0;
+  font-size: 1.02rem; font-weight: 600;
+  line-height: 1.45;
+  color: var(--slate);
+  text-wrap: pretty;
+}
+.cpage .pregunta__texto { color: var(--bone); }
+
+.corrige {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  column-gap: .5em; row-gap: .2rem;
+  margin: .45rem 0 0;
+  font-size: 1.02rem;
+}
+.corrige__palabra { display: inline-grid; }
+/* La tachada se apaga pero se queda: el gesto es que se VEA la respuesta de
+   siempre, y que se vea descartada. Se apaga el color y no la opacidad, que
+   apagaria tambien el tachon que lleva dentro.
+
+   Una sale y DESPUES entra la otra: cruzadas, dos palabras distintas una
+   encima de otra se leen como un borron. */
+.corrige__tacha {
+  grid-area: 1 / 1; justify-self: start;
+  position: relative;
+  white-space: nowrap;
+  text-decoration: none;
+  font-weight: 500;
+  color: rgba(43, 58, 67, .55);
+  transition: opacity .15s var(--ease), visibility .15s;
+}
+.corrige__tacha.is-on { transition: opacity .18s var(--ease) .15s, visibility 0s .15s; }
+.cpage .corrige__tacha { color: rgba(183, 199, 180, .62); }
+.corrige__tacha:not(.is-on) { opacity: 0; visibility: hidden; }
+.corrige__raya {
+  position: absolute; left: -4%; top: 55%;
+  width: 108%; height: .7em;
+  translate: 0 -50%;
+  overflow: visible;
+  fill: none; stroke: var(--tachon);
+  stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  pointer-events: none;
+}
+.corrige__raya path { vector-effect: non-scaling-stroke; }
+/* En el directorio, el oro de la casa: el mismo de la nota. */
+.cpage .corrige__raya { stroke: var(--ring); }
+/* La buena, con la letra de la firma. Tiene su fila entera, asi que puede
+   ser grande: la Petemoss es de trazo fino, y a menos se leia apagada. Con
+   tope de ancho, para que si algun dia es mas larga que la tarjeta se parta
+   en vez de salirse. */
+.corrige__nota {
+  max-width: 100%;
+  font-family: var(--hand); font-weight: 400;
+  font-size: 1.75em; line-height: .9;
+  color: var(--ring-700);
+}
+.cpage .corrige__nota { color: var(--ring); }
+@media (prefers-reduced-motion: reduce) {
+  .corrige__tacha, .corrige__tacha.is-on { transition: none; }
+}
+
+/* =============================================================
+   LA FICHA DE CADA CASA
+
+   Minima: el logo, el nombre, la pregunta con su correccion y lo que es la
+   casa en una frase. El resto, detras de los dos botones del pie.
+   ============================================================= */
+/* Un suelo de pinar casi opaco. El degradado de la pagina se aclara abajo a
+   la derecha y, con el velo de antes, el oro de la nota y el texto claro
+   perdian contraste justo ahi. */
+.cpage .hcard { background: rgba(22, 35, 26, .72); }
+.cpage .hcard:hover { background: rgba(22, 35, 26, .82); }
+.hcard { display: flex; flex-direction: column; }
+.hcard .hcard__go { margin-top: auto; padding-top: .9rem; }
+.hcard__name { margin: 0; font-family: var(--sans); line-height: 1.3; }
+.hcard__logo--marca .icon { width: auto; height: 1.5rem; color: var(--bone); }
+/* El nombre hecho logotipo. La «y» de Academy cuelga por debajo, asi que a
+   1.05rem la mayuscula queda a la altura del nombre en texto de las otras. */
+.hcard__wordmark { display: block; height: 1.05rem; width: auto; }
+.hcard__pregunta { margin-top: .85rem; }
+.hcard__que {
+  margin: .85rem 0 0;
+  font-size: .84rem; font-weight: 400; line-height: 1.5;
+  color: var(--pine-200);
+}
+
+/* LAS TRES CARAS, apiladas en la misma celda. La ficha mide lo que la mas
+   alta, asi que darle la vuelta no la cambia de tamaño. Sin guion no se
+   apilan: van seguidas. */
+.hcard.is-js .hcard__caras { display: grid; }
+.hcard.is-js .hcard__cara {
+  grid-area: 1 / 1;
+  transition: opacity .28s var(--ease), translate .28s var(--ease), visibility .28s;
+}
+.hcard.is-js .hcard__cara:not(.is-vista) { opacity: 0; translate: 0 .35rem; visibility: hidden; }
+.hcard__cara--dorso { margin-top: .85rem; }
+/* El porque, dicho grande: son dos frases, y se leen de un golpe. */
+.hcard__porque {
+  margin: 0;
+  font-size: 1.08rem; font-weight: 500; line-height: 1.45;
+  color: var(--bone);
+  text-wrap: pretty;
+}
+/* Origen, mision y vision, cada una en su renglon y con el rotulo DELANTE,
+   no encima. Con el rotulo encima, las tres filas hacian esta cara la mas
+   alta de las tres, y la ficha entera crecia para ella: la cara de la
+   pregunta, que es la que se ve, quedaba con un hueco debajo. */
+.hcard__mv { display: grid; gap: .6rem; margin: 0; }
+.hcard__mv div { display: block; }
+.hcard__mv dt {
+  display: inline;
+  margin-right: .45em;
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.hcard__mv dd { display: inline; margin: 0; font-size: .9rem; font-weight: 500; line-height: 1.4; color: var(--bone); }
+
+/* EL PIE: los dos botones a la izquierda y el dominio a la derecha. */
+.hcard__pie {
+  display: flex; align-items: center; gap: .6rem;
+  margin-top: auto; padding-top: 1.1rem;
+}
+.hcard__pie .hcard__go { margin: 0 0 0 auto; padding-top: 0; }
+/* POR ENCIMA de la capa que estira el enlace: sin el z-index, tocar un
+   boton te llevaria al sitio de la casa en vez de darle la vuelta. */
+.hcard__botones { position: relative; z-index: 2; display: flex; align-items: center; gap: .4rem; }
+.hcard__botones[hidden] { display: none; }
+.hcard__boton {
+  display: inline-flex; align-items: center; gap: .45rem;
+  height: 2rem;
+  padding: 0 .75rem 0 .9rem;
+  border: 1px solid rgba(241, 239, 233, .3);
+  border-radius: 999px;
+  background: none;
+  color: var(--bone);
+  font: inherit; font-size: .78rem; font-weight: 600;
+  cursor: pointer;
+  transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+}
+.hcard__boton:hover { border-color: var(--bone); }
+.hcard__boton[aria-expanded="true"] { background: var(--bone); border-color: var(--bone); color: var(--pine); }
+.hcard__boton:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; }
+.hcard__boton--info { width: 2rem; padding: 0; justify-content: center; color: var(--pine-200); }
+.hcard__boton--info .icon { width: 1rem; height: 1rem; }
+/* El «+» que se vuelve «×» al abrir: dos rayas y un giro. */
+.hcard__signo { position: relative; width: .6rem; height: .6rem; transition: rotate .25s var(--ease); }
+.hcard__signo::before, .hcard__signo::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 100%; height: 1.5px; border-radius: 1px;
+  background: currentColor;
+  translate: -50% -50%;
+}
+.hcard__signo::after { rotate: 90deg; }
+.hcard__boton[aria-expanded="true"] .hcard__signo { rotate: 45deg; }
+@media (prefers-reduced-motion: reduce) {
+  .hcard.is-js .hcard__cara, .hcard__boton, .hcard__signo { transition: none; }
+}
+
+/* Una casa que aun no tiene sitio no es un enlace y no puede fingirlo: no se
+   levanta al pasar el raton y enseña el aviso donde las otras su dominio. */
+.hcard--pronto:hover { translate: none; border-color: rgba(241, 239, 233, .24); }
+.cpage .hcard--pronto:hover { background: rgba(22, 35, 26, .72); }
+.hcard__go--pronto { font-style: italic; }
+
+/* EL ENLACE ES EL NOMBRE, y una capa lo estira sobre toda la ficha: se
+   pulsa en cualquier sitio, pero el lector de pantalla anuncia «Let Be» y
+   no medio parrafo. El foco se dibuja en la ficha, que es lo que se pulsa;
+   solo cuando lo tiene el enlace, porque los botones ya dibujan el suyo. */
+.hcard__link { color: inherit; text-decoration: none; }
+.hcard__link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.hcard__link:focus-visible { outline: none; }
+.hcard:has(.hcard__link:focus-visible) { outline: 2px solid var(--bone); outline-offset: 3px; }
+@supports not selector(:has(*)) {
+  .hcard:focus-within { outline: 2px solid var(--bone); outline-offset: 3px; }
+}
+
+/* =============================================================
+   LA PAGINA DE CADA CASA: el mismo texto, entero, sobre hueso
+   ============================================================= */
+/* El porque, pegado a la pregunta y en letra de lectura: aqui va a la
+   vista, porque quien llega a esta pagina vino a leer. */
+.proposito__respuesta {
+  margin: .8rem 0 0;
+  font-size: .98rem; font-weight: 400; line-height: 1.6;
+  color: var(--slate);
+  text-wrap: pretty;
+}
+/* Lo que es la casa, en pino. El oro se queda para la mano que corrige. */
+.proposito__que {
+  margin: .9rem 0 0;
+  font-size: 1rem; font-weight: 600; line-height: 1.55;
+  color: var(--pine);
+}
+.proposito__bloque {
+  margin-top: 1.2rem; padding-top: .9rem;
+  border-top: 1px solid rgba(43, 58, 67, .14);
+}
+.proposito__rotulo {
+  margin: 0 0 .35rem;
+  font-family: var(--sans);
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #5A6B74;
+}
+/* En negrita lo que se dice; debajo, en normal, lo que lo explica. */
+.proposito__corta { margin: 0; font-size: .96rem; font-weight: 700; line-height: 1.45; color: var(--slate); }
+.proposito__larga { margin: .35rem 0 0; font-size: .88rem; font-weight: 300; line-height: 1.65; text-wrap: pretty; }
+
+/* =============================================================
+   LA FAMILIA FRATERNI, DENTRO DEL MARCO DE FRATERNI VENTURES
+
+   Un <fieldset> con el logotipo de Ventures en la leyenda: el borde del
+   marco se corta solo para dejarlo pasar. Dentro, las pestañas por ramas y
+   la ficha elegida, sin marco propio: el de Ventures ya las rodea, y un
+   marco dentro de otro se lee como una caja de cajas.
+   ============================================================= */
+.familia { margin-top: 2.4rem; }
+.familia__marco {
+  /* Sin esto un fieldset no encoge por debajo de lo que lleva dentro, y la
+     fila de pestañas lo ensancharia hasta salirse de la pantalla. */
+  min-width: 0;
+  margin: 0;
+  padding: .5rem 1.15rem 1.25rem;
+  border: 1px solid rgba(241, 239, 233, .24);
+  border-radius: 1.4rem;
+}
+.cpage .familia__marco { background: rgba(22, 35, 26, .72); }
+.familia__marca { margin-left: .35rem; padding: 0 .6rem; }
+.familia__titulo { margin: 0; line-height: 0; }
+.familia__titulo a { display: inline-block; border-radius: 4px; transition: opacity .2s var(--ease); }
+.familia__titulo a:hover { opacity: .8; }
+.familia__titulo a:focus-visible { outline: 2px solid var(--bone); outline-offset: 4px; }
+.familia__titulo img { display: block; height: 2.5rem; width: auto; }
+
+/* `display: flex` le ganaria al atributo `hidden`, y la fila de pestañas
+   se veria sin guion, sin hacer nada. */
+.familia__pestanas[hidden] { display: none; }
+/* Si las dos ramas no caben en una fila, la segunda baja entera. Deslizando
+   de lado, en el movil la ultima pestaña quedaba fuera de la vista, y una
+   pestaña que no se ve no se elige. */
+.familia__pestanas {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  margin: .5rem 0 0;
+  padding: .15rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+.familia__pestanas::-webkit-scrollbar { display: none; }
+/* UNA RAMA, UNA PASTILLA: la madre y su producto van juntos. */
+.familia__rama {
+  flex: 0 0 auto;
+  display: flex; gap: .15rem;
+  padding: .2rem;
+  border: 1px solid rgba(241, 239, 233, .18);
+  border-radius: 999px;
+}
+.familia__pestana {
+  flex: 0 0 auto;
+  padding: .45rem .9rem;
+  border: 0; border-radius: 999px;
+  background: none;
+  color: var(--pine-200);
+  font: inherit; font-size: .82rem; font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.familia__pestana--hija { font-weight: 400; }
+.familia__pestana:hover { color: var(--bone); }
+/* La elegida, en hueso: es el «elegido» de toda la casa. */
+.familia__pestana[aria-selected="true"] { background: var(--bone); color: var(--pine); }
+.familia__pestana:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; }
+.familia__paneles { display: grid; gap: 1.6rem; margin-top: 1rem; }
+/* La ficha, sin marco ni suelo propios: los pone el de Ventures. */
+.cpage .familia .hcard,
+.cpage .familia .hcard:hover { padding: 0; border: 0; background: none; translate: none; }
+@media (prefers-reduced-motion: reduce) {
+  .familia__pestana, .familia__titulo a { transition: none; }
 }

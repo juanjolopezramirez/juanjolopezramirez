@@ -1,0 +1,50 @@
+---
+/* La pregunta que se corrige a mano.
+
+   UNA PREGUNTA Y, DEBAJO, SU CORRECCION: la respuesta de siempre tachada y,
+   al lado, la que falta de verdad, con la letra de la firma. La correccion
+   iba dentro de una segunda pregunta —«¿~~Una página~~ Un sistema?»— y se
+   leia como un examen; debajo se lee como lo que es, una respuesta.
+
+   LA TACHADA DA VUELTAS; LA BUENA SE QUEDA. Si lo tachado es una lista, las
+   opciones van pasando en bucle en el mismo sitio, siempre tachadas, y la
+   buena no se mueve de al lado: caen todas las de siempre y la que falta es
+   siempre la misma. Las opciones se apilan en la misma celda, asi que la
+   caja mide lo que la mas ancha y la nota no baila mientras cambian. Las
+   pasa `initTachones`, en site.js; aqui solo se deja todo listo.
+
+   LA BUENA, SIEMPRE A LA VISTA Y DERECHA. Aparecia despues de las tachadas
+   y torcida unos grados; es la respuesta, y se lee mejor quieta.
+
+   SIN GUION, O CON EL MOVIMIENTO REDUCIDO, se ve la ultima de la lista con
+   la buena al lado. Por eso la ultima es la que mejor contrasta con la
+   buena.
+
+   AL LADO Y NO ENCIMA. Encima, la nota se salia de la tarjeta en pantallas
+   estrechas o pisaba la linea de arriba. En la misma fila ocupa su sitio:
+   si no cabe, baja entera.
+
+   QUE LEE UN LECTOR DE PANTALLA. Lo tachado es un gesto para la vista: va
+   con `aria-hidden`, y lo que se oye es la pregunta y la buena. Leerle las
+   tachadas, y encima cambiando, seria leerle un borrador.
+
+   `tacha` es un texto o una lista de textos; `pone`, la buena. */
+const { texto = '', tacha = [], pone = '', cls = '' } = Astro.props;
+const lista = (Array.isArray(tacha) ? tacha : [tacha]).filter(Boolean);
+const ultima = lista.length - 1;
+---
+<div class:list={['pregunta', cls, { 'pregunta--ciclo': lista.length > 1 }]} data-lift>
+  <p class="pregunta__texto">{texto}</p>
+  {pone && (
+    <p class="corrige">
+      {lista.length > 0 && (
+        <span class="corrige__palabra" aria-hidden="true">
+          {lista.map((w, i) => (
+            <s class:list={['corrige__tacha', { 'is-on': i === ultima }]}>{w}<svg class="corrige__raya" viewBox="0 0 200 24" preserveAspectRatio="none" focusable="false"><path d="M3 15 C 26 7, 50 21, 76 12 S 124 6, 150 13 S 182 18, 197 9" /></svg></s>
+          ))}
+        </span>
+      )}
+      <span class="corrige__nota">{pone}</span>
+    </p>
+  )}
+</div>
