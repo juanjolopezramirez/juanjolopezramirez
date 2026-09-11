@@ -100,10 +100,16 @@ export const HOUSES = [
     }
   },
   {
+    /* «FRATERNI!» y la U detras, del alto de sus letras: la misma firma que
+       Academy y Business, con el simbolo al otro lado. La U cuelga su raya
+       por debajo, como la «y» de Academy: el dibujo mide 307 de alto y la
+       letra 262, de ahi el 1.17. */
     id: 'fraterniu',
     grupo: 'fraterni',
-    logo: '/assets/projects/u.svg',
-    logoScale: 1.3,
+    wordmark: '/assets/projects/fraterni.png',
+    wordmarkScale: 0.82,
+    simboloDerecha: '/assets/projects/u.svg',
+    simboloDerechaScale: 1.17,
     name: 'FraterniU',
     url: 'https://fraterniu.com',
     domain: 'fraterniu.com',
@@ -138,19 +144,25 @@ export const HOUSES = [
     hint: { es: 'Entrenamientos cortos para practicar en el día lo que se aprende.' }
   },
   {
-    /* Fraterni Us: lo de FraterniU, pero para grupos. Tampoco tiene sitio
-       ni logo todavia: va con un icono de relleno. */
+    /* Fraterni Us: lo de FraterniU, pero para grupos. Sin sitio todavia, y
+       sin logo propio: por ahora lleva el de Fraterni solo, sin segundo
+       nombre (decision del fundador). Va sin simbolo delante porque no
+       tiene. Sus letras llenan todo el dibujo, y las de Academy y Business
+       solo el 82% (debajo va el hueco de la «y»): con `wordmarkScale` a
+       0.82 las mayusculas de los tres miden lo mismo. */
     id: 'us',
     grupo: 'fraterni',
-    mark: 'link',
+    wordmark: '/assets/projects/fraterni.png',
+    wordmarkScale: 0.82,
     name: 'Fraterni Us',
     role: { es: 'Orden y crecimiento para grupos' },
     hint: { es: 'Lo mismo que FraterniU, pero para que un grupo avance junto.' }
   },
   {
-    /* De Fraterni Us: lo lleva a las empresas. Antes se llamaba Academy,
-       cuando era la de las empresas; Academy paso a ser la escuela de
-       FraterniU, y esta tomo el nombre de a quien sirve. */
+    /* De Fraterni Us. Junta las otras tres piezas —la infraestructura de
+       Let Be, el relato de Recvid y el metodo de Fraterni Us— para que una
+       empresa funcione sin su dueño. Antes se llamaba Academy, cuando era la
+       de las empresas; Academy paso a ser la escuela de FraterniU. */
     id: 'business',
     grupo: 'fraterni',
     padre: 'us',
@@ -158,8 +170,8 @@ export const HOUSES = [
     logo: '/assets/projects/fraterni-business-icon.svg',
     wordmark: '/assets/projects/fraterni-business.svg',
     name: 'Fraterni Business',
-    role: { es: 'Fraterni Us para empresas' },
-    hint: { es: 'Enseña a las empresas a que sus clientes vuelvan y sus ventas no se detengan.' }
+    role: { es: 'Que tu empresa funcione sin ti' },
+    hint: { es: 'Junta la infraestructura de Let Be, el criterio de Recvid y el método de Fraterni Us.' }
   }
 ];
 
@@ -172,6 +184,8 @@ export const HOLDING = {
   w: 565,
   h: 219,
   name: 'Fraterni Ventures',
+  /* Lo que dicen las seis marcas, dicho una vez (documento de copy). */
+  lema: { es: 'No te damos más. Te damos el para qué.' },
   url: 'https://fraterniventures.com',
   domain: 'fraterniventures.com'
 };

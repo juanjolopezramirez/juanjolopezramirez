@@ -53,6 +53,8 @@ const orden = ramas.flat();
         </a>
       </h2>
     </legend>
+    {/* El lema de Ventures: lo que dicen las seis marcas, dicho una vez. */}
+    {HOLDING.lema && <p class="familia__lema">{HOLDING.lema[lang] ?? HOLDING.lema.es}</p>}
 
     {/* Las pestañas vienen escondidas: sin guion no harian nada, y se ven las
         fichas seguidas. Los roles de panel los pone el guion, por la misma

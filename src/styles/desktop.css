@@ -30,6 +30,7 @@
     display: grid; grid-template-columns: 12rem 1fr; column-gap: 2rem; align-items: start;
     padding: .6rem 1.6rem 1.6rem;
   }
+  .familia.is-js .familia__lema { grid-column: 1 / -1; }
   .familia.is-js .familia__pestanas { flex-direction: column; flex-wrap: nowrap; overflow: visible; margin-top: .9rem; }
   .familia.is-js .familia__rama { flex-direction: column; border-radius: 1rem; }
   .familia.is-js .familia__pestana { text-align: left; white-space: normal; border-radius: .75rem; }

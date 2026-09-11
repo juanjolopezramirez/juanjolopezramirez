@@ -1148,8 +1148,16 @@ function initFichas() {
 
    Cuando la correccion de una pregunta trae varias respuestas de siempre,
    van pasando en el mismo sitio, una detras de otra y siempre tachadas,
-   mientras la buena se queda quieta al lado: caen todas las de siempre, y
-   la que falta no cambia.
+   mientras la buena se queda al lado: caen todas las de siempre, y la que
+   falta no cambia.
+
+   LA CAJA SIGUE A LA PALABRA DE TURNO. Apiladas en una celda, la caja medía
+   lo que la mas larga, y con una corta quedaba un hueco antes de la nota.
+   Ahora se le da el ancho de la que se ve, y la nota se desliza. Si la mas
+   larga no cabe junto a la nota, la nota se va a su propio renglon para
+   siempre (`corrige--apilada`): con unas cabria y con otras no, y la ficha
+   saltaria en cada vuelta. Se mide al cargar, al cambiar de tamaño —tambien
+   cuando una pestaña escondida se abre— y cuando llegan las letras.
 
    SOLO SE MUEVE LO QUE SE VE. Fuera de la ventana, o en una pestaña
    escondida, se para; al volver, sigue por donde iba.
@@ -1157,10 +1165,37 @@ function initFichas() {
    SE PARA SI TE DETIENES EN ELLA. Un texto que cambia solo y no termina es
    lo que las pautas de accesibilidad piden poder detener: con el raton o el
    foco encima de la ficha se queda quieto. Con el movimiento reducido no se
-   mueve nunca: se ve la ultima, que es la que mejor contrasta con la buena. */
+   mueve nunca: se ve la primera, la elegida a proposito. */
 function initTachones() {
   const preguntas = [...d.querySelectorAll('.pregunta--ciclo')];
-  if (!preguntas.length || !('IntersectionObserver' in window)) return;
+  if (!preguntas.length) return;
+
+  const opciones = (p) => [...p.querySelectorAll('.corrige__tacha')];
+  const ancho = (el) => el.getBoundingClientRect().width;
+
+  const ajustar = (p) => {
+    const fila = p.querySelector('.corrige');
+    const caja = p.querySelector('.corrige__palabra');
+    const nota = p.querySelector('.corrige__nota');
+    if (!fila || !caja || !nota || !fila.clientWidth) return;   // escondida: se mide al abrirse
+    const ws = opciones(p);
+    const texto = d.createRange();
+    texto.selectNodeContents(nota);
+    const hueco = parseFloat(getComputedStyle(fila).columnGap) || 0;
+    const mayor = Math.max(...ws.map(ancho));
+    fila.classList.toggle('corrige--apilada', mayor + hueco + texto.getBoundingClientRect().width > fila.clientWidth);
+    const deTurno = ws.find((w) => w.classList.contains('is-on')) || ws[0];
+    caja.style.width = Math.ceil(ancho(deTurno)) + 'px';
+  };
+
+  preguntas.forEach(ajustar);
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver((entries) => entries.forEach((e) => ajustar(e.target.closest('.pregunta'))));
+    preguntas.forEach((p) => ro.observe(p.querySelector('.corrige')));
+  }
+  if (d.fonts && d.fonts.ready) d.fonts.ready.then(() => preguntas.forEach(ajustar));
+
+  if (!('IntersectionObserver' in window)) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const PASO = 1800;     // lo que se queda cada respuesta tachada
@@ -1169,11 +1204,15 @@ function initTachones() {
 
   const avanzar = (p) => {
     if (quietas.has(p)) return;
-    const ws = [...p.querySelectorAll('.corrige__tacha')];
+    const ws = opciones(p);
     const j = (ws.findIndex((w) => w.classList.contains('is-on')) + 1) % ws.length;
     ws.forEach((w, k) => w.classList.toggle('is-on', k === j));
+    ajustar(p);
   };
-  const andar = (p) => { if (!relojes.has(p)) relojes.set(p, setInterval(() => avanzar(p), PASO)); };
+  const andar = (p) => {
+    ajustar(p);
+    if (!relojes.has(p)) relojes.set(p, setInterval(() => avanzar(p), PASO));
+  };
   const parar = (p) => { clearInterval(relojes.get(p)); relojes.delete(p); };
 
   preguntas.forEach((p) => {

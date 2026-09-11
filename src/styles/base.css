@@ -4642,9 +4642,11 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 
    LA TACHADA DA VUELTAS; LA BUENA SE QUEDA. Si lo tachado es una lista, las
    opciones se apilan en la misma celda y van pasando en bucle, siempre con
-   su tachon (lo hace `initTachones`). La caja mide lo que la mas ancha, asi
-   que la nota de al lado no se mueve. La nota va siempre a la vista y
-   derecha: inclinada se leia como un adorno, y es la respuesta.
+   su tachon (lo hace `initTachones`). La caja sigue el ancho de la de
+   turno, asi que entre la tachada y la nota nunca queda un hueco: la nota
+   se desliza. Si la mas ancha no cabe junto a la nota, la nota baja a su
+   propio renglon —siempre, no a ratos— y nada salta. La nota va siempre a
+   la vista y derecha: inclinada se leia como un adorno, y es la respuesta.
 
    AL LADO Y NO ENCIMA. Encima, la nota se salia de la tarjeta en pantallas
    estrechas y pisaba la linea de arriba. En la misma fila ocupa su sitio:
@@ -4677,7 +4679,11 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: .45rem 0 0;
   font-size: 1.02rem;
 }
-.corrige__palabra { display: inline-grid; }
+.corrige__palabra { display: inline-grid; transition: width .3s var(--ease); }
+/* Cuando la tachada mas ancha y la nota no caben en un renglon, la nota va
+   siempre al de abajo. Sin esto, con las cortas subiria y con las largas
+   bajaria, y la ficha entera daria un salto en cada vuelta. */
+.corrige--apilada .corrige__nota { flex-basis: 100%; }
 /* La tachada se apaga pero se queda: el gesto es que se VEA la respuesta de
    siempre, y que se vea descartada. Se apaga el color y no la opacidad, que
    apagaria tambien el tachon que lleva dentro.
@@ -4720,7 +4726,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 }
 .cpage .corrige__nota { color: var(--ring); }
 @media (prefers-reduced-motion: reduce) {
-  .corrige__tacha, .corrige__tacha.is-on { transition: none; }
+  .corrige__palabra, .corrige__tacha, .corrige__tacha.is-on { transition: none; }
 }
 
 /* =============================================================
@@ -4740,13 +4746,25 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .hcard__logo--marca .icon { width: auto; height: 1.5rem; color: var(--bone); }
 /* El nombre hecho logotipo. La «y» de Academy cuelga por debajo, asi que a
    1.05rem la mayuscula queda a la altura del nombre en texto de las otras. */
-.hcard__wordmark { display: block; height: 1.05rem; width: auto; }
+.hcard__wordmark { display: block; height: calc(1.05rem * var(--wm, 1)); width: auto; }
+/* EL SIMBOLO, A LA IZQUIERDA DEL LOGOTIPO y del alto de sus letras: las
+   mayusculas de «FRATERNI!» ocupan 134 de los 163 de alto del dibujo; el
+   resto es el hueco de la «y» de Academy. Arriba y a la misma altura, el
+   simbolo y el nombre se leen como una sola firma. */
+.hcard__name--marca { display: flex; align-items: flex-start; gap: .45rem; }
+.hcard__simbolo { flex: 0 0 auto; height: calc(1.05rem * .82); width: auto; }
+/* La U de FraterniU va detras. Su letra ocupa 262 de los 307 de alto del
+   dibujo; el resto es la raya de abajo, que cuelga como la «y» de Academy. */
+.hcard__simbolo--derecha { height: calc(1.05rem * .82 * var(--sd, 1)); }
 .hcard__pregunta { margin-top: .85rem; }
 .hcard__que {
   margin: .85rem 0 0;
   font-size: .84rem; font-weight: 400; line-height: 1.5;
   color: var(--pine-200);
 }
+/* En la pagina de la casa, el remate va a la vista y con peso, encima del
+   porque: es la vuelta que le da sentido a la pregunta. */
+.proposito__remate { margin: .8rem 0 0; font-size: 1rem; font-weight: 700; line-height: 1.5; color: var(--slate); }
 
 /* LAS TRES CARAS, apiladas en la misma celda. La ficha mide lo que la mas
    alta, asi que darle la vuelta no la cambia de tamaño. Sin guion no se
@@ -4758,11 +4776,18 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 }
 .hcard.is-js .hcard__cara:not(.is-vista) { opacity: 0; translate: 0 .35rem; visibility: hidden; }
 .hcard__cara--dorso { margin-top: .85rem; }
-/* El porque, dicho grande: son dos frases, y se leen de un golpe. */
+/* EL PORQUE: el remate de subtitulo, con peso, y debajo la razon en letra
+   de lectura. Primero la vuelta a la pregunta; despues por que. */
+.hcard__remate {
+  margin: 0 0 .45rem;
+  font-size: 1rem; font-weight: 700; line-height: 1.35;
+  color: var(--bone);
+  text-wrap: balance;
+}
 .hcard__porque {
   margin: 0;
-  font-size: 1.08rem; font-weight: 500; line-height: 1.45;
-  color: var(--bone);
+  font-size: .9rem; font-weight: 400; line-height: 1.55;
+  color: var(--pine-200);
   text-wrap: pretty;
 }
 /* Origen, mision y vision, cada una en su renglon y con el rotulo DELANTE,
@@ -4896,6 +4921,8 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .familia__titulo a:hover { opacity: .8; }
 .familia__titulo a:focus-visible { outline: 2px solid var(--bone); outline-offset: 4px; }
 .familia__titulo img { display: block; height: 2.5rem; width: auto; }
+/* El lema de Ventures: lo que dicen las seis marcas, dicho una vez. */
+.familia__lema { margin: .35rem 0 0; font-size: .95rem; font-weight: 600; line-height: 1.4; color: var(--bone); text-wrap: balance; }
 
 /* `display: flex` le ganaria al atributo `hidden`, y la fila de pestañas
    se veria sin guion, sin hacer nada. */

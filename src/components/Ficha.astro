@@ -48,25 +48,42 @@ const idPorque = `porque-${h.id}`;
 const idMv = `mv-${h.id}`;
 ---
 <article class:list={['hcard', { 'hcard--pronto': !h.url }]} data-ficha>
-  <span class:list={['hcard__logo', { 'hcard__logo--marca': !h.logo }]} aria-hidden="true" style={`--ls:${h.logoScale ?? 1}`}>
-    {h.logo ? <img src={h.logo} alt="" loading="lazy" decoding="async" /> : <Icon id={h.mark} />}
-  </span>
-  <Titulo class="hcard__name">
-    {h.url ? (
-      <a class="hcard__link" href={h.url} target="_blank" rel="noopener noreferrer">
-        {h.wordmark ? <img class="hcard__wordmark" src={h.wordmark} alt={h.name} loading="lazy" decoding="async" /> : h.name}
-      </a>
-    ) : (
-      h.wordmark ? <img class="hcard__wordmark" src={h.wordmark} alt={h.name} loading="lazy" decoding="async" /> : h.name
-    )}
-  </Titulo>
+  {/* Con logotipo, el simbolo no va arriba: va a su izquierda, del alto de
+      sus letras, y los dos se leen como una sola firma. */}
+  {h.wordmark ? (
+    <Titulo class="hcard__name hcard__name--marca">
+      {h.logo && <img class="hcard__simbolo" src={h.logo} alt="" loading="lazy" decoding="async" />}
+      {h.url ? (
+        <a class="hcard__link" href={h.url} target="_blank" rel="noopener noreferrer">
+          <img class="hcard__wordmark" src={h.wordmark} alt={h.name} style={`--wm:${h.wordmarkScale ?? 1}`} loading="lazy" decoding="async" />
+        </a>
+      ) : (
+        <img class="hcard__wordmark" src={h.wordmark} alt={h.name} style={`--wm:${h.wordmarkScale ?? 1}`} loading="lazy" decoding="async" />
+      )}
+      {/* FraterniU lleva su U detras de «FRATERNI!», del mismo alto. */}
+      {h.simboloDerecha && <img class="hcard__simbolo hcard__simbolo--derecha" src={h.simboloDerecha} alt="" style={`--sd:${h.simboloDerechaScale ?? 1}`} loading="lazy" decoding="async" />}
+    </Titulo>
+  ) : (
+    <>
+      <span class:list={['hcard__logo', { 'hcard__logo--marca': !h.logo }]} aria-hidden="true" style={`--ls:${h.logoScale ?? 1}`}>
+        {h.logo ? <img src={h.logo} alt="" loading="lazy" decoding="async" /> : <Icon id={h.mark} />}
+      </span>
+      <Titulo class="hcard__name">
+        {h.url ? <a class="hcard__link" href={h.url} target="_blank" rel="noopener noreferrer">{h.name}</a> : h.name}
+      </Titulo>
+    </>
+  )}
   {p ? (
     <div class="hcard__caras">
       <div class="hcard__cara">
         <Pregunta texto={say(p.pregunta)} tacha={say(p.tacha)} pone={say(p.pone)} cls="hcard__pregunta" />
         <p class="hcard__que">{say(p.que)}</p>
       </div>
+      {/* El remate encabeza el porque: primero la vuelta a la pregunta,
+          despues la razon. Fue un acordeon aparte en la cara de la
+          pregunta, y eran dos sitios para la misma respuesta. */}
       <div class="hcard__cara hcard__cara--dorso" id={idPorque}>
+        {p.remate && <p class="hcard__remate">{say(p.remate)}</p>}
         <p class="hcard__porque">{say(p.porque)}</p>
       </div>
       <div class="hcard__cara hcard__cara--dorso" id={idMv}>

@@ -77,6 +77,8 @@ const desc = p ? say(p.que) : say(e.blurb);
         {p ? (
           <div class="proposito">
             <Pregunta texto={say(p.pregunta)} tacha={say(p.tacha)} pone={say(p.pone)} />
+            {/* El remate, encima del porque: en la ficha lo encabeza. */}
+            {p.remate && <p class="proposito__remate">{say(p.remate)}</p>}
             {/* Aqui el porque va a la vista, pegado a la pregunta: esta es la
                 pagina entera de la casa, y quien llega hasta aqui vino a leer.
                 En el directorio va detras de un boton. */}
@@ -88,18 +90,18 @@ const desc = p ? say(p.que) : say(e.blurb);
               <section class="proposito__bloque">
                 <h2 class="proposito__rotulo">{t('house.origen')}</h2>
                 <p class="proposito__corta">{say(p.origen.corta)}</p>
-                <p class="proposito__larga">{say(p.origen.larga)}</p>
+                {p.origen.larga && <p class="proposito__larga">{say(p.origen.larga)}</p>}
               </section>
             )}
             <section class="proposito__bloque">
               <h2 class="proposito__rotulo">{t('house.mision')}</h2>
               <p class="proposito__corta">{say(p.mision.corta)}</p>
-              <p class="proposito__larga">{say(p.mision.larga)}</p>
+              {p.mision.larga && <p class="proposito__larga">{say(p.mision.larga)}</p>}
             </section>
             <section class="proposito__bloque">
               <h2 class="proposito__rotulo">{t('house.vision')}</h2>
               <p class="proposito__corta">{say(p.vision.corta)}</p>
-              <p class="proposito__larga">{say(p.vision.larga)}</p>
+              {p.vision.larga && <p class="proposito__larga">{say(p.vision.larga)}</p>}
             </section>
             <section class="proposito__bloque">
               <h2 class="proposito__rotulo">{t('house.como')}</h2>

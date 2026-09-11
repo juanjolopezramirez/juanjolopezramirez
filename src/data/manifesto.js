@@ -1,107 +1,110 @@
 /* Lo que es cada casa, dicho para que lo entienda cualquiera.
 
-   LAS PIEZAS, en el orden en que se leen:
+   El texto sale del documento de copy del fundador
+   (`copy-web-fraterni-letbe-recvid.md`), adaptado a esta pagina: el
+   «remate» de ese documento es aqui el subtitulo del «¿Por qué?», no una
+   linea mas en la cara de la pregunta.
 
-     pregunta  una sola. Pregunta por el para que, no por el que.
-     tacha     lo que se suele pedir primero. Si es una lista, van pasando
-               en bucle en el mismo sitio, siempre tachadas. LA ULTIMA ES LA
-               QUE SE VE sin guion o con el movimiento reducido, asi que
-               tiene que ser la que mejor contrasta con la buena. Y que
-               midan parecido: la caja mide lo que la mas larga, y una corta
-               dejaria un hueco antes de la respuesta.
-     pone      la respuesta, escrita a mano al lado. Siempre a la vista: las
-               tachadas cambian, ella no.
-     porque    por que importa, en dos o tres frases. En el directorio va
-               detras del boton «¿Por qué?»; en la pagina de la casa, a la
-               vista.
-     que       lo que es, en una frase corta.
-     origen    por que existe la casa: una linea (corta) y otra que la
-     mision    explica (larga). En la ficha del directorio solo las cortas,
-     vision    detras del icono de informacion; en la pagina de la casa,
-               todas.
+   LAS PIEZAS, en el orden en que se leen, con su largo maximo:
+
+     pregunta  una sola: el gancho. 13 palabras.
+     tacha     lo que te venden para resolverlo, no lo que culpas: «otro
+               software mas» si, «suerte» o «tiempo» no. Si es una lista,
+               van pasando en bucle, siempre tachadas. LA PRIMERA ESTA
+               ELEGIDA A PROPOSITO y no se mueve: es la que se lee primero y
+               la que se queda quieta sin guion o con el movimiento reducido.
+               5 palabras cada una.
+     pone      la respuesta, escrita a mano al lado. Siempre a la vista.
+               7 palabras.
+     remate    la linea que le da la vuelta a la pregunta. Encabeza el
+               «¿Por qué?»: primero la vuelta, despues la razon. 12 palabras.
+     porque    la razon, detras del boton «¿Por qué?». 65 palabras.
+     que       la sublinea: lo que es la casa. 18 palabras.
+     origen    por que existe, en primera persona.
+     mision    un infinitivo y un objeto grande.
+     vision    un estado del mundo. Nunca «Que + subjuntivo».
+               Las tres, una linea cada una detras del icono de informacion.
+               `larga` las explica en la pagina de la casa, si la casa
+               tiene pagina; si no, no hace falta.
      como      con que piensa llegar. Solo en la pagina de la casa.
 
+   EL PAR ES DE LA MISMA CATEGORIA. La tachada y la respuesta van en la misma
+   linea, una al lado de la otra, y el ojo espera un reemplazo: si no son de
+   la misma categoria gramatical, la sustitucion no suena. Let Be, FraterniU,
+   Fraterni Us y Business, en sustantivos; Recvid y Academy, en infinitivos.
+   Una tachada nueva tiene que ser de la categoria de su lista.
+
+   TERRITORIOS. Let Be es infraestructura: que te encuentren. Recvid es
+   relato: que te recuerden. Business es sistema: que funcione sin ti.
+   Ninguna usa el vocabulario de la otra, y ninguna sublinea se apoya en otra
+   marca sin explicarse sola —quien no conozca FraterniU tiene que entender
+   Academy igual—. La excepcion es Business, que es justo la que junta a las
+   otras tres y por eso las nombra.
+
+   NINGUNA VENDE DEPENDENCIA; TODAS VENDEN CAPACIDAD. Solo lo que te sirve;
+   te enseña a mostrarlo; un camino propio; saber para que lo aprendes; un
+   camino compartido; un sistema que no te necesite. Es lo que dice, en una
+   linea, el lema de Fraterni Ventures sobre el marco de la familia.
+
    EL CRITERIO ES EL DEL CODIGO ALEF: el vault `suEssencia` (emet-y-met,
-   prueba-forense-del-fruto, najash, bitul, sindrome-de-lamec) y el
-   diagnostico `script-alef-letbe-recvid.md`. Emet, verdad, se escribe con
-   Alef, Mem y Tav: origen, proceso y conclusion. Sin el Alef queda Met,
-   muerte: funciona en apariencia y no vive. De ahi salen cinco reglas.
+   prueba-forense-del-fruto, najash, bitul, sindrome-de-lamec). Emet, verdad,
+   se escribe con Alef, Mem y Tav: origen, proceso y conclusion. Sin el Alef
+   queda Met: funciona en apariencia y no vive. Por eso:
 
-   1. TRES PATAS, NO DOS. La mision es Mem y la vision es Tav; faltaba el
-      origen, por que existe la casa. Por eso `origen` va primero y la ficha
-      enseña ORIGEN · MISION · VISION.
-
-   2. LA RESPUESTA A MANO ES EL ALEF. Una respuesta que promete un resultado
-      —«solo lo que trabaje para ti»— es un +1 con mejor gusto. La buena
-      apunta al para que y le deja la decision al lector: «Depende de para
-      qué». Pasa el filtro de la fe porque no reclama la ultima palabra.
-
-   3. LO TACHADO NO ES UN ERROR. Es lo que se ofrece sin origen: una pagina,
-      un chatbot, mas pauta. Ninguna es mala; todas son expansion sin para
-      que, que es justo lo que ofrecio el najash. Tachar para exhibir que uno
-      sabe mas es el sindrome de Lamec. Se tacha para que el lector mire
-      primero el origen, y esa es la pregunta que hay que hacerse cada vez
-      que se agrega una tachada nueva.
-
+   1. TRES PATAS. Origen, mision y vision: sin el origen, la ficha dice que
+      hace la casa y a donde va, pero no por que existe.
+   2. LA RESPUESTA A MANO APUNTA AL PARA QUE y no promete un resultado. Asi
+      no reclama la ultima palabra (el filtro de la fe).
+   3. LO TACHADO NO ES UN ERROR: es lo que se ofrece sin para que, el
+      najash. Tachar para exhibir que uno sabe mas es el sindrome de Lamec.
    4. QUE NOS PUEDAN DEJAR. El filtro del amor mide si el autor se vuelve
-      prescindible, y es el unico que no se puede fingir. Recvid enseña para
-      que un dia grabes sin nosotros; Let Be te devuelve la pregunta en vez
-      de decidir por ti; Academy enseña hasta que ya no la necesites.
-
-   5. LA PRESENCIA SALE DEL ORIGEN, NO DEL EJEMPLO. Un caso concreto —el
-      restaurante de sushi— le daba vida a una linea, pero la ataba a ese
-      caso. Lo que hace unica una frase es desde donde se dice.
+      prescindible: un sistema que no te necesite, un camino que puedas
+      seguir sin que nadie te empuje.
+   5. LA PRESENCIA SALE DEL ORIGEN, NO DEL EJEMPLO.
 
    LOS ORIGENES TIENEN QUE SER CIERTOS. Un origen inventado es la forma mas
-   pura de Met. Los que cuentan algo que paso —«vimos», «empezamos»— los
-   confirma el fundador antes de traducirse.
+   pura de Met. Los de FraterniU, Academy y Fraterni Us son borradores del
+   documento de copy, pendientes de confirmar: van marcados.
 
-   MINIMO. Cada frase que sobra le quita fuerza a la pregunta. La ficha era
-   un parrafo y se leia como un folleto; si algo necesita tres lineas para
-   explicarse, no va en la ficha.
+   CAMBIOS SOBRE EL DOCUMENTO, y por que:
+   - Recvid mantiene la vision «Marcas que no necesitan a nadie para sonar a
+     ellas mismas»: la de «no con presupuesto» ya se habia descartado.
+   - Su «¿Por qué?» dice «todas las marcas» y no «las otras veinte»: una
+     cifra que no dice de donde sale no va. Y sin «no se contrata, se
+     aprende», que tambien se habia quitado.
+   - El «¿Por qué?» de Let Be ya no abre con «La pregunta no es...»: ahora el
+     remate va justo encima y lo diria dos veces.
+
+   ESCRITO PARA UN NIÑO QUE ACABA DE APRENDER A LEER, sin superlativos y sin
+   prometer como hecho lo que es un plan (capitulo 9 del marco).
 
    LA AUTORIDAD NO ES DE UNO. Es de Dios, que es amor, y se ve en hacer las
-   cosas por el bien del otro sin buscarle daño. No se reclama: se nota. Por
-   eso ningun texto dice «alguien que sabe de lo que habla», que pondria la
-   autoridad en uno mismo.
+   cosas por el bien del otro sin buscarle daño. No se reclama: se nota.
 
-   ESCRITO PARA UN NIÑO QUE ACABA DE APRENDER A LEER. Frases cortas, palabras
-   de todos los dias, ningun superlativo, ninguna cifra que no diga de donde
-   sale, nada de «lideres» ni de «soluciones».
-
-   SIN PROMETER LO QUE AUN NO EXISTE. La plataforma de Recvid, la app de
-   FraterniU, Fraterni Us, Fraterni Academy y Fraterni Business se estan
-   construyendo, y el texto lo dice asi. Presentar como hecho lo que es un
-   plan es lo que el capitulo 9 del marco llama marcar mal la certeza.
-
-   LA FAMILIA. Let Be y Recvid son la exposicion: Let Be construye lo PROPIO
-   —la pagina y los medios de tu negocio, solo lo que vas a usar— y Recvid
-   te ayuda a encontrar lo que te DISTINGUE y a mostrarlo, en las redes y en
-   esos medios. A la gente que traen la recibe Fraterni Business, que mira
-   antes si el negocio la puede atender. Los productos Fraterni son el
-   crecimiento, por ramas: FraterniU es la persona y Fraterni Academy es su
-   escuela; Fraterni Us es el grupo y Fraterni Business lo lleva a las
-   empresas. Fraterni Ventures es la matriz: en el directorio no se explica,
-   las encierra. El mapa entero esta en `ecosistema-fraterni.md`.
+   LA FAMILIA. Let Be y Recvid son la exposicion. Los productos Fraterni van
+   por ramas: FraterniU es la persona y Fraterni Academy su escuela; Fraterni
+   Us es el grupo y Fraterni Business, que cuelga de Us, junta a Let Be,
+   Recvid y Fraterni Us para que una empresa funcione sin su dueño.
+   Fraterni Ventures es la matriz: su logotipo y su lema encierran a la
+   familia. El mapa entero esta en `ecosistema-fraterni.md`.
 
    DE MOMENTO SOLO EN ESPAÑOL. Los otros cuatro idiomas enseñan el español
    hasta que el texto quede aprobado: `say()` ya cae al español cuando falta
-   uno. El lema de FraterniU va traducido aqui; en ingles ira el original,
-   «Build your path, leave your mark». */
+   uno. */
 
 export const PROPOSITO = {
   'let-be': {
-    pregunta: { es: '¿Qué necesita tu negocio en internet, y qué no?' },
-    /* Lo que se suele pedir primero. Ninguna es mala: todas son tecnologia
-       sin para que. La pagina web va la ultima porque es lo primero que
+    pregunta: { es: '¿Qué le falta a tu negocio para destacar en internet?' },
+    /* Sustantivos. La pagina web va primera a proposito: es lo primero que
        casi todos piden. */
-    tacha: { es: ['Un chatbot más', 'Una app propia', 'Automatizarlo todo', 'Primero en Google', 'Otro software más', 'Una página web'] },
-    pone: { es: 'Depende de para qué.' },
-    porque: { es: 'Hoy se puede construir casi todo; la pregunta es para qué. Por eso lo primero no es cotizar: es entender contigo para qué, y si la respuesta es «para nada», decírtelo.' },
-    que: { es: 'Let Be construye lo digital de tu negocio: solo lo que vas a usar.' },
+    tacha: { es: ['Una página web', 'Un chatbot', 'Una app propia', 'Otro software más', 'El primer lugar en Google', 'Un community manager', 'Más pauta'] },
+    pone: { es: 'Solo lo que tenga un para qué.' },
+    remate: { es: 'La pregunta no es qué te falta. Es para qué.' },
+    porque: { es: 'Hoy se puede construir casi todo. Un chatbot sin una pregunta que responda es un gasto con interfaz bonita; una automatización sin un proceso que sobre es trabajo nuevo disfrazado de ahorro. Por eso lo primero que hacemos no es cotizar: es entender para qué, y decirte con franqueza si la respuesta es «para nada».' },
+    que: { es: 'Let Be construye lo digital de tu negocio. Solo lo que te sirve.' },
     origen: {
       /* Cuenta algo que paso: lo confirma el fundador. */
-      corta: { es: 'Vimos muchos negocios buenos pagando por tecnología que nunca usaron.' },
+      corta: { es: 'Existimos porque vimos demasiados negocios buenos pagando por tecnología que nunca llegaron a usar.' },
       larga: { es: 'No fallaba la tecnología: faltaba preguntar para qué antes de construir.' }
     },
     mision: {
@@ -116,14 +119,15 @@ export const PROPOSITO = {
   },
 
   recvid: {
-    pregunta: { es: '¿Qué hace que a una marca la recuerden?' },
-    /* Lo que se compra para que te vean. Contratar agencia va tachado a
-       proposito: Recvid enseña para que un dia no la necesites, tampoco a
-       Recvid. Las tendencias van las ultimas: son lo que mas se confunde
-       con ser recordado. */
-    tacha: { es: ['Una mejor cámara', 'Publicar a diario', 'Pagar más pauta', 'Una mejor edición', 'Contratar agencia', 'Seguir tendencias'] },
-    pone: { es: 'Saber por qué existe.' },
-    porque: { es: 'Una tendencia te deja igual a las demás marcas. Lo que se recuerda es algo que dan ganas de vivir, y nace de saber para qué existes: no se contrata, se aprende.' },
+    pregunta: { es: '¿Por qué recuerdan a otras marcas y no a la tuya?' },
+    /* Infinitivos. Las tendencias van primeras a proposito: son lo que mas
+       se confunde con ser recordado. Contratar una agencia va tachado
+       tambien a proposito: Recvid enseña para que un dia no la necesites,
+       tampoco a Recvid. */
+    tacha: { es: ['Seguir las tendencias', 'Pagar más pauta', 'Publicar todos los días', 'Tener mejor cámara', 'Contratar una agencia', 'Editar mejor', 'Grabar más'] },
+    pone: { es: 'Saber por qué existes.' },
+    remate: { es: 'La pregunta no es cuánto publicas. Es desde dónde.' },
+    porque: { es: 'Una tendencia te consigue la vista de hoy y te deja igual a todas las marcas que la hicieron esta semana. Y la cámara casi nunca es el problema: las marcas no se olvidan por mala imagen, se olvidan porque nunca supieron para qué existían más allá de vender. Por eso enseñamos antes de grabar.' },
     /* «Te ayuda a encontrar» y no «encuentra»: lo que te distingue lo
        encuentras tu. Si lo encontrara Recvid, volverias a necesitarla. */
     que: { es: 'Recvid te ayuda a encontrar lo que te distingue, y te enseña a mostrarlo.' },
@@ -136,112 +140,98 @@ export const PROPOSITO = {
       corta: { es: 'Enseñarle a cada marca a contar lo que solo ella puede contar.' },
       larga: { es: 'Cámara, edición y estrategia, para las redes y para tus propios medios, explicadas para que un día lo hagas sin nosotros.' }
     },
+    /* A nadie, tampoco a Recvid: una marca que necesita a quien le enseño
+       para sonar a si misma no aprendio. */
     vision: {
-      corta: { es: 'Un mercado donde la atención se gana con criterio, no con presupuesto.' },
-      larga: { es: 'Una escuela abierta, donde aprender a grabar no dependa de tener dinero y donde no se olvide para qué se graba.' }
+      corta: { es: 'Marcas que no necesitan a nadie para sonar a ellas mismas.' },
+      larga: { es: 'Una escuela al alcance de cualquiera que tenga algo que decir, donde aprender a grabar no dependa de tener dinero ni de nosotros.' }
     },
     como: { es: 'Hoy damos asesorías y hacemos nuestros propios sketches y reels, donde se ve lo que enseñamos. La plataforma llega pronto. Grabar por encargo, solo si el proyecto lo merece.' }
   },
 
   u: {
-    pregunta: { es: '¿Por qué ves a otros cumplir sus sueños en la pantalla y los tuyos siguen esperando?' },
-    tacha: { es: ['Tiempo', 'Dinero', 'Suerte'] },
+    pregunta: { es: '¿Por qué otros cumplen sus sueños en la pantalla y los tuyos siguen esperando?' },
+    /* Sustantivos. «Otra app de hábitos» va primera a proposito: FraterniU es
+       una app, y tacharla es el mismo gesto que Let Be tachando «una pagina
+       web». */
+    tacha: { es: ['Otra app de hábitos', 'Más motivación', 'Más disciplina', 'Otro sistema de productividad', 'Más tiempo libre', 'Otro año nuevo'] },
     pone: { es: 'Un camino propio.' },
-    porque: { es: 'Mirar la vida de otros se lleva el tiempo de la tuya. Un camino propio no empieza por hacer más: empieza por volver a lo que eres.' },
+    remate: { es: 'La pregunta no es cuánta disciplina te falta. Es hacia dónde.' },
+    porque: { es: 'Ver a otros avanzar no es el problema. El problema es que ver reemplazó a avanzar: la pantalla entrega la sensación del logro sin el logro. Y lo que falta casi nunca es disciplina: es un destino lo bastante tuyo como para que la disciplina tenga sentido. Primero el rumbo. La constancia viene después.' },
     que: { es: 'FraterniU es una app para ordenarte y crecer.' },
+    /* Origen, mision y vision: borradores del documento de copy, por
+       confirmar. */
     origen: {
-      corta: { es: 'Existe porque vivir actuando para que te vean cansa, y hace olvidar quién eres.' },
-      /* Su manifiesto, en ingles en el original. */
+      corta: { es: 'Empezamos porque ordenarse no debería depender de tener a alguien encima.' },
       larga: { es: 'Su manifiesto lo dice así: «Dismantling chronic performance. Restoring your original identity». Desarmar la actuación de siempre y volver a lo que eres.' }
     },
     mision: {
-      /* El lema de FraterniU, traducido: «Build your path, leave your mark». */
-      corta: { es: 'Construye tu camino, deja tu huella.' },
-      larga: { es: 'Productividad y crecimiento personal y profesional en un mismo lugar, para que salgas adelante con lo tuyo y no con lo que se ve bien en la pantalla.' }
+      corta: { es: 'Darle a cada persona un camino que pueda seguir sin que nadie la empuje.' },
+      larga: { es: 'Su lema: «Build your path, leave your mark». Productividad y crecimiento personal y profesional en un mismo lugar, para que salgas adelante con lo tuyo y no con lo que se ve bien en la pantalla.' }
     },
     vision: {
-      corta: { es: 'Que nadie se arrepienta de lo que no se atrevió a empezar.' },
+      corta: { es: 'Un mundo donde crecer no dependa de la suerte ni del origen.' },
       larga: { es: 'Dejar de actuar para los demás y volver a lo que eres. Una app que mida lo que avanzas, y no cuántos te miran.' }
     },
     como: { es: 'Estamos construyendo la app: ordena tu día, cuida tu concentración y mide lo que avanzas —no los «me gusta»—. Lo que haga falta aprender, lo enseña Fraterni Academy, su escuela.' }
   },
 
-  /* De FraterniU. */
+  /* De FraterniU. Sin pagina propia: sus `larga` no se leerian en ningun
+     sitio, y no las lleva. */
   academy: {
     pregunta: { es: '¿Por qué terminas cursos y todo sigue igual?' },
-    tacha: { es: ['Otro curso', 'Más videos', 'Más información'] },
-    /* Antes decia «Ponerlo en práctica», que es proceso (Mem). El para que
-       va antes: sin el, tampoco se practica. */
+    /* Infinitivos. */
+    tacha: { es: ['Terminar otro curso', 'Tomar notas mejor', 'Conseguir otro certificado', 'Estudiar más horas', 'Buscar un mejor profesor', 'Empezar de cero otra vez'] },
     pone: { es: 'Saber para qué lo aprendes.' },
-    porque: { es: 'Un curso sin para qué se olvida al terminar. Cuando sabes para qué aprendes algo, lo practicas, y lo practicado se queda.' },
-    que: { es: 'Fraterni Academy es la escuela de FraterniU.' },
-    origen: {
-      corta: { es: 'Existe porque lo que se aprende sin un para qué se olvida.' },
-      larga: { es: 'FraterniU pide practicar; Academy enseña lo que haga falta para hacerlo, y nada más.' }
-    },
-    mision: {
-      corta: { es: 'Que lo que aprendes se note en lo que haces.' },
-      larga: { es: 'Entrenamientos cortos de orden, carácter, concentración y oficio, para quienes usan FraterniU. Enseña hasta que ya no la necesites.' }
-    },
-    vision: {
-      corta: { es: 'Que nadie termine un curso igual que como lo empezó.' },
-      larga: { es: 'Una escuela donde cuenta lo que haces con lo aprendido, y no cuántos certificados tienes.' }
-    },
+    remate: { es: 'La pregunta no es cuánto sabes. Es para qué lo querías.' },
+    porque: { es: 'Un curso se termina el viernes y el lunes la vida sigue igual, porque terminar y aplicar son dos cosas distintas y solo una de las dos se certifica. Aquí no se mide cuánto viste: se mide qué cambió después. Por eso cada cosa que se enseña llega con el para qué pegado, y si no tiene uno, no se enseña.' },
+    que: { es: 'Fraterni Academy es la escuela de FraterniU: se aprueba aplicando, no terminando.' },
+    /* Borradores, por confirmar. */
+    origen: { corta: { es: 'Nació porque coleccionar cursos terminados no cambió nada, y aplicar uno sí.' } },
+    mision: { corta: { es: 'Enseñar solo lo que alguien va a aplicar.' } },
+    vision: { corta: { es: 'Un aprendizaje que se mide por lo que cambia, no por lo que se certifica.' } },
     como: { es: 'Todavía no abre. Se construye junto a la app: cada entrenamiento termina en algo que se practica en FraterniU.' }
   },
 
   us: {
     pregunta: { es: '¿Por qué un grupo lleno de buenas ideas no termina ninguna?' },
-    tacha: { es: ['Tiempo', 'Dinero', 'Ganas'] },
+    /* Sustantivos. */
+    tacha: { es: ['Más reuniones', 'Un mejor grupo de WhatsApp', 'Otra herramienta de tareas', 'Más compromiso', 'Un líder más firme', 'Más tiempo'] },
     pone: { es: 'Un camino compartido.' },
-    porque: { es: 'Un grupo que no sabe para qué se juntó se gasta discutiendo por dónde ir. Cuando el para qué es de todos, las ideas se terminan.' },
-    que: { es: 'Fraterni Us es FraterniU para grupos.' },
-    origen: {
-      corta: { es: 'Existe porque un grupo que olvida para qué se juntó termina separado.' },
-      larga: { es: 'Lo que FraterniU hace con una persona —volver a lo que es—, Fraterni Us lo hace con un grupo: volver a por qué empezaron.' }
-    },
-    mision: {
-      corta: { es: 'Que un grupo construya junto lo que nadie logra solo.' },
-      larga: { es: 'Equipos, comunidades, clubes o familias: el mismo orden y la misma forma de medir lo que se avanza, pero compartidos.' }
-    },
-    vision: {
-      corta: { es: 'Que ningún grupo se deshaga por no tener un rumbo común.' },
-      larga: { es: 'Grupos que se acuerdan de por qué empezaron, y por eso terminan lo que empiezan.' }
-    },
-    como: { es: 'Todavía no abre. Es la misma app de FraterniU con espacio para el grupo: metas compartidas y avances que se ven entre todos. De aquí sale Fraterni Business, para las empresas.' }
+    remate: { es: 'La pregunta no es de quién fue la idea. Es quién la sostiene.' },
+    porque: { es: 'Un grupo no falla por falta de ideas: falla porque la idea es de todos y el siguiente paso no es de nadie. Las reuniones no lo arreglan, lo aplazan con buena cara. Lo que hace la diferencia es que el camino esté afuera de las cabezas, a la vista, con nombre propio en cada tramo. Eso se puede armar. La voluntad no.' },
+    que: { es: 'Fraterni Us convierte un grupo de buenas intenciones en un grupo con un camino.' },
+    /* Borradores, por confirmar. */
+    origen: { corta: { es: 'Salió de ver grupos buenos disolverse sin que nadie se peleara.' } },
+    mision: { corta: { es: 'Darle a un grupo el mismo camino que FraterniU le da a una persona.' } },
+    vision: { corta: { es: 'Grupos que terminan lo que empiezan sin depender de quien más empuja.' } },
+    como: { es: 'Todavía no abre. Es la misma app de FraterniU con espacio para el grupo: metas compartidas y avances que se ven entre todos. De aquí sale Fraterni Business.' }
   },
 
-  /* De Fraterni Us. Recibe a la gente que trae la exposicion: antes de que
-     llegue mas, mira si el negocio la puede atender y si es de los que se
-     arriesgan. Mas gente de la que cabe no suma: se va y no vuelve. */
+  /* De Fraterni Us. LA TARJETA QUE CAMBIO DE FONDO: antes hablaba de que los
+     clientes vuelvan; ahora dice lo que Business es, el unico nodo que junta
+     a Let Be, Recvid y Fraterni Us. Por eso es tambien la unica que nombra a
+     las otras marcas. */
   business: {
-    pregunta: { es: '¿Dónde está el dinero que tu negocio deja pasar?' },
-    tacha: { es: ['En más anuncios', 'En otra ciudad', 'En clientes nuevos'] },
-    /* Antes decia «En los que ya tienes», que los cuenta como recurso. Un
-       cliente no se tiene: confio en ti. */
-    pone: { es: 'En los que ya confiaron en ti.' },
-    porque: { es: 'Cuidar a quien ya confió en ti suele costar menos que buscar a alguien nuevo. Y si llega más gente de la que puedes atender, se va y no vuelve.' },
-    que: { es: 'Fraterni Business lleva Fraterni Us a las empresas: que tus clientes vuelvan.' },
-    origen: {
-      corta: { es: 'Existe porque muchos negocios buscan clientes nuevos mientras descuidan a los que ya confiaron en ellos.' },
-      larga: { es: 'Un cliente no es una venta: es alguien que confió en ti. Cuidarlo es la forma de vender que no se agota.' }
-    },
-    mision: {
-      corta: { es: 'Que las empresas cuiden al cliente que ya tienen.' },
-      larga: { es: 'Antes de crecer, mirar si tu negocio puede atender a los que llegan y cuánto quiere arriesgar. Después, atención al cliente, orden por dentro y una forma de vender que no dependa de la suerte del mes.' }
-    },
-    vision: {
-      corta: { es: 'Que ningún cliente se vaya por no haber sido bien atendido.' },
-      larga: { es: 'Empresas que crecen porque sus clientes vuelven, y no solo porque llegan otros.' }
-    },
-    como: { es: 'Todavía no abre. Empieza por estudiar tu negocio: si aguanta la gente que traen Let Be y Recvid, y si es de los que se arriesgan —programas VIP, tarjetas de fidelidad, reseñas—. Después, asesorías y entrenamientos para equipos: cómo atender, cómo ordenarse por dentro y cómo volver a vender.' }
+    pregunta: { es: '¿Tu empresa funciona, o funcionas tú?' },
+    /* Sustantivos. */
+    tacha: { es: ['Un gerente más', 'Otro software de gestión', 'Más personal', 'Un manual de procesos', 'Más horas tuyas', 'Una reestructuración'] },
+    pone: { es: 'Un sistema que no te necesite.' },
+    remate: { es: 'La pregunta no es cuánto trabajas. Es qué pasa cuando no estás.' },
+    porque: { es: 'Hay empresas que facturan bien y aun así no existen sin su dueño: todo lo que importa pasa por una sola cabeza. Contratar a alguien más no lo resuelve, lo reparte. Lo que lo resuelve es que la empresa tenga tres cosas que una persona no puede reemplazar: infraestructura que opere sin ti, un relato que cualquiera del equipo pueda contar igual y un método que el grupo sepa seguir solo. Eso se arma una vez y queda.' },
+    que: { es: 'Fraterni Business junta las tres piezas: la infraestructura de Let Be, el criterio de Recvid y el método de Fraterni Us.' },
+    origen: { corta: { es: 'Existimos porque una empresa que depende de una sola persona no es una empresa: es un empleo difícil.' } },
+    mision: { corta: { es: 'Construir empresas que caminen sin quien las fundó.' } },
+    vision: { corta: { es: 'Un mercado donde el dueño pueda irse un mes y nadie lo note.' } },
+    como: { es: 'Todavía no abre. Empieza por mirar qué depende solo de ti; después arma las tres piezas: la infraestructura con Let Be, el relato con Recvid y el método con Fraterni Us.' }
   },
 
-  /* La matriz. En el directorio no se explica —su logotipo encierra a la
-     familia—, pero tiene su pagina en proyectos, y ahi si se lee entera. */
+  /* La matriz. En el directorio no lleva ficha —su logotipo y su lema
+     encierran a la familia—, pero tiene su pagina en proyectos, y ahi si se
+     lee entera. */
   fraterni: {
     pregunta: { es: '¿Por qué mueren tantos proyectos buenos?' },
-    tacha: { es: ['Mala suerte', 'Falta de tiempo', 'Falta de dinero'] },
+    tacha: { es: ['Falta de dinero', 'Mala suerte', 'Falta de tiempo'] },
     pone: { es: 'Están solos.' },
     porque: { es: 'Un proyecto solo carga con todo: el nombre, las cuentas, los errores. Con hermanos, lo que aprende uno le sirve a los demás.' },
     que: { es: 'Fraterni Ventures es la marca madre de la familia Fraterni.' },
