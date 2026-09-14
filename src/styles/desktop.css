@@ -195,6 +195,19 @@
   .lang__current { width: 1.85rem; height: 1.85rem; }
   .lang__badge { background: var(--bone); color: var(--pine); }
 
+  /* ---- Apariencia: gemela de la bandera, tambien en tamaño ----
+     La geometria de la rueda esta en rem, pensada para este boton y el de
+     movil a la vez: aqui solo se encoge lo mismo que la bandera. */
+  .site-header__tools .tema + .site-header__lang .lang { margin-inline: 0; }
+  .tema__switch { width: 1.85rem; height: 1.85rem; }
+  .tema__rueda { top: 2.22rem; left: .82rem; }
+  .tema__astro { left: -.475rem; width: .95rem; height: .95rem; }
+  .tema__astro--sol { top: calc(-1.4rem - .475rem); }
+  .tema__astro--luna { top: calc(1.4rem - .475rem); }
+  .tema__nube { left: .92rem; }
+  .tema__estrella:nth-child(1) { left: 1.34rem; top: .32rem; width: .34rem; height: .34rem; }
+  .tema__estrella:nth-child(2) { left: .44rem; top: 1.38rem; width: .24rem; height: .24rem; }
+  .tema__estrella:nth-child(3) { left: 1.18rem; top: 1.26rem; width: .3rem; height: .3rem; }
 
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
           arranca en la misma linea que el nombre ----
@@ -440,7 +453,7 @@
     content: "";
     position: absolute; inset: 0;
     z-index: 1;                           /* sobre el pinar, debajo de mi */
-    background: var(--bone);
+    background: var(--papel);
   }
   .hero__panel > * {
     position: relative;
@@ -450,10 +463,10 @@
 
   .hero__offer-title { font-size: 1.5rem; color: var(--slate); }
   /* Sobre la hoja, hueso sobre hueso no se ve: el cuerpo va en slate. */
-  .hero__offer-body { color: #5A6B74; font-size: .85rem; }
+  .hero__offer-body { color: var(--slate-400); font-size: .85rem; }
 
   .hero__available { margin: 0; }
-  .hero__status { color: #5A6B74; }
+  .hero__status { color: var(--slate-400); }
   .hero__status-dot { background: var(--iris-700); }
   .hero__emet {
     font-size: .8rem;
@@ -464,7 +477,7 @@
   .rhema {
     margin: 0;                            /* la palabra cierra la columna */
     padding: 1.15rem 1.2rem 1.1rem;
-    background: var(--bone-panel);
+    background: var(--papel-2);
     box-shadow: 0 18px 40px -22px rgba(11, 20, 13, .45);
   }
   .rhema__text { font-size: .88rem; margin: .6rem 0 .9rem; }
@@ -508,7 +521,7 @@
     min-height: 100svh;
     padding: 0;
     border-top: 0;
-    background: var(--bone);
+    background: var(--papel);
     overflow: hidden;
   }
 

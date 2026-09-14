@@ -1,6 +1,7 @@
 ---
 import { NAV } from '../data/social.js';
 import LangPicker from './LangPicker.astro';
+import ThemePicker from './ThemePicker.astro';
 import Icon from './Icon.astro';
 const { lang, t, path = '', active = '' } = Astro.props;
 const to = (slug) => `/${lang}/${slug}/`;
@@ -38,6 +39,9 @@ const to = (slug) => `/${lang}/${slug}/`;
     </nav>
 
     <div class="site-header__tools">
+      <!-- La apariencia: un circulo gemelo de la bandera, en todas las
+           pantallas (ThemePicker.astro). -->
+      <ThemePicker t={t} />
       <div class="site-header__lang"><LangPicker lang={lang} t={t} path={path} /></div>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav"
               aria-label={t('a11y.menu')}>

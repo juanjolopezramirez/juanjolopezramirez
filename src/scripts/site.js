@@ -335,6 +335,176 @@ function initLang() {
   });
 }
 
+/* ---------- Apariencia: el interruptor y los cuatro modos -----
+   EL INTERRUPTOR cambia al momento a la contraria de la que se ve, y la
+   deja fija. La hoja con los cuatro modos no tiene boton propio: sale al
+   dejar el raton encima, manteniendo pulsado con el dedo o con la flecha
+   abajo. Elegir cambia la pagina —con los colores fundiendose— y la hoja se cierra un
+   instante despues, para que se vea el visto moverse a la elegida.
+
+   Se guarda en este navegador: `claro`, `oscuro` o `sol`. Automatico no
+   se guarda — se borra lo guardado y manda el dispositivo. La cabecera lo
+   pone antes de pintar en la pagina siguiente (Base.astro), y si hay otra
+   pestaña abierta, cambia con esta.
+
+   SEGUN EL SOL: `data-tema` lleva la que toca AHORA, claro u oscuro, y
+   se vuelve a mirar cada minuto y al volver a la pestaña. El lugar se saca
+   una sola vez de la zona horaria (data/zonas.js, que se baja solo
+   entonces) y se guarda; la cuenta del sol vive en la cabecera (jlrSol). */
+function initTema() {
+  const html = d.documentElement;
+  const root = d.querySelector('[data-tema-picker]');
+  if (!root) return;
+  const interruptor = root.querySelector('[data-tema-switch]');
+  const list = root.querySelector('.lang__list');
+  const opciones = [...root.querySelectorAll('[data-tema-set]')];
+  const oscuroSistema = matchMedia('(prefers-color-scheme: dark)');
+  const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MODOS = ['claro', 'oscuro', 'sol'];
+  let hideTimer = null;
+  let fundido = null;
+  let cierre = null;
+  let reloj = null;
+  let abrirTimer = null;
+  let soltarTimer = null;
+  let pulsado = null;
+  let largo = false;
+
+  const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const escribir = (k, v) => {
+    try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+    catch (e) { /* sin almacenamiento: vale para esta pagina */ }
+  };
+  const valido = (m) => (MODOS.includes(m) ? m : 'sistema');
+  let elegido = valido(leer('jlr:tema'));
+
+  const oscuroAhora = () => {
+    const t = html.getAttribute('data-tema');
+    return t ? t === 'oscuro' : oscuroSistema.matches;
+  };
+
+  const pintar = () => {
+    const toca = elegido === 'sol' ? (window.jlrSol ? window.jlrSol() : null) : elegido;
+    const nuevo = toca === 'claro' || toca === 'oscuro' ? toca : null;
+    if (nuevo !== html.getAttribute('data-tema')) {
+      if (!reducido) {
+        html.classList.add('tema-cambia');
+        clearTimeout(fundido);
+        fundido = setTimeout(() => html.classList.remove('tema-cambia'), 480);
+      }
+      if (nuevo) html.setAttribute('data-tema', nuevo);
+      else html.removeAttribute('data-tema');
+    }
+    interruptor.setAttribute('aria-checked', String(oscuroAhora()));
+    opciones.forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-tema-set') === elegido)));
+    clearInterval(reloj);
+    if (elegido === 'sol') reloj = setInterval(pintar, 60000);
+  };
+
+  const elegir = (modo) => {
+    elegido = modo;
+    escribir('jlr:tema', modo === 'sistema' ? null : modo);
+    pintar();
+    if (modo === 'sol' && !leer('jlr:sol')) {
+      import('../data/zonas.js').then(({ lugar }) => {
+        const c = lugar();
+        if (!c) return;                   // se queda con la estimacion
+        escribir('jlr:sol', c);
+        pintar();
+      }).catch(() => {});
+    }
+  };
+
+  const enfocar = () =>
+    (opciones.find((b) => b.getAttribute('aria-pressed') === 'true') || opciones[0]).focus();
+
+  const setOpen = (open, foco = false) => {
+    clearTimeout(hideTimer);
+    clearTimeout(abrirTimer);
+    clearTimeout(soltarTimer);
+    if (open) {
+      if (!root.classList.contains('is-open')) {
+        list.hidden = false;
+        void list.offsetHeight;            // punto de partida para la entrada
+        root.classList.add('is-open', 'has-used');
+      }
+      if (foco) enfocar();
+    } else {
+      root.classList.remove('is-open');
+      hideTimer = setTimeout(() => {
+        if (!root.classList.contains('is-open')) list.hidden = true;
+      }, 440);
+    }
+  };
+
+  interruptor.addEventListener('click', () => {
+    clearTimeout(abrirTimer);              // quien pulsa quiere cambiar, no la hoja
+    if (largo) { largo = false; return; }  // venia de mantener pulsado
+    elegir(oscuroAhora() ? 'claro' : 'oscuro');
+  });
+
+  /* Mantener pulsado (dedo o lapiz) abre la hoja en vez de cambiar. */
+  interruptor.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    largo = false;
+    clearTimeout(pulsado);
+    pulsado = setTimeout(() => { largo = true; setOpen(true); }, 480);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
+    interruptor.addEventListener(ev, () => clearTimeout(pulsado)));
+  interruptor.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  interruptor.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    setOpen(true, true);
+  });
+
+  /* Con raton: encima un momento abre la hoja; al salir se cierra. Los
+     retrasos dejan cruzar el hueco entre el boton y la hoja. Cuenta el
+     RATON de verdad, no si la pantalla dice tener uno: un portatil tactil
+     con raton se lo cree a medias. */
+  const porRaton = (e) => e.pointerType === 'mouse';
+  root.addEventListener('pointerenter', (e) => {
+    if (!porRaton(e)) return;
+    clearTimeout(soltarTimer);
+    if (!root.classList.contains('is-open')) abrirTimer = setTimeout(() => setOpen(true), 450);
+  });
+  root.addEventListener('pointerleave', (e) => {
+    if (!porRaton(e)) return;
+    clearTimeout(abrirTimer);
+    if (root.classList.contains('is-open')) soltarTimer = setTimeout(() => setOpen(false), 320);
+  });
+
+  opciones.forEach((b) => b.addEventListener('click', () => {
+    elegir(b.getAttribute('data-tema-set'));
+    clearTimeout(cierre);
+    cierre = setTimeout(() => setOpen(false), reducido ? 0 : 560);
+  }));
+
+  root.querySelectorAll('[data-tema-close]').forEach((el) => el.addEventListener('click', () => setOpen(false)));
+  d.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !root.classList.contains('is-open')) return;
+    const volver = root.contains(d.activeElement);
+    setOpen(false);
+    if (volver) interruptor.focus();
+  });
+  d.addEventListener('click', (e) => {
+    if (!root.contains(e.target) && root.classList.contains('is-open')) setOpen(false);
+  });
+
+  // Otra pestaña, el dispositivo o volver a esta: se repinta lo que toque.
+  addEventListener('storage', (e) => {
+    if (e.key === 'jlr:tema') elegido = valido(e.newValue);
+    if (e.key === 'jlr:tema' || e.key === 'jlr:sol') pintar();
+  });
+  oscuroSistema.addEventListener('change', pintar);
+  d.addEventListener('visibilitychange', () => { if (!d.hidden && elegido === 'sol') pintar(); });
+
+  pintar();
+}
+
 /* ---------- Lo que aun no esta -------------------------------
    Un boton marcado con data-soon dice por que no lleva a ningun sitio.
    El aviso se anuncia solo (role=status) y se retira a los seis segundos. */
@@ -759,6 +929,141 @@ function initFilter() {
   });
 }
 
+/* ---------- Los carriles: filas que se deslizan de lado ---------
+
+   En movil, las casas y las piezas van en una fila que se desliza con el
+   pulgar. Solo con el pulgar se quedaba corta: el gesto no siempre se
+   entiende, y hasta ahora el scroll que pesa de las diapositivas se lo
+   comia (ver `initDiapositivas`). Asi que cada fila lleva dos flechas a los
+   costados, que la mueven de una en una, y debajo un indicador de en cual
+   vas.
+
+   SOLO CUANDO HACEN FALTA. Si todo cabe —en tablet y escritorio la fila de
+   casas vuelve a ser rejilla, y las tres piezas caben en la hoja— no hay
+   nada que recorrer, y flechas e indicador se esconden. Se mira al cambiar
+   de tamaño y cuando el filtro esconde casas.
+
+   EN LOS EXTREMOS LA FLECHA SE APAGA, pero no se quita: si tenia el foco,
+   quitarla lo tiraria al principio de la pagina. Se decide por la posicion
+   y no por el numero de la tarjeta, porque con el encuadre al centro la
+   primera y la ultima no llegan a centrarse.
+
+   LA PRIMERA ARRANCA AL CENTRO. Con el relleno de siempre la primera
+   tarjeta quedaba pegada a la izquierda y la fila se veia torcida. Se le da
+   a la fila un relleno de medio hueco a cada lado —lo que falta para que una
+   tarjeta quede centrada—, asi la primera y la ultima se centran igual que
+   las de en medio. En ese mismo hueco la fila se desvanece hacia el canto
+   (mascara en el CSS): la tarjeta de al lado no se ve hasta que llega.
+
+   Se decide si sobra por lo que miden las tarjetas, no por el scroll: el
+   relleno de centrar ya hace que la fila desborde, y medirlo por ahi la
+   dejaria trabada en modo carril al pasar a una pantalla donde todo cabe.
+
+   SIN GUION no hay flechas ni indicador, y la fila se sigue deslizando con
+   el dedo. El indicador no se lee: es un dibujo de donde vas. Las flechas
+   si, con su nombre en el idioma de la pagina. */
+function initCarriles() {
+  const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  d.querySelectorAll('[data-carril]').forEach((pista) => {
+    const caja = d.createElement('div');
+    caja.className = 'carril';
+    pista.parentNode.insertBefore(caja, pista);
+    caja.appendChild(pista);
+
+    const flecha = (lado, nombre) => {
+      const b = d.createElement('button');
+      b.type = 'button';
+      b.className = 'carril__flecha carril__flecha--' + lado;
+      b.setAttribute('aria-label', nombre);
+      b.hidden = true;
+      return b;
+    };
+    const antes = flecha('antes', pista.getAttribute('data-antes') || 'Anterior');
+    const despues = flecha('despues', pista.getAttribute('data-despues') || 'Siguiente');
+    const puntos = d.createElement('div');
+    puntos.className = 'carril__puntos';
+    puntos.setAttribute('aria-hidden', 'true');
+    puntos.hidden = true;
+    caja.append(antes, despues, puntos);
+
+    const visibles = () => [...pista.children].filter((el) => !el.hidden);
+    const centro = (r) => r.left + r.width / 2;
+    const tope = () => pista.scrollWidth - pista.clientWidth;
+
+    /* La de turno: la mas cercana al centro, salvo en los extremos. */
+    const actual = () => {
+      const items = visibles();
+      if (pista.scrollLeft <= 2) return 0;
+      if (pista.scrollLeft >= tope() - 2) return items.length - 1;
+      const c = centro(pista.getBoundingClientRect());
+      let mejor = 0;
+      let corta = Infinity;
+      items.forEach((el, i) => {
+        const dist = Math.abs(centro(el.getBoundingClientRect()) - c);
+        if (dist < corta) { corta = dist; mejor = i; }
+      });
+      return mejor;
+    };
+
+    const ir = (i) => {
+      const items = visibles();
+      const it = items[Math.max(0, Math.min(i, items.length - 1))];
+      if (!it) return;
+      const delta = centro(it.getBoundingClientRect()) - centro(pista.getBoundingClientRect());
+      pista.scrollBy({ left: delta, behavior: reducido ? 'instant' : 'smooth' });
+    };
+
+    let marcado = -1;
+    const pintar = () => {
+      const items = visibles();
+      const primera = items[0] && items[0].getBoundingClientRect();
+      const ultima = items.length && items[items.length - 1].getBoundingClientRect();
+      const sobra = items.length > 1 && ultima.right - primera.left > pista.clientWidth + 2;
+      caja.classList.toggle('is-desborda', sobra);
+      antes.hidden = despues.hidden = puntos.hidden = !sobra;
+      if (!sobra) return;
+      caja.style.setProperty('--carril-centro', Math.max(0, (pista.clientWidth - primera.width) / 2).toFixed(1) + 'px');
+      if (puntos.children.length !== items.length) {
+        puntos.replaceChildren(...items.map(() => d.createElement('span')));
+        marcado = -1;
+      }
+      antes.setAttribute('aria-disabled', String(pista.scrollLeft <= 2));
+      despues.setAttribute('aria-disabled', String(pista.scrollLeft >= tope() - 2));
+      const i = actual();
+      if (i !== marcado) {
+        [...puntos.children].forEach((p, k) => p.classList.toggle('is-on', k === i));
+        marcado = i;
+      }
+    };
+
+    /* Los extremos se miran en el momento, no en el atributo: si el ultimo
+       repintado no llego, la flecha se quedaria apagada con sitio para ir. */
+    antes.addEventListener('click', () => { if (pista.scrollLeft > 2) ir(actual() - 1); });
+    despues.addEventListener('click', () => { if (pista.scrollLeft < tope() - 2) ir(actual() + 1); });
+
+    /* Un cuadro por tanda de scroll, y un reloj de respaldo por si los cuadros
+       no llegan (una pestaña en segundo plano los frena). */
+    let cuadro = 0;
+    let reloj = 0;
+    const pronto = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(pintar);
+      clearTimeout(reloj);
+      reloj = setTimeout(pintar, 120);
+    };
+    pista.addEventListener('scroll', pronto, { passive: true });
+    /* El scroll suave se detiene sin avisar; al terminar, se repinta por si
+       el ultimo cuadro quedo a medias. */
+    pista.addEventListener('scrollend', pintar);
+    if ('ResizeObserver' in window) new ResizeObserver(pronto).observe(pista);
+    /* El filtro esconde casas: cambia cuantas hay y cuanto mide la fila. */
+    new MutationObserver(pronto).observe(pista, { attributes: true, attributeFilter: ['hidden'], subtree: true });
+    addEventListener('load', pintar);
+    pintar();
+  });
+}
+
 /* ---------- Diapositivas: el scroll que pesa -----------------
 
    ESTO NO ES `scroll-snap`. Snap es gradual y con iman: sigues arrastrando
@@ -971,19 +1276,39 @@ function initDiapositivas() {
 
      `preventDefault` en `touchmove` es lo que apaga el scroll nativo, y por
      eso el oyente no puede ser pasivo. Si no hay paradas se sale ANTES de
-     llamarlo: con la pagina normal, el dedo es del navegador. */
+     llamarlo: con la pagina normal, el dedo es del navegador.
+
+     EL GESTO LATERAL NO ES SUYO. Aqui se cancelaba cualquier arrastre, tambien
+     el de lado, y en movil las filas que se deslizan —las casas, las piezas—
+     no respondian al pulgar: el scroll horizontal nunca llegaba a empezar. Se
+     decide en el primer movimiento: si va mas de lado que de arriba abajo, el
+     dedo se suelta y el navegador desliza la fila. Sobre una fila deslizable
+     basta con que vaya casi igual de lado. Y dentro de una hoja abierta —la
+     de las piezas— el dedo es de la hoja. */
   let dedoY = 0;
+  let dedoX = 0;
   let dedoActivo = false;
+  let decidido = false;
 
   addEventListener('touchstart', (e) => {
     if (paradas.length < 2 || volando || e.touches.length !== 1) { dedoActivo = false; return; }
+    if (e.target.closest && e.target.closest('[aria-modal="true"], .video-panel')) { dedoActivo = false; return; }
     dedoActivo = true;
+    decidido = false;
     dedoY = e.touches[0].clientY;
+    dedoX = e.touches[0].clientX;
     esfuerzo = 0;
   }, { passive: true });
 
   addEventListener('touchmove', (e) => {
     if (!dedoActivo || paradas.length < 2) return;
+    if (!decidido) {
+      const dx = Math.abs(e.touches[0].clientX - dedoX);
+      const dy = Math.abs(e.touches[0].clientY - dedoY);
+      const enFila = e.target.closest && e.target.closest('[data-carril], .faxis__chips');
+      if (dx > dy || (enFila && dx * 1.5 >= dy && dx > 0)) { dedoActivo = false; return; }
+      decidido = true;
+    }
     e.preventDefault();
     if (volando) return;
     esfuerzo = dedoY - e.touches[0].clientY;
@@ -1300,12 +1625,14 @@ initContact();
 initAccounts();
 initOrbit();
 initLang();
+initTema();
 initSoon();
 initGlossary();
 initCovers();
 initCurrent();
 initCurtain();
 initFilter();
+initCarriles();
 initFamilia();
 initFichas();
 initTachones();

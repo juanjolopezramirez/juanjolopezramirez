@@ -230,7 +230,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     <!-- Paso uno: las tres -->
     <div class="video-gallery" id="video-gallery">
       <h2 class="video-panel__heading" id="video-panel-heading">{t('videos.title')}</h2>
-      <ul class="video-gallery__row">
+      <ul class="video-gallery__row" data-carril data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
         {VIDEOS.map((v) => (
           <li class="video-gallery__item">
             {/* De quien es la pieza, ENCIMA de la portada y no debajo: es el

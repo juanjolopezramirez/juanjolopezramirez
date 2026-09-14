@@ -1,5 +1,6 @@
 ---
 import BrandDot from './BrandDot.astro';
+import Icon from './Icon.astro';
 import { AXES, slugOf } from '../data/entities.js';
 
 /* Las casas, una por una.
@@ -74,7 +75,8 @@ const ejes = Object.entries(AXES)
     )}
   </div>
 
-  <ul class="cards__grid" style={`--cols:${cols}`}>
+  {/* `data-carril`: en movil la fila lleva flechas e indicador (initCarriles). */}
+  <ul class="cards__grid" style={`--cols:${cols}`} data-carril data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
     {items.map((e, i) => (
       <li data-tags={(e.tags ?? []).join(' ')}>
         <a class="ecard" href={`/${lang}/${slugOf(e)}/`}>
@@ -108,4 +110,9 @@ const ejes = Object.entries(AXES)
   {/* Cuatro ejes se pueden cruzar hasta no dejar nada. Sin esto, la
       seccion se quedaba en blanco y parecia rota. */}
   <p class="cards__none" data-filter-none hidden>{t('filter.none')}</p>
+
+  {/* El ictus de la casa, solo en movil: la seccion mide una pantalla entera
+      y el carrusel no la llena. En vez de dejar un hueco al pie, lo cierra
+      el sello, como una firma al final de una hoja. */}
+  <span class="cards__sello" aria-hidden="true"><Icon id="mark" /></span>
 </section>

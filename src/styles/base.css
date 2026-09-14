@@ -56,6 +56,28 @@
   --tachon: #E5383B;
   --bone-panel:#E7E4DB;
 
+  /* LAS SUPERFICIES CLARAS, con nombre propio. El hueso hace dos trabajos:
+     es el FONDO de las secciones claras y es la LETRA sobre el pinar. El
+     modo oscuro solo puede cambiar el primero, asi que el fondo se pide
+     por su oficio y no por su color:
+
+       --papel       el fondo de una seccion clara
+       --papel-2     el de una seccion hundida (las tarjetas, la cita)
+       --papel-alto  lo que flota encima: tarjetas y hojas
+       --papel-copia el marco de la foto instantanea
+
+     Y los que se usan COMO LETRA sobre ese papel: la pizarra y su gris, y
+     el pino, el iris y el oro en su version para fondo claro. */
+  --papel: var(--bone);
+  --papel-2: var(--bone-panel);
+  --papel-alto: var(--bone);
+  --papel-copia: #FBFAF7;
+  --slate-400: #5A6B74;
+  --slate-rgb: 43 58 67;
+  --pino-tinta: var(--pine);
+  --iris-tinta: var(--iris-tinta);
+  --ring-tinta: var(--ring-700);
+
   /* El espacio. Vienen del concepto original y no se han retocado: son
      hsl(120 30% 3%), hsl(120 15% 8%) y hsl(120 40% 14%). Tono 120 clavado
      —el rojo y el azul valen lo mismo— asi que no tienen la pizca de
@@ -96,6 +118,70 @@
   --ease-smooth: cubic-bezier(.16, 1, .3, 1);   /* long tail, no snap */
   --dur: 900ms;
 }
+
+/* =============================================================
+   MODO OSCURO
+
+   Solo cambia lo claro. El pinar —el hero, la cabecera, las paginas de
+   Caminemos— ya es de noche y se queda como esta: es la casa. Lo que se
+   apaga es el hueso, que de noche deslumbra.
+
+   El papel oscuro no es negro: es el mismo pino llevado a casi nada
+   (#141E17), para que la pagina siga siendo verde en la penumbra y el
+   pinar del hero se lea como el tono mas vivo, que es lo que es. Las
+   tarjetas y las hojas suben un escalon (#1A261D) y las secciones hundidas
+   bajan uno (#0F1712): la misma jerarquia de alturas que de dia.
+
+   La letra pasa a hueso apagado y su gris a un verde gris; los acentos que
+   de dia iban oscuros para leerse sobre el hueso —el iris 700, el oro 700,
+   el pino como letra— pasan a su version clara. Todos por encima de 4.5:1.
+
+   Se aplica si se eligio oscuro, o si se dejo en automatico y el
+   dispositivo esta en oscuro. Elegir claro gana siempre. */
+html[data-tema="oscuro"] {
+  color-scheme: dark;
+  --papel: #141E17;
+  --papel-2: #0F1712;
+  --papel-alto: #1A261D;
+  --papel-copia: #E4E1D8;
+  --slate: #E6E4DC;
+  --slate-400: #A8B6A5;
+  --slate-rgb: 230 228 220;
+  --pino-tinta: var(--iris-300);
+  --iris-tinta: var(--iris-300);
+  --ring-tinta: var(--ring);
+  --tema-on: 1;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema="claro"]) {
+    color-scheme: dark;
+    --papel: #141E17;
+    --papel-2: #0F1712;
+    --papel-alto: #1A261D;
+    --papel-copia: #E4E1D8;
+    --slate: #E6E4DC;
+    --slate-400: #A8B6A5;
+    --slate-rgb: 230 228 220;
+    --pino-tinta: var(--iris-300);
+    --iris-tinta: var(--iris-300);
+    --ring-tinta: var(--ring);
+    --tema-on: 1;
+  }
+}
+
+/* Al cambiar de apariencia, los colores se funden en vez de saltar. Solo
+   mientras dura el cambio (lo pone y lo quita el guion): dejarlo puesto
+   frenaria cada hover de la pagina. */
+html.tema-cambia :not(.tema, .tema *),
+html.tema-cambia :not(.tema, .tema *)::before,
+html.tema-cambia :not(.tema, .tema *)::after {
+  transition-property: background-color, color, border-color, fill, stroke, box-shadow !important;
+  transition-duration: .45s !important;
+  transition-timing-function: var(--ease) !important;
+  transition-delay: 0s !important;
+}
+/* …salvo el interruptor, que tiene su propia coreografia (ver APARIENCIA):
+   el fundido general le quitaba el giro y los retrasos de las estrellas. */
 
 /* ---------- Reset ----------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -161,7 +247,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .skip-link {
   position: absolute; left: 0; top: -100%;
   z-index: 100; padding: .75rem 1rem;
-  background: var(--bone); color: var(--slate);
+  background: var(--papel-alto); color: var(--slate);
   font-weight: 600;
 }
 .skip-link:focus { top: 0; }
@@ -813,7 +899,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .rhema {
   margin: 1.6rem 0 0;
   padding: 1.25rem 1.3rem 1.2rem;
-  background: var(--bone-panel);
+  background: var(--papel-2);
   color: var(--slate);
   border-radius: 24px;
   text-align: left;
@@ -827,11 +913,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: .95rem; font-weight: 300;
   line-height: 1.55;
 }
-.rhema__text .ahava { color: var(--iris-700); white-space: nowrap; }
+.rhema__text .ahava { color: var(--iris-tinta); white-space: nowrap; }
 .rhema__by {
   display: flex; align-items: center; gap: .7rem;
   padding-top: .9rem;
-  border-top: 1px solid rgba(43, 58, 67, .14);
+  border-top: 1px solid rgb(var(--slate-rgb) / .14);
 }
 .rhema__face {
   flex: 0 0 auto;
@@ -849,7 +935,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .rhema__by small {
   display: block;
   font-size: .7rem;
-  color: #5A6B74;                         /* Slate 400 — texto secundario */
+  color: var(--slate-400);                         /* Slate 400 — texto secundario */
 }
 
 /* En movil la palabra vive sobre el hueso de la seccion siguiente;
@@ -930,8 +1016,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .rhema--about {
   max-width: var(--measure);
   margin: 1rem 0 2.75rem;                 /* aire, sobre todo por debajo */
-  background: var(--bone);
-  border: 1px solid rgba(43, 58, 67, .14);
+  background: var(--papel);
+  border: 1px solid rgb(var(--slate-rgb) / .14);
 }
 
 /* =============================================================
@@ -1113,7 +1199,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: var(--bone);
+  background: var(--papel);
   border-top: 3px solid var(--iris);
   padding-top: 2.5rem;
 }
@@ -1161,7 +1247,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: block;
   position: relative;
   padding: .85rem .85rem 3.25rem;
-  background: #FBFAF7;
+  background: var(--papel-copia);
   border-radius: 2px;
   box-shadow:
     0 1px 1px rgba(11, 20, 13, .16),
@@ -1874,7 +1960,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 0 0 .85rem;
   font-size: .62rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* La ventana es la banda: a sangre, recta y quieta. Solo pone el verde y
@@ -1977,7 +2063,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 0;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* El subtitulo: en hueso y con cuerpo de verdad. Antes iba en el slate
@@ -2092,7 +2178,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   max-height: min(88svh, 46rem);
   overflow-y: auto;
   padding: 1.6rem 1.4rem 1.7rem;
-  background: var(--bone);
+  background: var(--papel-alto);
   color: var(--slate);
   border-radius: 26px;
   border-top: 3px solid var(--iris);
@@ -2108,9 +2194,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   z-index: 3;
   width: 2.25rem; height: 2.25rem;
   border-radius: 50%;
-  background: rgba(241, 239, 233, .9);
+  background: color-mix(in srgb, var(--papel-alto) 90%, transparent);
   font-size: 1.6rem; line-height: 1;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: color .2s var(--ease);
 }
 .video-panel__close:hover { color: var(--slate); }
@@ -2119,12 +2205,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 0 0 1.1rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .video-panel__note {
   margin: 1.1rem 0 0;
   font-size: .72rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* --- Paso uno: las tres, enteras --- */
@@ -2161,7 +2247,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   width: 100%;
   padding: .5rem .7rem;
   border-radius: 999px;
-  background: rgba(43, 58, 67, .08);
+  background: rgb(var(--slate-rgb) / .08);
   color: var(--slate);
   font-size: .76rem; font-weight: 600;
   transition: background-color .22s var(--ease), color .22s var(--ease);
@@ -2274,7 +2360,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: inline-flex; align-items: center; gap: .45rem;
   margin-bottom: .35rem;
   font-size: .74rem; font-weight: 600;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: color .2s var(--ease);
 }
 /* La flecha del sitio mira hacia abajo: girada un cuarto, mira hacia atras. */
@@ -2308,7 +2394,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .video-detail__orig {
   margin: 0;
   font-size: .74rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .video-detail__blurb {
   max-width: 34rem;
@@ -2326,13 +2412,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   width: 100%;
   margin-top: .9rem;
   padding-top: .85rem;
-  border-top: 1px solid rgba(43, 58, 67, .14);
+  border-top: 1px solid rgb(var(--slate-rgb) / .14);
 }
 .made-for__label {
   margin: 0 0 .55rem;
   font-size: .66rem; font-weight: 600;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .made-for__who {
   --dot: 2.6rem;
@@ -2347,7 +2433,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .made-for__text small {
   font-size: .74rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 .video-detail__link {
@@ -2386,7 +2472,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    ============================================================= */
 .cards {
   padding: 2.6rem var(--gutter) 3rem;
-  background: var(--bone-panel);
+  background: var(--papel-2);
   color: var(--slate);
 }
 /* El rotulo y los filtros en la misma linea mientras quepan; cuando no,
@@ -2415,7 +2501,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   flex: 0 0 auto;
   font-size: .62rem; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .faxis__chips {
   display: flex; gap: .35rem;
@@ -2433,7 +2519,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   justify-self: start;
   margin-top: .1rem;
   font-size: .72rem; font-weight: 600;
-  color: #5A6B74;
+  color: var(--slate-400);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color .2s var(--ease);
@@ -2443,24 +2529,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cards__none {
   margin: .4rem 0 0;
   font-size: .84rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .chip {
   padding: .38rem .8rem .42rem;
   border-radius: 999px;
-  background: rgba(43, 58, 67, .08);
-  color: #5A6B74;
+  background: rgb(var(--slate-rgb) / .08);
+  color: var(--slate-400);
   font-size: .74rem; font-weight: 600;
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.chip:hover { background: rgba(43, 58, 67, .14); color: var(--slate); }
+.chip:hover { background: rgb(var(--slate-rgb) / .14); color: var(--slate); }
 .chip.is-on { background: var(--pine); color: var(--bone); }
 
 .cards__title {
   margin: 0;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* EN MOVIL, UNA FILA QUE SE DESLIZA.
@@ -2495,6 +2581,97 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .cards__grid > li { scroll-snap-align: center; }
 
+/* =============================================================
+   LOS CARRILES: flechas a los costados e indicador debajo
+
+   Para las filas que se deslizan de lado en movil (`data-carril`). El guion
+   las pone y las esconde cuando todo cabe; sin guion no existen.
+   ============================================================= */
+.carril { position: relative; }
+/* Con flechas e indicador, la barra de scroll nativa sobra: era una raya gris
+   debajo de las tarjetas que decia lo mismo peor. Solo se quita cuando el
+   guion ha puesto el carril; sin el, la barra es la unica pista. */
+.carril > [data-carril] { scrollbar-width: none; }
+.carril > [data-carril]::-webkit-scrollbar { display: none; }
+/* Medio hueco a cada lado: la primera y la ultima tarjeta se centran como
+   las demas. --carril-centro lo mide el guion. */
+.carril.is-desborda > [data-carril] { padding-inline: var(--carril-centro); }
+
+/* LOS COSTADOS SE DESVANECEN. La fila misma se hace transparente hacia los
+   cantos: lo que asoma de la tarjeta de al lado no se tapa con nada, se
+   deja de pintar, y detras queda el fondo de la seccion tal cual. Por eso
+   no se nota —no hay sombra ni velo que ver— y funciona igual en claro y en
+   oscuro.
+
+   La mascara no se mueve con el scroll: va pegada a la caja de la fila. Es
+   transparente hasta el canto de la tarjeta de al lado (el hueco menos la
+   separacion entre tarjetas) y se vuelve opaca en el hueco vacio que las
+   separa, asi que la del centro queda entera y la de al lado no se ve. Al
+   deslizar, cada tarjeta aparece y se va fundiendose. */
+.carril.is-desborda > [data-carril] {
+  --carril-velo: max(0px, calc(var(--carril-centro) - .8rem));
+  -webkit-mask-image: linear-gradient(to right,
+    transparent var(--carril-velo), #000 var(--carril-centro),
+    #000 calc(100% - var(--carril-centro)), transparent calc(100% - var(--carril-velo)));
+  mask-image: linear-gradient(to right,
+    transparent var(--carril-velo), #000 var(--carril-centro),
+    #000 calc(100% - var(--carril-centro)), transparent calc(100% - var(--carril-velo)));
+}
+.carril__flecha {
+  position: absolute; z-index: 3;
+  /* El centro de la fila, sin contar el indicador de debajo. */
+  top: calc(50% - .6rem);
+  translate: 0 -50%;
+  display: grid; place-items: center;
+  width: 2.6rem; height: 2.6rem;
+  padding: 0; border: 0;
+  border-radius: 50%;
+  /* En la tinta de la pagina: pizarra con flecha de papel de dia, hueso con
+     flecha oscura de noche. Se leen sobre el fondo, no sobre una sombra. */
+  background: color-mix(in srgb, var(--slate) 90%, transparent);
+  color: var(--papel);
+  box-shadow: 0 .35rem .9rem rgba(22, 35, 26, .22);
+  cursor: pointer;
+  transition: opacity .2s var(--ease), scale .2s var(--ease);
+}
+.carril__flecha[hidden] { display: none; }
+/* El borde lo pone cada fila: la de las casas sale a sangre hasta el canto
+   de la pantalla, y ahi las flechas van casi pegadas al canto. */
+.carril__flecha--antes { left: var(--carril-borde, .35rem); }
+.carril__flecha--despues { right: var(--carril-borde, .35rem); }
+.carril__flecha::before {
+  content: "";
+  width: .55rem; height: .55rem;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+}
+.carril__flecha--antes::before { rotate: 135deg; translate: .14rem 0; }
+.carril__flecha--despues::before { rotate: -45deg; translate: -.14rem 0; }
+.carril__flecha[aria-disabled="true"] { opacity: .3; cursor: default; }
+.carril__flecha:active { scale: .92; }
+.carril__flecha:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; }
+
+.carril__puntos {
+  display: flex; justify-content: center; align-items: center; gap: .4rem;
+  height: .5rem;
+  margin-top: .7rem;
+}
+.carril__puntos[hidden] { display: none; }
+.carril__puntos span {
+  width: .45rem; height: .45rem;
+  border-radius: 999px;
+  background: rgb(var(--slate-rgb) / .22);
+  transition: width .25s var(--ease), background-color .25s var(--ease);
+}
+/* El pino como tinta: de noche el pino sobre el papel oscuro no se veia. */
+.carril__puntos span.is-on { width: 1.2rem; background: var(--pino-tinta); }
+.cards .carril {
+  --carril-borde: calc(var(--gutter) * -1 + .45rem);
+  --carril-sangre: var(--gutter);
+}
+@media (prefers-reduced-motion: reduce) {
+  .carril__flecha, .carril__puntos span { transition: none; }
+}
+
 /* --- La tarjeta ---------------------------------------------------
    Un boton, no un enlace: no lleva a otra direccion, abre la ficha aqui
    mismo. Un <a> sin destino se ve igual y no lleva a ningun sitio. */
@@ -2503,7 +2680,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   align-content: start;
   width: 100%; height: 100%;
   text-align: left;
-  background: var(--bone);
+  background: var(--papel-alto);
   border-radius: 16px;
   overflow: hidden;
   transition: translate .28s var(--ease), box-shadow .28s var(--ease);
@@ -2596,7 +2773,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .ecard__kind {
   font-size: .74rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 /* El tope es una red de seguridad, no un formato.
 
@@ -2637,7 +2814,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .epage {
   flex: 1 0 auto;
   padding: calc(var(--header-h) + 1.5rem) var(--gutter) 3.5rem;
-  background: var(--bone);
+  background: var(--papel);
   color: var(--slate);
   border-top: 3px solid var(--iris);
 }
@@ -2649,7 +2826,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: inline-flex; align-items: center; gap: .5rem;
   margin-bottom: 1.1rem;
   font-size: .76rem; font-weight: 600;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: color .2s var(--ease);
 }
 .epage__back .icon { width: .62rem; height: auto; rotate: 90deg; }
@@ -2699,7 +2876,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .wiz__bar {
   height: 3px;
   border-radius: 999px;
-  background: rgba(43, 58, 67, .12);
+  background: rgb(var(--slate-rgb) / .12);
   overflow: hidden;
 }
 .wiz__fill {
@@ -2719,7 +2896,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 0;
   font-size: .64rem; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* El paso ocupa un alto minimo para que la navegacion no salte de sitio
@@ -2756,7 +2933,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin-right: auto;
   padding: .7rem .9rem;
   font-size: .84rem; font-weight: 600;
-  color: #5A6B74;
+  color: var(--slate-400);
   text-decoration: underline; text-underline-offset: 3px;
   transition: color .2s var(--ease);
 }
@@ -2772,11 +2949,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: .25rem .55rem .28rem;
   border-radius: 999px;
   font-size: .66rem; font-weight: 700; letter-spacing: .06em;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.wiz__cur:hover span { background: rgba(43, 58, 67, .1); color: var(--slate); }
-.wiz__cur input:checked + span { background: var(--slate); color: var(--bone); }
+.wiz__cur:hover span { background: rgb(var(--slate-rgb) / .1); color: var(--slate); }
+.wiz__cur input:checked + span { background: var(--slate); color: var(--papel); }
 .wiz__cur input:focus-visible + span { outline: 2px solid var(--iris-300); outline-offset: 3px; }
 .wiz__amount { font-style: normal; }
 
@@ -2810,11 +2987,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: 0;
   font-size: .64rem; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .cform__field { display: grid; gap: .3rem; }
 .cform__label { font-size: .84rem; font-weight: 600; }
-.cform__opt { font-weight: 300; color: #5A6B74; }
+.cform__opt { font-weight: 300; color: var(--slate-400); }
 
 /* El canto de abajo y no una caja entera: una caja por campo convierte el
    formulario en una rejilla de cajas y se lee como una declaracion de la
@@ -2822,7 +2999,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cform__input {
   width: 100%;
   padding: .5rem .1rem;
-  border: 0; border-bottom: 1px solid rgba(43, 58, 67, .28);
+  border: 0; border-bottom: 1px solid rgb(var(--slate-rgb) / .28);
   border-radius: 0;
   background: none;
   color: var(--slate);
@@ -2830,14 +3007,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: border-color .22s var(--ease);
 }
 textarea.cform__input { resize: vertical; line-height: 1.55; }
-.cform__input:hover { border-bottom-color: rgba(43, 58, 67, .5); }
+.cform__input:hover { border-bottom-color: rgb(var(--slate-rgb) / .5); }
 .cform__input:focus {
   outline: none;
-  border-bottom-color: var(--iris-700);
+  border-bottom-color: var(--iris-tinta);
 }
 /* El aviso del navegador ya dice que falta; esto lo dice tambien en color,
    pero solo despues de intentar enviar — no mientras se escribe. */
-.cform:invalid .cform__input:invalid { border-bottom-color: rgba(43, 58, 67, .28); }
+.cform:invalid .cform__input:invalid { border-bottom-color: rgb(var(--slate-rgb) / .28); }
 .cform__input:user-invalid { border-bottom-color: #A6432F; }
 
 /* La primera pregunta va en tarjetas y no en fichas: cada linea necesita
@@ -2862,18 +3039,18 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .ocard__box {
   display: grid; gap: .2rem; height: 100%;
   padding: .8rem .95rem .9rem;
-  border: 1px solid rgba(43, 58, 67, .18);
+  border: 1px solid rgb(var(--slate-rgb) / .18);
   border-radius: 14px;
   transition: border-color .2s var(--ease), background-color .2s var(--ease);
 }
-.ocard:hover .ocard__box { border-color: rgba(43, 58, 67, .42); }
+.ocard:hover .ocard__box { border-color: rgb(var(--slate-rgb) / .42); }
 .ocard input:checked + .ocard__box {
   border-color: var(--pine);
   background: rgba(38, 59, 40, .06);
 }
 .ocard input:focus-visible + .ocard__box { outline: 2px solid var(--iris-300); outline-offset: 3px; }
 .ocard__name { font-size: .92rem; font-weight: 600; }
-.ocard__hint { font-size: .78rem; font-weight: 300; line-height: 1.45; color: #5A6B74; }
+.ocard__hint { font-size: .78rem; font-weight: 300; line-height: 1.45; color: var(--slate-400); }
 
 .cform__chips { display: flex; flex-wrap: wrap; gap: .4rem; }
 .cform__chip { position: relative; display: inline-flex; cursor: pointer; }
@@ -2885,12 +3062,12 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   display: inline-block;
   padding: .42rem .9rem .46rem;
   border-radius: 999px;
-  background: rgba(43, 58, 67, .07);
-  color: #5A6B74;
+  background: rgb(var(--slate-rgb) / .07);
+  color: var(--slate-400);
   font-size: .78rem; font-weight: 600;
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.cform__chip:hover span { background: rgba(43, 58, 67, .13); color: var(--slate); }
+.cform__chip:hover span { background: rgb(var(--slate-rgb) / .13); color: var(--slate); }
 .cform__chip input:checked + span { background: var(--pine); color: var(--bone); }
 .cform__chip input:focus-visible + span { outline: 2px solid var(--iris-300); outline-offset: 3px; }
 
@@ -2929,7 +3106,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .cform__friends {
   margin-top: 3rem;
   padding-top: 1.4rem;
-  border-top: 1px solid rgba(43, 58, 67, .14);
+  border-top: 1px solid rgb(var(--slate-rgb) / .14);
   text-align: center;
 }
 .cform__friends-body { display: grid; justify-items: center; }
@@ -2937,7 +3114,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .cform__friends summary {
   cursor: pointer;
   font-size: .82rem; font-weight: 600;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: color .2s var(--ease);
 }
 .cform__friends summary:hover { color: var(--slate); }
@@ -2945,7 +3122,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .cform__friends-body p { margin: 0 0 .9rem; font-size: .9rem; font-weight: 300; }
 .cform__direct { display: flex; gap: 1.4rem; }
 .cform__direct li { display: grid; justify-items: center; gap: .4rem; }
-.cform__direct-name { font-size: .72rem; font-weight: 600; color: #5A6B74; }
+.cform__direct-name { font-size: .72rem; font-weight: 600; color: var(--slate-400); }
 
 /* `.link-chip` esta hecho para suelo OSCURO: el glifo va en hueso y el
    color de la plataforma solo aparece al tocarla. Aqui el suelo es hueso,
@@ -2957,7 +3134,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 /* El de VSCO es hueso sobre hueso por su propia marca: ahi hace falta un
    canto para que el circulo se vea. Vale para cualquiera que sea claro. */
-.cform__direct .link-chip { box-shadow: inset 0 0 0 1px rgba(43, 58, 67, .12); }
+.cform__direct .link-chip { box-shadow: inset 0 0 0 1px rgb(var(--slate-rgb) / .12); }
 
 /* Se hunde un pelo al pulsar. Es lo unico que separa una ficha de una
    etiqueta de colores. */
@@ -2993,7 +3170,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .entity__kind {
   margin: .15rem 0 0;
   font-size: .78rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .entity__blurb {
   margin: .7rem 0 0;
@@ -3004,31 +3181,31 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .entity__works-title {
   margin: 1.3rem 0 .6rem;
   padding-top: .9rem;
-  border-top: 1px solid rgba(43, 58, 67, .14);
+  border-top: 1px solid rgb(var(--slate-rgb) / .14);
   font-size: .66rem; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .entity__works { display: grid; }
 .entity__work > a,
 .entity__work > span {
   display: flex; align-items: baseline; gap: .6rem;
   padding: .55rem 0;
-  border-bottom: 1px solid rgba(43, 58, 67, .09);
+  border-bottom: 1px solid rgb(var(--slate-rgb) / .09);
 }
 .entity__work > a { transition: color .2s var(--ease); }
-.entity__work > a:hover { color: var(--iris-700); }
+.entity__work > a:hover { color: var(--iris-tinta); }
 .entity__work-title { flex: 1 1 auto; font-size: .88rem; font-weight: 600; }
 .entity__work-year {
   font-size: .74rem; font-weight: 300;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .entity__work .icon { width: .7rem; height: .7rem; flex: 0 0 auto; }
 .entity__empty {
   margin: 0;
   font-size: .84rem; font-weight: 300;
   line-height: 1.6;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* =============================================================
@@ -3042,7 +3219,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
    amontonarse en uno. Abajo se le suma lo que pida el movil por su
    barra, que para eso esta `env()`. */
 .site-footer {
-  background: var(--bone);
+  background: var(--papel);
   color: var(--slate);
   text-align: center;
   padding: 2.25rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
@@ -3080,7 +3257,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .site-footer__meta {
   margin: 0;
   font-size: .75rem;
-  color: #5A6B74;                     /* Slate 400 — secondary text */
+  color: var(--slate-400);                     /* Slate 400 — secondary text */
   display: flex; justify-content: center; gap: .5rem; flex-wrap: wrap;
 }
 .site-footer__meta a { border-bottom: 1px solid currentColor; }
@@ -3104,8 +3281,8 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   cursor: pointer;
   transition: color .22s var(--ease), border-color .22s var(--ease);
 }
-.term:hover, .term:focus-visible { color: var(--iris-700); border-bottom-style: solid; }
-.rhema__text .term:hover, .rhema__text .term:focus-visible { color: var(--iris-700); }
+.term:hover, .term:focus-visible { color: var(--iris-tinta); border-bottom-style: solid; }
+.rhema__text .term:hover, .rhema__text .term:focus-visible { color: var(--iris-tinta); }
 
 .term-panel { position: fixed; inset: 0; z-index: 75; display: grid; align-items: end; }
 .term-panel__scrim {
@@ -3117,7 +3294,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .term-panel__sheet {
   position: relative;
   padding: 1.75rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
-  background: var(--bone);
+  background: var(--papel-alto);
   color: var(--slate);
   border-top: 3px solid var(--ring);
   border-radius: 32px 32px 0 0;
@@ -3153,14 +3330,14 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: -.5rem -.4rem -1.75rem auto;
   width: 2.25rem; height: 2.25rem;
   font-size: 1.6rem; line-height: 1;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .term-panel__close:hover { color: var(--slate); }
 
 .term-panel__script {
   margin: 0 0 .35rem;
   font-size: 2.1rem; line-height: 1.35;
-  color: var(--iris-700);
+  color: var(--iris-tinta);
 }
 .term-panel__title {
   margin: 0;
@@ -3172,7 +3349,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: .1rem 0 .9rem;
   font-size: .74rem; font-weight: 600;
   letter-spacing: .08em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .term-panel__def {
   margin: 0 0 1.35rem;
@@ -3207,19 +3384,19 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .term-tabs__label {
   font-size: .62rem; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .term-tabs__row { display: flex; flex-wrap: wrap; gap: .4rem; }
 .term-tab {
   display: inline-flex; align-items: center; gap: .4rem;
   padding: .42rem .85rem .46rem;
   border-radius: 999px;
-  background: rgba(43, 58, 67, .07);
-  color: #5A6B74;
+  background: rgb(var(--slate-rgb) / .07);
+  color: var(--slate-400);
   font-size: .74rem; font-weight: 600;
   transition: background-color .22s var(--ease), color .22s var(--ease);
 }
-.term-tab:hover { background: rgba(43, 58, 67, .13); color: var(--slate); }
+.term-tab:hover { background: rgb(var(--slate-rgb) / .13); color: var(--slate); }
 .term-tab[aria-selected="true"] { background: var(--pine); color: var(--bone); }
 
 /* El pez, a media tinta. Las dos copias se apilan en la misma caja. */
@@ -3267,16 +3444,16 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: 1.15rem 0 .45rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .term-panel__sections .term-panel__def:last-child { margin-bottom: 0; }
 .term-panel__pillars { margin-top: 1.15rem; }
 .term-panel__pillars .term-panel__deftitle { margin-top: 0; }
 
 .pillar {
-  border-top: 1px solid rgba(43, 58, 67, .16);
+  border-top: 1px solid rgb(var(--slate-rgb) / .16);
 }
-.pillar:last-of-type { border-bottom: 1px solid rgba(43, 58, 67, .16); }
+.pillar:last-of-type { border-bottom: 1px solid rgb(var(--slate-rgb) / .16); }
 
 .pillar__head {
   display: flex; align-items: center; gap: .8rem;
@@ -3286,16 +3463,16 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   transition: color .2s var(--ease);
 }
 .pillar__head::-webkit-details-marker { display: none; }   /* Safari */
-.pillar__head:hover { color: var(--iris-700); }
+.pillar__head:hover { color: var(--iris-tinta); }
 
 .pillar__n {
   flex: 0 0 auto;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .1em;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: color .2s var(--ease);
 }
-.pillar[open] .pillar__n { color: var(--iris-700); }
+.pillar[open] .pillar__n { color: var(--iris-tinta); }
 
 .pillar__name {
   flex: 1 1 auto;
@@ -3316,13 +3493,13 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   content: "";
   position: absolute; inset: 50% 0 auto 0;
   height: 1.5px;
-  background: #5A6B74;
+  background: var(--slate-400);
   transition: rotate .3s var(--ease), opacity .3s var(--ease), background .2s var(--ease);
 }
 .pillar__mark::after { rotate: 90deg; }
 .pillar[open] .pillar__mark::after { rotate: 0deg; opacity: 0; }
 .pillar[open] .pillar__mark::before,
-.pillar[open] .pillar__mark::after { background: var(--iris-700); }
+.pillar[open] .pillar__mark::after { background: var(--iris-tinta); }
 
 .pillar__text {
   margin: 0;
@@ -3331,12 +3508,12 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   line-height: 1.7;
   color: var(--slate);
 }
-.term-panel__cite { border-top: 1px solid rgba(43, 58, 67, .16); padding-top: .8rem; }
+.term-panel__cite { border-top: 1px solid rgb(var(--slate-rgb) / .16); padding-top: .8rem; }
 .term-panel__cite-label {
   margin: 0 0 .3rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 /* APA: second and further lines indented */
 .term-panel__source {
@@ -3344,7 +3521,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   padding-left: 1.4rem;
   text-indent: -1.4rem;
   font-size: .76rem; line-height: 1.55;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 
 /* =============================================================
@@ -3576,6 +3753,142 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 }
 .lang__badge .icon { width: .6rem; height: .6rem; }
 
+/* =============================================================
+   APARIENCIA — automatica, clara u oscura
+   La hoja, la entrada y la vuelta al abrir son las del idioma (lleva sus
+   clases). Aqui solo va lo suyo: las caras del boton y las marcas de la
+   hoja.
+   ============================================================= */
+/* EL BOTON. Un circulo del tamaño de la bandera, a su lado y dentro de la
+   pastilla, en todas las pantallas. En movil estuvo un rato colgando debajo
+   como media pastilla: le quitaba pantalla al que lee, y escondida al bajar,
+   volver a encontrarla costaba. */
+.tema__switch {
+  --on: var(--tema-on, 0);
+  position: relative;
+  flex: 0 0 auto;
+  width: 1.95rem; height: 1.95rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: color-mix(in srgb, #0E1811 calc(var(--on) * 100%), var(--iris));
+  box-shadow: inset 0 0 0 1px rgba(241, 239, 233, .12), inset 0 2px 5px rgba(11, 20, 13, .28);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: background-color .6s var(--ease-smooth), scale .3s var(--ease);
+}
+.tema__switch:hover { scale: 1.08; }
+.tema__switch:active { scale: .95; }
+.tema__switch:focus-visible { outline: 2px solid var(--iris-300); outline-offset: 2px; }
+.tema__cielo { position: absolute; inset: 0; border-radius: inherit; }
+
+/* LA RUEDA. Un eje por debajo del boton lleva el sol arriba y la luna
+   abajo, del reves. Al anochecer gira media vuelta: el sol se pone por la
+   derecha y la luna sale por la izquierda, ya derecha. Al volver, lo
+   contrario. Todo sale de `--tema-on` (0 de dia, 1 de noche), que pone el
+   CSS del tema: nada espera al guion.
+
+   El astro no va al centro sino arriba a la izquierda, con la nube abajo a
+   la derecha: centrado y con la nube debajo parecia la foto de un perfil. */
+.tema__rueda {
+  position: absolute; top: 2.26rem; left: .86rem;
+  width: 0; height: 0;
+  rotate: calc(var(--on) * 180deg);
+  transition: rotate .9s var(--ease-smooth);
+}
+.tema__astro {
+  position: absolute; left: -.5rem;
+  width: 1rem; height: 1rem;
+  border-radius: 50%;
+  transition: opacity .45s var(--ease-smooth);
+}
+/* El sol en oro con un halo; la luna llena en hueso con tres crateres. */
+.tema__astro--sol {
+  top: calc(-1.4rem - .5rem);
+  background: var(--ring-300);
+  box-shadow: 0 0 0 .16rem rgba(241, 239, 233, .13), 0 1px 3px rgba(11, 20, 13, .35);
+  opacity: calc(1 - var(--on));
+}
+.tema__astro--luna {
+  top: calc(1.4rem - .5rem);
+  rotate: 180deg;
+  background: var(--bone);
+  box-shadow: 0 0 .5rem rgba(241, 239, 233, .28), 0 1px 3px rgba(11, 20, 13, .4);
+  opacity: var(--on);
+}
+.tema__astro--luna i { position: absolute; border-radius: 50%; background: var(--pine-200); opacity: .6; }
+.tema__astro--luna i:nth-child(1) { width: 30%; height: 30%; left: 48%; top: 16%; }
+.tema__astro--luna i:nth-child(2) { width: 20%; height: 20%; left: 20%; top: 46%; }
+.tema__astro--luna i:nth-child(3) { width: 13%; height: 13%; left: 58%; top: 64%; }
+
+/* La nube: tres circulos de hueso, sentada en el borde de abajo. De noche
+   baja y se va. */
+.tema__nube {
+  position: absolute; left: .98rem; bottom: -.1rem;
+  width: .55rem; height: .55rem;
+  border-radius: 50%;
+  background: var(--bone);
+  box-shadow: .42rem -.17rem 0 .08rem var(--bone), .84rem .05rem 0 0 var(--bone);
+  scale: .72;
+  transform-origin: left bottom;
+  opacity: calc((1 - var(--on)) * .92);
+  translate: 0 calc(var(--on) * .8rem);
+  transition: translate .5s var(--ease-smooth), opacity .35s var(--ease-smooth);
+}
+
+/* Las estrellas caen en su sitio una detras de otra y titilan despacio. */
+.tema__estrellas { position: absolute; inset: 0; }
+.tema__estrella {
+  position: absolute;
+  fill: var(--bone);
+  opacity: var(--on);
+  translate: 0 calc((1 - var(--on)) * -.7rem);
+  transition: translate .55s var(--ease-smooth), opacity .4s var(--ease-smooth);
+}
+.tema__estrella path { transform-box: fill-box; transform-origin: center; animation: temaTitila 2.8s ease-in-out infinite; }
+.tema__estrella:nth-child(1) { width: .36rem; height: .36rem; left: 1.42rem; top: .34rem; transition-delay: .1s; }
+.tema__estrella:nth-child(2) { width: .25rem; height: .25rem; left: .46rem; top: 1.46rem; transition-delay: .18s; }
+.tema__estrella:nth-child(3) { width: .31rem; height: .31rem; left: 1.25rem; top: 1.33rem; transition-delay: .26s; }
+.tema__estrella:nth-child(2) path { animation-delay: .9s; }
+.tema__estrella:nth-child(3) path { animation-delay: 1.7s; }
+@keyframes temaTitila {
+  0%, 100% { scale: 1; }
+  45% { scale: .7; }
+}
+
+.tema__option { width: 100%; text-align: left; }
+.tema__ico {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 1.4rem; height: 1.4rem;
+  border-radius: 50%;
+  background: rgba(241, 239, 233, .08);
+  color: var(--bone);
+}
+.tema__ico .icon { width: .85rem; height: .85rem; }
+.tema__option[data-tema-set="claro"] .tema__ico { color: var(--ring-300); }
+.tema__option[data-tema-set="oscuro"] .tema__ico { color: var(--iris-300); }
+.tema__option[data-tema-set="sol"] .tema__ico { color: var(--ring-300); }
+.lang__options .tema__corte { margin-top: .3rem; padding-top: .3rem; border-top: 1px solid rgba(241, 239, 233, .08); }
+.tema__name { display: grid; font-size: .84rem; font-weight: 500; letter-spacing: -.01em; line-height: 1.25; }
+.tema__name small { font-size: .66rem; font-weight: 300; letter-spacing: 0; color: var(--pine-200); }
+/* La puesta lleva su marca: un visto que se dibuja de chico a grande. */
+.tema__check {
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: .72rem; height: .4rem;
+  border-left: 2px solid var(--iris-300); border-bottom: 2px solid var(--iris-300);
+  rotate: -45deg; translate: 0 -.12rem;
+  opacity: 0; scale: .4;
+  transition: opacity .25s var(--ease), scale .4s var(--ease-smooth);
+}
+.tema__option[aria-pressed="true"] { background: rgba(241, 239, 233, .09); }
+.tema__option[aria-pressed="true"] .tema__check { opacity: 1; scale: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .tema__rueda, .tema__astro, .tema__nube, .tema__estrella, .tema__check { transition: none; }
+  .tema__estrella path { animation: none; }
+}
+
 
 
 /* =============================================================
@@ -3795,7 +4108,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   position: relative;
   width: min(23rem, 100%);
   padding: 2rem 1.6rem 1.6rem;
-  background: var(--bone);
+  background: var(--papel-alto);
   color: var(--slate);
   border-radius: 26px;
   border-top: 3px solid var(--iris);
@@ -3811,7 +4124,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   position: absolute; top: .5rem; right: .8rem;
   width: 2.25rem; height: 2.25rem;
   font-size: 1.6rem; line-height: 1;
-  color: #5A6B74;
+  color: var(--slate-400);
   transition: color .2s var(--ease);
 }
 .here-panel__close:hover { color: var(--slate); }
@@ -3820,7 +4133,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: 0 0 .9rem;
   display: grid; place-items: center;
 }
-.here-panel__mark .icon { width: 1.5rem; height: auto; color: var(--iris-700); }
+.here-panel__mark .icon { width: 1.5rem; height: auto; color: var(--iris-tinta); }
 
 .here-panel__title {
   margin: 0 0 .5rem;
@@ -3833,7 +4146,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: 0 0 1.4rem;
   font-size: .88rem; font-weight: 300;
   line-height: 1.6;
-  color: #5A6B74;
+  color: var(--slate-400);
   text-wrap: pretty;
 }
 .here-panel__ok {
@@ -3892,7 +4205,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   display: flex;
   flex-direction: column;
   padding: calc(var(--header-h) + 1.5rem) var(--gutter) 3.25rem;
-  background: var(--bone);
+  background: var(--papel);
   color: var(--slate);
   border-top: 3px solid var(--iris);
 }
@@ -3917,7 +4230,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: 1.4rem 0 0;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .phero__status-dot {
   flex: 0 0 auto;
@@ -3931,7 +4244,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .phero__aside {
   margin-top: 2.75rem;
   padding-top: 2rem;
-  border-top: 1px solid rgba(43, 58, 67, .14);
+  border-top: 1px solid rgb(var(--slate-rgb) / .14);
 }
 .phero__seal { display: none; }            /* solo en la costura */
 
@@ -3939,17 +4252,17 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   margin: 0 0 .8rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 .phero__doors-list { display: flex; flex-wrap: wrap; gap: .6rem; }
 /* Sobre hueso las puertas se dibujan en slate, no en hueso. */
 .phero .door {
-  border-color: rgba(43, 58, 67, .28);
+  border-color: rgb(var(--slate-rgb) / .28);
   color: var(--slate);
 }
-.phero .door__badge { background: rgba(43, 58, 67, .1); }
+.phero .door__badge { background: rgb(var(--slate-rgb) / .1); }
 .phero .door:hover, .phero .door:focus-visible {
-  background: var(--slate); color: var(--bone); border-color: var(--slate);
+  background: var(--slate); color: var(--papel); border-color: var(--slate);
 }
 .phero .door:hover .door__badge, .phero .door:focus-visible .door__badge {
   background: rgba(241, 239, 233, .18);
@@ -4634,6 +4947,45 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   display: flex; flex-direction: column; justify-content: center;
 }
 
+/* EN MOVIL, ARRIBA Y CON SELLO. Centrado en una pantalla entera, el carrusel
+   dejaba doscientos pixeles vacios encima —justo entre la cinta de «Lo que
+   estoy construyendo» y «Una por una»— y otros tantos debajo. Se sube hasta
+   la cabecera, que es donde empieza a leerse, y el hueco que queda al pie
+   lo ocupa el ictus de la casa, centrado y apagado: cierra la hoja en vez de
+   dejarla a medias. Desde 600px las tarjetas vuelven a ser rejilla y llenan
+   la pantalla solas; ahi no hay hueco ni sello. */
+.cards__sello { display: none; }
+@media (max-width: 599px) {
+  .cards {
+    justify-content: flex-start;
+    padding-top: calc(var(--header-h) + 1.6rem);
+    padding-bottom: 1.5rem;
+  }
+  .cards__sello {
+    flex: 1 0 auto;
+    display: grid; place-items: center;
+    min-height: 4rem;
+    color: var(--iris-tinta);
+    opacity: .45;
+  }
+  .cards__sello .icon {
+    width: auto; height: 2.1rem;
+    animation: floatY 7s var(--ease-smooth) infinite;
+  }
+
+  /* LAS TARJETAS, CASI DE BORDE A BORDE. Con 17.5rem eran una ficha chica en
+     medio de la pantalla; ahora ocupan el ancho menos un margen de 2rem a
+     cada lado —por donde entran y salen fundiendose—, sin bajar de 17.5rem
+     en un telefono estrecho ni pasar de 22rem en uno grande. */
+  .cards__grid { grid-auto-columns: clamp(17.5rem, calc(100vw - 4rem), 22rem); }
+  /* Mas ancha la tarjeta, mas cerca del canto la flecha: un poco mas chica
+     para no pisar el texto. */
+  .carril__flecha { width: 2.3rem; height: 2.3rem; }
+}
+@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
+  .cards__sello .icon { animation: none; }
+}
+
 /* =============================================================
    LA PREGUNTA QUE SE CORRIGE A MANO
 
@@ -4696,7 +5048,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   white-space: nowrap;
   text-decoration: none;
   font-weight: 500;
-  color: rgba(43, 58, 67, .55);
+  color: rgb(var(--slate-rgb) / .55);
   transition: opacity .15s var(--ease), visibility .15s;
 }
 .corrige__tacha.is-on { transition: opacity .18s var(--ease) .15s, visibility 0s .15s; }
@@ -4722,7 +5074,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   max-width: 100%;
   font-family: var(--hand); font-weight: 400;
   font-size: 1.75em; line-height: .9;
-  color: var(--ring-700);
+  color: var(--ring-tinta);
 }
 .cpage .corrige__nota { color: var(--ring); }
 @media (prefers-reduced-motion: reduce) {
@@ -4879,18 +5231,18 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 .proposito__que {
   margin: .9rem 0 0;
   font-size: 1rem; font-weight: 600; line-height: 1.55;
-  color: var(--pine);
+  color: var(--pino-tinta);
 }
 .proposito__bloque {
   margin-top: 1.2rem; padding-top: .9rem;
-  border-top: 1px solid rgba(43, 58, 67, .14);
+  border-top: 1px solid rgb(var(--slate-rgb) / .14);
 }
 .proposito__rotulo {
   margin: 0 0 .35rem;
   font-family: var(--sans);
   font-size: .66rem; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #5A6B74;
+  color: var(--slate-400);
 }
 /* En negrita lo que se dice; debajo, en normal, lo que lo explica. */
 .proposito__corta { margin: 0; font-size: .96rem; font-weight: 700; line-height: 1.45; color: var(--slate); }

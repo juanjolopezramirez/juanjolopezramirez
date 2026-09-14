@@ -1,0 +1,73 @@
+---
+import Icon from './Icon.astro';
+const { t } = Astro.props;
+
+/* La apariencia: un interruptor con cielo, y los cuatro modos.
+
+   EL INTERRUPTOR ES UN CIELO. De dia, iris con el sol en oro y una nube;
+   de noche, pinar cerrado con la luna llena y tres estrellas. Un toque y
+   cambia de una, de claro a oscuro o al reves. Lo pinta el CSS con
+   `--tema-on` (1 cuando la pagina esta oscura): sale bien desde el primer
+   fotograma y el guion solo le pone `aria-checked` a quien escucha.
+
+   ES UN CIRCULO DEL TAMAÑO DE LA BANDERA, a su lado y dentro de la
+   pastilla, en todas las pantallas. Al cambiar, el sol se pone por la
+   derecha y la luna sale por la izquierda, girando sobre un eje por debajo
+   del boton. No hay boton de opciones: los modos salen al dejar el raton
+   encima, manteniendo pulsado con el dedo o con la flecha abajo (site.js).
+   En movil estuvo colgando debajo de la pastilla, y le quitaba pantalla a
+   quien lee.
+
+   Los modos:
+     · Claro y Oscuro — fijos, los mismos del interruptor.
+     · Automatico — como tu dispositivo.
+     · Segun el sol — oscuro desde que se pone el sol donde estes. No pide
+       ubicacion: la saca de la zona horaria del navegador. */
+const MODOS = [
+  { id: 'claro', icon: 'sun' },
+  { id: 'oscuro', icon: 'moon' },
+  { id: 'sistema', icon: 'auto', nota: 'theme.sistemaNote' },
+  { id: 'sol', icon: 'sunset', nota: 'theme.solNote' }
+];
+/* La estrella de cuatro puntas, con curvas hacia dentro. */
+const ESTRELLA = 'M10 0C10 7 13 10 20 10C13 10 10 13 10 20C10 13 7 10 0 10C7 10 10 7 10 0Z';
+---
+<div class="lang tema" data-tema-picker>
+  <div class="lang__scrim" data-tema-close></div>
+
+  <div class="lang__list" id="tema-list" hidden role="group" aria-label={t('theme.title')}>
+    <div class="lang__head">
+      <p class="lang__title">{t('theme.title')}</p>
+    </div>
+    <ul class="lang__options">
+      {MODOS.map((m, i) => (
+        <li style={`--d:${i * 55}ms`} class:list={[{ 'tema__corte': m.id === 'sistema' }]}>
+          <button class="lang__option tema__option" type="button" data-tema-set={m.id}
+                  aria-pressed={m.id === 'sistema' ? 'true' : 'false'}>
+            <span class="tema__ico" aria-hidden="true"><Icon id={m.icon} /></span>
+            <span class="tema__name">
+              {t(`theme.${m.id}`)}
+              {m.nota && <small>{t(m.nota)}</small>}
+            </span>
+            <span class="tema__check" aria-hidden="true"></span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <button class="tema__switch" type="button" role="switch" aria-checked="false"
+          data-tema-switch aria-label={t('theme.oscuro')} aria-describedby="tema-pista">
+    <span class="tema__cielo" aria-hidden="true">
+      <span class="tema__estrellas">
+        {[1, 2, 3].map(() => <svg class="tema__estrella" viewBox="0 0 20 20" focusable="false"><path d={ESTRELLA} /></svg>)}
+      </span>
+      <span class="tema__nube"></span>
+      <span class="tema__rueda">
+        <span class="tema__astro tema__astro--sol"></span>
+        <span class="tema__astro tema__astro--luna"><i></i><i></i><i></i></span>
+      </span>
+    </span>
+  </button>
+  <span class="sr-only" id="tema-pista">{t('theme.hint')}</span>
+</div>

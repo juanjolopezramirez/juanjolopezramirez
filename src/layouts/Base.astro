@@ -44,6 +44,16 @@ const canonical = alt(lang);
   <!-- Antes de pintar nada: si hay JavaScript, el telon esta puesto. Si no,
        no se pone nunca y los enlaces navegan como siempre. -->
   <script is:inline>document.documentElement.classList.add('js-curtain');</script>
+  <!-- La apariencia elegida, antes de pintar. Si se pusiera despues, quien
+       eligio oscuro veria un destello de hueso en cada pagina. Sin nada
+       guardado no se toca: manda el dispositivo (ThemePicker.astro).
+
+       «Segun el sol» se resuelve aqui mismo: `jlrSol` dice si donde estas ya
+       se puso el sol, con la ecuacion del amanecer. El lugar lo guarda
+       site.js la primera vez (sale de la zona horaria); mientras no esta, se
+       estima la longitud por el desfase horario de invierno, y el ecuador de
+       latitud. site.js vuelve a preguntarle cada minuto. -->
+  <script is:inline>window.jlrSol=function(){var c=[],r=Math.PI/180,y=new Date().getFullYear();try{c=(localStorage.getItem('jlr:sol')||'').split(',');}catch(e){}var o=Math.max(new Date(y,0,1).getTimezoneOffset(),new Date(y,6,1).getTimezoneOffset()),la=c.length===2?+c[0]:0,lo=c.length===2?+c[1]:-o/4,d=Date.now()/864e5-10957.5,j=Math.round(d+lo/360)-lo/360,M=(357.5291+.98560028*j)*r,L=M+(1.9148*Math.sin(M)+.02*Math.sin(2*M)+.0003*Math.sin(3*M)+282.9372)*r,t=j+.0053*Math.sin(M)-.0069*Math.sin(2*L),s=Math.sin(L)*Math.sin(23.4397*r),k=(Math.sin(-.833*r)-Math.sin(la*r)*s)/(Math.cos(la*r)*Math.sqrt(1-s*s)),w=Math.acos(Math.max(-1,Math.min(1,k)))/(2*Math.PI);return Math.abs(d-t)>w?'oscuro':'claro';};try{var jlrTema=localStorage.getItem('jlr:tema');if(jlrTema==='sol')jlrTema=jlrSol();if(jlrTema==='claro'||jlrTema==='oscuro')document.documentElement.setAttribute('data-tema',jlrTema);}catch(e){}</script>
   <!-- La altura de la ventana, tomada una sola vez y antes de pintar.
        Lo que se mida contra ella deja de moverse cuando el navegador
        esconde su barra al primer scroll. Va aqui y no en site.js para
