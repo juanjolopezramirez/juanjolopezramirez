@@ -36,15 +36,14 @@ export const PARTNERS = [
       fr: 'Quinze ans d’immobilier à Bogotá et dans la Sabana. Vendre une maison n’est pas vendre un produit : ce qui change de mains, c’est le lieu où quelqu’un va vivre.',
       it: 'Quindici anni di immobiliare a Bogotá e nella Sabana. Vendere una casa non è vendere un prodotto: ciò che passa di mano è il posto dove qualcuno vivrà.'
     } },
-  /* Estas dos no son clientes: son casa. Por eso llevan su propia linea
-     de «que es» y no la que pone la lista — y esa linea dice de quien es,
-     que es mas concreto que llamarlas aliadas y no dice menos. */
+  /* Estas dos no son clientes, y por eso llevan su propia linea de «que es»
+     y no la que pone la lista: son aliadas. Antes esa linea decia de quien
+     era cada una —el proyecto de mi padre, el de mi madre—; se cambio por
+     «Aliado» porque en una tarjeta publica lo que importa es la relacion
+     de trabajo, no el parentesco (decision del fundador). */
   { id: 'capitalxmio',    name: 'Capitalxm.io',   src: '/assets/partners/capitalxmio.svg',    w: 1278, h: 188, scale: 0.62,
     tags: ['finanzas', 'inmobiliaria', 'software'],
-    role: {
-      es: 'Proyecto de mi padre', en: 'My father’s project', pt: 'Projeto do meu pai',
-      fr: 'Le projet de mon père', it: 'Il progetto di mio padre'
-    },
+    role: { es: 'Aliado', en: 'Ally', pt: 'Aliado', fr: 'Allié', it: 'Alleato' },
     blurb: {
       es: 'De la preventa a la financiación de un proyecto inmobiliario: fiduciaria, constructor e inversionista, y el dinero que solo se mueve cuando la obra se mueve.',
       en: 'From presale to funding on a real estate project: trustee, developer and investor, and money that only moves when the building actually moves.',
@@ -54,10 +53,7 @@ export const PARTNERS = [
     } },
   { id: 'su-essencia',    name: 'Su Essencia',    src: '/assets/partners/su-essencia.svg',    w: 1565, h: 306, scale: 0.68,
     tags: ['comunidad'],
-    role: {
-      es: 'Proyecto de mi madre', en: 'My mother’s project', pt: 'Projeto da minha mãe',
-      fr: 'Le projet de ma mère', it: 'Il progetto di mia madre'
-    },
+    role: { es: 'Aliado', en: 'Ally', pt: 'Aliado', fr: 'Allié', it: 'Alleato' },
     blurb: {
       es: 'Comunidad digital para volver a lo esencial: desde el amor y la verdad, lejos del ritual. Recursos para cuidar tres vínculos: con Dios, con uno mismo y con los demás.',
       en: 'Digital community for returning to the essential: from love and truth, far from ritual. Resources for tending three bonds: with God, with yourself and with others.',

@@ -140,8 +140,20 @@ export const HOUSES = [
     logo: '/assets/projects/fraterni-academy-icon.svg',
     wordmark: '/assets/projects/fraterni-academy.svg',
     name: 'Fraterni Academy',
-    role: { es: 'La escuela de FraterniU' },
-    hint: { es: 'Entrenamientos cortos para practicar en el día lo que se aprende.' }
+    role: {
+      es: 'La escuela de FraterniU',
+      en: 'FraterniU’s school',
+      pt: 'A escola da FraterniU',
+      fr: 'L’école de FraterniU',
+      it: 'La scuola di FraterniU'
+    },
+    hint: {
+      es: 'Entrenamientos cortos para practicar en el día lo que se aprende.',
+      en: 'Short trainings to put what you learn into practice the same day.',
+      pt: 'Treinos curtos para praticar no dia o que se aprende.',
+      fr: 'Des entraînements courts pour pratiquer dans la journée ce qu’on apprend.',
+      it: 'Allenamenti brevi per mettere in pratica in giornata ciò che si impara.'
+    }
   },
   {
     /* Fraterni Us: lo de FraterniU, pero para grupos. Sin sitio todavia, y
@@ -155,8 +167,20 @@ export const HOUSES = [
     wordmark: '/assets/projects/fraterni.png',
     wordmarkScale: 0.82,
     name: 'Fraterni Us',
-    role: { es: 'Orden y crecimiento para grupos' },
-    hint: { es: 'Lo mismo que FraterniU, pero para que un grupo avance junto.' }
+    role: {
+      es: 'Orden y crecimiento para grupos',
+      en: 'Order and growth for groups',
+      pt: 'Organização e crescimento para grupos',
+      fr: 'Organisation et croissance pour les groupes',
+      it: 'Ordine e crescita per i gruppi'
+    },
+    hint: {
+      es: 'Lo mismo que FraterniU, pero para que un grupo avance junto.',
+      en: 'The same as FraterniU, but so a group moves forward together.',
+      pt: 'O mesmo que a FraterniU, mas para que um grupo avance junto.',
+      fr: 'La même chose que FraterniU, mais pour qu’un groupe avance ensemble.',
+      it: 'Lo stesso di FraterniU, ma perché un gruppo vada avanti insieme.'
+    }
   },
   {
     /* De Fraterni Us. Junta las otras tres piezas —la infraestructura de
@@ -170,8 +194,20 @@ export const HOUSES = [
     logo: '/assets/projects/fraterni-business-icon.svg',
     wordmark: '/assets/projects/fraterni-business.svg',
     name: 'Fraterni Business',
-    role: { es: 'Que tu empresa funcione sin ti' },
-    hint: { es: 'Junta la infraestructura de Let Be, el criterio de Recvid y el método de Fraterni Us.' }
+    role: {
+      es: 'Que tu empresa funcione sin ti',
+      en: 'A company that runs without you',
+      pt: 'Que a tua empresa funcione sem ti',
+      fr: 'Une entreprise qui tourne sans vous',
+      it: 'Che la tua azienda funzioni senza di te'
+    },
+    hint: {
+      es: 'Junta la infraestructura de Let Be, el criterio de Recvid y el método de Fraterni Us.',
+      en: 'Brings together Let Be’s infrastructure, Recvid’s judgment and Fraterni Us’s method.',
+      pt: 'Junta a infraestrutura da Let Be, o critério da Recvid e o método da Fraterni Us.',
+      fr: 'Réunit l’infrastructure de Let Be, le regard de Recvid et la méthode de Fraterni Us.',
+      it: 'Mette insieme l’infrastruttura di Let Be, il criterio di Recvid e il metodo di Fraterni Us.'
+    }
   }
 ];
 
@@ -185,7 +221,13 @@ export const HOLDING = {
   h: 219,
   name: 'Fraterni Ventures',
   /* Lo que dicen las seis marcas, dicho una vez (documento de copy). */
-  lema: { es: 'No te damos más. Te damos el para qué.' },
+  lema: {
+    es: 'No te damos más. Te damos el para qué.',
+    en: 'We don’t give you more. We give you a purpose.',
+    pt: 'Não te damos mais. Damos-te o para quê.',
+    fr: 'On ne vous donne pas plus. On vous donne le sens.',
+    it: 'Non ti diamo di più. Ti diamo il perché.'
+  },
   url: 'https://fraterniventures.com',
   domain: 'fraterniventures.com'
 };

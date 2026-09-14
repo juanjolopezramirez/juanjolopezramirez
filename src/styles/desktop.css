@@ -196,18 +196,10 @@
   .lang__badge { background: var(--bone); color: var(--pine); }
 
   /* ---- Apariencia: gemela de la bandera, tambien en tamaño ----
-     La geometria de la rueda esta en rem, pensada para este boton y el de
-     movil a la vez: aqui solo se encoge lo mismo que la bandera. */
+     Aqui vuelve a la pastilla, al lado de la bandera. El dibujo va en `em`:
+     basta con darle el diametro de la bandera. */
   .site-header__tools .tema + .site-header__lang .lang { margin-inline: 0; }
-  .tema__switch { width: 1.85rem; height: 1.85rem; }
-  .tema__rueda { top: 2.22rem; left: .82rem; }
-  .tema__astro { left: -.475rem; width: .95rem; height: .95rem; }
-  .tema__astro--sol { top: calc(-1.4rem - .475rem); }
-  .tema__astro--luna { top: calc(1.4rem - .475rem); }
-  .tema__nube { left: .92rem; }
-  .tema__estrella:nth-child(1) { left: 1.34rem; top: .32rem; width: .34rem; height: .34rem; }
-  .tema__estrella:nth-child(2) { left: .44rem; top: 1.38rem; width: .24rem; height: .24rem; }
-  .tema__estrella:nth-child(3) { left: 1.18rem; top: 1.26rem; width: .3rem; height: .3rem; }
+  .tema__switch { font-size: 1.85rem; }
 
   /* ---- Lectura: el hueso llega hasta los bordes, y lo que se lee
           arranca en la misma linea que el nombre ----

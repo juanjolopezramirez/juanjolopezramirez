@@ -3759,17 +3759,25 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
    clases). Aqui solo va lo suyo: las caras del boton y las marcas de la
    hoja.
    ============================================================= */
-/* EL BOTON. Un circulo del tamaño de la bandera, a su lado y dentro de la
-   pastilla, en todas las pantallas. En movil estuvo un rato colgando debajo
-   como media pastilla: le quitaba pantalla al que lee, y escondida al bajar,
-   volver a encontrarla costaba. */
+/* EL BOTON. Un circulo con un cielo dentro.
+
+   TODO ESTA EN `em`, y el `em` del boton es su diametro: el mismo dibujo
+   sirve para el circulo chico de movil y para el de escritorio, y cambiar
+   el tamaño es cambiar un solo numero.
+
+   EN MOVIL Y TABLET va montado a medias sobre el canto de abajo de la
+   pastilla, justo debajo del menu: como la cara redonda de las tarjetas
+   sobre su cabecera. Asi esta a mano sin quitarle sitio a la pagina y sin
+   hacerse protagonista. Estuvo antes al lado de la bandera, y antes aun
+   colgando debajo como media pastilla. EN ESCRITORIO vuelve a la pastilla,
+   gemelo de la bandera (desktop.css). */
 .tema__switch {
   --on: var(--tema-on, 0);
   position: relative;
   flex: 0 0 auto;
-  width: 1.95rem; height: 1.95rem;
+  font-size: 1.55rem;
+  width: 1em; height: 1em;
   border-radius: 50%;
-  overflow: hidden;
   background-color: color-mix(in srgb, #0E1811 calc(var(--on) * 100%), var(--iris));
   box-shadow: inset 0 0 0 1px rgba(241, 239, 233, .12), inset 0 2px 5px rgba(11, 20, 13, .28);
   -webkit-tap-highlight-color: transparent;
@@ -3777,10 +3785,42 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   user-select: none;
   transition: background-color .6s var(--ease-smooth), scale .3s var(--ease);
 }
+/* El dedo no necesita un circulo chico: el area que se pulsa es mas grande
+   que el dibujo. */
+.tema__switch::after { content: ""; position: absolute; inset: -.3em; border-radius: 50%; }
 .tema__switch:hover { scale: 1.08; }
 .tema__switch:active { scale: .95; }
 .tema__switch:focus-visible { outline: 2px solid var(--iris-300); outline-offset: 2px; }
-.tema__cielo { position: absolute; inset: 0; border-radius: inherit; }
+.tema__cielo { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+
+@media (max-width: 1023px) {
+  .header-bar { position: relative; }
+  /* El centro del circulo cae en el canto (100% + el borde, y 2px mas) y
+     bajo el centro del menu, que esta a 1.6rem del borde derecho: su
+     relleno (.4rem) y medio boton (1.2rem). */
+  .tema {
+    position: absolute;
+    top: calc(100% + 2.5px - .775rem);   /* 2px por debajo: deja aire a la raya del menu */
+    right: calc(1.6rem - .775rem);
+    z-index: 1;
+    transition: opacity .3s var(--ease-smooth), visibility 0s linear 0s;
+  }
+  /* Un aro del color de la pastilla lo recorta del canto, y un hilo sigue
+     el borde. */
+  .tema__switch {
+    box-shadow:
+      0 0 0 3px var(--night),
+      0 0 0 4px rgba(241, 239, 233, .1),
+      inset 0 0 0 1px rgba(241, 239, 233, .12),
+      inset 0 2px 5px rgba(11, 20, 13, .28);
+  }
+  /* Con el menu abierto se aparta: su desplegable pasa justo por aqui. */
+  .site-header:has(.nav-toggle[aria-expanded="true"]) .tema {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s var(--ease-smooth), visibility 0s linear .2s;
+  }
+}
 
 /* LA RUEDA. Un eje por debajo del boton lleva el sol arriba y la luna
    abajo, del reves. Al anochecer gira media vuelta: el sol se pone por la
@@ -3791,29 +3831,29 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
    El astro no va al centro sino arriba a la izquierda, con la nube abajo a
    la derecha: centrado y con la nube debajo parecia la foto de un perfil. */
 .tema__rueda {
-  position: absolute; top: 2.26rem; left: .86rem;
+  position: absolute; top: 1.159em; left: .441em;
   width: 0; height: 0;
   rotate: calc(var(--on) * 180deg);
   transition: rotate .9s var(--ease-smooth);
 }
 .tema__astro {
-  position: absolute; left: -.5rem;
-  width: 1rem; height: 1rem;
+  position: absolute; left: -.256em;
+  width: .513em; height: .513em;
   border-radius: 50%;
   transition: opacity .45s var(--ease-smooth);
 }
 /* El sol en oro con un halo; la luna llena en hueso con tres crateres. */
 .tema__astro--sol {
-  top: calc(-1.4rem - .5rem);
+  top: -.974em;
   background: var(--ring-300);
-  box-shadow: 0 0 0 .16rem rgba(241, 239, 233, .13), 0 1px 3px rgba(11, 20, 13, .35);
+  box-shadow: 0 0 0 .082em rgba(241, 239, 233, .13), 0 1px 3px rgba(11, 20, 13, .35);
   opacity: calc(1 - var(--on));
 }
 .tema__astro--luna {
-  top: calc(1.4rem - .5rem);
+  top: .462em;
   rotate: 180deg;
   background: var(--bone);
-  box-shadow: 0 0 .5rem rgba(241, 239, 233, .28), 0 1px 3px rgba(11, 20, 13, .4);
+  box-shadow: 0 0 .256em rgba(241, 239, 233, .28), 0 1px 3px rgba(11, 20, 13, .4);
   opacity: var(--on);
 }
 .tema__astro--luna i { position: absolute; border-radius: 50%; background: var(--pine-200); opacity: .6; }
@@ -3824,15 +3864,15 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 /* La nube: tres circulos de hueso, sentada en el borde de abajo. De noche
    baja y se va. */
 .tema__nube {
-  position: absolute; left: .98rem; bottom: -.1rem;
-  width: .55rem; height: .55rem;
+  position: absolute; left: .503em; bottom: -.051em;
+  width: .282em; height: .282em;
   border-radius: 50%;
   background: var(--bone);
-  box-shadow: .42rem -.17rem 0 .08rem var(--bone), .84rem .05rem 0 0 var(--bone);
+  box-shadow: .215em -.087em 0 .041em var(--bone), .431em .026em 0 0 var(--bone);
   scale: .72;
   transform-origin: left bottom;
   opacity: calc((1 - var(--on)) * .92);
-  translate: 0 calc(var(--on) * .8rem);
+  translate: 0 calc(var(--on) * .41em);
   transition: translate .5s var(--ease-smooth), opacity .35s var(--ease-smooth);
 }
 
@@ -3842,13 +3882,13 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   position: absolute;
   fill: var(--bone);
   opacity: var(--on);
-  translate: 0 calc((1 - var(--on)) * -.7rem);
+  translate: 0 calc((1 - var(--on)) * -.359em);
   transition: translate .55s var(--ease-smooth), opacity .4s var(--ease-smooth);
 }
 .tema__estrella path { transform-box: fill-box; transform-origin: center; animation: temaTitila 2.8s ease-in-out infinite; }
-.tema__estrella:nth-child(1) { width: .36rem; height: .36rem; left: 1.42rem; top: .34rem; transition-delay: .1s; }
-.tema__estrella:nth-child(2) { width: .25rem; height: .25rem; left: .46rem; top: 1.46rem; transition-delay: .18s; }
-.tema__estrella:nth-child(3) { width: .31rem; height: .31rem; left: 1.25rem; top: 1.33rem; transition-delay: .26s; }
+.tema__estrella:nth-child(1) { width: .185em; height: .185em; left: .728em; top: .174em; transition-delay: .1s; }
+.tema__estrella:nth-child(2) { width: .128em; height: .128em; left: .236em; top: .749em; transition-delay: .18s; }
+.tema__estrella:nth-child(3) { width: .159em; height: .159em; left: .641em; top: .682em; transition-delay: .26s; }
 .tema__estrella:nth-child(2) path { animation-delay: .9s; }
 .tema__estrella:nth-child(3) path { animation-delay: 1.7s; }
 @keyframes temaTitila {
