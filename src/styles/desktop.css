@@ -298,6 +298,7 @@
     padding: 0;
     text-align: left;
     overflow: hidden;                     /* las luces no se salen */
+    overflow: clip;                       /* sin caja de scroll propia: el parallax mide la pagina */
   }
 
   /* ---- El escenario ----
@@ -515,6 +516,7 @@
     border-top: 0;
     background: var(--papel);
     overflow: hidden;
+    overflow: clip;                       /* sin caja de scroll propia: el parallax mide la pagina */
   }
 
   /* El pinar, ahora a la derecha */

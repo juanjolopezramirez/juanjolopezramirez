@@ -33,21 +33,36 @@ const DOORS = [
 
   <!-- El escenario: la calcomania. Solo en movil y tablet. -->
   <div class="hero__stage">
-    <!-- El bosque es decoracion pura, asi que vive en el CSS: asi el
-         escritorio, que no lo usa, tampoco lo descarga. -->
-    <span class="hero__forest reveal" aria-hidden="true"></span>
+    <!-- Dos capas para el parallax: el bosque va lejos y la foto cerca, y
+         cada una viaja a su velocidad al cambiar de pantalla. Son cajas
+         aparte porque el bosque y la foto ya usan `translate` para flotar;
+         la capa se mueve por fuera y el flote sigue dentro. -->
+    <span class="hero__capa hero__capa--lejos" aria-hidden="true">
+      <!-- El bosque es decoracion pura, asi que vive en el CSS: asi el
+           escritorio, que no lo usa, tampoco lo descarga. -->
+      <span class="hero__forest reveal"></span>
+    </span>
 
+    <span class="hero__capa hero__capa--cerca">
     <!-- Una sola descarga: el navegador elige por ancho, no por CSS. -->
     <picture class="hero__me reveal">
       <!-- En escritorio, el retrato con fondo; por debajo de 1200px, la
-           calcomania recortada de siempre. -->
+           calcomania recortada de siempre.
+
+           La calcomania medía 179x191 y en un telefono se pinta a ~220px con
+           tres pixeles por punto: se estiraba tres veces y se veia borrosa.
+           Ahora sale de la maestra (ProfileJuanJoPic-Photoroom.png) a su
+           tamaño nativo, 869x927, con el mismo encuadre, el mismo borde
+           crema y el mismo color: la proporcion es la de antes, asi que el
+           CSS no cambia. -->
       <source media="(min-width: 1200px)" srcset="/assets/img/me-hero.webp" type="image/webp" />
       <source media="(min-width: 1200px)" srcset="/assets/img/me-hero.png" />
       <source srcset="/assets/img/just-me.webp" type="image/webp" />
-      <img src="/assets/img/just-me.png" width="179" height="191"
+      <img src="/assets/img/just-me.png" width="869" height="927"
            alt="Juan José López Ramírez, mirando hacia un lado"
            decoding="async" fetchpriority="high" />
     </picture>
+    </span>
   </div>
 
   <div class="hero__identity">

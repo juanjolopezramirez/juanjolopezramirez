@@ -367,6 +367,7 @@ function initTema() {
   let reloj = null;
   let abrirTimer = null;
   let soltarTimer = null;
+  let zonaLuego = () => {};                // la monta SOLO DONDE SE NOTA, mas abajo
   let pulsado = null;
   let largo = false;
 
@@ -390,7 +391,7 @@ function initTema() {
       if (!reducido) {
         html.classList.add('tema-cambia');
         clearTimeout(fundido);
-        fundido = setTimeout(() => html.classList.remove('tema-cambia'), 480);
+        fundido = setTimeout(() => { html.classList.remove('tema-cambia'); zonaLuego(0); }, 480);
       }
       if (nuevo) html.setAttribute('data-tema', nuevo);
       else html.removeAttribute('data-tema');
@@ -434,6 +435,7 @@ function initTema() {
       root.classList.remove('is-open');
       hideTimer = setTimeout(() => {
         if (!root.classList.contains('is-open')) list.hidden = true;
+        zonaLuego(0);
       }, 440);
     }
   };
@@ -464,8 +466,10 @@ function initTema() {
   /* Con raton: encima un momento abre la hoja; al salir se cierra. Los
      retrasos dejan cruzar el hueco entre el boton y la hoja. Cuenta el
      RATON de verdad, no si la pantalla dice tener uno: un portatil tactil
-     con raton se lo cree a medias. */
-  const porRaton = (e) => e.pointerType === 'mouse';
+     con raton se lo cree a medias. Y solo en escritorio: en movil el boton
+     aparece y se va segun la zona, y si asoma bajo un cursor quieto —una
+     tablet con trackpad— la hoja se abria sola. */
+  const porRaton = (e) => e.pointerType === 'mouse' && matchMedia('(min-width: 1024px)').matches;
   root.addEventListener('pointerenter', (e) => {
     if (!porRaton(e)) return;
     clearTimeout(soltarTimer);
@@ -493,6 +497,76 @@ function initTema() {
   d.addEventListener('click', (e) => {
     if (!root.contains(e.target) && root.classList.contains('is-open')) setOpen(false);
   });
+
+  /* SOLO DONDE SE NOTA (movil y tablet, donde el boton cuelga del canto).
+
+     El tema solo cambia el papel: el hero, las paginas de Caminemos, el cielo
+     del planeta y la cinta de aliados son de noche siempre. Pulsar el boton
+     sobre ellos no cambiaba nada que se viera, y un boton que no hace nada
+     parece roto. Asi que asoma solo cuando lo que hay en pantalla es papel, y
+     se hunde en el canto cuando no.
+
+     Como se sabe si es papel: se miran tres puntos de la pantalla y, en cada
+     uno, la primera superficie GRANDE que pinta algo (una foto o una ficha
+     pequeña no cuentan). Si su color es uno de los papeles del tema puesto
+     —`--papel`, `--papel-2`, `--papel-alto`—, ahi se nota. Un campo o un
+     cielo pintan con degradado: eso ya dice que no. Basta con dos de tres.
+
+     No se mira durante el salto entre pantallas ni mientras los colores se
+     funden: a mitad de camino el color no es ni uno ni otro. */
+  const colgado = matchMedia('(max-width: 1023px)');
+  const muestra = d.createElement('i');
+  muestra.hidden = true;
+  d.body.appendChild(muestra);
+  const aRgb = (v) => { muestra.style.color = ''; muestra.style.color = v; return getComputedStyle(muestra).color; };
+  const transparente = (c) => c === 'transparent' || /^rgba\([^)]*,\s*0\)$/.test(c) || /\/\s*0\)$/.test(c);
+
+  const fondoEn = (x, y) => {
+    for (const el of d.elementsFromPoint(x, y)) {
+      if (el === root || el.closest('.site-header, .lang__list, .lang__scrim, [aria-modal="true"]')) continue;
+      if (el.getBoundingClientRect().width < innerWidth * 0.6) continue;
+      const s = getComputedStyle(el);
+      if (s.backgroundImage !== 'none') return null;
+      if (!transparente(s.backgroundColor)) return s.backgroundColor;
+    }
+    return null;
+  };
+  const hayPapel = () => {
+    const cs = getComputedStyle(html);
+    const papeles = new Set(['--papel', '--papel-2', '--papel-alto'].map((v) => aRgb(cs.getPropertyValue(v).trim())));
+    const x = innerWidth / 2;
+    return [0.38, 0.62, 0.86].filter((f) => papeles.has(fondoEn(x, innerHeight * f))).length >= 2;
+  };
+
+  let dentro = null;
+  const zona = () => {
+    if (!colgado.matches) {
+      root.classList.remove('is-fuera', 'is-dentro', 'is-quieta');
+      root.inert = false;
+      dentro = null;
+      return;
+    }
+    if (root.classList.contains('is-open') || html.classList.contains('tema-cambia')) return;
+    const toca = hayPapel();
+    if (toca === dentro) return;
+    /* La primera vez que no toca, se esconde sin despedirse: al abrir la
+       pagina no hay nada de lo que irse. */
+    const primera = dentro === null;
+    dentro = toca;
+    root.classList.toggle('is-quieta', primera && !toca);
+    root.classList.toggle('is-dentro', toca);
+    root.classList.toggle('is-fuera', !toca);
+    root.inert = !toca;
+  };
+  let relojZona = 0;
+  zonaLuego = (ms = 160) => { clearTimeout(relojZona); relojZona = setTimeout(zona, ms); };
+  addEventListener('scroll', () => zonaLuego(), { passive: true });
+  addEventListener('scrollend', () => zonaLuego(40));
+  addEventListener('resize', () => zonaLuego(200));
+  colgado.addEventListener('change', () => zonaLuego(0));
+  addEventListener('load', () => zonaLuego(0));
+  if (d.fonts && d.fonts.ready) d.fonts.ready.then(() => zonaLuego(0));
+  zona();
 
   // Otra pestaña, el dispositivo o volver a esta: se repinta lo que toque.
   addEventListener('storage', (e) => {
@@ -1031,6 +1105,11 @@ function initCarriles() {
       antes.setAttribute('aria-disabled', String(pista.scrollLeft <= 2));
       despues.setAttribute('aria-disabled', String(pista.scrollLeft >= tope() - 2));
       const i = actual();
+      /* Solo se toca la de turno. Las vecinas siguen ahi, a los costados,
+         aunque el velo las haga invisibles: un dedo que apuntaba a la flecha
+         y caia un poco al lado —o que el navegador acercaba al enlace mas
+         grande— abria la tarjeta que no se ve. */
+      items.forEach((el, k) => el.classList.toggle('is-actual', k === i));
       if (i !== marcado) {
         [...puntos.children].forEach((p, k) => p.classList.toggle('is-on', k === i));
         marcado = i;

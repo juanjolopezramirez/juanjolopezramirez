@@ -493,9 +493,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: 0 var(--gutter);
   text-align: center;
 
-  /* El campo vivo se sale de su caja al girar, asi que el hero lo encierra. */
+  /* El campo vivo se sale de su caja al girar, asi que el hero lo encierra.
+     `clip` y no `hidden`: recorta igual, pero `hidden` lo convertia en una
+     caja con scroll propio, y el parallax de dentro se media contra ese
+     scroll —que no se mueve nunca— en vez de contra la pagina. El `hidden`
+     de delante queda para los navegadores que no conocen `clip`. */
   position: relative;
   overflow: hidden;
+  overflow: clip;
 }
 /* Lo que se lee va por delante del campo. Con el mismo peso de selector
    que las reglas de escritorio —y antes que ellas—, para que alli pueda
@@ -782,6 +787,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
       url("/assets/img/forest-only.png") type("image/png"));
   }
 }
+
+/* Las capas del parallax: dos cajas del tamaño del escenario, una para el
+   bosque y otra para la foto. El bosque y la foto se colocan dentro igual
+   que antes se colocaban en el escenario. */
+.hero__capa { position: absolute; inset: 0; display: block; }
+.hero__capa--cerca { z-index: 1; }
 
 /* `translate` lleva el centrado y `transform` la entrada: si compartieran
    propiedad, una borraria a la otra. */
@@ -2596,6 +2607,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* Medio hueco a cada lado: la primera y la ultima tarjeta se centran como
    las demas. --carril-centro lo mide el guion. */
 .carril.is-desborda > [data-carril] { padding-inline: var(--carril-centro); }
+/* LO QUE NO SE VE NO SE TOCA. Las tarjetas de al lado estan debajo del velo
+   de los costados, justo alrededor de las flechas: invisibles pero
+   pulsables, y un toque que apuntaba a la flecha abria la de al lado. Solo
+   responde la de turno (el guion la marca). El dedo sigue pudiendo deslizar
+   desde cualquier sitio: lo que no responde pasa el gesto a la fila. Y el
+   teclado llega a todas, que `pointer-events` no toca el foco. */
+.carril.is-desborda > [data-carril] > :not(.is-actual) { pointer-events: none; }
 
 /* LOS COSTADOS SE DESVANECEN. La fila misma se hace transparente hacia los
    cantos: lo que asoma de la tarjeta de al lado no se tapa con nada, se
@@ -2635,6 +2653,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: opacity .2s var(--ease), scale .2s var(--ease);
 }
 .carril__flecha[hidden] { display: none; }
+/* Un circulo de 37px es poco para un pulgar: lo que responde al toque es mas
+   grande que lo que se dibuja. */
+.carril__flecha::after { content: ""; position: absolute; inset: -.6rem; border-radius: 50%; }
 /* El borde lo pone cada fila: la de las casas sale a sangre hasta el canto
    de la pantalla, y ahi las flechas van casi pegadas al canto. */
 .carril__flecha--antes { left: var(--carril-borde, .35rem); }
@@ -3814,12 +3835,68 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
       inset 0 0 0 1px rgba(241, 239, 233, .12),
       inset 0 2px 5px rgba(11, 20, 13, .28);
   }
+  /* SOLO DONDE SE NOTA. El guion pone `is-dentro` cuando lo que hay en
+     pantalla es papel y `is-fuera` cuando no (initTema). Hasta que decide,
+     escondido: si no, asomaria un instante sobre la portada y se iria.
+
+     ASOMA desde el canto: sale pequeño y girado desde dentro de la pastilla,
+     se pasa un poco de tamaño y se asienta, como algo que salta a la mano. Al
+     posarse, un aro de iris se abre una vez y se apaga: dice «aqui estoy» sin
+     quedarse diciendolo. SE HUNDE al reves y mas deprisa, que irse no tiene
+     que llamar la atencion. */
+  .js-curtain .tema:not(.is-dentro) .tema__switch {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .tema.is-fuera:not(.is-quieta) .tema__switch {
+    animation: temaSeHunde .38s var(--ease) both;
+  }
+  .tema.is-dentro .tema__switch {
+    animation:
+      temaAsoma .74s var(--ease-smooth) backwards,
+      temaDestello 1.15s var(--ease) .46s forwards;
+  }
+
   /* Con el menu abierto se aparta: su desplegable pasa justo por aqui. */
   .site-header:has(.nav-toggle[aria-expanded="true"]) .tema {
     opacity: 0;
     visibility: hidden;
     transition: opacity .2s var(--ease-smooth), visibility 0s linear .2s;
   }
+}
+
+/* La entrada y la salida del boton colgado (ver SOLO DONDE SE NOTA). El
+   `translate` vertical lo mete y lo saca por el canto de la pastilla. */
+@keyframes temaAsoma {
+  0%   { opacity: 0; scale: .15; translate: 0 -55%; rotate: -120deg; }
+  55%  { opacity: 1; scale: 1.14; translate: 0 8%; rotate: 12deg; }
+  78%  { scale: .96; translate: 0 -2%; rotate: -4deg; }
+  100% { opacity: 1; scale: 1; translate: 0 0; rotate: 0deg; }
+}
+@keyframes temaSeHunde {
+  0%   { opacity: 1; scale: 1; translate: 0 0; rotate: 0deg; visibility: visible; }
+  30%  { opacity: 1; scale: 1.08; translate: 0 6%; }
+  100% { opacity: 0; scale: .15; translate: 0 -55%; rotate: 90deg; visibility: hidden; }
+}
+/* El aro: los mismos cuatro anillos del boton montado, mas uno de iris que
+   se abre y se desvanece. */
+@keyframes temaDestello {
+  0% {
+    box-shadow:
+      0 0 0 3px var(--night), 0 0 0 4px rgba(241, 239, 233, .1), 0 0 0 4px rgba(169, 196, 127, .6),
+      inset 0 0 0 1px rgba(241, 239, 233, .12), inset 0 2px 5px rgba(11, 20, 13, .28);
+  }
+  100% {
+    box-shadow:
+      0 0 0 3px var(--night), 0 0 0 4px rgba(241, 239, 233, .1), 0 0 0 18px rgba(169, 196, 127, 0),
+      inset 0 0 0 1px rgba(241, 239, 233, .12), inset 0 2px 5px rgba(11, 20, 13, .28);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tema.is-fuera:not(.is-quieta) .tema__switch,
+  .tema.is-dentro .tema__switch { animation: none; }
+  .tema.is-fuera .tema__switch { opacity: 0; visibility: hidden; }
 }
 
 /* LA RUEDA. Un eje por debajo del boton lleva el sol arriba y la luna
@@ -4932,17 +5009,226 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
   .agenda__cta:hover { scale: none; }
 }
 
-/* El parallax atado al scroll vivio aqui y se retiro por dos razones.
+/* =============================================================
+   PARALLAX: CAPAS QUE VIAJAN A DISTINTA VELOCIDAD
 
-   LA GORDA: empujaba `.hero__stage` 80px hacia abajo, y la foto de
-   escritorio va anclada al suelo de su caja y a canto vivo. El `overflow:
-   hidden` del hero se comia esos 80px de sujeto. Medido: 18px de recorte a
-   200 de scroll, 36 a 400, 54 al final.
+   Aqui vivio un parallax atado al scroll y se retiro por dos razones, y
+   este esta hecho para no caer en ninguna de las dos:
 
-   LA DE FONDO: con las secciones convertidas en pantallas que saltan de
-   una, no queda scroll continuo al que atar nada. La animacion correcta
-   para diapositivas es la ENTRADA de cada una, no el arrastre entre dos.
-   Eso ya lo hace `[data-lift]`, que se rearma al entrar y salir. */
+   1. EMPUJABA LA FOTO DE ESCRITORIO 80px hacia abajo y el hero se comia
+      ese trozo de sujeto. Este no desplaza nada en reposo: cada capa esta
+      en su sitio exacto mientras su pantalla esta quieta en la ventana, y
+      solo se separa de las demas MIENTRAS la pantalla entra o sale.
+   2. «CON DIAPOSITIVAS NO HAY SCROLL CONTINUO AL QUE ATARLO». Si lo hay: el
+      salto entre pantallas es un scroll de medio segundo (initDiapositivas).
+      Justo ahi es donde se ve la profundidad — la pantalla que se va se
+      deshace en capas y la que llega se arma.
+
+   COMO. Con animaciones atadas al scroll de CSS, sin guion: el navegador
+   las mueve fuera del hilo principal y no hay nada que medir en JS. Cada
+   pantalla declara una regla, `--capa`, y lo de dentro se mide contra
+   ella. `--prx` dice cuanto y hacia donde: en positivo la capa va POR
+   DELANTE —sube mas rapido que la pagina—; en negativo va POR DETRAS —se
+   queda atras, como un fondo lejano—. Todo en `translate`, en cajas que no
+   lo usaban para otra cosa: las que ya flotan se mueven desde una capa de
+   fuera (`.hero__capa`).
+
+   Quien pide menos movimiento no lo tiene, y el navegador que no conoce
+   estas animaciones —hoy Firefox— ve la pagina de siempre. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+
+    /* Las pantallas. En movil y tablet el hero son dos: lo que cabe en la
+       ventana y la hoja de hueso. */
+    .hero__first,
+    .hero__panel,
+    .about,
+    .phero,
+    .partners,
+    .cards { view-timeline: --capa block; }
+
+    /* Entra desde `--prx`, se queda en su sitio mientras la pantalla esta
+       entera en la ventana, y sale hacia el lado contrario. */
+    @keyframes capa {
+      entry 0%   { translate: 0 calc(var(--prx) * 1px); }
+      entry 100% { translate: 0 0; }
+      exit 0%    { translate: 0 0; }
+      exit 100%  { translate: 0 calc(var(--prx) * -1px); }
+    }
+    /* Solo al salir: para lo que va pegado al suelo y no puede despegarse. */
+    @keyframes capaSale {
+      exit 0%    { translate: 0 0; }
+      exit 100%  { translate: 0 calc(var(--prx) * -1px); }
+    }
+
+    .hero__capa,
+    .hero__identity,
+    .cue,
+    .hero__offer,
+    .rhema--panel,
+    .about__portrait,
+    .about__heading,
+    .about__body > p,
+    .phero__title,
+    .phero__lead,
+    .phero__status,
+    .phero__aside,
+    .partners__title,
+    .partners__window,
+    .cards__head,
+    .cards > .carril,
+    .cards > .cards__grid {
+      /* Por separado y no con `animation:`. Al minificar, el shorthand y
+         `animation-timeline` se fundian en `animation: linear both capa --capa`,
+         que no es CSS valido: en produccion no se movia nada. */
+      animation-name: capa;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --capa;
+      animation-range: cover;
+    }
+
+    /* LA PORTADA. El bosque se queda atras, la foto va un poco por delante y
+       el nombre mas: al bajar, la calcomania se abre en tres. */
+    .hero__capa--lejos { --prx: -70; }
+    .hero__capa--cerca { --prx: 26; }
+    .hero__identity    { --prx: 46; }
+    .cue               { --prx: 90; }
+    /* La hoja de hueso: el texto llega antes que la palabra. */
+    .hero__offer       { --prx: 54; }
+    .rhema--panel      { --prx: 96; }
+
+    /* SOBRE MI. La copia se queda atras y el titular se adelanta: entre los
+       dos se abre el hueco que hace de profundidad. */
+    .about__portrait   { --prx: -64; }
+    .about__heading    { --prx: 58; }
+    .about__body > p   { --prx: 30; }
+
+    /* LA COPIA SE REVELA. La instantanea no se mueve como las demas capas:
+       hace lo que hace una instantanea de verdad. Cada vez que se llega a
+       «Sobre mi»:
+
+       1. CAE SOBRE LA MESA. Llega girada y un poco mas grande —mas cerca,
+          todavia en el aire— y se asienta en su sitio. Al irse se levanta
+          hacia el otro lado. El giro es del envoltorio: la inclinacion de
+          siempre (-2.6deg) y el enderezarse al tocarla viven en el marco y
+          siguen como estaban.
+       2. SE REVELA. La foto sale lechosa, clara y sin color, como sale una
+          instantanea de la camara, y gana color y contraste mientras la
+          seccion entra. Termina revelada justo cuando la pantalla se queda
+          quieta.
+       3. BRILLA. Un reflejo cruza la foto al asentarse, como la luz sobre
+          papel brillante.
+       4. LA CARA SE DESLIZA dentro del marco: el recorte baja un poco al
+          pasar, que es la profundidad de mirar por una ventana.
+
+       En reposo todo esta como siempre: girada -2.6deg, a color, con la cara
+       al 36% (ver `.about__print > picture img`). */
+    @keyframes capaCopia {
+      entry 0%   { translate: 0 calc(var(--prx) * 1px); rotate: -11deg; scale: 1.1; }
+      entry 100% { translate: 0 0; rotate: 0deg; scale: 1; }
+      exit 0%    { translate: 0 0; rotate: 0deg; scale: 1; }
+      exit 100%  { translate: 0 calc(var(--prx) * -1px); rotate: 7deg; scale: .95; }
+    }
+    .about__portrait { animation-name: capaCopia; }
+
+    @keyframes copiaRevela {
+      entry 0%   { filter: brightness(1.75) saturate(0) contrast(.55) sepia(.3) blur(2px); object-position: 50% 18%; }
+      entry 55%  { filter: brightness(1.25) saturate(.5) contrast(.82) sepia(.16) blur(.4px); }
+      entry 100% { filter: brightness(1) saturate(1) contrast(1) sepia(0) blur(0px); object-position: 50% 36%; }
+      exit 100%  { object-position: 50% 54%; }
+    }
+    .about__print > picture img {
+      animation-name: copiaRevela;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: --capa;
+      animation-range: cover;
+    }
+
+    /* El reflejo va en la foto y no en el marco: el marco es papel mate. */
+    .about__print > picture { display: block; position: relative; overflow: hidden; overflow: clip; }
+    .about__print > picture::after {
+      content: "";
+      position: absolute; inset: 0;
+      pointer-events: none;
+      background: linear-gradient(112deg,
+        transparent 28%,
+        rgba(255, 255, 255, .75) 46%,
+        rgba(255, 255, 255, .22) 53%,
+        transparent 70%);
+      mix-blend-mode: screen;
+      animation-name: copiaBrillo;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: --capa;
+      animation-range: cover;
+    }
+    @keyframes copiaBrillo {
+      entry 0%   { translate: -140% 0; opacity: 0; }
+      entry 68%  { translate: -140% 0; opacity: 1; }
+      entry 100% { translate: 140% 0; opacity: 1; }
+      exit 0%    { translate: 140% 0; opacity: 0; }
+    }
+
+    /* LAS SECCIONES. Titulo por delante, lo de al lado por detras. */
+    .phero__title      { --prx: 62; }
+    .phero__lead,
+    .phero__status     { --prx: 34; }
+    .phero__aside      { --prx: -46; }
+    .partners__title   { --prx: 34; }
+    .partners__window  { --prx: -22; }
+    .cards__head       { --prx: 54; }
+    /* En movil la fila va dentro de su carril, con las flechas: se mueve el
+       carril entero para que las flechas no se despeguen de las tarjetas. */
+    .cards > .carril,
+    .cards > .cards__grid { --prx: -28; }
+
+    /* LAS PAGINAS LARGAS no saltan: se leen bajando. Ahi el parallax va
+       atado al primer tramo de scroll de la pagina, y en reposo —arriba del
+       todo— todo esta en su sitio. */
+    @keyframes capaSube { to { translate: 0 calc(var(--prx) * -1px); } }
+    @keyframes capaAcerca { to { scale: 1.14; } }
+    .cpage__title,
+    .cpage__lead {
+      animation-name: capaSube;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 90vh;
+    }
+    .cpage__title { --prx: 70; }
+    .cpage__lead  { --prx: 34; }
+    /* La foto de la cabecera de cada casa se acerca al bajar. Solo crece, asi
+       que nunca deja ver el borde de su marco. */
+    .entity__photo {
+      animation-name: capaAcerca;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 100vh;
+    }
+  }
+}
+
+/* EN ESCRITORIO el hero es UNA pantalla (`.hero__first` se deshace con
+   `display: contents` y no tiene caja que medir), asi que la regla pasa al
+   hero entero. La foto va anclada al suelo a canto vivo: no puede entrar
+   despegada, asi que solo se hunde al salir. Y sube a la altura de la costura
+   (z-index 3), que es donde vivia cuando no tenia capa. */
+@media (min-width: 1200px) {
+  .hero__capa--cerca { z-index: 3; }
+}
+@supports (animation-timeline: view()) {
+  @media (min-width: 1200px) and (prefers-reduced-motion: no-preference) {
+    .hero { view-timeline: --capa block; }
+    .hero__first,
+    .hero__panel { view-timeline: none; }
+    .hero__capa--cerca { animation-name: capaSale; --prx: -60; }
+    .hero__identity    { --prx: 58; }
+  }
+}
 
 /* =============================================================
    UNA SECCION, UNA PANTALLA
