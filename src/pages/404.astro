@@ -1,0 +1,71 @@
+---
+import { AVISO_CSS, AVISO_TEXTOS, AVISO_MARCA } from '../data/aviso.js';
+import { LANGS } from '../i18n/ui.js';
+
+/* La pagina que no existe: /404.html. GitHub Pages la sirve para cualquier
+   direccion que no encuentre, a cualquier profundidad —/es/algo/que/no/—,
+   asi que todo lo que pide va con ruta absoluta.
+
+   Es UNA pagina para los cinco idiomas: no hay forma de saber de antemano
+   desde que idioma se llega. Sale en español y un guion minimo la pasa al
+   del principio de la direccion (/en/…) o, si no lo trae, al del
+   navegador. Sin guion se queda en español y sigue sirviendo.
+
+   No usa Base.astro a proposito: es la misma pantalla que el aviso de
+   «la pagina llego a medias» (data/aviso.js), con el mismo suelo, la misma
+   marca y los mismos botones, y no depende del guion ni de las hojas de la
+   casa — que es justo lo que puede faltar cuando algo sale mal. */
+const t = AVISO_TEXTOS.es;
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#263B28" />
+  <title>{t.doc404}</title>
+  <link rel="icon" href="/assets/logos/mark-icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" />
+  <style is:inline set:html={'html,body{margin:0;background:#263B28}' + AVISO_CSS}></style>
+</head>
+<body>
+  <main class="aviso" role="main">
+    <div class="aviso__cuerpo">
+      <span class="aviso__marca" aria-hidden="true" set:html={AVISO_MARCA}></span>
+      <p class="aviso__numero" aria-hidden="true">404</p>
+      <p class="aviso__rotulo" data-t="rotulo404">{t.rotulo404}</p>
+      <h1 class="aviso__titulo" data-t="titulo404">{t.titulo404}</h1>
+      <p class="aviso__texto" data-t="texto404">{t.texto404}</p>
+      <div class="aviso__botones">
+        <a class="aviso__boton" href="/es/" data-inicio><span data-t="boton404">{t.boton404}</span></a>
+        <button class="aviso__enlace" type="button" data-atras data-t="atras" hidden>{t.atras}</button>
+      </div>
+    </div>
+    <p class="aviso__firma">Juan José López Ramírez</p>
+  </main>
+
+  <script is:inline define:vars={{ textos: AVISO_TEXTOS, langs: LANGS }}>
+    var h = document.documentElement;
+    /* El idioma: el del principio de la direccion; si no, el del navegador. */
+    var primero = location.pathname.split('/')[1];
+    var nav = (navigator.language || 'es').slice(0, 2).toLowerCase();
+    var l = langs.indexOf(primero) >= 0 ? primero : (langs.indexOf(nav) >= 0 ? nav : 'es');
+    var t = textos[l];
+    h.lang = l;
+    document.title = t.doc404;
+    document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t[el.getAttribute('data-t')]; });
+    document.querySelector('[data-inicio]').setAttribute('href', '/' + l + '/');
+    /* «Pagina anterior» solo si hay de donde volver: llegar por un enlace
+       roto desde fuera deja el historial vacio, y el boton no haria nada. */
+    var atras = document.querySelector('[data-atras]');
+    if (history.length > 1 && document.referrer) {
+      atras.hidden = false;
+      atras.addEventListener('click', function () { history.back(); });
+    }
+  </script>
+</body>
+</html>

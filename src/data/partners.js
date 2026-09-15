@@ -36,6 +36,21 @@ export const PARTNERS = [
       fr: 'Quinze ans d’immobilier à Bogotá et dans la Sabana. Vendre une maison n’est pas vendre un produit : ce qui change de mains, c’est le lieu où quelqu’un va vivre.',
       it: 'Quindici anni di immobiliare a Bogotá e nella Sabana. Vendere una casa non è vendere un prodotto: ciò che passa di mano è il posto dove qualcuno vivrà.'
     } },
+  /* El logo sale de la marca de agua de sus videos —no hay fichero oficial
+     todavia—: blanco sobre transparente, como los demas, y el simbolo de
+     Inmoga solo para la cara redonda, donde el logotipo entero no se leeria.
+     Cuando llegue el oficial, basta con cambiar las rutas y las medidas. */
+  { id: 'porvenir-inmoga', name: 'Porvenir × Inmoga', src: '/assets/partners/porvenir-inmoga.png', w: 222, h: 75,
+    webp: '/assets/partners/porvenir-inmoga.webp', scale: 0.84,
+    avatar: '/assets/partners/porvenir-inmoga-simbolo.png', avatarW: 49, avatarH: 49,
+    tags: ['finanzas'],
+    blurb: {
+      es: 'Asesoría en finanzas personales, pensiones e impuestos. Con Porvenir Preferencial acompañan a quien quiere que su ahorro trabaje con respaldo.',
+      en: 'Advice on personal finance, pensions and taxes. With Porvenir Preferencial they guide people who want their savings to work with solid backing.',
+      pt: 'Assessoria em finanças pessoais, pensões e impostos. Com o Porvenir Preferencial acompanham quem quer que as suas poupanças trabalhem com respaldo.',
+      fr: 'Conseil en finances personnelles, retraites et fiscalité. Avec Porvenir Preferencial, ils accompagnent ceux qui veulent faire travailler leur épargne en toute sécurité.',
+      it: 'Consulenza su finanze personali, pensioni e tasse. Con Porvenir Preferencial accompagnano chi vuole far lavorare i propri risparmi con solide garanzie.'
+    } },
   /* Estas dos no son clientes, y por eso llevan su propia linea de «que es»
      y no la que pone la lista: son aliadas. Antes esa linea decia de quien
      era cada una —el proyecto de mi padre, el de mi madre—; se cambio por

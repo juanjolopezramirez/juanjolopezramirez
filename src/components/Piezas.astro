@@ -1,0 +1,139 @@
+---
+import Icon from './Icon.astro';
+import { duracion } from '../data/piezas.js';
+import { ENTITY } from '../data/entities.js';
+
+/* Los videos: un carril que se desliza de lado, con filtros y un visor.
+
+   UN CARRIL Y NO UNA REJILLA. Las piezas se pasan de lado, una detras de
+   otra, como los reels y como las tarjetas de las casas en el movil: con
+   las mismas flechas, el mismo indicador y el mismo borde que se desvanece
+   (`data-carril`, initCarriles). Todas miden lo mismo de alto; de ancho,
+   lo que pide su forma.
+
+   EL FILTRO sale de lo que hay: por marca si en el carril hay mas de una,
+   y por formato si hay verticales y horizontales. Si solo hay una cosa de
+   cada, no hay nada que filtrar y no se pinta. Son los mismos chips que
+   filtran las tarjetas de las casas, y el mismo guion (initFilter).
+
+   LA TARJETA DICE LO QUE VAS A VER antes de pulsar: portada, titulo, cuanto
+   dura y su forma —vertical u horizontal— con su icono. Un vertical se ve
+   de pie en el telefono y un horizontal pide girarlo: saberlo evita la
+   sorpresa.
+
+   EL VISOR es un <dialog> nativo: atrapa el foco, se cierra con Escape y
+   deja inerte la pagina de detras. El video no se descarga hasta abrirlo y
+   se quita al cerrar. Las flechas pasan a la pieza de al lado de las que
+   el filtro deja a la vista (site.js, initPiezas).
+
+   Las que viven en YouTube y aun no tienen enlace salen con su portada y un
+   «pronto»: existen, y decirlo es mejor que esconderlas.
+
+   `marcas`: en los carriles que mezclan casas, el visor dice de quien es
+   cada pieza. En la pagina de una casa sobra. */
+const { lang, t, items = [], nota = null, marcas = false } = Astro.props;
+const say = (o) => (o ? (o[lang] ?? o.es) : null);
+const base = '/assets/videos/piezas/';
+const nombre = (casa) => ENTITY[casa]?.name ?? casa;
+
+const casas = [...new Set(items.map((p) => p.casa))];
+const formas = [...new Set(items.map((p) => p.orientacion))];
+const ejes = [];
+if (casas.length > 1) {
+  ejes.push({ id: 'marca', label: t('filtro.marca'), chips: casas.map((c) => ({ tag: `marca-${c}`, label: nombre(c) })) });
+}
+if (formas.length > 1) {
+  ejes.push({ id: 'formato', label: t('filtro.formato'), chips: formas.map((o) => ({ tag: `formato-${o}`, label: t(`pieza.${o}`), icon: o })) });
+}
+---
+{items.length > 0 && (
+  <div class="piezas" data-filtrable>
+    {nota && <p class="piezas__nota">{nota}</p>}
+
+    {ejes.length > 0 && (
+      <div class="cards__filter piezas__filtro" data-filter-bar>
+        {ejes.map((a) => (
+          <div class="faxis" role="group" aria-label={a.label} data-axis={a.id}>
+            <span class="faxis__label">{a.label}</span>
+            <span class="faxis__chips">
+              {a.chips.map((c) => (
+                <button class="chip" type="button" data-filter={c.tag} aria-pressed="false">
+                  {c.icon && <Icon id={c.icon} />}{c.label}
+                </button>
+              ))}
+            </span>
+          </div>
+        ))}
+        <button class="cards__clear" type="button" data-filter-clear hidden>{t('filter.clear')}</button>
+      </div>
+    )}
+
+    <ul class="piezas__lista" data-carril data-filtrable-lista
+        data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
+      {items.map((p) => {
+        const titulo = say(p.title);
+        const forma = t(`pieza.${p.orientacion}`);
+        const pendiente = p.youtube !== undefined && !p.youtube;
+        const vertical = p.orientacion === 'vertical';
+        return (
+          <li class:list={['piezas__item', `piezas__item--${p.orientacion}`]}
+              data-tags={`marca-${p.casa} formato-${p.orientacion}`}>
+            <button type="button"
+                    class:list={['pieza', { 'is-pronto': pendiente }]}
+                    data-pieza={pendiente ? undefined : ''}
+                    data-video={!pendiente && !p.youtube ? `${base}${p.archivo}.mp4` : undefined}
+                    data-youtube={p.youtube || undefined}
+                    data-poster={`${base}${p.archivo}.jpg`}
+                    data-titulo={titulo}
+                    data-marca={marcas ? nombre(p.casa) : undefined}
+                    data-orientacion={p.orientacion}
+                    data-forma={forma}
+                    data-duracion={duracion(p.seg)}
+                    data-soon={pendiente ? 'soon.video' : undefined}
+                    aria-label={`${pendiente ? t('pieza.soon') : t('pieza.play')}: ${titulo}${marcas ? ` (${nombre(p.casa)})` : ''}. ${forma}, ${duracion(p.seg)}`}>
+              <picture class="pieza__portada">
+                <source srcset={`${base}${p.archivo}.webp`} type="image/webp" />
+                <img src={`${base}${p.archivo}.jpg`} alt="" loading="lazy" decoding="async"
+                     width={vertical ? 540 : 960} height={vertical ? 960 : 540} />
+              </picture>
+              <span class="pieza__chip pieza__forma"><Icon id={p.orientacion} /><span>{forma}</span></span>
+              <span class="pieza__chip pieza__duracion">{duracion(p.seg)}</span>
+              {pendiente ? (
+                <span class="pieza__pronto"><Icon id="youtube" /><span>{t('pieza.soon')}</span></span>
+              ) : (
+                <span class="pieza__play" aria-hidden="true"><Icon id="reproducir" /></span>
+              )}
+              <span class="pieza__texto">
+                {marcas && <span class="pieza__marca">{nombre(p.casa)}</span>}
+                <span class="pieza__titulo">{titulo}</span>
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+    <p class="cards__none" data-filter-none hidden>{t('filter.none')}</p>
+  </div>
+)}
+
+{items.length > 0 && (
+  <dialog class="visor" id="visor" aria-modal="true" aria-labelledby="visor-titulo">
+    <div class="visor__marco">
+      <div class="visor__pantalla" data-visor-pantalla></div>
+      <div class="visor__pie">
+        <span class="pieza__chip visor__forma" data-visor-forma></span>
+        <span class="pieza__chip visor__duracion" data-visor-duracion></span>
+        <p class="visor__titulo" id="visor-titulo" data-visor-titulo></p>
+      </div>
+    </div>
+    <button class="visor__boton visor__cerrar" type="button" data-visor-cerrar aria-label={t('pieza.close')}>
+      <span aria-hidden="true">&times;</span>
+    </button>
+    <button class="visor__boton visor__flecha visor__flecha--antes" type="button" data-visor-antes aria-label={t('carousel.prev')}></button>
+    <button class="visor__boton visor__flecha visor__flecha--despues" type="button" data-visor-despues aria-label={t('carousel.next')}></button>
+    <span class="visor__iconos" hidden>
+      <span data-icono="vertical"><Icon id="vertical" /></span>
+      <span data-icono="horizontal"><Icon id="horizontal" /></span>
+    </span>
+  </dialog>
+)}

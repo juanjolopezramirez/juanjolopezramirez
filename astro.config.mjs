@@ -22,5 +22,12 @@ export default defineConfig({
     locales: ['es', 'en', 'pt', 'fr', 'it'],
     routing: { prefixDefaultLocale: true }
   },
-  build: { format: 'directory' }
+  build: {
+    format: 'directory',
+    // La hoja de estilos va DENTRO de cada pagina y no en /_astro/. GitHub
+    // Pages guarda el HTML diez minutos y cada publicacion cambia el nombre
+    // del CSS: un HTML guardado pedia una hoja que ya no existia y la pagina
+    // salia sin estilos. Dentro, HTML y estilos llegan siempre juntos.
+    inlineStylesheets: 'always'
+  }
 });

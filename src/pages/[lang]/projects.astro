@@ -6,6 +6,8 @@ import Partners from '../../components/Partners.astro';
 import Covers from '../../components/Covers.astro';
 import { PROJECTS } from '../../data/projects.js';
 import Cards from '../../components/Cards.astro';
+import Piezas from '../../components/Piezas.astro';
+import { PIEZAS } from '../../data/piezas.js';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -13,6 +15,9 @@ export function getStaticPaths() {
 const { lang } = Astro.params;
 const t = useT(lang);
 const title = t('page.projects.title');
+/* Los videos de todas las casas de esta seccion, en un carril con filtro. */
+const casas = new Set(PROJECTS.map((e) => e.id));
+const enVideo = PIEZAS.filter((e) => casas.has(e.casa));
 ---
 <Base lang={lang} path="projects" active="projects" title={`${title} — Juan José López Ramírez`}>
   <PageHero lang={lang} t={t} slug="projects">
@@ -21,4 +26,12 @@ const title = t('page.projects.title');
   </PageHero>
 
   <Cards lang={lang} t={t} items={PROJECTS} kind="projects" title={t('cards.title')} />
+
+  <section class="videos" aria-labelledby="videos-titulo">
+    <div class="videos__shell">
+      <h2 class="videos__titulo" id="videos-titulo">{t('piezas.title')}</h2>
+      <p class="videos__lead">{t('piezas.lead')}</p>
+      <Piezas lang={lang} t={t} items={enVideo} marcas />
+    </div>
+  </section>
 </Base>

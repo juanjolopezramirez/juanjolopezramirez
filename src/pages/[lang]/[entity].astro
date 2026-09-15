@@ -6,6 +6,8 @@ import BrandDot from '../../components/BrandDot.astro';
 import Icon from '../../components/Icon.astro';
 import Pregunta from '../../components/Pregunta.astro';
 import { propositoDe } from '../../data/manifesto.js';
+import Piezas from '../../components/Piezas.astro';
+import { piezasDe, NOTAS } from '../../data/piezas.js';
 
 /* La pagina de una casa: /es/recvid/, /en/casa-san-pedro/…
 
@@ -43,6 +45,8 @@ const que = say(e.role) ?? t(`card.kind.${e.kind}`);
    rejilla, que es donde se lee al lado de las otras. */
 const p = propositoDe(e.id);
 const desc = p ? say(p.que) : say(e.blurb);
+/* Los videos que hice para esta casa (data/piezas.js). */
+const piezas = piezasDe(e.id);
 ---
 <Base lang={lang} path={slugOf(e)} active={e.kind}
       title={`${e.name} — Juan José López Ramírez`}
@@ -113,6 +117,10 @@ const desc = p ? say(p.que) : say(e.blurb);
         )}
 
         <h2 class="entity__works-title">{t('entity.works')}</h2>
+        {/* Primero lo que se ve: los videos. Debajo, si los hay, los trabajos
+            que no son video. El «todavia no he subido nada» solo si no hay
+            ninguna de las dos cosas. */}
+        <Piezas lang={lang} t={t} items={piezas} nota={say(NOTAS[e.id])} />
         {e.works && e.works.length ? (
           <ul class="entity__works">
             {e.works.map((w) => (
@@ -135,7 +143,7 @@ const desc = p ? say(p.que) : say(e.blurb);
             ))}
           </ul>
         ) : (
-          <p class="entity__empty">{t('entity.empty')}</p>
+          !piezas.length && <p class="entity__empty">{t('entity.empty')}</p>
         )}
       </div>
     </div>

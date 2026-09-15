@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Panels from '../components/Panels.astro';
 import Curtain from '../components/Curtain.astro';
+import { AVISO_CSS, AVISO_TEXTOS, AVISO_MARCA, AVISO_RECARGA } from '../data/aviso.js';
 import '../styles/base.css';
 import '../styles/tablet.css';
 import '../styles/desktop.css';
@@ -25,6 +26,105 @@ const canonical = alt(lang);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <!-- EL GUARDIAN. Lo primero de la cabecera, y sin pedir nada a nadie.
+
+       Una vez la pagina se vio a medias: el HTML sin su hoja de estilos. La
+       causa: GitHub Pages guarda el HTML diez minutos y cada publicacion
+       cambia el nombre de los ficheros de /_astro/. Un HTML guardado de
+       antes pide un fichero que ya no existe. La hoja de estilos ya va
+       dentro de cada pagina (astro.config.mjs) y eso no puede volver a
+       pasar; el guion sigue fuera, y sin el el telon no se levanta.
+
+       Asi que esto vigila tres cosas: que no falle al cargar ningun fichero
+       propio, que la hoja este puesta y que el guion haya terminado
+       (`js-ready`, la ultima linea de site.js). Si algo falla:
+
+         1. Recarga UNA vez sola, pidiendo la pagina con \`?r=\` para que el
+            CDN no devuelva la guardada. Casi siempre basta.
+         2. Si vuelve a fallar —o si no hay conexion—, no insiste: enseña el
+            aviso de la casa (data/aviso.js) con un boton para volver a
+            cargar. Sin conexion, recarga sola en cuanto vuelve.
+
+       Al salir bien, borra el \`?r=\` de la barra de direcciones. -->
+  <script is:inline define:vars={{ css: AVISO_CSS, textos: AVISO_TEXTOS, marca: AVISO_MARCA, recarga: AVISO_RECARGA }}>
+    var h = document.documentElement, CLAVE = 'jlr:reintento', caido = false;
+    var idioma = function () { var l = (h.lang || 'es').slice(0, 2); return textos[l] ? l : 'es'; };
+    var param = function () { try { return new URL(location.href).searchParams.get('r'); } catch (e) { return null; } };
+    var recargar = function () {
+      var u = new URL(location.href); u.searchParams.set('r', Date.now().toString(36)); location.replace(u.href);
+    };
+    var ya = function () {
+      /* ¿Se acaba de reintentar? Por la marca guardada o, si el navegador no
+         deja guardar, por el propio \`?r=\` de hace menos de un minuto. */
+      var t = 0; try { t = +sessionStorage.getItem(CLAVE) || 0; } catch (e) {}
+      var r = parseInt(param() || '', 36);
+      return Date.now() - Math.max(t, isNaN(r) ? 0 : r) < 60000;
+    };
+    var aviso = function (sinRed) {
+      if (document.getElementById('aviso-carga')) return;
+      h.classList.remove('js-curtain');                 /* que el telon no tape el aviso */
+      var t = textos[idioma()];
+      var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+      var caja = document.createElement('div');
+      caja.id = 'aviso-carga'; caja.className = 'aviso';
+      caja.setAttribute('role', 'alertdialog'); caja.setAttribute('aria-labelledby', 'aviso-titulo');
+      caja.innerHTML =
+        '<div class="aviso__cuerpo">' +
+          '<span class="aviso__marca" aria-hidden="true">' + marca + '</span>' +
+          '<p class="aviso__rotulo">' + (sinRed ? t.rotuloRed : t.rotulo) + '</p>' +
+          '<h1 class="aviso__titulo" id="aviso-titulo">' + (sinRed ? t.tituloRed : t.titulo) + '</h1>' +
+          '<p class="aviso__texto">' + (sinRed ? t.textoRed : t.texto) + '</p>' +
+          '<div class="aviso__botones">' +
+            '<button type="button" class="aviso__boton">' + recarga + '<span>' + t.boton + '</span></button>' +
+            '<a class="aviso__enlace" href="/' + idioma() + '/">' + t.inicio + '</a>' +
+          '</div>' +
+        '</div>' +
+        '<p class="aviso__firma">Juan José López Ramírez</p>';
+      document.body.appendChild(caja);
+      var b = caja.querySelector('button');
+      b.addEventListener('click', recargar);
+      b.focus();
+      if (sinRed) addEventListener('online', recargar, { once: true });
+    };
+    var falla = function () {
+      if (caido || h.classList.contains('js-ready')) return;
+      caido = true;
+      var sinRed = navigator.onLine === false;
+      if (!sinRed && !ya()) {
+        try { sessionStorage.setItem(CLAVE, String(Date.now())); } catch (e) {}
+        recargar();
+        return;
+      }
+      if (document.body) aviso(sinRed);
+      else document.addEventListener('DOMContentLoaded', function () { aviso(sinRed); });
+    };
+    /* Un fichero propio que no llega. Los errores de carga no suben por el
+       arbol, pero si se ven en la fase de captura. Las letras de Google y
+       lo demas de fuera no cuentan: sin ellas la pagina funciona igual. */
+    addEventListener('error', function (e) {
+      var el = e.target, src = el && (el.src || el.href);
+      if (!src || !(el.tagName === 'SCRIPT' || (el.tagName === 'LINK' && /stylesheet/.test(el.rel)))) return;
+      try { if (new URL(src, location.href).origin !== location.origin) return; } catch (x) { return; }
+      falla();
+    }, true);
+    var comprobar = function () {
+      var estilos = getComputedStyle(h).getPropertyValue('--papel').trim() !== '';
+      if (estilos && h.classList.contains('js-ready')) {
+        try { sessionStorage.removeItem(CLAVE); } catch (e) {}
+        if (param() && history.replaceState) {
+          var u = new URL(location.href); u.searchParams.delete('r'); history.replaceState(history.state, '', u.href);
+        }
+        return;
+      }
+      falla();
+    };
+    /* Los guiones de modulo corren antes de \`load\`: si al llegar \`load\` no
+       hay \`js-ready\`, el guion no llego o se rompio por el camino. El
+       respiro es para los moviles lentos. Y si \`load\` no llega nunca —una
+       imagen colgada—, se mira igual a los doce segundos. */
+    addEventListener('load', function () { setTimeout(comprobar, 2500); });
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(comprobar, 12000); });
+  </script>
   <meta name="theme-color" content="#263B28" />
   <title>{title ?? t('doc.title')}</title>
   <meta name="description" content={description ?? t('hero.role')} />

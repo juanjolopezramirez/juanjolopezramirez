@@ -3230,6 +3230,288 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 
 /* =============================================================
+   PIEZAS: los videos de cada casa (Piezas.astro)
+
+   Portadas oscuras con lo que hace falta saber encima: la forma, cuanto dura
+   y el titulo. Las fichas pequeñas van en cristal ahumado para leerse sobre
+   cualquier portada, clara u oscura, sin tapar la imagen.
+   ============================================================= */
+/* Todas las tarjetas miden lo mismo de alto; de ancho, lo que pide su
+   forma. La horizontal nunca pasa del ancho de la pantalla: en un movil se
+   recorta la portada, y el visor la enseña entera. */
+.piezas { --pieza-alto: clamp(17rem, 50svh, 27rem); margin: 0 0 1rem; }
+.piezas__nota {
+  max-width: 38rem;
+  margin: 0 0 1rem;
+  font-size: .86rem; font-weight: 300; line-height: 1.65;
+  color: var(--slate-400);
+  text-wrap: pretty;
+}
+.piezas__filtro { margin: 0 0 1rem; }
+.piezas__filtro .chip { display: inline-flex; align-items: center; gap: .35rem; }
+.piezas__filtro .chip .icon { width: .85rem; height: .85rem; }
+.piezas__lista {
+  display: flex;
+  gap: .85rem;
+  margin: 0;
+  /* Aire arriba y abajo: la tarjeta sube un poco al pasar por encima y
+     proyecta sombra, y una fila con scroll lateral recorta lo que se sale. */
+  padding: .4rem 0 .9rem;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.piezas__lista::-webkit-scrollbar { display: none; }
+.piezas__item { flex: 0 0 auto; scroll-snap-align: center; }
+.piezas__item--vertical { width: calc(var(--pieza-alto) * 9 / 16); }
+.piezas__item--horizontal { width: min(calc(var(--pieza-alto) * 16 / 9), calc(100vw - 3.5rem)); }
+
+.pieza {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--pine-900);
+  color: var(--bone);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 18px 32px -24px rgba(11, 20, 13, .75);
+  -webkit-tap-highlight-color: transparent;
+  transition: translate .4s var(--ease-smooth), box-shadow .4s var(--ease-smooth);
+}
+.pieza { height: var(--pieza-alto); }
+.pieza:hover { translate: 0 -3px; box-shadow: 0 26px 40px -24px rgba(11, 20, 13, .8); }
+.pieza:active { translate: 0 0; }
+.pieza:focus-visible { outline: 3px solid var(--iris); outline-offset: 3px; }
+
+.pieza__portada img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: scale .8s var(--ease-smooth), filter .5s var(--ease);
+}
+.pieza:hover .pieza__portada img { scale: 1.05; }
+/* Un velo arriba para las fichas y otro abajo para el titulo. */
+.pieza::after {
+  content: "";
+  position: absolute; inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(8, 14, 10, .86) 0%, rgba(8, 14, 10, .3) 34%, transparent 58%),
+    linear-gradient(to bottom, rgba(8, 14, 10, .5) 0%, transparent 24%);
+}
+
+.pieza__chip {
+  display: inline-flex; align-items: center; gap: .32rem;
+  padding: .26rem .5rem;
+  border-radius: 999px;
+  background: rgba(8, 14, 10, .48);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px rgba(241, 239, 233, .18);
+  color: var(--bone);
+  font-size: .64rem; font-weight: 600;
+  letter-spacing: .03em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.pieza__chip .icon { width: .78rem; height: .78rem; flex: 0 0 auto; }
+.pieza__forma { position: absolute; top: .55rem; left: .55rem; z-index: 2; padding-left: .42rem; }
+.pieza__duracion { position: absolute; top: .55rem; right: .55rem; z-index: 2; font-variant-numeric: tabular-nums; }
+
+.pieza__play {
+  position: absolute; left: 50%; top: 50%;
+  z-index: 2;
+  display: grid; place-items: center;
+  width: 3.1rem; height: 3.1rem;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: rgba(241, 239, 233, .94);
+  color: var(--pine);
+  box-shadow: 0 12px 26px -8px rgba(8, 14, 10, .65), 0 0 0 0 rgba(241, 239, 233, .35);
+  transition: scale .4s var(--ease-smooth), box-shadow .5s var(--ease);
+}
+.pieza__play .icon { width: 1.1rem; height: 1.1rem; translate: .1rem 0; }
+.pieza:hover .pieza__play { scale: 1.1; box-shadow: 0 12px 26px -8px rgba(8, 14, 10, .65), 0 0 0 8px rgba(241, 239, 233, .16); }
+
+.pieza__texto {
+  position: absolute; left: .8rem; right: .8rem; bottom: .75rem;
+  z-index: 2;
+  display: grid; gap: .2rem;
+}
+.piezas__item--horizontal .pieza__texto { left: 1rem; right: 1rem; bottom: .9rem; }
+.pieza__marca {
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--iris-300);
+}
+.pieza__titulo {
+  font-family: var(--serif);
+  font-size: .95rem; line-height: 1.2;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.piezas__item--horizontal .pieza__titulo { font-size: 1.25rem; }
+
+/* Las que aun no tienen enlace: la portada apagada y un «pronto» en su
+   sitio del boton de reproducir. */
+.pieza.is-pronto { cursor: default; }
+.pieza.is-pronto .pieza__portada img { filter: saturate(.55) brightness(.8); }
+.pieza.is-pronto:hover { translate: none; }
+.pieza__pronto {
+  position: absolute; left: 50%; top: 50%;
+  z-index: 2;
+  display: inline-flex; align-items: center; gap: .45rem;
+  translate: -50% -50%;
+  padding: .5rem .9rem;
+  border-radius: 999px;
+  background: rgba(8, 14, 10, .58);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px rgba(241, 239, 233, .2);
+  font-size: .74rem; font-weight: 600;
+  white-space: nowrap;
+}
+.pieza__pronto .icon { width: 1rem; height: 1rem; color: #FF4E45; }
+
+@media (min-width: 600px) {
+  .piezas__lista { gap: 1rem; }
+  .pieza__titulo { font-size: 1.02rem; }
+  /* Con pantalla ancha no se centra una sola: caben varias, y centrar la
+     primera dejaba media pantalla vacia a cada lado. Empiezan a la izquierda
+     y el borde se desvanece solo lo que ocupa el relleno. */
+  .piezas .carril.is-desborda > [data-carril] {
+    padding-inline: 2.5rem;
+    scroll-padding-inline: 2.5rem;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+  }
+  .piezas__item { scroll-snap-align: start; }
+}
+
+/* EL VISOR. A pantalla entera, con el video en su forma: de pie ocupa el
+   alto, tumbado ocupa el ancho. El pie repite lo de la tarjeta. */
+.visor {
+  width: 100vw; height: 100dvh;
+  max-width: none; max-height: none;
+  margin: 0; padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bone);
+  overflow: hidden;
+}
+.visor[open] { display: grid; place-items: center; }
+.visor::backdrop {
+  background: rgba(6, 11, 8, .9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.visor__marco {
+  display: grid; justify-items: center; gap: .85rem;
+  width: 100%; height: 100%;
+  align-content: center;
+  padding: 3.5rem 1rem 5rem;
+}
+.visor__pantalla {
+  overflow: hidden;
+  border-radius: 18px;
+  background: #000;
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .9);
+}
+.visor[open] .visor__pantalla { animation: visorEntra .5s var(--ease-smooth) both; }
+.visor--vertical .visor__pantalla { height: min(74svh, calc((100vw - 2rem) * 16 / 9)); aspect-ratio: 9 / 16; }
+.visor--horizontal .visor__pantalla { width: min(calc(100vw - 2rem), 70rem, calc(74svh * 16 / 9)); aspect-ratio: 16 / 9; }
+.visor__pantalla video,
+.visor__pantalla iframe { display: block; width: 100%; height: 100%; border: 0; background: #000; object-fit: contain; }
+/* Las fichas en una fila y el titulo debajo, en dos renglones como mucho:
+   asi el pie mide siempre lo mismo y no se monta en las flechas. */
+.visor__pie {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .45rem .5rem;
+  max-width: min(100%, 36rem);
+  text-align: center;
+}
+.visor__titulo {
+  order: 3; flex: 1 0 100%;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  margin: 0; font-family: var(--serif); font-size: 1.05rem; line-height: 1.25;
+}
+
+.visor__boton {
+  position: fixed;
+  z-index: 2;
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 50%;
+  background: rgba(241, 239, 233, .12);
+  color: var(--bone);
+  box-shadow: inset 0 0 0 1px rgba(241, 239, 233, .2);
+  transition: background-color .2s var(--ease), scale .2s var(--ease);
+}
+.visor__boton:hover { background: rgba(241, 239, 233, .22); }
+.visor__boton:active { scale: .92; }
+.visor__boton:focus-visible { outline: 2px solid var(--iris-300); outline-offset: 3px; }
+.visor__boton[hidden] { display: none; }
+.visor__cerrar { top: max(.9rem, env(safe-area-inset-top)); right: .9rem; font-size: 1.7rem; line-height: 1; }
+.visor__flecha { top: 50%; translate: 0 -50%; }
+.visor__flecha::before {
+  content: "";
+  width: .6rem; height: .6rem;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+}
+.visor__flecha--antes { left: .9rem; }
+.visor__flecha--despues { right: .9rem; }
+.visor__flecha--antes::before { rotate: 135deg; translate: .15rem 0; }
+.visor__flecha--despues::before { rotate: -45deg; translate: -.15rem 0; }
+.visor__iconos { display: none; }
+
+/* En el movil las flechas bajan al pie, a los lados: a media altura
+   taparian el video, que ocupa casi todo el ancho. */
+@media (max-width: 599px) {
+  .visor__marco { padding-bottom: 4.6rem; }
+  .visor--vertical .visor__pantalla { height: min(62svh, calc((100vw - 2rem) * 16 / 9)); }
+  .visor__flecha { top: auto; bottom: max(1rem, env(safe-area-inset-bottom)); translate: none; }
+  .visor__flecha--antes { left: calc(50% - 3.4rem); }
+  .visor__flecha--despues { right: calc(50% - 3.4rem); }
+}
+@keyframes visorEntra { from { opacity: 0; scale: .94; } }
+@media (prefers-reduced-motion: reduce) {
+  .pieza, .pieza__portada img, .pieza__play { transition: none; }
+  .visor[open] .visor__pantalla { animation: none; }
+}
+
+/* EN VIDEO, en Trabajos y en Proyectos: una pantalla con el carril de
+   todas las piezas de la seccion. */
+.videos {
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 100svh;
+  padding: calc(var(--header-h) + 1.4rem) var(--gutter) 2.5rem;
+  background: var(--papel);
+  color: var(--slate);
+  border-top: 1px solid rgb(var(--slate-rgb) / .1);
+}
+.videos__shell { width: 100%; max-width: 72rem; margin-inline: auto; }
+.videos__titulo {
+  margin: 0;
+  font-size: .7rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--slate-400);
+}
+.videos__lead { margin: .45rem 0 1.1rem; font-size: .92rem; font-weight: 300; line-height: 1.6; text-wrap: pretty; }
+/* En un movil la seccion arranca arriba, como las tarjetas: centrada dejaba
+   un hueco encima del titulo. */
+@media (max-width: 599px) {
+  .videos { justify-content: flex-start; }
+  .videos .piezas { --pieza-alto: clamp(16rem, 46svh, 24rem); }
+}
+
+/* =============================================================
    Footer
    ============================================================= */
 /* El pie no llevaba nada de aire por arriba y cinco rem por abajo: el

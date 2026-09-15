@@ -51,7 +51,7 @@ const ejes = Object.entries(AXES)
   .map(([id, a]) => ({ id, label: a.label, tags: Object.keys(a.tags).filter((t) => puestas.has(t)), all: a.tags }))
   .filter((a) => a.tags.length > 0);
 ---
-<section class="cards" aria-labelledby={`cards-${kind}`}>
+<section class="cards" aria-labelledby={`cards-${kind}`} data-filtrable>
   <div class="cards__head">
     <h2 class="cards__title" id={`cards-${kind}`}>{title}</h2>
 
@@ -76,7 +76,7 @@ const ejes = Object.entries(AXES)
   </div>
 
   {/* `data-carril`: en movil la fila lleva flechas e indicador (initCarriles). */}
-  <ul class="cards__grid" style={`--cols:${cols}`} data-carril data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
+  <ul class="cards__grid" style={`--cols:${cols}`} data-carril data-filtrable-lista data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
     {items.map((e, i) => (
       <li data-tags={(e.tags ?? []).join(' ')}>
         <a class="ecard" href={`/${lang}/${slugOf(e)}/`}>

@@ -941,11 +941,15 @@ function initCurtain() {
    `aria-pressed` y no una clase a secas: quien escucha tiene que saber
    cuales estan puestos, y eso no lo dice un color. */
 function initFilter() {
-  const bar = d.querySelector('[data-filter-bar]');
-  const grid = d.querySelector('.cards__grid');
-  if (!bar || !grid) return;
+  /* Puede haber mas de un filtro en la pagina —las casas y sus videos—, asi
+     que cada barra busca su fila y su «no hay nada» dentro de su propia caja
+     (`data-filtrable`), no en toda la pagina. */
+  d.querySelectorAll('[data-filter-bar]').forEach((bar) => {
+  const caja = bar.closest('[data-filtrable]');
+  const grid = caja && caja.querySelector('[data-filtrable-lista]');
+  if (!grid) return;
   const clear = bar.querySelector('[data-filter-clear]');
-  const none = d.querySelector('[data-filter-none]');
+  const none = caja.querySelector('[data-filter-none]');
   const rows = [...grid.querySelectorAll(':scope > li')];
 
   /* Lo puesto, por eje. Un Set por eje y no una lista suelta: asi
@@ -1000,6 +1004,7 @@ function initFilter() {
     btn.classList.toggle('is-on', ahora);
     btn.setAttribute('aria-pressed', String(ahora));
     apply();
+  });
   });
 }
 
@@ -1120,6 +1125,27 @@ function initCarriles() {
        repintado no llego, la flecha se quedaria apagada con sitio para ir. */
     antes.addEventListener('click', () => { if (pista.scrollLeft > 2) ir(actual() - 1); });
     despues.addEventListener('click', () => { if (pista.scrollLeft < tope() - 2) ir(actual() + 1); });
+
+    /* LA RUEDA DEL RATON, DE LADO. Un trackpad manda gestos laterales y el
+       carril se desliza solo; un raton de rueda no tiene lado, asi que sin
+       esto el carril quedaba muerto en escritorio: la rueda vertical se la
+       quedaba el salto entre pantallas y la fila no se movia.
+
+       Mientras al carril le quede recorrido, la rueda lo desplaza y no sale
+       de aqui (`stopPropagation`, o las diapositivas contarian el mismo
+       empujon). Al llegar al extremo se suelta: la pagina sigue a lo suyo. */
+    pista.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;    /* gesto lateral: ya es del navegador */
+      const dy = e.deltaMode === 1 ? e.deltaY * 16
+               : e.deltaMode === 2 ? e.deltaY * pista.clientWidth
+               : e.deltaY;
+      const max = tope();
+      const puede = (dy > 0 && pista.scrollLeft < max - 2) || (dy < 0 && pista.scrollLeft > 2);
+      if (!puede) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pista.scrollBy({ left: dy, behavior: 'auto' });
+    }, { passive: false });
 
     /* Un cuadro por tanda de scroll, y un reloj de respaldo por si los cuadros
        no llegan (una pestaña en segundo plano los frena). */
@@ -1296,6 +1322,7 @@ function initDiapositivas() {
 
   addEventListener('wheel', (e) => {
     if (paradas.length < 2) return;                       /* pagina normal */
+    if (d.querySelector('dialog[open]')) return;          /* un visor abierto manda */
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;  /* gesto lateral, suyo es */
     e.preventDefault();
     if (volando) return;
@@ -1320,6 +1347,7 @@ function initDiapositivas() {
      flechas siguen desplazando pixel a pixel, la pagina tiene dos verdades. */
   addEventListener('keydown', (e) => {
     if (paradas.length < 2 || volando) return;
+    if (d.querySelector('dialog[open]')) return;
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1413,6 +1441,102 @@ function initDiapositivas() {
      medir una pagina que todavia no existe. */
   setTimeout(armar, 400);
   addEventListener('load', () => setTimeout(armar, 200));
+}
+
+/* ---------- Los videos: el visor ----------------------------
+   Una tarjeta con `data-pieza` abre el <dialog> del visor con su video. Las
+   que dicen «pronto» no llevan `data-pieza`: su `data-soon` lo explica.
+
+   EL VIDEO SE PONE AL ABRIR Y SE QUITA AL CERRAR. En la tarjeta solo hay
+   una portada; el <video> no existe hasta que alguien lo pide, asi que una
+   pagina con quince piezas no descarga ninguna. Y al cerrar se borra: un
+   video pausado sigue ocupando la conexion, y uno que se queda sonando
+   detras de la pagina es lo peor que puede pasar aqui.
+
+   Las flechas —y las del teclado— pasan a la pieza de al lado dentro de la
+   misma pagina. Con una sola pieza no se enseñan. */
+function initPiezas() {
+  const visor = d.getElementById('visor');
+  if (!visor || typeof visor.showModal !== 'function') return;
+  const tarjetas = [...d.querySelectorAll('[data-pieza]')];
+  if (!tarjetas.length) return;
+
+  const pantalla = visor.querySelector('[data-visor-pantalla]');
+  const titulo = visor.querySelector('[data-visor-titulo]');
+  const forma = visor.querySelector('[data-visor-forma]');
+  const dura = visor.querySelector('[data-visor-duracion]');
+  const antes = visor.querySelector('[data-visor-antes]');
+  const despues = visor.querySelector('[data-visor-despues]');
+  const icono = (o) => visor.querySelector(`[data-icono="${o}"]`)?.innerHTML || '';
+  let actual = -1;
+  let origen = null;
+  let lista = tarjetas;                    /* las que el filtro deja a la vista */
+
+  const poner = (i) => {
+    actual = (i + lista.length) % lista.length;
+    const c = lista[actual].dataset;
+    visor.classList.toggle('visor--vertical', c.orientacion === 'vertical');
+    visor.classList.toggle('visor--horizontal', c.orientacion !== 'vertical');
+    /* La marca, si el carril mezcla casas y el titulo no la dice ya. */
+    titulo.textContent = c.marca && !c.titulo.includes(c.marca) ? `${c.titulo} · ${c.marca}` : c.titulo;
+    forma.innerHTML = icono(c.orientacion) + '<span></span>';
+    forma.lastChild.textContent = c.forma;
+    dura.textContent = c.duracion;
+
+    pantalla.replaceChildren();
+    if (c.youtube) {
+      const f = d.createElement('iframe');
+      f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(c.youtube)}?autoplay=1&rel=0&playsinline=1`;
+      f.title = c.titulo;
+      f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.allowFullscreen = true;
+      pantalla.appendChild(f);
+    } else {
+      const v = d.createElement('video');
+      v.src = c.video;
+      v.poster = c.poster;
+      v.controls = true;
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.setAttribute('aria-label', c.titulo);
+      pantalla.appendChild(v);
+      /* Con sonido si el navegador lo deja —vino de un toque—; si no,
+         arranca en silencio y los controles estan ahi para subirlo. */
+      v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+    }
+  };
+
+  const abrir = (i) => {
+    origen = d.activeElement;
+    poner(i);
+    const varias = lista.length > 1;
+    antes.hidden = despues.hidden = !varias;
+    visor.showModal();
+    lockScroll(true);
+  };
+
+  tarjetas.forEach((t) => t.addEventListener('click', () => {
+    lista = tarjetas.filter((x) => !x.closest('[hidden]'));
+    abrir(Math.max(0, lista.indexOf(t)));
+  }));
+  visor.querySelector('[data-visor-cerrar]').addEventListener('click', () => visor.close());
+  antes.addEventListener('click', () => poner(actual - 1));
+  despues.addEventListener('click', () => poner(actual + 1));
+  /* Pulsar fuera del video —en el velo— cierra. El <dialog> ocupa la
+     pantalla entera, asi que «fuera» es el propio dialogo o su marco. */
+  visor.addEventListener('click', (e) => {
+    if (e.target === visor || e.target.classList.contains('visor__marco')) visor.close();
+  });
+  visor.addEventListener('keydown', (e) => {
+    if (lista.length < 2) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); poner(actual - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); poner(actual + 1); }
+  });
+  visor.addEventListener('close', () => {
+    pantalla.replaceChildren();
+    lockScroll(false);
+    if (origen && origen.focus) origen.focus();
+  });
 }
 
 /* ---------- La familia Fraterni, de una en una ---------------
@@ -1713,6 +1837,7 @@ initCurtain();
 initFilter();
 initCarriles();
 initFamilia();
+initPiezas();
 initFichas();
 initTachones();
 initReveal();
