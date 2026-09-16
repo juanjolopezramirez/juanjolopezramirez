@@ -3573,134 +3573,116 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 /* =============================================================
    ¿QUE SIGNIFICA CAMINAR LIGERO? (Ligero.astro)
 
-   Una pantalla entera con la misma fotografia que abre la casa, dibujada
-   plana y partida en cinco planos. Quieta es la ilustracion original: los
-   planos encajan al pixel. Al entrar y al salir se abren, cada uno a su
-   velocidad, y vuelven a cerrar.
+   UNA LAMINA, NO UN MURAL. El dibujo vive dentro de un lienzo pequeno, con
+   su canto redondeado y su sombra, centrado en la pantalla; detras, el mismo
+   paramo enorme y fuera de foco. Entre los dos hay aire, y ese aire es la
+   dimension. A sangre no habia profundidad que ver: solo tamano.
 
-   EL CIELO ES EL FONDO DE LA SECCION y no una capa: asi el dibujo no tiene
-   canto por ningun lado —arriba se funde con el hueco del titular, abajo
-   llega al borde— y una capa menos que pedir.
+   LA IMAGEN SE ARMA. Diecisiete planos —las dieciseis capas del dibujo y la
+   roca, que va entre ellas— llegan de atras hacia delante segun entra la
+   pantalla: cada uno se funde y se posa en su sitio, un poco mas grande al
+   llegar, como un dolly que se frena. Quieta, la lamina es exactamente la
+   ilustracion original. Al salir, los planos se separan por profundidad.
 
-   TODOS LOS PLANOS COMPARTEN CAJA: el mismo lienzo, el mismo recorte y el
-   mismo punto de mira. Se colocan solos, y mover el encuadre es mover una
-   linea. La caja se sale por arriba y por abajo (`inset` negativo) para que
-   al separarse no asome el fondo por ningun canto.
+   TODOS COMPARTEN CAJA: el mismo lienzo, el mismo recorte. Se registran
+   solos y cambiar el encuadre es cambiar una linea.
    ============================================================= */
 .ligero {
   /* El gris del paramo. De noche, el verde de la casa: la escena se tine
-     entera con un filtro, que es una sola linea y no cinco ficheros mas. */
+     entera con un filtro, que es una linea y no diecisiete ficheros mas. */
   --cielo: #E2E1E1;
   --escena-tinte: none;
   /* La roca lleva la unica cosa con color de toda la escena: yo. Por eso
-     tiene su propio filtro y no el de las capas dibujadas — el giro de tono
-     que vuelve verde el gris me volvia verde la cara. */
+     tiene su propio filtro — el giro de tono que vuelve verde el gris me
+     volvia verde la cara. */
   --escena-tinte-roca: none;
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr;
+  place-items: center;
   min-height: 100svh;
-  padding: calc(var(--header-h) + 2.2rem) 0 0;
-  background: var(--cielo);
+  height: 100svh;
+  padding: calc(var(--header-h) + 1.4rem) var(--gutter) 2.2rem;
+  background: var(--papel);
   color: var(--slate);
   overflow: hidden;
   overflow: clip;
 }
-.ligero__texto {
-  position: relative;
-  z-index: 3;
-  max-width: 36rem;
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-  text-align: center;
+/* EL SITIO, DETRAS Y FUERA DE FOCO. Es la misma escena, mucho mas grande y
+   desenfocada, apagandose hacia los cantos: no se mira, se siente, y es
+   contra ella contra la que el lienzo se despega. */
+.ligero__lejos {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  background: url("/assets/paramo/fondo.webp") center / cover no-repeat;
+  opacity: .58;
+  filter: var(--escena-tinte);
+  /* Se funde con la hoja solo en los bordes de arriba y de abajo: lo de los
+     costados tiene que verse, porque es lo unico que hay alrededor de la
+     lamina y es de donde sale la sensacion de sitio. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 82%, transparent 100%);
 }
+.ligero__centro {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: clamp(1.1rem, 3.2vh, 2.2rem);
+  width: 100%;
+}
+/* Centrada siempre: es lo unico que se lee aqui. */
 .ligero__pregunta {
+  max-width: 20ch;
   margin: 0;
   font-family: var(--serif);
-  font-size: clamp(1.7rem, 6.4vw, 2.9rem);
+  font-size: clamp(1.55rem, 5vw, 2.6rem);
   font-weight: 400;
   line-height: 1.14;
   letter-spacing: -.02em;
+  text-align: center;
   text-wrap: balance;
   color: var(--slate);
 }
 .ligero__pregunta .script {
   font-family: var(--hand);
   font-style: normal;
-  font-size: 1.9em;
+  font-size: 1.85em;
   line-height: 0;
 }
-.ligero__respuesta {
-  max-width: 24rem;
-  margin: 1.15rem auto 0;
-  font-size: .92rem; font-weight: 300; line-height: 1.66;
-  color: var(--slate-400);
-  text-wrap: pretty;
-}
-.ligero__escena {
+/* EL LIENZO. El ancho sale de tres sitios a la vez y manda el menor: lo que
+   deja la ventana, lo que pide la lectura y lo que cabe de alto. Asi la
+   lamina nunca pierde su forma —3:2, la del dibujo— y no hay que recortar
+   nada en ninguna pantalla. */
+.ligero__lienzo {
   position: relative;
-  z-index: 1;
-  align-self: end;
-  width: 100%;
-  height: 100%;
-  min-height: 40svh;
+  width: min(100%, 54rem, calc(56svh * 1.5));
+  aspect-ratio: 3 / 2;
+  border-radius: clamp(.9rem, 2vw, 1.5rem);
+  overflow: hidden;
+  background: var(--cielo);
+  box-shadow:
+    0 2px 6px -3px rgb(var(--slate-rgb) / .3),
+    0 30px 60px -34px rgb(var(--slate-rgb) / .55);
 }
 .ligero__capa {
   position: absolute;
   inset: 0;
   display: block;
-  filter: var(--escena-tinte);
-}
-/* LA NIEBLA VA ENTRE MEDIAS, no encima de todo. Delante de ella solo estan
-   la roca y el pasto —lo que en la foto esta de este lado de la niebla—, y
-   por eso se ven limpios mientras el fondo se deshace. Puesta encima de
-   todo, la niebla me borraba a mi, que estoy a un metro de la camara. */
-.ligero__capa--roca,
-.ligero__capa--pasto { z-index: 2; }
-.ligero__capa--roca { filter: var(--escena-tinte-roca); }
-.ligero__capa img {
-  display: block;
   width: 100%; height: 100%;
   object-fit: cover;
-  /* En un movil el encuadre se corre a la izquierda: ahi es donde estoy. */
-  object-position: 34% 100%;
+  filter: var(--escena-tinte);
 }
-/* La niebla de arriba: el dibujo no empieza con una raya, se aparece. */
-.ligero__escena::after {
-  content: "";
-  position: absolute; inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(to bottom, var(--cielo) 0%, transparent 30%);
-}
-/* DE 900 PARA ARRIBA LA ESCENA ES LA PANTALLA ENTERA y el texto va encima,
-   flotando en la niebla. Cabe: el dibujo es 3:2 y una ventana de escritorio
-   tambien es apaisada, asi que llenandola solo se recorta un dedo de cielo
-   —justo lo que sobra—. En un movil, en cambio, llenar la altura obligaria
-   a recortar dos tercios del ancho y me dejaria fuera del encuadre: ahi la
-   escena se queda abajo, entera, y el texto encima de ella. */
-@media (min-width: 900px) {
-  /* Alto exacto, no solo minimo: la escena se mide en porcentaje contra el,
-     y contra un alto que solo es minimo el porcentaje no tiene de que. */
-  .ligero { display: block; height: 100svh; }
-  .ligero__escena {
-    position: absolute;
-    inset: 0;
-    height: 100%;
-    min-height: 0;
-  }
-  .ligero__capa img { object-position: 50% 100%; }
-  /* EL TEXTO SE APARTA DE MI. A pantalla completa la escena ocupa todo, y yo
-     estoy a la izquierda, sobre la roca: la pregunta se va al canto derecho,
-     donde solo hay niebla. No es una columna centrada que se posa encima de
-     la figura —eso tapaba justo lo que hay que mirar—, es el hueco que la
-     propia fotografia deja libre. */
-  .ligero__texto {
-    max-width: min(28rem, 44vw);
-    margin-inline: auto 0;
-    text-align: right;
-  }
-  .ligero__respuesta { margin-inline: auto 0; font-size: .98rem; }
+.ligero__capa--roca { filter: var(--escena-tinte-roca); }
+/* EN UN TELEFONO LA LAMINA SE PONE DE PIE. Apaisada dentro de una pantalla
+   vertical se queda en una tira pequena con medio palmo de hueco encima y
+   otro medio debajo. De pie llena la mano, y ademas es la forma de la
+   fotografia de la que salio todo. El recorte se corre a la izquierda —ahi
+   es donde estoy— y, como todas las capas se recortan igual, siguen
+   encajando al pixel. */
+@media (max-width: 599px) {
+  .ligero__lienzo { aspect-ratio: 4 / 5; width: min(100%, calc(62svh * .8)); }
+  .ligero__capa { object-position: 38% 50%; }
 }
 
 /* =============================================================
@@ -5552,8 +5534,8 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
     .partners__window,
     .cards__head,
     .cards > .carril,
-    .ligero__texto,
-    .ligero__capa,
+    .ligero__pregunta,
+    .ligero__lejos,
     .cards > .cards__grid {
       /* Por separado y no con `animation:`. Al minificar, el shorthand y
          `animation-timeline` se fundian en `animation: linear both capa --capa`,
@@ -5606,14 +5588,39 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
       display: inline-block;      /* `scale` no entra en una caja en linea */
     }
 
-    /* EL PARAMO. De la bruma al pasto, de lejos a cerca: la bruma se queda
-       atras, la roca se adelanta y el pasto pasa por delante de todo. */
-    .ligero__capa--bruma  { --prx: -86; }
-    .ligero__capa--meseta { --prx: -44; }
-    .ligero__capa--risco  { --prx: -12; }
-    .ligero__capa--roca   { --prx: 40; }
-    .ligero__capa--pasto  { --prx: 104; }
-    .ligero__texto        { --prx: 64; }
+    /* EL PARAMO. La pregunta se adelanta; el sitio de detras se queda muy
+       atras, que para eso esta lejos. */
+    .ligero__pregunta { --prx: 46; }
+    .ligero__lejos    { --prx: -46; }
+
+    /* Y EL DIBUJO SE ARMA. Cada plano tiene su propio tramo de la entrada
+       —los de atras primero, los de delante al final—, y en ese tramo se
+       funde y se posa: llega un punto mas grande, como si viniera de mas
+       cerca, y se frena en su sitio. Los numeros no estan aqui sino en cada
+       plano (Ligero.astro): salen de lo hondo que esta, y escribirlos uno a
+       uno en la hoja de estilos seria repetir diecisiete veces la misma
+       cuenta.
+
+       Al salir se separan: la de delante corre, la del fondo se queda. Son
+       dos animaciones y no una porque una toca el tamano y la otra el sitio;
+       si las dos tocaran `translate`, la ultima borraria a la primera. */
+    @keyframes armaCapa {
+      from { opacity: 0; scale: var(--esc, 1.04); }
+      to   { opacity: 1; scale: 1; }
+    }
+    @keyframes flotaCapa {
+      from { translate: 0 0; }
+      to   { translate: 0 calc(var(--prx, 0) * -1px); }
+    }
+    .ligero__capa {
+      animation-name: armaCapa, flotaCapa;
+      animation-timing-function: ease-out, linear;
+      animation-fill-mode: both, both;
+      animation-iteration-count: 1, 1;
+      animation-timeline: --capa, --capa;
+      animation-range-start: entry var(--entra, 0%), exit 0%;
+      animation-range-end: entry var(--posa, 100%), exit 100%;
+    }
 
     /* LA COPIA SE REVELA. La instantanea no se mueve como las demas capas:
        hace lo que hace una instantanea de verdad. Cada vez que se llega a
