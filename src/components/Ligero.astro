@@ -2,73 +2,90 @@
 /* ¿QUÉ SIGNIFICA CAMINAR LIGERO?
 
    La misma fotografía que abre la casa —una roca asomada al vacío en el
-   páramo— dibujada plana y guardada capa por capa: dieciséis, más la roca.
-   No es una imagen que aparece: es una imagen que SE ARMA. Al entrar en la
-   pantalla van llegando de atrás hacia delante, primero la niebla y al
-   final el pasto seco, cada una fundiéndose y posándose en su sitio. Quieta
-   es exactamente la ilustración original, encajada al píxel. Al salir se
-   separan por profundidad y el dibujo respira.
+   páramo— dibujada plana, repartida en profundidad y puesta dentro de una
+   cámara de verdad: las capas no se mueven, se mueve el ojo. Al bajar, el
+   mundo entero se desplaza y cada plano responde según lo lejos que esté,
+   que es lo que hace un paisaje visto desde un coche. Nada se enciende ni
+   se apaga: es un solo movimiento continuo, pegado al scroll, y por eso se
+   lee como vídeo y no como una transición.
 
-   EL LIENZO ES PEQUEÑO, y eso es lo que hace que se vea grande: una lámina
-   con su canto redondeado y su sombra, centrada, y detrás el mismo páramo
-   enorme y fuera de foco. Entre los dos hay aire, y ese aire es la
-   dimensión. A sangre no había profundidad que ver: solo tamaño.
+   LA PERSPECTIVA ES LA DE VERDAD, no una imitación con velocidades a mano:
+   la caja tiene `perspective` y cada plano vive a su distancia (`--z`), con
+   la escala que compensa esa distancia —(P + z) / P— para que todos se vean
+   del mismo tamaño estando quietos. Así, parado, el dibujo es EXACTAMENTE
+   la ilustración original; en cuanto el ojo se mueve, la profundidad
+   aparece sola, con su escala y su velocidad, sin que nadie las calcule.
+
+   LA SECCIÓN MIDE TRES PANTALLAS y la escena se queda pegada (`sticky`) en
+   la primera: esas dos pantallas de más son el recorrido de la animación.
+   Es la única de la casa que no salta —lleva `data-libre`— porque aquí el
+   scroll no es para pasar de pantalla, es para mover la cámara.
 
    LA NUMERACIÓN ES LA SUYA: 1 es la de delante. La roca va ENTRE las capas
-   —detrás del pasto y delante del risco—, que es donde está en la foto, y
-   no encima de todo como una calcomanía. Yo viajo con la roca: si nos
-   moviéramos por separado, al abrirse las capas me quedaría flotando al
-   lado de la piedra.
+   —detrás del pasto y delante del risco—, que es donde está en la foto. Yo
+   viajo con la roca, plantado en su cara de arriba: si nos moviéramos por
+   separado, me quedaría flotando al lado de la piedra.
 
-   TODAS COMPARTEN CAJA: cada fichero trae el lienzo entero aunque lo que
-   pinte sea un trozo, así que se registran solas y cambiar el encuadre es
-   cambiar una línea.
-
-   Solo la pregunta, centrada siempre. La escena se describe una vez, en la
-   caja que las contiene: quien no la ve oye la fotografía, no dieciséis
-   imágenes sueltas. */
+   Y LA PREGUNTA ES UN PLANO MÁS, el más cercano de todos: se mueve como se
+   mueve lo que tienes delante, no como un rótulo pegado al cristal. */
 const { t } = Astro.props;
 
 const base = '/assets/paramo/';
-const HONDO = 15;                     /* cuantas capas de dibujo hay */
+const HONDO = 15;          /* capas de dibujo */
+const OJO = 700;           /* la `perspective` de la caja, en px */
+const FONDO = 900;         /* lo lejos que se va la niebla */
 
-/* De la más lejana a la de delante, que es el orden en que se pintan y el
-   orden en que llegan. La roca se cuela entre la 2 y la 1. */
+/* De la mas lejana a la de delante: el orden de pintado. La roca entre la
+   2 y la 1. */
 const PLANOS = [];
 for (let n = HONDO; n >= 1; n--) {
   if (n === 1) PLANOS.push({ src: 'roca', i: 1.5 });
   PLANOS.push({ src: 'c' + String(n).padStart(2, '0'), i: n });
 }
 
-/* `paso` va de 0 —la del fondo— a 1 —la de delante—, y de ahí sale todo:
-     cuándo llega   la del fondo primero, la de delante al final;
-     cuánto viaja   al salir, la de delante corre y la del fondo se queda;
-     de qué tamaño  entra: lo cercano entra más grande, como en un dolly. */
-const reglas = (i) => {
-  const paso = (HONDO - i) / (HONDO - 1);
-  const inicio = paso * 58;
-  return [
-    `--entra: ${inicio.toFixed(1)}%`,
-    `--posa: ${(inicio + 42).toFixed(1)}%`,
-    `--prx: ${Math.round(-50 + paso * 140)}`,
-    `--esc: ${(1.02 + paso * 0.05).toFixed(3)}`
-  ].join('; ');
+/* LA PROFUNDIDAD NO ES EL NÚMERO DE LA CAPA. El dibujo está hecho de bandas
+   de tono, no de objetos, y repartirlas a distancias iguales separa cosas
+   que son la misma cosa: las seis de arriba son niebla —velos que cubren el
+   cielo entero— y al moverse cada una a su velocidad dejaban rayas de gris
+   en el cielo. Van todas al mismo fondo. La distancia se reparte donde hay
+   algo que mirar: la meseta, el risco, la roca y el pasto.
+
+   `z` es esa distancia, y la escala la deshace —(P + z) / P— para que
+   quieta la escena se vea como si no hubiera perspectiva. */
+const HONDURA = {
+  1: 0, 2: 90,                                  /* el pasto seco, delante */
+  3: 200, 4: 260, 5: 320, 6: 380,               /* el risco */
+  7: 500, 8: 560, 9: 620,                       /* la meseta */
+  10: FONDO, 11: FONDO, 12: FONDO,              /* la niebla, toda a una */
+  13: FONDO, 14: FONDO, 15: FONDO
+};
+const ROCA = 45;                                /* entre el pasto y el risco */
+const sitio = (i) => {
+  const z = HONDURA[i] ?? ROCA;
+  return `--z:${z}; transform: translateZ(${-z}px) scale(${((OJO + z) / OJO).toFixed(4)})`;
 };
 ---
-<section class="ligero" id="ligero" aria-labelledby="ligero-title">
-  <div class="ligero__lejos" aria-hidden="true"></div>
+<section class="ligero" id="ligero" data-libre aria-labelledby="ligero-title">
+  <div class="ligero__fijo">
+    {/* El cielo no viaja con el mundo: si viajara, al bajar la escena
+        asomaria el papel de la pagina por arriba. Lleva el tinte de las
+        capas para que de noche sea el mismo cielo que ellas. */}
+    <div class="ligero__cielo" aria-hidden="true"></div>
+    <div class="ligero__camara">
+      <div class="ligero__mundo">
+        <div class="ligero__escena" role="img" aria-label={t('light.scene')}>
+          {PLANOS.map((p) => (
+            <img class:list={['ligero__capa', { 'ligero__capa--roca': p.src === 'roca' }]}
+                 style={sitio(p.i)}
+                 src={`${base}${p.src}.webp`} alt="" width="1536" height="1024"
+                 loading="lazy" decoding="async" />
+          ))}
+        </div>
 
-  <div class="ligero__centro">
-    <h2 class="ligero__pregunta" id="ligero-title">
-      {t('light.q')}<em class="script">{t('hero.lightly')}</em>{t('light.qEnd')}
-    </h2>
-
-    <div class="ligero__lienzo" role="img" aria-label={t('light.scene')}>
-      {PLANOS.map((p) => (
-        <img class:list={['ligero__capa', { 'ligero__capa--roca': p.src === 'roca' }]} style={reglas(p.i)}
-             src={`${base}${p.src}.webp`} alt="" width="1536" height="1024"
-             loading="lazy" decoding="async" />
-      ))}
+        <h2 class="ligero__pregunta" id="ligero-title">
+          {t('light.q')}<em class="script">{t('hero.lightly')}</em>{t('light.qEnd')}
+        </h2>
+      </div>
     </div>
   </div>
 </section>

@@ -1246,6 +1246,11 @@ function initCarriles() {
      - quien pide menos movimiento no lo tiene.
      - el teclado sigue mandando, con las teclas de siempre.
      - el gesto lateral se deja pasar: hay carruseles que lo usan.
+     - una pantalla puede pedir que aqui no se salte (`data-libre`): dentro
+       de ella el scroll es el de siempre. Es para las que miden mas de una
+       ventana a proposito, porque el recorrido ES la animacion —el paramo
+       de «caminar ligero»—. Deja dos paradas, su principio y su final, y
+       entre las dos manda el dedo.
 
    LAS SECCIONES CORTAS SE JUNTAN CON LA SIGUIENTE. En proyectos hay una
    cinta de 122px; convertirla en diapositiva propia dejaria al visitante
@@ -1272,6 +1277,9 @@ function initDiapositivas() {
   const CALMA = 170;         /* sin rueda tanto rato, el esfuerzo se relaja */
 
   let paradas = [];
+  /* Los tramos donde el salto se aparta: [principio, final] de cada pantalla
+     libre, en coordenadas de pagina. */
+  let libres = [];
   let indice = 0;
   let volando = false;
   let esfuerzo = 0;
@@ -1302,10 +1310,23 @@ function initDiapositivas() {
     });
 
     const grupos = [];
+    libres = [];
     pantallas.forEach((el) => {
       const c = el.getBoundingClientRect();
       if (c.height < 8) return;                      /* lo que no se ve no cuenta */
       const arriba = c.top + scrollY;
+      /* LA PANTALLA LIBRE no se junta con nadie ni se mide contra la ventana:
+         es alta a proposito. Pone parada en su principio y en su final —el
+         punto donde deja de estar pegada— y entre los dos el salto no entra. */
+      if (el.hasAttribute('data-libre')) {
+        const final = arriba + c.height - innerHeight;
+        grupos.push({ arriba: arriba, alto: innerHeight });
+        if (final > arriba + 40) {
+          grupos.push({ arriba: final, alto: innerHeight });
+          libres.push([arriba, final]);
+        }
+        return;
+      }
       const ultimo = grupos[grupos.length - 1];
       if (ultimo && ultimo.alto + c.height <= innerHeight) { ultimo.alto += c.height; return; }
       grupos.push({ arriba: arriba, alto: c.height });
@@ -1319,6 +1340,15 @@ function initDiapositivas() {
        misma parada. */
     paradas = crudas.filter((p, i) => i === 0 || p - crudas[i - 1] > 40);
     if (paradas.length < 2) paradas = [];
+  }
+
+  /* Dentro de un tramo libre el scroll es del navegador. Se mira con la
+     direccion: parados en el canto de arriba y bajando, el tramo es nuestro;
+     parados en el de abajo y bajando, ya no —ahi vuelve a saltar—. */
+  function libre(dir) {
+    return libres.some(([a, b]) => (dir > 0
+      ? scrollY >= a - 2 && scrollY < b - 2
+      : scrollY > a + 2 && scrollY <= b + 2));
   }
 
   function cede(px) {
@@ -1380,6 +1410,12 @@ function initDiapositivas() {
     if (paradas.length < 2) return;                       /* pagina normal */
     if (d.querySelector('dialog[open]')) return;          /* un visor abierto manda */
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;  /* gesto lateral, suyo es */
+    if (libre(e.deltaY)) return;                          /* tramo libre: scroll normal */
+    /* En la ultima parada hacia abajo —o en la primera hacia arriba— no hay
+       adonde saltar: se suelta la rueda, y asi la pagina puede llegar al pie
+       en vez de quedarse trabada contra el final. */
+    const haciaDonde = e.deltaY > 0 ? 1 : -1;
+    if (indice + haciaDonde < 0 || indice + haciaDonde >= paradas.length) return;
     e.preventDefault();
     if (volando) return;
 
@@ -1408,8 +1444,11 @@ function initDiapositivas() {
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     let hecho = false;
-    if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ') hecho = saltar(1);
-    else if (e.key === 'PageUp' || e.key === 'ArrowUp') hecho = saltar(-1);
+    const abajo = e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ';
+    const arriba = e.key === 'PageUp' || e.key === 'ArrowUp';
+    if ((abajo || arriba) && libre(abajo ? 1 : -1)) return;
+    if (abajo) hecho = saltar(1);
+    else if (arriba) hecho = saltar(-1);
     else if (e.key === 'Home') { indice = 0; volar(paradas[0]); hecho = true; }
     else if (e.key === 'End') { indice = paradas.length - 1; volar(paradas[indice]); hecho = true; }
     if (hecho) e.preventDefault();
@@ -1470,6 +1509,8 @@ function initDiapositivas() {
       const dy = Math.abs(e.touches[0].clientY - dedoY);
       const enFila = e.target.closest && e.target.closest('[data-carril], .faxis__chips');
       if (dx > dy || (enFila && dx * 1.5 >= dy && dx > 0)) { dedoActivo = false; return; }
+      /* El dedo baja cuando la pagina sube: el signo se mira al reves. */
+      if (libre(dedoY - e.touches[0].clientY)) { dedoActivo = false; return; }
       decidido = true;
     }
     e.preventDefault();
