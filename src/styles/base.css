@@ -3596,15 +3596,15 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   background: var(--papel);
   color: var(--slate);
 }
-/* EN UNA PANTALLA DE PIE el dibujo se mide por el alto y se sale por la
-   derecha: se ve el pasto, la pared, la roca y yo; el risco del fondo sigue
-   fuera. Ahi la roca cae mas a su comienzo, que esta mas bajo, y yo un
-   punto mas grande. */
+/* EN UNA PANTALLA DE PIE la roca y el pasto son los del dibujo para el
+   telefono —mas pequeños y mas abajo— y el dibujo mide casi dos anchos de
+   pantalla: la roca entera cabe a la izquierda, su punta queda a dos tercios
+   y detras se ve la caida al vacio. Yo, a la escala de esa roca. */
 @media (max-aspect-ratio: 1 / 1) {
   .ligero {
-    --escena-w: 107svh;
-    --yo-ancho: 7.01%;
-    --yo-arriba: 26.94%;
+    --escena-w: 180vw;
+    --yo-ancho: 4.5%;
+    --yo-arriba: 46%;
   }
 }
 /* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
@@ -3672,7 +3672,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   filter: var(--escena-tinte-yo);
 }
 @media (max-aspect-ratio: 1 / 1) {
-  .ligero__yo { --yo-ancho-n: .035; }
+  .ligero__yo { --yo-ancho-n: .0225; }
 }
 
 /* LA NIEBLA, del color de la pagina: un velo al pie de la meseta, entre el
@@ -5658,6 +5658,21 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
       animation-timeline: --capa;
       animation-range-start: contain 0%;
       animation-range-end: contain 52%;
+    }
+    /* EN UN TELEFONO LA PREGUNTA SE QUEDA. Ahi el dibujo ocupa la mitad de
+       abajo y arriba sobra cielo: la pregunta vive en el, sube un poco con el
+       recorrido y no se va. Juntas, la pregunta y la escena son la pagina. */
+    @media (max-aspect-ratio: 1 / 1) {
+      @keyframes preguntaSube {
+        from { translate: -50% 0; }
+        to   { translate: -50% -7svh; }
+      }
+      .ligero__pregunta {
+        top: 24%;
+        animation-name: preguntaSube;
+        animation-timing-function: linear;
+        animation-range-end: contain 70%;
+      }
     }
     /* Y la niebla va a lo suyo, despacio: cada velo con su tiempo y su
        sentido, para que no se muevan en bloque. */

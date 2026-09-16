@@ -42,9 +42,16 @@ const PLANOS = [
   { z: 380, piezas: [{ capa: 'frente' }] },
   { z: 260, piezas: [{ niebla: 'vacio' }] },
   { z: 210, piezas: [{ capa: 'pared' }] },
-  { z: 170, piezas: [{ capa: 'roca' }, { yo: true }] },
-  { z: 40, piezas: [{ capa: 'pasto' }] }
+  { z: 170, piezas: [{ capa: 'roca', movil: true }, { yo: true }] },
+  { z: 40, piezas: [{ capa: 'pasto', movil: true }] }
 ];
+
+/* EN UNA PANTALLA DE PIE la roca y el pasto son otros: más pequeños y más
+   abajo, del dibujo pensado para el teléfono. Con la roca del escritorio no
+   quedaba sitio para el abismo —la piedra llenaba la pantalla—; con esta se
+   ve dónde acaba y qué hay debajo. El paisaje de detrás es el mismo, así que
+   solo cambian esas dos capas, y el navegador baja solo la que va a usar. */
+const PIE = '(max-aspect-ratio: 1/1)';
 ---
 <section class="ligero" id="ligero" data-libre aria-labelledby="ligero-title">
   <div class="ligero__fijo">
@@ -55,8 +62,11 @@ const PLANOS = [
             <div class="ligero__plano" style={plano(p.z)}>
               {p.piezas.map((x) =>
                 x.capa
-                  ? <img class="ligero__capa" src={`${base}${x.capa}.svg`} alt=""
-                         width="1334" height="772" loading="lazy" decoding="async" />
+                  ? <picture>
+                      {x.movil && <source media={PIE} srcset={`${base}${x.capa}-movil.svg`} />}
+                      <img class="ligero__capa" src={`${base}${x.capa}.svg`} alt=""
+                           width="1334" height="772" loading="lazy" decoding="async" />
+                    </picture>
                   : x.yo
                     ? <img class="ligero__yo" src={`${base}yo.webp`} alt=""
                            width="282" height="724" loading="lazy" decoding="async" />
