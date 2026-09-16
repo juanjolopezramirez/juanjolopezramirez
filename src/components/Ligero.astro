@@ -1,0 +1,50 @@
+---
+/* ¿QUÉ SIGNIFICA CAMINAR LIGERO?
+
+   La misma fotografía que abre la casa —una roca asomada al vacío en el
+   páramo— dibujada plana y partida en planos de profundidad. Quieta, es
+   exactamente la ilustración original: los cinco planos encajan al píxel.
+   Al entrar y al salir de la pantalla se abren, cada uno a su velocidad, y
+   entre ellos aparece el hueco que hace la profundidad. Luego vuelven a
+   cerrar. No hay nada que medir en el guion: lo mueve el navegador.
+
+   POR QUÉ CINCO Y NO DIECISÉIS. El .svg del páramo son bandas de tono, de
+   la más clara a la más oscura, y ese orden es también el de cercanía: la
+   bruma al fondo, la meseta con sus frailejones, el risco, y el pasto seco
+   delante de todo. Agrupadas por ese orden dan cinco planos; más planos no
+   darían más profundidad, darían más peticiones.
+
+   LA ROCA Y YO SOMOS EL MISMO PLANO. Si se movieran por separado, al
+   abrirse las capas yo me quedaría flotando al lado de la piedra.
+
+   TODOS COMPARTEN CAJA. Cada plano trae el lienzo entero —3:2, aunque lo
+   que pinte sea un trozo— y todos se recortan igual (`object-fit`,
+   `object-position`), así que quedan registrados sin colocar ninguno a
+   mano. Cambiar el encuadre es cambiar una línea, y los cinco obedecen.
+
+   La escena es decorativa y se describe una vez, en la caja que las
+   contiene: quien no la ve oye la fotografía, no cinco imágenes sueltas. */
+const { t } = Astro.props;
+
+const base = '/assets/paramo/';
+/* De lejos a cerca. El orden del array es el orden de pintado. */
+const PLANOS = ['bruma', 'meseta', 'risco', 'roca', 'pasto'];
+---
+<section class="ligero" id="ligero" aria-labelledby="ligero-title">
+  <div class="ligero__texto">
+    <h2 class="ligero__pregunta" id="ligero-title">
+      {t('light.q')}<em class="script">{t('hero.lightly')}</em>{t('light.qEnd')}
+    </h2>
+    <p class="ligero__respuesta">{t('light.a')}</p>
+  </div>
+
+  <div class="ligero__escena" role="img" aria-label={t('light.scene')}>
+    {PLANOS.map((n) => (
+      <picture class:list={['ligero__capa', `ligero__capa--${n}`]}>
+        <source srcset={`${base}${n}.webp`} type="image/webp" />
+        <img src={`${base}${n}.png`} alt="" width="2048" height="1365"
+             loading="lazy" decoding="async" />
+      </picture>
+    ))}
+  </div>
+</section>

@@ -224,6 +224,10 @@ export const UI = {
 
       'about.heading': 'I’m a creator learning to walk',
       'about.p1': 'Born in Colombia in early 2002, I create in pursuit of what is right and follow the origin itself. Through design, audiovisual content, technology and marketing, I seek to strengthen character, broaden perspective and build on what holds real value (agape).',
+      'light.q':       'What does it mean to walk ',
+      'light.qEnd':    '?',
+      'light.a':       'Letting go of what weighs and does not hold. Keeping the little that does.',
+      'light.scene':   'Juanjo, standing on a rock that leans over the void, in a foggy páramo of frailejones.',
     },
 
     es: {
@@ -437,6 +441,10 @@ export const UI = {
 
       'about.heading': 'Soy un creador aprendiendo a caminar',
       'about.p1': 'Nacido en Colombia a inicios del 2002, creo en busca de lo que está bien y sigo el origen mismo. A través del diseño, el contenido audiovisual, la tecnología y el marketing, busco fortalecer el carácter, ampliar la perspectiva y construir sobre lo que tiene valor real (ágape).',
+      'light.q':       '¿Qué significa caminar ',
+      'light.qEnd':    '?',
+      'light.a':       'Soltar lo que pesa y no sostiene. Quedarse con lo poco que sí.',
+      'light.scene':   'Juanjo, de pie sobre una roca asomada al vacío, en un páramo de niebla y frailejones.',
     },
 
     pt: {
@@ -650,6 +658,10 @@ export const UI = {
 
       'about.heading': 'Sou um criador aprendendo a caminhar',
       'about.p1': 'Nascido na Colômbia no início de 2002, crio em busca do que é certo e sigo a própria origem. Através do design, do conteúdo audiovisual, da tecnologia e do marketing, busco fortalecer o caráter, ampliar a perspectiva e construir sobre o que tem valor real (ágape).',
+      'light.q':       'O que significa caminhar ',
+      'light.qEnd':    '?',
+      'light.a':       'Largar o que pesa e não sustenta. Ficar com o pouco que sim.',
+      'light.scene':   'Juanjo, de pé sobre uma rocha debruçada sobre o vazio, num páramo de neblina e frailejones.',
     },
 
     fr: {
@@ -863,6 +875,10 @@ export const UI = {
 
       'about.heading': 'Je suis un créateur qui apprend à marcher',
       'about.p1': 'Né en Colombie au début de 2002, je crée en quête de ce qui est juste et je suis l’origine elle-même. À travers le design, le contenu audiovisuel, la technologie et le marketing, je cherche à fortifier le caractère, élargir la perspective et bâtir sur ce qui a une valeur réelle (agapè).',
+      'light.q':       'Que veut dire marcher ',
+      'light.qEnd':    '\u00A0?',
+      'light.a':       'Lâcher ce qui pèse et ne soutient pas. Garder le peu qui soutient.',
+      'light.scene':   'Juanjo, debout sur un rocher penché sur le vide, dans un páramo de brouillard et de frailejones.',
     },
     it: {
       'page.about.lead': 'Registri del percorso: scritti, luoghi, prospettiva e la storia dietro il lavoro.',
@@ -1075,5 +1091,9 @@ export const UI = {
 
       'about.heading': 'Sono un creatore che impara a camminare',
       'about.p1': 'Nato in Colombia all’inizio del 2002, creo alla ricerca di ciò che è giusto e seguo l’origine stessa. Attraverso il design, il contenuto audiovisivo, la tecnologia e il marketing, cerco di rafforzare il carattere, ampliare la prospettiva e costruire su ciò che ha valore reale (agape).',
+      'light.q':       'Cosa significa camminare ',
+      'light.qEnd':    '?',
+      'light.a':       'Lasciare ciò che pesa e non sostiene. Tenere il poco che sì.',
+      'light.scene':   'Juanjo, in piedi su una roccia affacciata sul vuoto, in un páramo di nebbia e frailejones.',
     }
   };
