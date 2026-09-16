@@ -42,7 +42,12 @@ const PLANOS = [
   { z: 380, piezas: [{ capa: 'frente' }] },
   { z: 260, piezas: [{ niebla: 'vacio' }] },
   { z: 210, piezas: [{ capa: 'pared' }] },
-  { z: 170, piezas: [{ capa: 'roca', movil: true }, { yo: true }] },
+  { z: 170, piezas: [{ capa: 'roca', movil: true }] },
+  /* YO, EN MI PROPIO PLANO, un pelo por delante de la roca. En el mismo plano
+     que ella, Safari no sabe cual de las dos pintar encima —estan a la misma
+     distancia— y en el iPhone la roca me tapaba. A dos unidades la diferencia
+     de movimiento no llega a medio pixel. */
+  { z: 168, piezas: [{ yo: true }] },
   { z: 40, piezas: [{ capa: 'pasto', movil: true }] }
 ];
 
@@ -68,8 +73,11 @@ const PIE = '(max-aspect-ratio: 1/1)';
                            width="1334" height="772" loading="lazy" decoding="async" />
                     </picture>
                   : x.yo
-                    ? <img class="ligero__yo" src={`${base}yo.webp`} alt=""
-                           width="282" height="724" loading="lazy" decoding="async" />
+                    ? /* Sin carga diferida: dentro de una caja con perspectiva, Safari
+                         calcula mal donde cae una imagen pequena, la da por fuera de
+                         la pantalla y no la pide nunca. */
+                      <img class="ligero__yo" src={`${base}yo.webp`} alt=""
+                           width="282" height="724" />
                     : <div class:list={['ligero__niebla', `ligero__niebla--${x.niebla}`]}></div>
               )}
             </div>
