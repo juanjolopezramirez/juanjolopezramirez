@@ -1,95 +1,65 @@
 ---
 /* ¿QUÉ SIGNIFICA CAMINAR LIGERO?
 
-   LA FOTO, EN SUS PROPIAS MEDIDAS. El escenario es la fotografía de
-   referencia —1127 x 2000, la foto a la mitad— y cada pieza está donde está
-   en ella, medida sobre la foto:
+   EL DIBUJO FINAL, CAPA POR CAPA. La escena es el diseño plano del páramo
+   —la meseta con sus frailejones al fondo, el risco en dos masas, la pared
+   oscura de la izquierda, la roca y el pasto— separado en sus seis capas.
+   Todas salen del mismo conjunto y conservan su lienzo entero (1334 x 772):
+   apiladas, encajan al píxel sin colocar ninguna a mano, y cada una es un SVG
+   que se escala sin perder nada.
 
-     yo       590 de alto, centrado en x 545, pies en y 1290
-     roca     su cara de arriba va de (130, 1350) a la punta (1075, 1190), y
-              la panza más baja llega a y 1700
-     meseta   la base de los frailejones a la altura de mi pecho, y 880
-     pasto    una ladera que baja de (0, 1250) a (830, 2000) y le tapa el
-              arranque a la roca: por eso la roca es del monte y no flota
+   PEGADO A LA IZQUIERDA. El dibujo arranca en el canto izquierdo de la
+   pantalla y se apoya en el de abajo; lo que queda a la derecha es niebla,
+   el color de la página. Su propio borde derecho es la silueta del risco
+   cayendo al vacío: no hay que disimular ningún corte.
 
-   Con esas medidas la proporción entre la roca y yo es la de la foto, y no
-   la del dibujo, donde la roca era casi seis veces más ancha de lo que yo
-   soy de alto. La roca viene en SVG: se escala sin perder nada.
+   YO, EN EL CENTRO DE LA PANTALLA, sobre la roca y sin ocuparlo todo. Como
+   el dibujo va pegado a la izquierda, el punto de la roca que cae en el
+   centro depende de cuánto mide el dibujo: por eso mi sitio es una variable
+   por tipo de pantalla, medida sobre la cara de arriba de la roca.
 
-   EL PASTO SIGUE FUERA DE LA FOTO. En una pantalla apaisada se ve mucho más
-   a los lados que en la foto, que es vertical: la ladera continúa hacia la
-   izquierda —tierra maciza y dos matas más— para que no termine en un canto.
-
-   EL PÁRAMO DE FONDO es el dibujo del risco con su meseta. En el teléfono va
-   a su tamaño y en escritorio más grande y corrido, para llenar el ancho;
-   en los dos casos con los frailejones a la altura de mi pecho.
-
-   TODO EN HUESO. Los grises del dibujo están multiplicados para que su cielo
-   caiga exactamente en el hueso de la página, y la sección de antes se
-   funde con esta sin costura.
-
-   LA CÁMARA. La caja tiene `perspective`, cada pieza vive a su distancia con
-   la escala que la deshace —(P + z) / P—, y al bajar se mueve el mundo
-   entero: la profundidad sale sola. Cada pieza va dentro de un plano del
-   tamaño del escenario, cuyo centro es el del ojo, y así nada se descoloca.
-   El orden lo pone la distancia, no el HTML. */
+   EL PARALLAX SON LAS CAPAS. La caja tiene `perspective` y cada capa vive a
+   su distancia, con la escala que la deshace —(P + z) / P—. Al bajar se
+   mueve el mundo entero y cada capa responde según lo lejos que está: la
+   meseta casi no se mueve, el pasto corre. Cada capa va en un plano del
+   tamaño del dibujo, cuyo centro es el del ojo, y así nada se descoloca. El
+   orden lo pone la distancia, no el HTML. */
 const { t } = Astro.props;
 
 const base = '/assets/paramo/';
 const OJO = 700;                       /* la `perspective` de la caja, en px */
 
-/* En porcentajes de la foto (1127 x 2000). */
-const PAISAJE = 'left:var(--paisaje-l); top:var(--paisaje-t); width:var(--paisaje-w)';
-const ROCA = 'left:5.324%; top:57%; width:90.42%';
-const YO = 'left:38.16%; top:35%; width:20.39%';
-const MATA = 'width:90.77%; height:38.34%';
-
 const plano = (z) => `transform: translateZ(${-z}px) scale(${((OJO + z) / OJO).toFixed(4)})`;
 
-/* De lejos a cerca. Las distancias van juntas a propósito: el dibujo del
-   fondo es un solo paisaje partido por tonos, y separarlo mucho lo rompe. */
+/* De lejos a cerca. */
 const PLANOS = [
-  /* La niebla del dibujo y el risco van a la MISMA distancia: son un solo
-     paisaje partido por tonos, y el mas leve desfase entre los dos dejaba
-     asomar los brillos de la niebla como rayas blancas por los cantos. */
-  { z: 230, piezas: [{ img: 'lejos.webp', sitio: PAISAJE, clase: 'paisaje' }] },
-  { z: 250, piezas: [{ niebla: 'bruma' }] },
-  { z: 230, piezas: [{ img: 'tierra.webp', sitio: PAISAJE, clase: 'paisaje' }] },
-  { z: 180, piezas: [{ niebla: 'abismo' }] },
-  { z: 150, piezas: [
-    { img: 'roca.svg', sitio: ROCA, ancho: 1445, alto: 784 },
-    { img: 'yo.webp', sitio: YO, clase: 'yo', ancho: 282, alto: 724 }
-  ] },
-  { z: 140, piezas: [{ niebla: 'jiron' }] },
-  { z: 110, piezas: [
-    { img: 'pasto.webp', sitio: `left:-138.42%; top:63.375%; ${MATA}`, clase: 'mata', ancho: 660, alto: 374 },
-    { img: 'pasto.webp', sitio: `left:-67.44%; top:60.875%; ${MATA}`, clase: 'mata', ancho: 660, alto: 374 },
-    { img: 'pasto.webp', sitio: `left:0; top:61.875%; ${MATA}`, clase: 'mata', ancho: 660, alto: 374 },
-    /* La tierra va DESPUÉS de las matas: tapa sus cantos rectos de abajo, que
-       se veían como rayas, y deja asomar solo las hojas por encima. */
-    { suelo: true }
-  ] }
+  /* Separadas lo bastante para que se note: con el recorrido entero la meseta
+     se mueve la mitad que el pasto. Estas capas son objetos enteros —no
+     bandas de tono—, asi que al separarse no se rompe ningun contorno. */
+  { z: 620, piezas: [{ capa: 'fondo' }] },
+  { z: 540, piezas: [{ niebla: 'meseta' }] },
+  { z: 470, piezas: [{ capa: 'medio' }] },
+  { z: 380, piezas: [{ capa: 'frente' }] },
+  { z: 260, piezas: [{ niebla: 'vacio' }] },
+  { z: 210, piezas: [{ capa: 'pared' }] },
+  { z: 170, piezas: [{ capa: 'roca' }, { yo: true }] },
+  { z: 40, piezas: [{ capa: 'pasto' }] }
 ];
 ---
 <section class="ligero" id="ligero" data-libre aria-labelledby="ligero-title">
   <div class="ligero__fijo">
-    {/* El cielo no viaja con el mundo: si viajara, al moverse asomaría el
-        papel de la página. Lleva el tinte de la escena para que de noche sea
-        el mismo cielo. */}
-    <div class="ligero__cielo" aria-hidden="true"></div>
     <div class="ligero__camara">
       <div class="ligero__mundo">
         <div class="ligero__escena" role="img" aria-label={t('light.scene')}>
           {PLANOS.map((p) => (
             <div class="ligero__plano" style={plano(p.z)}>
               {p.piezas.map((x) =>
-                x.img
-                  ? <img class:list={['ligero__pieza', x.clase && `ligero__pieza--${x.clase}`]}
-                         style={x.sitio} src={`${base}${x.img}`} alt=""
-                         width={x.ancho ?? 1536} height={x.alto ?? 1024}
-                         loading="lazy" decoding="async" />
-                  : x.suelo
-                    ? <div class="ligero__suelo"></div>
+                x.capa
+                  ? <img class="ligero__capa" src={`${base}${x.capa}.svg`} alt=""
+                         width="1334" height="772" loading="lazy" decoding="async" />
+                  : x.yo
+                    ? <img class="ligero__yo" src={`${base}yo.webp`} alt=""
+                           width="282" height="724" loading="lazy" decoding="async" />
                     : <div class:list={['ligero__niebla', `ligero__niebla--${x.niebla}`]}></div>
               )}
             </div>

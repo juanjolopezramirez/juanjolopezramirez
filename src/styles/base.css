@@ -152,23 +152,17 @@ html[data-tema="oscuro"] {
   --ring-tinta: var(--ring);
   --tema-on: 1;
 }
-/* El paramo de noche: el cielo toma el verde oscuro de la casa y los planos
-   bajan de luz con el mismo filtro —el dibujo es gris, asi que un punto de
-   sepia y un giro de tono lo llevan al verde sin tocar los ficheros. */
-:root[data-theme="dark"] .ligero__fijo::before { opacity: 1; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .ligero__fijo::before { opacity: 1; }
-}
+/* El paramo de noche: las capas traen sus colores —el pasto verde, la pared
+   parda, los grises del risco— y de noche solo bajan de luz, para que no
+   brillen sobre el verde oscuro de la pagina. */
 :root[data-theme="dark"] .ligero {
-  --cielo: #131C16;
-  --escena-tinte: brightness(.34) sepia(.24) hue-rotate(76deg) saturate(1.3);
-  --escena-tinte-roca: brightness(.42) saturate(.5);
+  --escena-tinte: brightness(.62) saturate(.85);
+  --escena-tinte-yo: brightness(.74);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .ligero {
-    --cielo: #131C16;
-    --escena-tinte: brightness(.34) sepia(.24) hue-rotate(76deg) saturate(1.3);
-    --escena-tinte-roca: brightness(.42) saturate(.5);
+    --escena-tinte: brightness(.62) saturate(.85);
+    --escena-tinte-yo: brightness(.74);
   }
 }
 
@@ -3577,46 +3571,40 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 /* =============================================================
    ¿QUE SIGNIFICA CAMINAR LIGERO? (Ligero.astro)
 
-   La foto que abre la casa, recreada con sus propias medidas y puesta
-   dentro de una camara. El escenario ES la foto (1127 x 2000): cada pieza se
-   coloca en porcentajes de ella, y la escena se lee igual en cualquier
-   pantalla —lo que cambia es cuanto se ve alrededor—.
-
-   EN HUESO, como la seccion de antes: su cielo es el papel de la pagina.
+   El dibujo final del paramo en sus seis capas, pegado a la izquierda y
+   apoyado abajo, con la niebla —el color de la pagina— a la derecha. Yo en
+   el centro de la pantalla, sobre la roca.
 
    TRES PANTALLAS DE ALTO y la escena pegada en la primera: el recorrido es
    la animacion. Es la unica seccion que no salta (`data-libre`).
    ============================================================= */
 .ligero {
-  /* De noche las piezas se tinen con un filtro; la figura tiene el suyo,
-     porque es la unica cosa con color de la escena. */
   --escena-tinte: none;
-  --escena-tinte-roca: none;
-  /* EL ENCUADRE, por pantalla apaisada. La foto mide un cuarto mas que la
-     ventana, y su centro va algo por encima de la mitad: ahi queda el cielo
-     para la pregunta y la figura entera. El paramo de fondo, mas grande y
-     corrido a la izquierda, para llenar el ancho. */
-  --escena-alto: 125svh;
-  --escena-y: 36%;
-  --paisaje-l: -96.63%;
-  --paisaje-t: 8.9%;
-  --paisaje-w: 245.3%;
-  --abismo-y: 80.4%;
+  --escena-tinte-yo: none;
+  /* EL TAMAÑO DEL DIBUJO. En una pantalla apaisada, casi el ancho entero;
+     si la ventana es baja, lo que quepa de alto, para que la meseta no se
+     salga por arriba. Mide 1334 x 772. */
+  --escena-w: min(94vw, 150svh);
+  --escena-h: calc(var(--escena-w) * .5787);
+  /* Mi sitio en la roca. La x es el centro de la pantalla, pero sin pasar de
+     la punta de la roca —en una pantalla muy ancha me quedaria en el aire—;
+     la altura, la de la cara de arriba de la roca en esa zona. */
+  --yo-ancho: 5.84%;
+  --yo-arriba: 20.98%;
   position: relative;
   min-height: 300svh;
   background: var(--papel);
   color: var(--slate);
 }
-/* EN UNA PANTALLA DE PIE la foto cabe casi como es: se ajusta al alto, y el
-   paramo va a su tamaño. */
+/* EN UNA PANTALLA DE PIE el dibujo se mide por el alto y se sale por la
+   derecha: se ve el pasto, la pared, la roca y yo; el risco del fondo sigue
+   fuera. Ahi la roca cae mas a su comienzo, que esta mas bajo, y yo un
+   punto mas grande. */
 @media (max-aspect-ratio: 1 / 1) {
   .ligero {
-    --escena-alto: 100svh;
-    --escena-y: 50%;
-    --paisaje-l: -10.648%;
-    --paisaje-t: 24.5%;
-    --paisaje-w: 136.29%;
-    --abismo-y: 62.7%;
+    --escena-w: 107svh;
+    --yo-ancho: 7.01%;
+    --yo-arriba: 26.94%;
   }
 }
 /* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
@@ -3634,36 +3622,15 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   overflow: hidden;
   overflow: clip;
 }
-/* El cielo no viaja con el mundo: si viajara, al moverse asomaria el papel.
-   Es hueso, y de noche lleva el mismo tinte que las piezas. */
-.ligero__cielo {
-  position: absolute;
-  inset: 0;
-  background: #F1EFE9;
-  filter: var(--escena-tinte);
-}
-/* De noche el cielo tenido no es exactamente el papel de la pagina: arriba
-   se funde con el, para que la entrada desde la seccion de antes no tenga
-   raya. De dia no hace falta: los dos son el mismo hueso. */
-.ligero__fijo::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 22svh;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(to bottom, var(--papel), transparent);
-  opacity: 0;
-}
-/* QUIETA —sin animacion— la escena no tiene recorrido, y en su sitio la
-   figura queda arriba, donde va la pregunta: la camara entera baja. Bajar la
-   camara y no el mundo es lo que la deja encajada. */
+/* El ojo, en el centro del dibujo —no de la pantalla—: la escala que deshace
+   la distancia de cada capa se calcula desde ahi. El dibujo va pegado a la
+   izquierda y abajo, asi que su centro esta en la mitad de su ancho y a
+   media altura suya desde el pie de la pantalla. */
 .ligero__camara {
   position: absolute;
   inset: 0;
   perspective: 700px;
-  perspective-origin: 50% var(--escena-y);
-  transform: translateY(22svh);
+  perspective-origin: calc(var(--escena-w) / 2) calc(100% - var(--escena-h) / 2);
 }
 .ligero__mundo {
   position: absolute;
@@ -3672,88 +3639,65 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 .ligero__escena {
   position: absolute;
-  left: 50%;
-  top: var(--escena-y);
-  height: var(--escena-alto);
-  aspect-ratio: 1127 / 2000;
-  translate: -50% -50%;
+  left: 0;
+  bottom: 0;
+  width: var(--escena-w);
+  height: var(--escena-h);
   transform-style: preserve-3d;
 }
-/* Cada plano ocupa el escenario entero: su centro es el del ojo, y la escala
-   que compensa su distancia no descoloca lo que lleva dentro. */
+/* Cada capa ocupa el dibujo entero: su centro es el del ojo, y la escala que
+   compensa su distancia no descoloca nada. */
 .ligero__plano {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
   pointer-events: none;
 }
-.ligero__pieza {
+.ligero__capa {
   position: absolute;
+  inset: 0;
   display: block;
-  height: auto;
+  width: 100%;
+  height: 100%;
   max-width: none;
   filter: var(--escena-tinte);
 }
-.ligero__pieza--yo { filter: var(--escena-tinte-roca); }
-/* El paramo del fondo se deshace por los lados: en una pantalla ancha se
-   veria donde termina el dibujo. */
-.ligero__pieza--paisaje {
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-}
-/* Las matas se estiran un poco a lo alto: la ladera de la foto es mas
-   empinada que la del dibujo. */
-.ligero__pieza--mata { object-fit: fill; }
-/* LA TIERRA de la ladera: maciza por debajo de las matas, para que entre hoja
-   y hoja se vea monte y no cielo, y larga hacia la izquierda, fuera de la
-   foto, para que en una pantalla ancha la ladera no termine en un canto. */
-.ligero__suelo {
+.ligero__yo {
   position: absolute;
-  left: -141.97%;
-  top: 60%;
-  width: 239.57%;
-  height: 80%;
-  background: #3D3C3A;
-  filter: var(--escena-tinte);
-  clip-path: polygon(0% 20.625%, 33.33% 18.75%, 51.85% 18.125%, 59.26% 15.625%,
-    62.7% 21%, 67.89% 28.69%, 76.48% 34.875%, 85.11% 37.94%, 92% 46%,
-    94.85% 51%, 94.85% 100%, 0% 100%);
+  left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .0292));
+  top: var(--yo-arriba);
+  width: var(--yo-ancho);
+  height: auto;
+  max-width: none;
+  filter: var(--escena-tinte-yo);
+}
+@media (max-aspect-ratio: 1 / 1) {
+  .ligero__yo { --yo-ancho-n: .035; }
 }
 
-/* LA NIEBLA, en hueso. */
+/* LA NIEBLA, del color de la pagina: un velo al pie de la meseta, entre el
+   fondo y el risco, y un jiron donde el risco cae al vacio. */
 .ligero__niebla {
   position: absolute;
-  filter: var(--escena-tinte);
+  pointer-events: none;
 }
-/* Sobre la meseta, a la altura de los frailejones. */
-.ligero__niebla--bruma {
-  left: -15.97%;
-  top: 41%;
-  width: 133.1%;
-  height: 8%;
-  background: radial-gradient(closest-side, rgb(241 239 233 / .55), rgb(241 239 233 / 0));
+.ligero__niebla--meseta {
+  left: -10%;
+  top: 16%;
+  width: 120%;
+  height: 30%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--papel) 60%, transparent), transparent);
 }
-/* El abismo: sube desde abajo por detras de la roca y se come el pie del
-   risco del fondo, que ahi termina el dibujo. */
-.ligero__niebla--abismo {
-  left: -200%;
-  right: -200%;
-  top: var(--abismo-y);
-  height: 200%;
-  background: linear-gradient(to bottom, rgb(241 239 233 / 0) 0%, #F1EFE9 5.5%);
-}
-/* Un jiron bajo la punta de la roca. */
-.ligero__niebla--jiron {
-  left: 46.14%;
-  top: 82%;
-  width: 79.86%;
-  height: 13%;
-  background: radial-gradient(closest-side, rgb(241 239 233 / .75), rgb(241 239 233 / 0));
+.ligero__niebla--vacio {
+  left: 58%;
+  top: 42%;
+  width: 60%;
+  height: 56%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--papel) 75%, transparent), transparent);
 }
 
 /* LA PREGUNTA va fuera de la escena, arriba y al centro. Con animacion
-   empieza en medio del cielo y se va mientras la escena sube: cuando llego
-   yo, ella ya no esta. */
+   empieza en medio del cielo y se va mientras la escena sube. */
 .ligero__pregunta {
   position: absolute;
   z-index: 2;
@@ -5679,17 +5623,17 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
     }
 
     /* EL PARAMO: SE MUEVE EL OJO. Un solo elemento animado —el mundo— y las
-       piezas quietas a sus distancias. El recorrido cuenta algo: al entrar
-       la camara esta arriba, en la niebla, con la pregunta; al bajar la
-       escena sube y se arma —cuando el mundo pasa por su sitio, a tres
-       cuartos del camino, es exactamente la foto—; y al final se asoma al
-       abismo bajo la roca. Solo en vertical: acercar el ojo encogia el
-       escenario y asomaban sus cantos por los lados. */
+       capas quietas a sus distancias. Al entrar el dibujo esta abajo, casi
+       fuera, y arriba la pregunta; al bajar sube y cada capa llega a su
+       ritmo —la meseta primero, el pasto el ultimo—, y a los siete decimos
+       del camino se posa en su sitio y ahi se queda. Nunca sube de mas: va
+       apoyado en el pie de la pantalla, y subirlo enseñaria su canto de
+       abajo. */
     @keyframes ojo {
-      from { transform: translate3d(0, 45svh, 0); }
-      to   { transform: translate3d(0, -18svh, 0); }
+      0%   { transform: translate3d(0, 58svh, 0); }
+      70%  { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(0, 0, 0); }
     }
-    .ligero__camara { transform: none; }
     .ligero__mundo {
       animation-name: ojo;
       animation-timing-function: linear;
@@ -5721,8 +5665,8 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
       from { translate: -5% 0; }
       to   { translate: 5% 0; }
     }
-    .ligero__niebla--bruma { animation: nieblaVa 38s ease-in-out infinite alternate; }
-    .ligero__niebla--jiron { animation: nieblaVa 23s ease-in-out -9s infinite alternate-reverse; }
+    .ligero__niebla--meseta { animation: nieblaVa 38s ease-in-out infinite alternate; }
+    .ligero__niebla--vacio  { animation: nieblaVa 23s ease-in-out -9s infinite alternate-reverse; }
 
     /* LA COPIA SE REVELA. La instantanea no se mueve como las demas capas:
        hace lo que hace una instantanea de verdad. Cada vez que se llega a
