@@ -3573,18 +3573,17 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 /* =============================================================
    ¿QUE SIGNIFICA CAMINAR LIGERO? (Ligero.astro)
 
-   Un cañon de paramo con niebla y, en medio, una roca pequena asomada al
-   vacio conmigo encima. La escena esta COMPUESTA con sus piezas sueltas: el
-   paisaje lejos a la izquierda, la pared de enfrente mas lejos a la derecha,
-   la roca saliendo del risco, y cinco velos de niebla a distintas
-   distancias. Que se vea entera, pequena, y que se vea el abismo.
+   La foto que abre la casa, recreada con el dibujo y puesta dentro de una
+   camara: la roca saliendo de la ladera, yo encima y en el centro, el risco
+   con sus frailejones detras, cielo de niebla arriba y abismo abajo.
 
-   LA CAMARA. `perspective` en la caja y cada pieza a su distancia; al bajar
+   LA CAMARA. `perspective` en la caja y cada pieza a su distancia. Al bajar
    se mueve el mundo entero y la profundidad sale sola.
 
-   EL ESCENARIO mide 16:10 y cubre la ventana: las piezas se colocan en
-   porcentajes de el, asi que la composicion es la misma en cualquier
-   pantalla —cambia cuanto se recorta, no donde esta cada cosa—.
+   EL ESCENARIO mide 1536 x 2340 y se coloca centrado en la ventana: en una
+   pantalla apaisada ocupa el ancho entero; en una de pie, algo mas de dos
+   anchos, para que la figura se vea grande y en el centro —como en la foto,
+   que es vertical—.
 
    TRES PANTALLAS DE ALTO y la escena pegada en la primera: el recorrido es
    la animacion. Es la unica seccion que no salta (`data-libre`).
@@ -3595,10 +3594,6 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   --cielo: #EEEEEE;
   --escena-tinte: none;
   --escena-tinte-roca: none;
-  /* A que altura de la ventana va el centro del escenario. Lo leen el
-     escenario y el ojo a la vez: si no coincidieran, cada plano se
-     proyectaria desde un centro distinto y las piezas se descolocarian. */
-  --escena-y: 56%;
   position: relative;
   min-height: 300svh;
   background: var(--cielo);
@@ -3607,6 +3602,9 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 /* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
    pasa nada: la seccion se queda en una. */
 @media (prefers-reduced-motion: reduce) {
+  .ligero { min-height: 100svh; }
+}
+@supports not (animation-timeline: view()) {
   .ligero { min-height: 100svh; }
 }
 .ligero__fijo {
@@ -3625,12 +3623,18 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   filter: var(--escena-tinte);
 }
 /* El ojo, en el centro exacto: la escala que deshace la distancia de cada
-   plano se calcula desde ahi. */
+   plano se calcula desde ahi.
+
+   QUIETA —sin animacion— la escena no tiene recorrido que la mueva, y en su
+   sitio la figura queda arriba, donde va la pregunta: la camara entera baja
+   un cuarto de pantalla. Bajarla entera, y no el mundo, es lo que la deja
+   encajada: dentro del mundo cada plano se desplazaria distinto. */
 .ligero__camara {
   position: absolute;
   inset: 0;
   perspective: 700px;
-  perspective-origin: 50% var(--escena-y);
+  perspective-origin: 50% var(--escena-y, 50%);
+  transform: translateY(24svh);
 }
 .ligero__mundo {
   position: absolute;
@@ -3640,16 +3644,19 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .ligero__escena {
   position: absolute;
   left: 50%;
-  top: var(--escena-y);
-  width: max(100%, 160svh);
-  aspect-ratio: 16 / 10;
+  /* El centro del escenario va donde diga --escena-y, y el ojo tambien: si
+     no coincidieran, cada plano se proyectaria desde un centro distinto. */
+  top: var(--escena-y, 50%);
+  width: 100%;
+  aspect-ratio: 1536 / 2340;
   translate: -50% -50%;
   transform-style: preserve-3d;
 }
-.ligero__dibujo {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
+@media (max-aspect-ratio: 1 / 1) {
+  /* En un telefono la escena baja un poco: la pregunta ya se fue cuando
+     llego yo, y lo que sobra de pantalla es mejor niebla arriba que abajo. */
+  .ligero { --escena-y: 57%; }
+  .ligero__escena { width: 228vw; }
 }
 /* Cada plano ocupa el escenario entero: su centro es el del ojo, y por eso
    la escala que compensa su distancia no descoloca lo que lleva dentro. */
@@ -3667,90 +3674,74 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   filter: var(--escena-tinte);
 }
 .ligero__pieza--roca { filter: var(--escena-tinte-roca); }
-/* La niebla del dibujo pinta su lienzo entero, y su canto de arriba y el de
-   la derecha caen en pleno cielo: se deshacen ahi, o se veria el rectangulo.
-   Es una sola pieza precisamente por esto: con seis capas sueltas, cada una
-   dejaba ver la de detras —mas oscura— al deshacerse. */
-.ligero__pieza--lejos {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%), linear-gradient(to left, transparent, #000 12%);
-  mask-image: linear-gradient(to bottom, transparent, #000 14%), linear-gradient(to left, transparent, #000 12%);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-}
-/* EN UNA PANTALLA DE PIE el escenario no puede cubrir la ventana: para cubrir
-   el alto tendria que medir tres veces el ancho y la roca se saldria por los
-   lados. Se queda en dos anchos —se ve el cañon entero, con sus dos paredes,
-   y la roca cabe completa— y el cielo y la niebla llenan lo que sobra. */
-@media (max-aspect-ratio: 1 / 1) {
-  .ligero { --escena-y: 50%; }
-  .ligero__escena { width: 200vw; }
-}
 
-/* LA NIEBLA. Velos de luz, no dibujos: degradados blandos que se deshacen
-   hacia los cantos. El del abismo sube desde abajo y se come el pie de los
-   dos lados del cañon —ahi no hay suelo que ensenar, hay vacio—; los demas
-   flotan a su altura y a su distancia. */
+/* LA NIEBLA. Velos de luz: degradados blandos. El del abismo sube desde
+   abajo y se come el pie del risco y la panza de la roca; el del suelo va
+   delante de todo y deshace el pasto por abajo, que si no terminaria en
+   raya; los otros tres flotan a su altura. Coordenadas del escenario. */
 .ligero__niebla {
   position: absolute;
   filter: var(--escena-tinte);
 }
+.ligero__niebla--horizonte {
+  left: -8.6%;
+  top: 39.5%;
+  width: 117.2%;
+  height: 9%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .6), rgb(255 255 255 / 0));
+}
+.ligero__niebla--punta {
+  left: 54%;
+  top: 63.2%;
+  width: 54.7%;
+  height: 10.3%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .72), rgb(255 255 255 / 0));
+}
 .ligero__niebla--abismo {
   left: -30%;
   right: -30%;
-  top: 50%;
-  bottom: -45%;
+  top: 59.8%;
+  bottom: -40%;
   background: linear-gradient(to bottom,
     rgb(238 238 238 / 0) 0%,
-    rgb(238 238 238 / .7) 18%,
-    rgb(238 238 238 / .96) 30%,
-    #EEEEEE 38%);
-}
-.ligero__niebla--canon {
-  left: -20%;
-  top: 42%;
-  width: 140%;
-  height: 24%;
-  background: radial-gradient(50% 50% at 50% 50%, rgb(255 255 255 / .6), rgb(255 255 255 / 0));
-}
-.ligero__niebla--roca {
-  left: 34%;
-  top: 54%;
-  width: 46%;
-  height: 28%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / .8), rgb(255 255 255 / 0));
+    rgb(238 238 238 / .92) 13.9%,
+    #EEEEEE 19.2%);
 }
 .ligero__niebla--delante {
-  left: 54%;
-  top: 60%;
-  width: 72%;
-  height: 40%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / .55), rgb(255 255 255 / 0));
+  left: 29.3%;
+  top: 70.1%;
+  width: 91.1%;
+  height: 13.7%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .42), rgb(255 255 255 / 0));
 }
-.ligero__niebla--lado {
-  left: -16%;
-  top: 72%;
-  width: 60%;
-  height: 34%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / .45), rgb(255 255 255 / 0));
+.ligero__niebla--suelo {
+  left: -30%;
+  right: -30%;
+  top: 64%;
+  bottom: -40%;
+  /* Opaca antes de que acabe el dibujo del pasto (y 1724 de 2340): si no,
+     su canto de abajo se veia como una raya. */
+  background: linear-gradient(to bottom,
+    rgb(238 238 238 / 0) 0%,
+    rgb(238 238 238 / .55) 6%,
+    #EEEEEE 11%);
 }
 
-/* LA PREGUNTA, en un plano del tamano de la ventana: arriba y al centro de
-   lo que se ve, en cualquier pantalla. Es lo mas cercano de la escena y se
-   mueve como tal. */
-.ligero__plano--ventana {
-  inset: 0;
-}
+/* LA PREGUNTA va fuera de la escena, sobre la niebla, arriba. Con animacion
+   empieza en el centro del cielo y se va hacia arriba mientras la escena
+   sube: cuando llego yo, ella ya no esta. */
 .ligero__pregunta {
   position: absolute;
+  z-index: 2;
   left: 50%;
-  top: calc(var(--header-h) + clamp(1.2rem, 6vh, 3.4rem));
+  top: calc(var(--header-h) + clamp(.8rem, 4vh, 2.4rem));
   width: min(92vw, 36rem);
   margin: 0;
   translate: -50% 0;
   font-family: var(--serif);
-  font-size: clamp(1.7rem, 5.2vw, 2.9rem);
+  font-size: clamp(1.9rem, 6vw, 3.4rem);
   font-weight: 400;
-  line-height: 1.12;
+  line-height: 1.1;
   letter-spacing: -.02em;
   text-align: center;
   text-wrap: balance;
@@ -5663,28 +5654,18 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
       display: inline-block;      /* `scale` no entra en una caja en linea */
     }
 
-    /* EL PARAMO: SE MUEVE EL OJO. Un solo elemento animado —el mundo— y
-       diecisiete planos quietos a sus distancias. El recorrido es el de la
-       seccion: sus tres pantallas menos la que ocupa la escena, es decir dos
-       pantallas enteras de scroll, pegadas al dedo. A mitad de camino el
-       mundo esta en su sitio y el dibujo es exactamente el original; antes
-       se ve desde un poco mas abajo, despues desde un poco mas arriba, y el
-       ojo tambien se acerca un palmo. Lo demas —velocidades, escalas— lo
-       pone la perspectiva sola. */
+    /* EL PARAMO: SE MUEVE EL OJO. Un solo elemento animado —el mundo— y las
+       piezas quietas a sus distancias. El recorrido cuenta algo: al entrar
+       la camara esta arriba, en la niebla, con la pregunta; al bajar la
+       escena sube y se arma —cuando el mundo pasa por su sitio, a tres
+       cuartos del camino, es exactamente la foto—; y al final se asoma al
+       abismo bajo la roca. Solo en vertical: acercar el ojo encogia el
+       escenario y asomaban sus cantos por los lados. */
     @keyframes ojo {
-      from { transform: translate3d(0, 90px, -40px); }
-      to   { transform: translate3d(0, -90px, 40px); }
+      from { transform: translate3d(0, 620px, 0); }
+      to   { transform: translate3d(0, -220px, 0); }
     }
-    /* Y la niebla va a lo suyo, despacio, este o no la pagina quieta: cada
-       velo con su tiempo y su sentido, para que no se muevan en bloque. */
-    @keyframes nieblaVa {
-      from { translate: -5% 0; }
-      to   { translate: 5% 0; }
-    }
-    .ligero__niebla--canon   { animation: nieblaVa 38s ease-in-out infinite alternate; }
-    .ligero__niebla--roca    { animation: nieblaVa 23s ease-in-out -9s infinite alternate-reverse; }
-    .ligero__niebla--delante { animation: nieblaVa 29s ease-in-out -4s infinite alternate; }
-    .ligero__niebla--lado    { animation: nieblaVa 33s ease-in-out -15s infinite alternate-reverse; }
+    .ligero__camara { transform: none; }
     .ligero__mundo {
       animation-name: ojo;
       animation-timing-function: linear;
@@ -5694,6 +5675,31 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
       animation-range-start: contain 0%;
       animation-range-end: contain 100%;
     }
+    /* La pregunta empieza en el centro del cielo y se va. */
+    @keyframes preguntaSe {
+      from { translate: -50% 0; opacity: 1; }
+      60%  { opacity: 0; }
+      to   { translate: -50% -46vh; opacity: 0; }
+    }
+    .ligero__pregunta {
+      top: 30%;
+      animation-name: preguntaSe;
+      animation-timing-function: ease-in;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --capa;
+      animation-range-start: contain 0%;
+      animation-range-end: contain 52%;
+    }
+    /* Y la niebla va a lo suyo, despacio: cada velo con su tiempo y su
+       sentido, para que no se muevan en bloque. */
+    @keyframes nieblaVa {
+      from { translate: -5% 0; }
+      to   { translate: 5% 0; }
+    }
+    .ligero__niebla--horizonte { animation: nieblaVa 38s ease-in-out infinite alternate; }
+    .ligero__niebla--punta     { animation: nieblaVa 23s ease-in-out -9s infinite alternate-reverse; }
+    .ligero__niebla--delante   { animation: nieblaVa 29s ease-in-out -4s infinite alternate; }
 
     /* LA COPIA SE REVELA. La instantanea no se mueve como las demas capas:
        hace lo que hace una instantanea de verdad. Cada vez que se llega a
