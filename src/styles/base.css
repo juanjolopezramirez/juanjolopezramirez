@@ -3573,39 +3573,39 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 /* =============================================================
    ¿QUE SIGNIFICA CAMINAR LIGERO? (Ligero.astro)
 
-   UNA CAMARA, NO UNAS CAPAS QUE SE MUEVEN. La caja tiene `perspective` y
-   cada plano vive a su distancia; lo que se anima es el MUNDO entero —un
-   solo elemento— y la profundidad sale sola: lo de cerca corre, lo del
-   fondo casi no se entera, y todo con su escala. Es lo que hace un paisaje
-   visto desde un coche, y es lo que separa esto de un parallax de mentira
-   con velocidades escritas a mano.
+   Un cañon de paramo con niebla y, en medio, una roca pequena asomada al
+   vacio conmigo encima. La escena esta COMPUESTA con sus piezas sueltas: el
+   paisaje lejos a la izquierda, la pared de enfrente mas lejos a la derecha,
+   la roca saliendo del risco, y cinco velos de niebla a distintas
+   distancias. Que se vea entera, pequena, y que se vea el abismo.
 
-   QUIETA ES LA ILUSTRACION ORIGINAL. Cada plano lleva la escala que deshace
-   su distancia —(P + z) / P—, asi que con el mundo en su sitio los
-   diecisiete encajan al pixel. En cuanto el ojo se mueve, aparece el hueco.
+   LA CAMARA. `perspective` en la caja y cada pieza a su distancia; al bajar
+   se mueve el mundo entero y la profundidad sale sola.
 
-   TRES PANTALLAS DE ALTO Y LA ESCENA PEGADA en la primera: esas dos de mas
-   son el recorrido. Es la unica seccion de la casa que no salta
-   (`data-libre`), porque aqui el scroll no pasa de pantalla: mueve la
-   camara. El guion de las diapositivas la deja pasar de largo.
+   EL ESCENARIO mide 16:10 y cubre la ventana: las piezas se colocan en
+   porcentajes de el, asi que la composicion es la misma en cualquier
+   pantalla —cambia cuanto se recorta, no donde esta cada cosa—.
+
+   TRES PANTALLAS DE ALTO y la escena pegada en la primera: el recorrido es
+   la animacion. Es la unica seccion que no salta (`data-libre`).
    ============================================================= */
 .ligero {
-  /* El gris del paramo. De noche, el verde de la casa: la escena se tine
-     entera con un filtro, que es una linea y no diecisiete ficheros mas. */
-  --cielo: #E2E1E1;
+  /* De noche el cielo y las piezas se tinen con un filtro. La roca tiene el
+     suyo, porque lleva la unica cosa con color de la escena: yo. */
+  --cielo: #EEEEEE;
   --escena-tinte: none;
-  /* La roca lleva la unica cosa con color de toda la escena: yo. Por eso
-     tiene su propio filtro — el giro de tono que vuelve verde el gris me
-     volvia verde la cara. */
   --escena-tinte-roca: none;
+  /* A que altura de la ventana va el centro del escenario. Lo leen el
+     escenario y el ojo a la vez: si no coincidieran, cada plano se
+     proyectaria desde un centro distinto y las piezas se descolocarian. */
+  --escena-y: 56%;
   position: relative;
   min-height: 300svh;
   background: var(--cielo);
   color: var(--slate);
 }
-/* Quien pide menos movimiento no tiene animacion, y entonces las dos
-   pantallas de recorrido serian dos pantallas donde no pasa nada: la seccion
-   se queda en una. */
+/* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
+   pasa nada: la seccion se queda en una. */
 @media (prefers-reduced-motion: reduce) {
   .ligero { min-height: 100svh; }
 }
@@ -3616,96 +3616,145 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   overflow: hidden;
   overflow: clip;
 }
-/* El ojo. `perspective-origin` en el centro exacto y no un dedo mas arriba:
-   la escala que cada plano lleva para deshacer su distancia se calcula
-   desde el centro, y moviendo el origen dejarian de encajar. */
-/* El cielo del dibujo, que no es el papel de la pagina: lo pintan las capas
-   de niebla, y este trozo es el mismo tono, quieto detras de todo. */
+/* El cielo no viaja con el mundo: si viajara, al moverse asomaria el papel
+   de la pagina. */
 .ligero__cielo {
   position: absolute;
   inset: 0;
   background: #EEEEEE;
   filter: var(--escena-tinte);
 }
+/* El ojo, en el centro exacto: la escala que deshace la distancia de cada
+   plano se calcula desde ahi. */
 .ligero__camara {
   position: absolute;
   inset: 0;
   perspective: 700px;
-  perspective-origin: 50% 50%;
-  /* El encuadre baja un palmo AQUI y no dentro del mundo: dentro, lo que no
-     esta en el centro del ojo se proyecta distinto segun su profundidad, y
-     las capas dejaban de encajar —se veia la raya de cada una por arriba—.
-     Movida la camara entera, el dibujo baja de una pieza. */
-  transform: translateY(122px);
+  perspective-origin: 50% var(--escena-y);
 }
 .ligero__mundo {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  /* Un punto mas grande de lo que se ve, siempre: es el margen por el que se
-     mueve sin ensenar el canto del dibujo. Quien no tenga animacion —o no la
-     quiera— ve esto mismo, quieto. */
-  /* Un punto mas grande de lo que se ve: es el margen por el que se mueve
-     sin ensenar el canto del dibujo. */
-  transform: scale(1.16);
 }
 .ligero__escena {
+  position: absolute;
+  left: 50%;
+  top: var(--escena-y);
+  width: max(100%, 160svh);
+  aspect-ratio: 16 / 10;
+  translate: -50% -50%;
+  transform-style: preserve-3d;
+}
+.ligero__dibujo {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
 }
-/* Cada plano ocupa la pantalla exacta y encuadra igual que los demas. El
-   hueco para moverse no se lo da cada uno por su cuenta —eso los
-   descuadraria— sino el mundo entero, que va un punto mas grande de lo que
-   se ve: lo que entra por un canto al moverse sigue siendo dibujo. */
-.ligero__capa {
+/* Cada plano ocupa el escenario entero: su centro es el del ojo, y por eso
+   la escala que compensa su distancia no descoloca lo que lleva dentro. */
+.ligero__plano {
   position: absolute;
   inset: 0;
-  /* Con medida propia: una imagen colocada en absoluto no se estira sola
-     hasta los cuatro cantos, se queda con su tamano de origen. */
-  width: 100%;
-  height: 100%;
-  /* El reset le pone tope de 100% a toda imagen; aqui estorba. */
-  max-width: none;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+.ligero__pieza {
+  position: absolute;
   display: block;
-  object-fit: cover;
-  object-position: 50% 50%;
+  height: auto;
+  max-width: none;
   filter: var(--escena-tinte);
 }
-.ligero__capa--roca { filter: var(--escena-tinte-roca); }
-/* La pregunta vive DENTRO del mundo, en el plano de delante: se mueve como
-   se mueve lo que tienes a un paso, no como un rotulo pegado al cristal. */
-/* LA PREGUNTA VA SOBRE LA PIEDRA. Arriba estoy yo, y un rotulo encima de la
-   figura tapa justo lo que hay que mirar; abajo hay una pared oscura, ancha
-   y sin detalle, que es el mejor papel que da esta escena. En hueso sobre
-   ella se lee de lejos, y el velo de debajo —una nube muy suave, del tono de
-   la propia roca— la despega sin que se note que hay un velo. */
+.ligero__pieza--roca { filter: var(--escena-tinte-roca); }
+/* La niebla del dibujo pinta su lienzo entero, y su canto de arriba y el de
+   la derecha caen en pleno cielo: se deshacen ahi, o se veria el rectangulo.
+   Es una sola pieza precisamente por esto: con seis capas sueltas, cada una
+   dejaba ver la de detras —mas oscura— al deshacerse. */
+.ligero__pieza--lejos {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%), linear-gradient(to left, transparent, #000 12%);
+  mask-image: linear-gradient(to bottom, transparent, #000 14%), linear-gradient(to left, transparent, #000 12%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+/* EN UNA PANTALLA DE PIE el escenario no puede cubrir la ventana: para cubrir
+   el alto tendria que medir tres veces el ancho y la roca se saldria por los
+   lados. Se queda en dos anchos —se ve el cañon entero, con sus dos paredes,
+   y la roca cabe completa— y el cielo y la niebla llenan lo que sobra. */
+@media (max-aspect-ratio: 1 / 1) {
+  .ligero { --escena-y: 50%; }
+  .ligero__escena { width: 200vw; }
+}
+
+/* LA NIEBLA. Velos de luz, no dibujos: degradados blandos que se deshacen
+   hacia los cantos. El del abismo sube desde abajo y se come el pie de los
+   dos lados del cañon —ahi no hay suelo que ensenar, hay vacio—; los demas
+   flotan a su altura y a su distancia. */
+.ligero__niebla {
+  position: absolute;
+  filter: var(--escena-tinte);
+}
+.ligero__niebla--abismo {
+  left: -30%;
+  right: -30%;
+  top: 50%;
+  bottom: -45%;
+  background: linear-gradient(to bottom,
+    rgb(238 238 238 / 0) 0%,
+    rgb(238 238 238 / .7) 18%,
+    rgb(238 238 238 / .96) 30%,
+    #EEEEEE 38%);
+}
+.ligero__niebla--canon {
+  left: -20%;
+  top: 42%;
+  width: 140%;
+  height: 24%;
+  background: radial-gradient(50% 50% at 50% 50%, rgb(255 255 255 / .6), rgb(255 255 255 / 0));
+}
+.ligero__niebla--roca {
+  left: 34%;
+  top: 54%;
+  width: 46%;
+  height: 28%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .8), rgb(255 255 255 / 0));
+}
+.ligero__niebla--delante {
+  left: 54%;
+  top: 60%;
+  width: 72%;
+  height: 40%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .55), rgb(255 255 255 / 0));
+}
+.ligero__niebla--lado {
+  left: -16%;
+  top: 72%;
+  width: 60%;
+  height: 34%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .45), rgb(255 255 255 / 0));
+}
+
+/* LA PREGUNTA, en un plano del tamano de la ventana: arriba y al centro de
+   lo que se ve, en cualquier pantalla. Es lo mas cercano de la escena y se
+   mueve como tal. */
+.ligero__plano--ventana {
+  inset: 0;
+}
 .ligero__pregunta {
   position: absolute;
-  z-index: 5;
   left: 50%;
-  top: 44%;
-  width: min(92vw, 34rem);
+  top: calc(var(--header-h) + clamp(1.2rem, 6vh, 3.4rem));
+  width: min(92vw, 36rem);
   margin: 0;
-  padding: 1.2rem 1.4rem;
   translate: -50% 0;
   font-family: var(--serif);
-  font-size: clamp(1.75rem, 5.8vw, 3.1rem);
+  font-size: clamp(1.7rem, 5.2vw, 2.9rem);
   font-weight: 400;
   line-height: 1.12;
   letter-spacing: -.02em;
   text-align: center;
   text-wrap: balance;
-  color: var(--bone);
-  text-shadow: 0 2px 22px rgba(12, 18, 14, .55);
-}
-.ligero__pregunta::before {
-  content: "";
-  position: absolute;
-  inset: -18% -12%;
-  z-index: -1;
-  border-radius: 50%;
-  background: radial-gradient(60% 55% at 50% 50%, rgba(14, 20, 16, .5), transparent 72%);
+  color: var(--slate);
 }
 .ligero__pregunta .script {
   font-family: var(--hand);
@@ -5623,9 +5672,19 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
        ojo tambien se acerca un palmo. Lo demas —velocidades, escalas— lo
        pone la perspectiva sola. */
     @keyframes ojo {
-      from { transform: translate3d(0, 56px, -30px) scale(1.16); }
-      to   { transform: translate3d(0, -56px, 30px) scale(1.16); }
+      from { transform: translate3d(0, 90px, -40px); }
+      to   { transform: translate3d(0, -90px, 40px); }
     }
+    /* Y la niebla va a lo suyo, despacio, este o no la pagina quieta: cada
+       velo con su tiempo y su sentido, para que no se muevan en bloque. */
+    @keyframes nieblaVa {
+      from { translate: -5% 0; }
+      to   { translate: 5% 0; }
+    }
+    .ligero__niebla--canon   { animation: nieblaVa 38s ease-in-out infinite alternate; }
+    .ligero__niebla--roca    { animation: nieblaVa 23s ease-in-out -9s infinite alternate-reverse; }
+    .ligero__niebla--delante { animation: nieblaVa 29s ease-in-out -4s infinite alternate; }
+    .ligero__niebla--lado    { animation: nieblaVa 33s ease-in-out -15s infinite alternate-reverse; }
     .ligero__mundo {
       animation-name: ojo;
       animation-timing-function: linear;
