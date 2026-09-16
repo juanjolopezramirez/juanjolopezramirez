@@ -36,20 +36,26 @@ export const PARTNERS = [
       fr: 'Quinze ans d’immobilier à Bogotá et dans la Sabana. Vendre une maison n’est pas vendre un produit : ce qui change de mains, c’est le lieu où quelqu’un va vivre.',
       it: 'Quindici anni di immobiliare a Bogotá e nella Sabana. Vendere una casa non è vendere un prodotto: ciò che passa di mano è il posto dove qualcuno vivrà.'
     } },
-  /* El logo sale de la marca de agua de sus videos —no hay fichero oficial
-     todavia—: blanco sobre transparente, como los demas, y el simbolo de
-     Inmoga solo para la cara redonda, donde el logotipo entero no se leeria.
-     Cuando llegue el oficial, basta con cambiar las rutas y las medidas. */
-  { id: 'porvenir-inmoga', name: 'Porvenir × Inmoga', src: '/assets/partners/porvenir-inmoga.png', w: 222, h: 75,
-    webp: '/assets/partners/porvenir-inmoga.webp', scale: 0.84,
-    avatar: '/assets/partners/porvenir-inmoga-simbolo.png', avatarW: 49, avatarH: 49,
+  /* LA CASA SIN LOGOS. Hay encargos cuya marca no autorizo que su nombre ni
+     su logo salieran de aqui, y un logo sacado de la marca de agua de sus
+     propios videos no es una autorizacion. Antes esta ficha llevaba el
+     nombre y el logotipo del cliente; ahora lleva un mas —`mark: 'mas'`— y
+     un rotulo. El trabajo no se esconde, la firma ajena si.
+
+     Sin `src`: no hay fichero que ensenar, y tanto la cinta como la cara
+     redonda saben poner el icono en su lugar. `w` y `h` solo ordenan la
+     cinta, asi que cuadrado y ya. */
+  { id: 'otras-marcas',
+    name: { es: 'Otras marcas', en: 'Other brands', pt: 'Outras marcas', fr: 'Autres marques', it: 'Altri marchi' },
+    mark: 'mas', w: 1, h: 1, scale: 1,
     tags: ['finanzas'],
+    role: { es: 'Trabajos por encargo', en: 'Commissioned work', pt: 'Trabalhos por encomenda', fr: 'Travaux de commande', it: 'Lavori su commissione' },
     blurb: {
-      es: 'Asesoría en finanzas personales, pensiones e impuestos. Con Porvenir Preferencial acompañan a quien quiere que su ahorro trabaje con respaldo.',
-      en: 'Advice on personal finance, pensions and taxes. With Porvenir Preferencial they guide people who want their savings to work with solid backing.',
-      pt: 'Assessoria em finanças pessoais, pensões e impostos. Com o Porvenir Preferencial acompanham quem quer que as suas poupanças trabalhem com respaldo.',
-      fr: 'Conseil en finances personnelles, retraites et fiscalité. Avec Porvenir Preferencial, ils accompagnent ceux qui veulent faire travailler leur épargne en toute sécurité.',
-      it: 'Consulenza su finanze personali, pensioni e tasse. Con Porvenir Preferencial accompagnano chi vuole far lavorare i propri risparmi con solide garanzie.'
+      es: 'Piezas hechas para marcas que no autorizaron que su nombre ni su logo salieran aquí. El trabajo es mío; la firma es suya. Quedan bajo clave y se enseñan a quien las pida.',
+      en: 'Pieces made for brands that did not authorise their name or logo here. The work is mine; the signature is theirs. They stay behind a key and are shown on request.',
+      pt: 'Peças feitas para marcas que não autorizaram que o seu nome nem o seu logótipo aparecessem aqui. O trabalho é meu; a assinatura é delas. Ficam sob chave e mostram-se a quem as pedir.',
+      fr: 'Des pièces faites pour des marques qui n’ont pas autorisé leur nom ni leur logo ici. Le travail est le mien ; la signature est la leur. Elles restent sous clé et se montrent à qui les demande.',
+      it: 'Pezzi fatti per marchi che non hanno autorizzato né il loro nome né il loro logo qui. Il lavoro è mio; la firma è loro. Restano sotto chiave e si mostrano a chi le chiede.'
     } },
   /* Estas dos no son clientes, y por eso llevan su propia linea de «que es»
      y no la que pone la lista: son aliadas. Antes esa linea decia de quien

@@ -6,7 +6,7 @@ import Partners from '../../components/Partners.astro';
 import { PARTNERS } from '../../data/partners.js';
 import Cards from '../../components/Cards.astro';
 import Piezas from '../../components/Piezas.astro';
-import { PIEZAS } from '../../data/piezas.js';
+import { PIEZAS_PUBLICAS } from '../../data/piezas.js';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -17,11 +17,11 @@ const title = t('page.work.title');
 
 /* Los videos de todas las casas de esta seccion, en un carril con filtro. */
 const casas = new Set(PARTNERS.map((p) => p.id));
-const enVideo = PIEZAS.filter((p) => casas.has(p.casa));
+const enVideo = PIEZAS_PUBLICAS.filter((p) => casas.has(p.casa));
 ---
 <Base lang={lang} path="work" active="work" title={`${title} — Juan José López Ramírez`}>
   <PageHero lang={lang} t={t} slug="work">
-    <Partners slot="foot" items={PARTNERS} title={t('door.work')} />
+    <Partners slot="foot" lang={lang} items={PARTNERS} title={t('door.work')} />
   </PageHero>
 
   <Cards lang={lang} t={t} items={PARTNERS} kind="work" title={t('cards.title')} />

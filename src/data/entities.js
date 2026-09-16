@@ -21,6 +21,17 @@ export const ENTITIES = [
 
 export const ENTITY = Object.fromEntries(ENTITIES.map((e) => [e.id, e]));
 
+/* El nombre de una casa, en el idioma que toque.
+
+   Casi todas son marcas, y una marca no se traduce: Casa San Pedro se llama
+   igual en los cinco idiomas, asi que `name` es una cadena y basta con
+   leerla. «Otras marcas» no es una marca, es un rotulo —lo que hay detras
+   son encargos sin firma— y un rotulo si se dice en cada idioma. Las dos
+   formas conviven y esto las resuelve, para que nadie tenga que acordarse
+   de cual es cual al escribir una plantilla. */
+export const nombreDe = (e, lang) =>
+  !e ? '' : typeof e.name === 'string' ? e.name : (e.name[lang] ?? e.name.es);
+
 /* La direccion de cada casa: /es/recvid/, /en/casa-san-pedro/…
 
    Casi siempre es su id, pero un id que se lee bien en el codigo no

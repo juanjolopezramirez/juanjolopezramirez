@@ -1085,11 +1085,23 @@ function initCarriles() {
       return mejor;
     };
 
+    /* LA FLECHA LLEVA LA TARJETA DONDE LA DEJARIA EL IMAN, y eso no es
+       siempre el centro. Con una sola tarjeta a la vista —un movil— la
+       siguiente se centra. En una fila ancha, donde caben cuatro, las
+       tarjetas se cuadran por la izquierda (`scroll-snap-align: start`), y
+       centrar la siguiente podia pedir un salto HACIA ATRAS: la flecha de
+       «siguiente» no hacia nada, porque el carril ya estaba en el tope de
+       ese lado. Se mira cuanto cabe y se alinea como toque. */
     const ir = (i) => {
       const items = visibles();
       const it = items[Math.max(0, Math.min(i, items.length - 1))];
       if (!it) return;
-      const delta = centro(it.getBoundingClientRect()) - centro(pista.getBoundingClientRect());
+      const caja = pista.getBoundingClientRect();
+      const r = it.getBoundingClientRect();
+      const relleno = parseFloat(getComputedStyle(pista).scrollPaddingLeft) || 0;
+      const delta = caja.width > r.width * 1.5
+        ? r.left - caja.left - relleno
+        : centro(r) - centro(caja);
       pista.scrollBy({ left: delta, behavior: reducido ? 'instant' : 'smooth' });
     };
 
@@ -1102,7 +1114,8 @@ function initCarriles() {
       caja.classList.toggle('is-desborda', sobra);
       antes.hidden = despues.hidden = puntos.hidden = !sobra;
       if (!sobra) return;
-      caja.style.setProperty('--carril-centro', Math.max(0, (pista.clientWidth - primera.width) / 2).toFixed(1) + 'px');
+      const masAncha = items.reduce((m, el) => Math.max(m, el.getBoundingClientRect().width), 0);
+      caja.style.setProperty('--carril-centro', Math.max(0, (pista.clientWidth - masAncha) / 2).toFixed(1) + 'px');
       if (puntos.children.length !== items.length) {
         puntos.replaceChildren(...items.map(() => d.createElement('span')));
         marcado = -1;
@@ -1126,25 +1139,68 @@ function initCarriles() {
     antes.addEventListener('click', () => { if (pista.scrollLeft > 2) ir(actual() - 1); });
     despues.addEventListener('click', () => { if (pista.scrollLeft < tope() - 2) ir(actual() + 1); });
 
-    /* LA RUEDA DEL RATON, DE LADO. Un trackpad manda gestos laterales y el
-       carril se desliza solo; un raton de rueda no tiene lado, asi que sin
-       esto el carril quedaba muerto en escritorio: la rueda vertical se la
-       quedaba el salto entre pantallas y la fila no se movia.
+    /* ARRASTRAR DESDE LA FLECHA. Un boton no es la fila: el dedo que empieza
+       encima de una flecha no desliza nada, y en un movil las dos ocupan un
+       tercio del ancho de la pantalla. Aqui el arrastre se recoge y se le
+       pasa a la fila, para que el gesto valga desde cualquier punto.
 
-       Mientras al carril le quede recorrido, la rueda lo desplaza y no sale
-       de aqui (`stopPropagation`, o las diapositivas contarian el mismo
-       empujon). Al llegar al extremo se suelta: la pagina sigue a lo suyo. */
+       Se decide en los primeros pixeles: menos de seis es un toque —y
+       entonces la flecha hace lo suyo, saltar de tarjeta—; mas es un
+       arrastre, y el clic que llega despues de soltar se tira, o el carril
+       saltaria ademas una tarjeta. */
+    [antes, despues].forEach((flecha) => {
+      let x0 = null;
+      let desde = 0;
+      let arrastro = false;
+      flecha.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        x0 = e.clientX; desde = pista.scrollLeft; arrastro = false;
+      });
+      flecha.addEventListener('pointermove', (e) => {
+        if (x0 === null) return;
+        const dx = e.clientX - x0;
+        if (!arrastro) {
+          if (Math.abs(dx) < 6) return;
+          arrastro = true;
+          try { flecha.setPointerCapture(e.pointerId); } catch {}
+        }
+        pista.scrollLeft = desde - dx;
+      });
+      const soltar = () => { x0 = null; };
+      flecha.addEventListener('pointerup', soltar);
+      flecha.addEventListener('pointercancel', () => { x0 = null; arrastro = false; });
+      flecha.addEventListener('click', (e) => {
+        if (!arrastro) return;
+        arrastro = false;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }, true);
+    });
+
+    /* LA RUEDA, VENGA COMO VENGA. Un raton de rueda no tiene lado: sin esto
+       la fila quedaba muerta en escritorio, porque la rueda vertical se la
+       quedaba el salto entre pantallas. Y el gesto lateral del trackpad
+       tampoco valia: el navegador lo desplazaba y el iman lo devolvia al
+       sitio en el mismo suspiro, asi que la fila temblaba y se quedaba donde
+       estaba. Los dos empujones se recogen aqui y se aplican igual —tal cual,
+       pixel por pixel—, y asi la fila responde lo mismo en las tres pantallas
+       y con cualquier cacharro.
+
+       Mientras al carril le quede recorrido, el empujon es suyo y no sale de
+       aqui (`stopPropagation`, o las diapositivas contarian el mismo gesto).
+       Al llegar al extremo se suelta: la pagina sigue a lo suyo. */
     pista.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;    /* gesto lateral: ya es del navegador */
-      const dy = e.deltaMode === 1 ? e.deltaY * 16
-               : e.deltaMode === 2 ? e.deltaY * pista.clientWidth
-               : e.deltaY;
+      const lateral = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      const bruto = lateral ? e.deltaX : e.deltaY;
+      const dx = e.deltaMode === 1 ? bruto * 16
+               : e.deltaMode === 2 ? bruto * pista.clientWidth
+               : bruto;
       const max = tope();
-      const puede = (dy > 0 && pista.scrollLeft < max - 2) || (dy < 0 && pista.scrollLeft > 2);
+      const puede = (dx > 0 && pista.scrollLeft < max - 2) || (dx < 0 && pista.scrollLeft > 2);
       if (!puede) return;
       e.preventDefault();
       e.stopPropagation();
-      pista.scrollBy({ left: dy, behavior: 'auto' });
+      pista.scrollBy({ left: dx, behavior: 'auto' });
     }, { passive: false });
 
     /* Un cuadro por tanda de scroll, y un reloj de respaldo por si los cuadros

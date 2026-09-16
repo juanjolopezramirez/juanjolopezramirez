@@ -1,7 +1,7 @@
 ---
 import Icon from './Icon.astro';
 import { duracion } from '../data/piezas.js';
-import { ENTITY } from '../data/entities.js';
+import { ENTITY, nombreDe } from '../data/entities.js';
 
 /* Los videos: un carril que se desliza de lado, con filtros y un visor.
 
@@ -34,7 +34,7 @@ import { ENTITY } from '../data/entities.js';
 const { lang, t, items = [], nota = null, marcas = false } = Astro.props;
 const say = (o) => (o ? (o[lang] ?? o.es) : null);
 const base = '/assets/videos/piezas/';
-const nombre = (casa) => ENTITY[casa]?.name ?? casa;
+const nombre = (casa) => nombreDe(ENTITY[casa], lang) || casa;
 
 const casas = [...new Set(items.map((p) => p.casa))];
 const formas = [...new Set(items.map((p) => p.orientacion))];

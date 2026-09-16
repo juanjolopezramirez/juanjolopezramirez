@@ -2019,6 +2019,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   height: 3rem;
 }
 
+/* Una casa sin logo pone su signo en el mismo hueco: misma altura y misma
+   tinta que los logotipos, que ahi todos van en blanco sobre el pinar. */
+.partners__item .icon {
+  width: auto;
+  height: calc(clamp(1.6rem, 3.8vw, 2.2rem) * var(--s, 1));
+  color: var(--bone);
+}
 /* La altura la pone la escala optica de cada logo, no una medida comun:
    un logotipo apaisado a la misma altura que una letra suelta pesa el
    triple. El numero viene de los datos; aqui solo se aplica. */
@@ -2653,6 +2660,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: opacity .2s var(--ease), scale .2s var(--ease);
 }
 .carril__flecha[hidden] { display: none; }
+/* El gesto de lado no es suyo: la flecha esta ENCIMA de la fila pero fuera
+   de ella, y un dedo que empieza aqui no tiene nada que deslizar —el
+   navegador busca el primer contenedor con scroll por encima y se encuentra
+   la pagina—. En un movil las dos flechas ocupan un tercio del ancho, asi
+   que ese tercio quedaba muerto. `pan-y` deja el gesto vertical al
+   navegador y nos manda el lateral, que el guion le pasa a la fila. */
+.carril__flecha { touch-action: pan-y; }
 /* Un circulo de 37px es poco para un pulgar: lo que responde al toque es mas
    grande que lo que se dibuja. */
 .carril__flecha::after { content: ""; position: absolute; inset: -.6rem; border-radius: 50%; }
@@ -3236,10 +3250,29 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
    y el titulo. Las fichas pequeñas van en cristal ahumado para leerse sobre
    cualquier portada, clara u oscura, sin tapar la imagen.
    ============================================================= */
-/* Todas las tarjetas miden lo mismo de alto; de ancho, lo que pide su
-   forma. La horizontal nunca pasa del ancho de la pantalla: en un movil se
-   recorta la portada, y el visor la enseña entera. */
-.piezas { --pieza-alto: clamp(17rem, 50svh, 27rem); margin: 0 0 1rem; }
+/* EL ALTO MANDA, Y NO ES EL MISMO PARA LAS DOS FORMAS. Una de pie mide el
+   alto entero de la fila; una tumbada mide dos tercios, y asi las dos
+   ocupan un ancho parecido. Con el mismo alto para todas, una tumbada
+   salia casi el doble de ancha que tres de pie juntas: dentro de la ficha
+   de una casa se comia la columna y la portada se leia como una pancarta.
+
+   NINGUNA PASA DEL ANCHO DEL CARRIL. El tope era el de la ventana
+   —`100vw`— y dentro de una columna estrecha eso no es ningun tope: la
+   tarjeta se salia igual. Ahora el tope es el carril, y cuando la columna
+   aprieta, la tarjeta baja de alto con ella —`aspect-ratio`— en vez de
+   recortar la portada.
+
+   Y EL CARRIL TIENE QUE PODER ESTRECHARSE. La ficha de una casa es una
+   rejilla, y una celda no baja de lo que mide su contenido a menos que se
+   le diga. Sin `min-width: 0` la fila crecia hasta donde hiciera falta
+   —2400px en una columna de 700— se salia por el canto y no habia scroll
+   ninguno: no sobraba nada que deslizar, porque la caja habia cedido. */
+.piezas {
+  --pieza-alto: clamp(17rem, 50svh, 27rem);
+  --pieza-tumbada: calc(var(--pieza-alto) * .63);
+  min-width: 0;
+  margin: 0 0 1rem;
+}
 .piezas__nota {
   max-width: 38rem;
   margin: 0 0 1rem;
@@ -3260,13 +3293,20 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   list-style: none;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
+  /* PROXIMIDAD Y NO OBLIGACION. Con `mandatory` el navegador tiene que
+     dejar siempre una tarjeta cuadrada con el carril, y un empujon corto
+     —el de una rueda, el de un dedo que no llega a lanzar— tiene su parada
+     mas cerca por detras que por delante: lo deshace y la fila vuelve donde
+     estaba. Se movia y regresaba, que es peor que no moverse. Con
+     `proximity` el iman solo tira cuando el gesto termina cerca de una
+     tarjeta: la fila va donde la lleves, y al soltar se cuadra sola. */
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 .piezas__lista::-webkit-scrollbar { display: none; }
-.piezas__item { flex: 0 0 auto; scroll-snap-align: center; }
+.piezas__item { flex: 0 0 auto; scroll-snap-align: center; display: flex; align-items: center; }
 .piezas__item--vertical { width: calc(var(--pieza-alto) * 9 / 16); }
-.piezas__item--horizontal { width: min(calc(var(--pieza-alto) * 16 / 9), calc(100vw - 3.5rem)); }
+.piezas__item--horizontal { width: min(calc(var(--pieza-tumbada) * 16 / 9), calc(100% + var(--carril-centro, 0px) * 2)); }
 
 .pieza {
   position: relative;
@@ -3286,6 +3326,9 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   transition: translate .4s var(--ease-smooth), box-shadow .4s var(--ease-smooth);
 }
 .pieza { height: var(--pieza-alto); }
+/* La tumbada guarda su forma: si el carril aprieta, encoge por los dos
+   lados a la vez y la portada no se recorta. */
+.piezas__item--horizontal .pieza { height: auto; aspect-ratio: 16 / 9; }
 .pieza:hover { translate: 0 -3px; box-shadow: 0 26px 40px -24px rgba(11, 20, 13, .8); }
 .pieza:active { translate: 0 0; }
 .pieza:focus-visible { outline: 3px solid var(--iris); outline-offset: 3px; }

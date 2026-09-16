@@ -12,6 +12,12 @@
      youtube      solo las que viven en YouTube: el id del video. Mientras
                   este vacio, la tarjeta dice «pronto» y no abre nada. Su
                   portada es la del propio corto, la misma que en YouTube.
+     clave        true si la pieza NO se publica todavia. Son trabajos
+                  reales, pero llevan impresa la marca de quien los encargo
+                  y esa marca no autorizo que saliera aqui. Cuando exista la
+                  clave dinamica, estas son las que quedaran detras de ella;
+                  mientras tanto no salen del ordenador: ni tarjeta, ni
+                  portada, ni fichero en el sitio.
      title        en los cinco idiomas.
 
    DONDE VIVEN. Las verticales son cortas y van dentro del sitio, comprimidas
@@ -98,20 +104,38 @@ export const PIEZAS = [
     title: { es: 'La carta', en: 'The menu', pt: 'O menu', fr: 'La carte', it: 'Il menù' }
   },
 
-  /* ---------- Porvenir × Inmoga ---------- */
+  /* ---------- Otras marcas ---------- */
+  /* Bajo clave las dos: el video lleva impresa la marca de agua de quien lo
+     encargo —esta en cada fotograma, tambien en la portada— y esa casa no
+     autorizo que su nombre ni su logo salieran aqui. Los ficheros no viven
+     en `public/`: lo que se publica se puede descargar, con clave o sin
+     ella, asi que mientras no haya donde guardarlos aparte, no se suben. La
+     ficha queda, para saber que existen. */
   {
-    id: 'porvenir-preferencial', casa: 'porvenir-inmoga', orientacion: 'vertical', seg: 145, archivo: 'porvenir-inmoga/porvenir-preferencial',
-    title: { es: 'Porvenir Preferencial', en: 'Porvenir Preferencial', pt: 'Porvenir Preferencial', fr: 'Porvenir Preferencial', it: 'Porvenir Preferencial' }
+    id: 'pensiones-v1', casa: 'otras-marcas', orientacion: 'vertical', seg: 145, archivo: 'otras-marcas/pensiones-v1', clave: true,
+    title: { es: 'Asesoría en pensiones', en: 'Pension advice', pt: 'Assessoria em pensões', fr: 'Conseil en retraite', it: 'Consulenza sulle pensioni' }
   },
   {
-    id: 'porvenir-preferencial-v2', casa: 'porvenir-inmoga', orientacion: 'vertical', seg: 78, archivo: 'porvenir-inmoga/porvenir-preferencial-v2',
-    title: { es: 'Porvenir Preferencial · versión corta', en: 'Porvenir Preferencial · short version', pt: 'Porvenir Preferencial · versão curta', fr: 'Porvenir Preferencial · version courte', it: 'Porvenir Preferencial · versione breve' }
+    id: 'pensiones-v2', casa: 'otras-marcas', orientacion: 'vertical', seg: 78, archivo: 'otras-marcas/pensiones-v2', clave: true,
+    title: { es: 'Asesoría en pensiones · versión corta', en: 'Pension advice · short version', pt: 'Assessoria em pensões · versão curta', fr: 'Conseil en retraite · version courte', it: 'Consulenza sulle pensioni · versione breve' }
   }
 ];
+
+/* Lo que de verdad sale en la pagina. Las paginas leen esta, nunca PIEZAS:
+   una pieza bajo clave no tiene tarjeta, ni portada, ni sitio en el filtro.
+   PIEZAS se queda como el inventario completo de lo que he hecho. */
+export const PIEZAS_PUBLICAS = PIEZAS.filter((p) => !p.clave);
 
 /* Lo que se dice encima de las piezas de una casa, si hace falta decir algo.
    Las del colegio no son encargos: sin esta linea parecerian clientes. */
 export const NOTAS = {
+  'otras-marcas': {
+    es: 'Estas piezas están bajo clave: las marcas que las encargaron no autorizaron que su nombre ni su logo salieran aquí. Se enseñan a quien las pida.',
+    en: 'These pieces are behind a key: the brands that commissioned them did not authorise their name or logo here. They are shown on request.',
+    pt: 'Estas peças estão sob chave: as marcas que as encomendaram não autorizaram que o seu nome nem o seu logótipo aparecessem aqui. Mostram-se a quem as pedir.',
+    fr: 'Ces pièces sont sous clé : les marques qui les ont commandées n’ont pas autorisé leur nom ni leur logo ici. Elles se montrent à qui les demande.',
+    it: 'Questi pezzi sono sotto chiave: i marchi che li hanno commissionati non hanno autorizzato né il loro nome né il loro logo qui. Si mostrano a chi li chiede.'
+  },
   juanjo: {
     es: 'Trabajos del colegio. Cada uno me enseñó algo que todavía uso, y juntos me prepararon para lo que hoy construyo con Fraterni.',
     en: 'School projects. Each one taught me something I still use, and together they prepared me for what I’m building with Fraterni.',
@@ -121,7 +145,7 @@ export const NOTAS = {
   }
 };
 
-export const piezasDe = (casa) => PIEZAS.filter((p) => p.casa === casa);
+export const piezasDe = (casa) => PIEZAS_PUBLICAS.filter((p) => p.casa === casa);
 
 /* «3:05», «0:23». */
 export const duracion = (seg) => `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`;

@@ -1,7 +1,7 @@
 ---
 import BrandDot from './BrandDot.astro';
 import Icon from './Icon.astro';
-import { AXES, slugOf } from '../data/entities.js';
+import { AXES, slugOf, nombreDe } from '../data/entities.js';
 
 /* Las casas, una por una.
 
@@ -86,19 +86,19 @@ const ejes = Object.entries(AXES)
                 {e.bannerWebp && <source srcset={e.bannerWebp} type="image/webp" />}
                 <img class="ecard__photo" src={e.banner} alt="" loading="lazy" decoding="async" />
               </picture>
-            ) : (
+            ) : e.src ? (
               <picture>
                 {e.webp && <source srcset={e.webp} type="image/webp" />}
                 <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
                      loading="lazy" decoding="async" />
               </picture>
-            )}
+            ) : null}
           </span>
 
           <BrandDot mark={e.mark} logo={e.avatar ?? e.src} w={e.avatarW ?? e.w} h={e.avatarH ?? e.h} cls="ecard__dot" />
 
           <span class="ecard__body">
-            <span class="ecard__name">{e.name}</span>
+            <span class="ecard__name">{nombreDe(e, lang)}</span>
             <span class="ecard__kind">{say(e.role) ?? t(`card.kind.${kind}`)}</span>
             {e.blurb && <span class="ecard__blurb">{say(e.blurb)}</span>}
           </span>

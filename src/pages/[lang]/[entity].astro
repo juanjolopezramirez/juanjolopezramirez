@@ -1,6 +1,6 @@
 ---
 import { LANGS, useT } from '../../i18n/utils.js';
-import { ENTITIES, slugOf } from '../../data/entities.js';
+import { ENTITIES, slugOf, nombreDe } from '../../data/entities.js';
 import Base from '../../layouts/Base.astro';
 import BrandDot from '../../components/BrandDot.astro';
 import Icon from '../../components/Icon.astro';
@@ -39,6 +39,7 @@ const { e, i } = Astro.props;
 const t = useT(lang);
 
 const say = (o) => (o ? (o[lang] ?? o.es) : null);
+const nombre = nombreDe(e, lang);
 const que = say(e.role) ?? t(`card.kind.${e.kind}`);
 /* Si la casa tiene manifiesto, la frase de lo que es hace de descripcion
    —tambien para los buscadores— y el parrafo de proyectos se queda en la
@@ -49,7 +50,7 @@ const desc = p ? say(p.que) : say(e.blurb);
 const piezas = piezasDe(e.id);
 ---
 <Base lang={lang} path={slugOf(e)} active={e.kind}
-      title={`${e.name} — Juan José López Ramírez`}
+      title={`${nombre} — Juan José López Ramírez`}
       description={desc ?? que}>
   <article class="epage">
     <div class="epage__shell">
@@ -65,18 +66,18 @@ const piezas = piezasDe(e.id);
               {e.bannerWebp && <source srcset={e.bannerWebp} type="image/webp" />}
               <img class="entity__photo" src={e.banner} alt="" decoding="async" />
             </picture>
-          ) : (
+          ) : e.src ? (
             <picture>
               {e.webp && <source srcset={e.webp} type="image/webp" />}
               <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
                    decoding="async" />
             </picture>
-          )}
+          ) : null}
         </span>
 
         <BrandDot mark={e.mark} logo={e.avatar ?? e.src} w={e.avatarW ?? e.w} h={e.avatarH ?? e.h} cls="entity__dot" />
 
-        <h1 class="entity__name">{e.name}</h1>
+        <h1 class="entity__name">{nombre}</h1>
         <p class="entity__kind">{que}</p>
         {p ? (
           <div class="proposito">
@@ -143,7 +144,7 @@ const piezas = piezasDe(e.id);
             ))}
           </ul>
         ) : (
-          !piezas.length && <p class="entity__empty">{t('entity.empty')}</p>
+          !piezas.length && <p class="entity__empty">{say(NOTAS[e.id]) ?? t('entity.empty')}</p>
         )}
       </div>
     </div>

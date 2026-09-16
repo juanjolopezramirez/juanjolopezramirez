@@ -67,6 +67,10 @@ export const ICONS = {
   'phone': `<svg class="icon icon--phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8.1 3.8H6.6A2.8 2.8 0 0 0 3.8 6.6C3.8 14.2 9.8 20.2 17.4 20.2a2.8 2.8 0 0 0 2.8-2.8v-1.5a1.3 1.3 0 0 0-1-1.27l-2.9-.72a1.3 1.3 0 0 0-1.33.44l-.9 1.1a12.4 12.4 0 0 1-5.5-5.5l1.1-.9a1.3 1.3 0 0 0 .44-1.33l-.72-2.9a1.3 1.3 0 0 0-1.27-1z"/></svg>`,
   'coin': `<svg class="icon icon--coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><path d="M12 6.9v10.2"/><path d="M14.6 9.6a2.9 2.9 0 0 0-2.6-1.4c-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.8.9 2.8 2.1-1.1 2.1-2.8 2.1a2.9 2.9 0 0 1-2.7-1.5"/></svg>`,
   'pin': `<svg class="icon icon--pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2s6.9-5.6 6.9-11a6.9 6.9 0 1 0-13.8 0c0 5.4 6.9 11 6.9 11z"/><circle cx="12" cy="10.1" r="2.6"/></svg>`,
+  /* El mas: lo que hay y no se ensena. Lo usa «Otras marcas», la casa que
+     junta encargos cuya marca no autorizo que su nombre y su logo salieran
+     aqui: en su cara redonda va este signo y no un logotipo prestado. */
+  'mas': `<svg class="icon icon--mas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5.4v13.2M5.4 12h13.2"/></svg>`,
   'youtube': `<svg class="icon icon--youtube" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M23 12s0-3.4-.43-5a2.6 2.6 0 0 0-1.8-1.8C19.1 4.7 12 4.7 12 4.7s-7.1 0-8.7.42a2.6 2.6 0 0 0-1.8 1.9C1 8.6 1 12 1 12s0 3.4.43 5c.24.9.95 1.6 1.9 1.9 1.6.42 8.7.42 8.7.42s7.1 0 8.7-.42a2.6 2.6 0 0 0 1.9-1.8C23 15.4 23 12 23 12ZM9.8 15.3V8.7L15.5 12l-5.7 3.3Z"/></svg>`,
 };
 

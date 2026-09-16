@@ -2,7 +2,7 @@
 import { SOCIAL } from '../data/social.js';
 import { META } from '../i18n/utils.js';
 import { VIDEOS } from '../data/videos.js';
-import { ENTITY } from '../data/entities.js';
+import { ENTITY, nombreDe } from '../data/entities.js';
 import BrandDot from './BrandDot.astro';
 import Icon from './Icon.astro';
 const { lang, t } = Astro.props;
@@ -239,7 +239,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
             {ENTITY[v.for] && (
               <p class="video-gallery__by">
                 <BrandDot mark={ENTITY[v.for].mark} logo={ENTITY[v.for].src} />
-                <span class="video-gallery__by-name">{ENTITY[v.for].name}</span>
+                <span class="video-gallery__by-name">{nombreDe(ENTITY[v.for], lang)}</span>
               </p>
             )}
 
@@ -289,7 +289,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
           <p class="made-for__who" data-brand={e.id} hidden>
             <BrandDot mark={e.mark} logo={e.src} />
             <span class="made-for__text">
-              <b>{e.name}</b>
+              <b>{nombreDe(e, lang)}</b>
               <small>{e.role?.[lang] ?? e.role?.es}</small>
             </span>
           </p>

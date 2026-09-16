@@ -1,5 +1,8 @@
 ---
-const { items = [], title } = Astro.props;
+import Icon from './Icon.astro';
+import { nombreDe } from '../data/entities.js';
+
+const { items = [], title, lang = 'es' } = Astro.props;
 
 /* Dos logotipos largos seguidos se leen como un bloque: uno pisa al otro y
    la fila pierde el ritmo. Asi que no salen en el orden de los datos —
@@ -58,20 +61,29 @@ const run = Array.from({ length: reps }, () => zigzag).flat();
         <ul class="partners__run">
           {run.map((p) => (
             <li class="partners__item" style={`--s:${p.scale ?? 1}`}>
-              <picture>
-                {p.webp && <source srcset={p.webp} type="image/webp" />}
-                <img src={p.src} alt={p.name} width={p.w} height={p.h} decoding="async" />
-              </picture>
+              {p.src ? (
+                <picture>
+                  {p.webp && <source srcset={p.webp} type="image/webp" />}
+                  <img src={p.src} alt={nombreDe(p, lang)} width={p.w} height={p.h} decoding="async" />
+                </picture>
+              ) : (
+                <>
+                  <Icon id={p.mark ?? 'mas'} />
+                  <span class="sr-only">{nombreDe(p, lang)}</span>
+                </>
+              )}
             </li>
           ))}
         </ul>
         <ul class="partners__run" aria-hidden="true">
           {run.map((p) => (
             <li class="partners__item" style={`--s:${p.scale ?? 1}`}>
-              <picture>
-                {p.webp && <source srcset={p.webp} type="image/webp" />}
-                <img src={p.src} alt="" width={p.w} height={p.h} decoding="async" />
-              </picture>
+              {p.src ? (
+                <picture>
+                  {p.webp && <source srcset={p.webp} type="image/webp" />}
+                  <img src={p.src} alt="" width={p.w} height={p.h} decoding="async" />
+                </picture>
+              ) : <Icon id={p.mark ?? 'mas'} />}
             </li>
           ))}
         </ul>
