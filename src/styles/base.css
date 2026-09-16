@@ -3589,8 +3589,8 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   /* Mi sitio en la roca. La x es el centro de la pantalla, pero sin pasar de
      la punta de la roca —en una pantalla muy ancha me quedaria en el aire—;
      la altura, la de la cara de arriba de la roca en esa zona. */
-  --yo-ancho: 8.18%;
-  --yo-arriba: 10.6%;
+  --yo-ancho: 11.45%;
+  --yo-arriba: -3.9%;
   position: relative;
   min-height: 300svh;
   background: var(--papel);
@@ -3603,8 +3603,8 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 @media (max-aspect-ratio: 1 / 1) {
   .ligero {
     --escena-w: 180vw;
-    --yo-ancho: 6.3%;
-    --yo-arriba: 37.9%;
+    --yo-ancho: 8.82%;
+    --yo-arriba: 26.8%;
   }
 }
 /* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
@@ -3664,7 +3664,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 .ligero__yo {
   position: absolute;
-  left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .0409));
+  left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .05725));
   top: var(--yo-arriba);
   width: var(--yo-ancho);
   height: auto;
@@ -3672,7 +3672,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   filter: var(--escena-tinte-yo);
 }
 @media (max-aspect-ratio: 1 / 1) {
-  .ligero__yo { --yo-ancho-n: .0315; }
+  .ligero__yo { --yo-ancho-n: .0441; }
 }
 
 /* LA NIEBLA, del color de la pagina: un velo al pie de la meseta, entre el
