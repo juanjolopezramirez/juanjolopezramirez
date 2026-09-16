@@ -1,69 +1,74 @@
 ---
 /* ¿QUÉ SIGNIFICA CAMINAR LIGERO?
 
-   LA FOTO, RECREADA. La escena es la de la fotografía que abre la casa, con
-   su geometría: la roca sale de la ladera de pasto seco —el pasto le tapa el
-   arranque, y por eso está pegada al monte y no flota—, yo voy plantado en
-   su cara de arriba y en el centro, detrás está el risco con la meseta y sus
-   frailejones, y alrededor lo que la foto tiene y el dibujo no traía: mucho
-   cielo de niebla arriba y el abismo abajo.
+   LA FOTO, EN SUS PROPIAS MEDIDAS. El escenario es la fotografía de
+   referencia —1127 x 2000, la foto a la mitad— y cada pieza está donde está
+   en ella, medida sobre la foto:
 
-   CUATRO PIEZAS, NO DIECISÉIS. Las capas del dibujo son bandas de tono, y
-   las que forman UN MISMO objeto tienen que moverse juntas: separadas, cada
-   contorno se partía en escalones al mover la cámara. Así que van por
-   objetos:
-     lejos    la niebla y el horizonte con los frailejones   (capas 10-15)
-     tierra   la meseta y el risco                          (capas 2-9)
-     roca     la roca, conmigo encima
-     pasto    el pasto seco de delante                       (capa 1)
-   y entre ellas cinco velos de niebla, cada uno a su distancia.
+     yo       590 de alto, centrado en x 545, pies en y 1290
+     roca     su cara de arriba va de (130, 1350) a la punta (1075, 1190), y
+              la panza más baja llega a y 1700
+     meseta   la base de los frailejones a la altura de mi pecho, y 880
+     pasto    una ladera que baja de (0, 1250) a (830, 2000) y le tapa el
+              arranque a la roca: por eso la roca es del monte y no flota
 
-   LA CÁMARA. La caja tiene `perspective` y cada pieza vive a su distancia,
-   con la escala que la deshace —(P + z) / P—. Al bajar se mueve el mundo
-   entero y la profundidad sale sola: el horizonte casi no se mueve, el pasto
-   corre. El recorrido cuenta algo: arriba la pregunta sobre la niebla; la
-   escena sube y se arma —en el punto medio es exactamente la foto—; y al
-   final la cámara baja hasta asomarse al abismo, bajo la roca.
+   Con esas medidas la proporción entre la roca y yo es la de la foto, y no
+   la del dibujo, donde la roca era casi seis veces más ancha de lo que yo
+   soy de alto. La roca viene en SVG: se escala sin perder nada.
 
-   Cada pieza vive en un plano del tamaño del escenario, cuyo centro es el
-   del ojo: la escala que compensa la distancia se aplica desde ahí, y así
-   nada se descoloca respecto a lo demás. El orden lo pone la distancia, no
-   el HTML: en 3D el navegador pinta por profundidad.
+   EL PASTO SIGUE FUERA DE LA FOTO. En una pantalla apaisada se ve mucho más
+   a los lados que en la foto, que es vertical: la ladera continúa hacia la
+   izquierda —tierra maciza y dos matas más— para que no termine en un canto.
 
-   LA PREGUNTA NO ESTÁ EN LA ESCENA. Sube y se desvanece antes de que llegue
-   la figura, así que nunca me tapa, en ninguna pantalla. */
+   EL PÁRAMO DE FONDO es el dibujo del risco con su meseta. En el teléfono va
+   a su tamaño y en escritorio más grande y corrido, para llenar el ancho;
+   en los dos casos con los frailejones a la altura de mi pecho.
+
+   TODO EN HUESO. Los grises del dibujo están multiplicados para que su cielo
+   caiga exactamente en el hueso de la página, y la sección de antes se
+   funde con esta sin costura.
+
+   LA CÁMARA. La caja tiene `perspective`, cada pieza vive a su distancia con
+   la escala que la deshace —(P + z) / P—, y al bajar se mueve el mundo
+   entero: la profundidad sale sola. Cada pieza va dentro de un plano del
+   tamaño del escenario, cuyo centro es el del ojo, y así nada se descoloca.
+   El orden lo pone la distancia, no el HTML. */
 const { t } = Astro.props;
 
 const base = '/assets/paramo/';
 const OJO = 700;                       /* la `perspective` de la caja, en px */
 
-/* EL ESCENARIO mide 1536 x 2340. El lienzo del dibujo (1536 x 1024) está a
-   700 del borde de arriba: eso es el cielo que la foto tiene y el dibujo no.
-   Debajo quedan 616 de abismo. Todo en porcentajes del escenario. */
-const LIENZO = 'left:0; top:29.915%; width:100%';
-/* El pasto de delante, un 35 % más grande desde su esquina de abajo: tiene
-   que taparle el arranque a la roca aunque la cámara los separe un poco. */
-const PASTO = 'left:0; top:14.598%; width:135%';
+/* En porcentajes de la foto (1127 x 2000). */
+const PAISAJE = 'left:var(--paisaje-l); top:var(--paisaje-t); width:var(--paisaje-w)';
+const ROCA = 'left:5.324%; top:57%; width:90.42%';
+const YO = 'left:38.16%; top:35%; width:20.39%';
+const MATA = 'width:90.77%; height:38.34%';
 
 const plano = (z) => `transform: translateZ(${-z}px) scale(${((OJO + z) / OJO).toFixed(4)})`;
 
-/* De lejos a cerca. */
-/* LAS DISTANCIAS VAN CERCA UNAS DE OTRAS, y es a proposito. El horizonte y la
-   meseta son el mismo paisaje partido por tonos: si se separan mucho, los
-   frailejones se quedan flotando por encima de su propia meseta y entre
-   medias se abren huecos blancos. Con el recorrido entero, cada pieza se
-   aparta de la siguiente unos 25-30 px: se lee profundidad y el dibujo no se
-   rompe. La niebla, que no tiene cantos que descuadrar, puede ir mas suelta. */
-const PIEZAS = [
-  { z: 260, img: 'lejos', sitio: LIENZO },
-  { z: 240, niebla: 'horizonte' },
-  { z: 205, img: 'tierra', sitio: LIENZO },
-  { z: 160, img: 'roca', sitio: LIENZO, clase: 'roca' },
-  { z: 150, niebla: 'punta' },
-  { z: 140, niebla: 'abismo' },
-  { z: 110, img: 'c01', sitio: PASTO },
-  { z: 40, niebla: 'delante' },
-  { z: 20, niebla: 'suelo' }
+/* De lejos a cerca. Las distancias van juntas a propósito: el dibujo del
+   fondo es un solo paisaje partido por tonos, y separarlo mucho lo rompe. */
+const PLANOS = [
+  /* La niebla del dibujo y el risco van a la MISMA distancia: son un solo
+     paisaje partido por tonos, y el mas leve desfase entre los dos dejaba
+     asomar los brillos de la niebla como rayas blancas por los cantos. */
+  { z: 230, piezas: [{ img: 'lejos.webp', sitio: PAISAJE, clase: 'paisaje' }] },
+  { z: 250, piezas: [{ niebla: 'bruma' }] },
+  { z: 230, piezas: [{ img: 'tierra.webp', sitio: PAISAJE, clase: 'paisaje' }] },
+  { z: 180, piezas: [{ niebla: 'abismo' }] },
+  { z: 150, piezas: [
+    { img: 'roca.svg', sitio: ROCA, ancho: 1445, alto: 784 },
+    { img: 'yo.webp', sitio: YO, clase: 'yo', ancho: 282, alto: 724 }
+  ] },
+  { z: 140, piezas: [{ niebla: 'jiron' }] },
+  { z: 110, piezas: [
+    { img: 'pasto.webp', sitio: `left:-138.42%; top:63.375%; ${MATA}`, clase: 'mata', ancho: 660, alto: 374 },
+    { img: 'pasto.webp', sitio: `left:-67.44%; top:60.875%; ${MATA}`, clase: 'mata', ancho: 660, alto: 374 },
+    { img: 'pasto.webp', sitio: `left:0; top:61.875%; ${MATA}`, clase: 'mata', ancho: 660, alto: 374 },
+    /* La tierra va DESPUÉS de las matas: tapa sus cantos rectos de abajo, que
+       se veían como rayas, y deja asomar solo las hojas por encima. */
+    { suelo: true }
+  ] }
 ];
 ---
 <section class="ligero" id="ligero" data-libre aria-labelledby="ligero-title">
@@ -75,13 +80,18 @@ const PIEZAS = [
     <div class="ligero__camara">
       <div class="ligero__mundo">
         <div class="ligero__escena" role="img" aria-label={t('light.scene')}>
-          {PIEZAS.map((p) => (
+          {PLANOS.map((p) => (
             <div class="ligero__plano" style={plano(p.z)}>
-              {p.img
-                ? <img class:list={['ligero__pieza', p.clase && `ligero__pieza--${p.clase}`]}
-                       style={p.sitio} src={`${base}${p.img}.webp`} alt=""
-                       width="1536" height="1024" loading="lazy" decoding="async" />
-                : <div class:list={['ligero__niebla', `ligero__niebla--${p.niebla}`]}></div>}
+              {p.piezas.map((x) =>
+                x.img
+                  ? <img class:list={['ligero__pieza', x.clase && `ligero__pieza--${x.clase}`]}
+                         style={x.sitio} src={`${base}${x.img}`} alt=""
+                         width={x.ancho ?? 1536} height={x.alto ?? 1024}
+                         loading="lazy" decoding="async" />
+                  : x.suelo
+                    ? <div class="ligero__suelo"></div>
+                    : <div class:list={['ligero__niebla', `ligero__niebla--${x.niebla}`]}></div>
+              )}
             </div>
           ))}
         </div>
