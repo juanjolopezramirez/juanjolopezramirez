@@ -75,7 +75,7 @@
   --slate-400: #5A6B74;
   --slate-rgb: 43 58 67;
   --pino-tinta: var(--pine);
-  --iris-tinta: var(--iris-tinta);
+  --iris-tinta: var(--iris-700);
   --ring-tinta: var(--ring-700);
 
   /* El espacio. Vienen del concepto original y no se han retocado: son
