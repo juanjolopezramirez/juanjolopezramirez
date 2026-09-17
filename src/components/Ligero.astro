@@ -69,7 +69,7 @@ const PIE = '(max-aspect-ratio: 1/1)';
                 x.capa
                   ? <picture>
                       {x.movil && <source media={PIE} srcset={`${base}${x.capa}-movil.svg`} />}
-                      <img class="ligero__capa" src={`${base}${x.capa}.svg`} alt=""
+                      <img class={`ligero__capa ligero__capa--${x.capa}`} src={`${base}${x.capa}.svg`} alt=""
                            width="1334" height="772" loading="lazy" decoding="async" />
                     </picture>
                   : x.yo

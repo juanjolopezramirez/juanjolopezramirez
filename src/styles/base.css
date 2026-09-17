@@ -152,17 +152,29 @@ html[data-tema="oscuro"] {
   --ring-tinta: var(--ring);
   --tema-on: 1;
 }
-/* El paramo de noche: las capas traen sus colores —el pasto verde, la pared
-   parda, los grises del risco— y de noche solo bajan de luz, para que no
-   brillen sobre el verde oscuro de la pagina. */
-:root[data-theme="dark"] .ligero {
-  --escena-tinte: brightness(.62) saturate(.85);
-  --escena-tinte-yo: brightness(.74);
+/* EL PARAMO DE NOCHE ES DE PINO. El risco, la meseta, la pared y el pasto
+   pasan a los verdes de la casa —del pino hondo del pasto al pino claro de
+   la meseta— y asi la escena y la pagina son de la misma noche. La cadena de
+   filtros no esta a ojo: se busco numericamente contra los tonos objetivo
+   (los grises #AFAEAE / #989595 / #6B6865 / #222427 caen en #485F4C /
+   #405443 / #303F32 / #1A1F1B), con menos de tres niveles de error.
+
+   LA ROCA NO. Se queda en su gris, solo con menos luz: es la unica piedra
+   donde se pisa, y el gris la despega del verde de detras.
+
+   Y YO, con un velo de la misma noche: menos luz y menos color, sin girar el
+   tono —cualquier giro vuelve verde la piel—, para no parecer recortado y
+   pegado encima. */
+html[data-tema="oscuro"] .ligero {
+  --escena-tinte: sepia(.73) hue-rotate(77.8deg) saturate(1.46) contrast(.77) brightness(.481);
+  --escena-tinte-roca: brightness(.66);
+  --escena-tinte-yo: brightness(.8) contrast(.94) saturate(.7);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .ligero {
-    --escena-tinte: brightness(.62) saturate(.85);
-    --escena-tinte-yo: brightness(.74);
+  html:not([data-tema="claro"]) .ligero {
+    --escena-tinte: sepia(.73) hue-rotate(77.8deg) saturate(1.46) contrast(.77) brightness(.481);
+    --escena-tinte-roca: brightness(.66);
+    --escena-tinte-yo: brightness(.8) contrast(.94) saturate(.7);
   }
 }
 
@@ -3580,7 +3592,12 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
    ============================================================= */
 .ligero {
   --escena-tinte: none;
-  --escena-tinte-yo: none;
+  --escena-tinte-roca: none;
+  /* LO REAL CON LO DIBUJADO. Una foto al lado de un dibujo plano se lee como
+     recortada: tiene negros mas negros, colores mas vivos y mas contraste que
+     nada a su alrededor. Se le quita un poco de cada cosa —y un punto de
+     calor, que el papel es hueso— y pasa a vivir en la misma niebla. */
+  --escena-tinte-yo: saturate(.7) contrast(.86) brightness(1.05) sepia(.08);
   /* EL TAMAÑO DEL DIBUJO. En una pantalla apaisada, casi el ancho entero;
      si la ventana es baja, lo que quepa de alto, para que la meseta no se
      salga por arriba. Mide 1334 x 772. */
@@ -3668,6 +3685,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   max-width: none;
   filter: var(--escena-tinte);
 }
+.ligero__capa--roca { filter: var(--escena-tinte-roca); }
 .ligero__yo {
   position: absolute;
   left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .08015));
