@@ -3589,8 +3589,13 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   /* Mi sitio en la roca. La x es el centro de la pantalla, pero sin pasar de
      la punta de la roca —en una pantalla muy ancha me quedaria en el aire—;
      la altura, la de la cara de arriba de la roca en esa zona. */
-  --yo-ancho: 11.45%;
-  --yo-arriba: -3.9%;
+  --yo-ancho: 16.03%;
+  --yo-arriba: -24.2%;
+  /* CON LA FIGURA ASI DE GRANDE, la cabeza se saldria por arriba de la
+     pantalla: el dibujo baja un cuarto de su alto y se recorta por abajo, que
+     ahi solo hay pasto y la panza de la roca. El ojo baja con el, para que
+     las capas sigan encajando. */
+  --bajada: calc(var(--escena-h) * .25);
   position: relative;
   min-height: 300svh;
   background: var(--papel);
@@ -3603,8 +3608,9 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 @media (max-aspect-ratio: 1 / 1) {
   .ligero {
     --escena-w: 180vw;
-    --yo-ancho: 8.82%;
-    --yo-arriba: 26.8%;
+    --yo-ancho: 12.35%;
+    --yo-arriba: 11.1%;
+    --bajada: 0px;
   }
 }
 /* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
@@ -3630,7 +3636,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   position: absolute;
   inset: 0;
   perspective: 700px;
-  perspective-origin: calc(var(--escena-w) / 2) calc(100% - var(--escena-h) / 2);
+  perspective-origin: calc(var(--escena-w) / 2) calc(100% - var(--escena-h) / 2 + var(--bajada));
 }
 .ligero__mundo {
   position: absolute;
@@ -3640,7 +3646,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .ligero__escena {
   position: absolute;
   left: 0;
-  bottom: 0;
+  bottom: calc(var(--bajada) * -1);
   width: var(--escena-w);
   height: var(--escena-h);
   transform-style: preserve-3d;
@@ -3664,7 +3670,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 .ligero__yo {
   position: absolute;
-  left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .05725));
+  left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .08015));
   top: var(--yo-arriba);
   width: var(--yo-ancho);
   height: auto;
@@ -3672,7 +3678,7 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   filter: var(--escena-tinte-yo);
 }
 @media (max-aspect-ratio: 1 / 1) {
-  .ligero__yo { --yo-ancho-n: .0441; }
+  .ligero__yo { --yo-ancho-n: .06175; }
 }
 
 /* LA NIEBLA, del color de la pagina: un velo al pie de la meseta, entre el
