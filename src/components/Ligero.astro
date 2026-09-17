@@ -76,15 +76,8 @@ const PIE = '(max-aspect-ratio: 1/1)';
                     ? /* Sin carga diferida: dentro de una caja con perspectiva, Safari
                          calcula mal donde cae una imagen pequena, la da por fuera de
                          la pantalla y no la pide nunca. */
-                      <>
-                        <img class="ligero__yo ligero__yo--dia" src={`${base}yo.webp`} alt=""
-                             width="282" height="724" />
-                        {/* De noche, la misma foto revelada mas oscura: mejor que un filtro,
-                            que apagaba las sombras de la chaqueta. Se enciende una u otra
-                            con el tema; las dos miden y se recortan igual. */}
-                        <img class="ligero__yo ligero__yo--noche" src={`${base}yo-noche.webp`} alt=""
-                             width="282" height="724" />
-                      </>
+                      <img class="ligero__yo" src={`${base}yo.webp`} alt=""
+                           width="282" height="724" />
                     : <div class:list={['ligero__niebla', `ligero__niebla--${x.niebla}`]}></div>
               )}
             </div>

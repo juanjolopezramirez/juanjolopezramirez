@@ -164,18 +164,13 @@ html[data-tema="oscuro"] {
    LA ROCA NO. Se queda en su gris, solo con menos luz: es la unica piedra
    donde se pisa, y el gris la despega del verde de detras.
 
-   Y YO, con mi foto de noche: la misma, revelada mas oscura, sin filtro
-   encima —un filtro apagaba las sombras de la chaqueta y me dejaba gris—. */
-html[data-tema="oscuro"] .ligero__yo--dia { display: none; }
-html[data-tema="oscuro"] .ligero__yo--noche { display: block; }
+   Y YO, sin filtro: mi foto ya viene revelada para esta escena. */
 html[data-tema="oscuro"] .ligero {
   --escena-tinte: sepia(.68) hue-rotate(77deg) saturate(2.02) contrast(.7) brightness(.325);
   --escena-tinte-roca: brightness(.66);
   --escena-tinte-yo: none;
 }
 @media (prefers-color-scheme: dark) {
-  html:not([data-tema="claro"]) .ligero__yo--dia { display: none; }
-  html:not([data-tema="claro"]) .ligero__yo--noche { display: block; }
   html:not([data-tema="claro"]) .ligero {
     --escena-tinte: sepia(.68) hue-rotate(77deg) saturate(2.02) contrast(.7) brightness(.325);
     --escena-tinte-roca: brightness(.66);
@@ -3598,26 +3593,24 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 .ligero {
   --escena-tinte: none;
   --escena-tinte-roca: none;
-  /* LO REAL CON LO DIBUJADO. Una foto al lado de un dibujo plano se lee como
-     recortada: tiene negros mas negros, colores mas vivos y mas contraste que
-     nada a su alrededor. Se le quita un poco de cada cosa —y un punto de
-     calor, que el papel es hueso— y pasa a vivir en la misma niebla. */
-  --escena-tinte-yo: saturate(.7) contrast(.86) brightness(1.05) sepia(.08);
-  /* EL TAMAÑO DEL DIBUJO. En una pantalla apaisada, casi el ancho entero;
-     si la ventana es baja, lo que quepa de alto, para que la meseta no se
-     salga por arriba. Mide 1334 x 772. */
-  --escena-w: min(94vw, 150svh);
+  /* Mi foto viene revelada para la escena, la misma de dia y de noche: sin
+     filtro encima, que cualquiera la aplanaba. */
+  --escena-tinte-yo: none;
+  /* EL TAMAÑO DEL DIBUJO EN ESCRITORIO. Lo manda el alto: el dibujo entero
+     —con la roca completa y su pie— mas mi cabeza, que sobresale un cuarto
+     de su alto por encima, tienen que caber debajo de la cabecera. Esa cuenta
+     da el ancho: (alto de ventana - cabecera) / (1.242 * .5787). En una
+     pantalla ancha sobra sitio a la derecha, y ahi respira la niebla. Mide
+     1334 x 772. */
+  --escena-w: min(94vw, calc((100svh - 6.5rem) / .7188));
   --escena-h: calc(var(--escena-w) * .5787);
   /* Mi sitio en la roca. La x es el centro de la pantalla, pero sin pasar de
      la punta de la roca —en una pantalla muy ancha me quedaria en el aire—;
      la altura, la de la cara de arriba de la roca en esa zona. */
   --yo-ancho: 16.03%;
   --yo-arriba: -24.2%;
-  /* CON LA FIGURA ASI DE GRANDE, la cabeza se saldria por arriba de la
-     pantalla: el dibujo baja un cuarto de su alto y se recorta por abajo, que
-     ahi solo hay pasto y la panza de la roca. El ojo baja con el, para que
-     las capas sigan encajando. */
-  --bajada: calc(var(--escena-h) * .25);
+  /* Sin recorte: el dibujo va entero, apoyado en el pie de la pantalla. */
+  --bajada: 0px;
   position: relative;
   min-height: 300svh;
   background: var(--papel);
@@ -3691,11 +3684,11 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   filter: var(--escena-tinte);
 }
 .ligero__capa--roca { filter: var(--escena-tinte-roca); }
-/* De dia se ve la foto de dia; la de noche espera. */
-.ligero__yo--noche { display: none; }
 .ligero__yo {
   position: absolute;
-  left: calc(min(50vw, var(--escena-w) * .6) - var(--escena-w) * var(--yo-ancho-n, .08015));
+  /* Sin pasar del 52 % del dibujo: mas a la derecha, con el dibujo ya no
+     tan ancho como la pantalla, los pies se me salian por la punta. */
+  left: calc(min(50vw, var(--escena-w) * .52) - var(--escena-w) * var(--yo-ancho-n, .08015));
   top: var(--yo-arriba);
   width: var(--yo-ancho);
   height: auto;
