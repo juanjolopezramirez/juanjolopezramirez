@@ -156,25 +156,27 @@ html[data-tema="oscuro"] {
    pasan a los verdes de la casa —del pino hondo del pasto al pino claro de
    la meseta— y asi la escena y la pagina son de la misma noche. La cadena de
    filtros no esta a ojo: se busco numericamente contra los tonos objetivo
-   (los grises #AFAEAE / #989595 / #6B6865 / #222427 caen en #485F4C /
-   #405443 / #303F32 / #1A1F1B), con menos de tres niveles de error.
+   (los grises #AFAEAE / #989595 / #6B6865 / #222427 caen en #2D3F2F /
+   #28382A / #1F2B21 / #131714), con menos de dos niveles de error. Son
+   oscuros a proposito: un pino mas claro brillaba sobre la pagina y
+   cansaba la vista.
 
    LA ROCA NO. Se queda en su gris, solo con menos luz: es la unica piedra
    donde se pisa, y el gris la despega del verde de detras.
 
-   Y YO, con un velo de la misma noche: menos luz y menos color, sin girar el
-   tono —cualquier giro vuelve verde la piel—, para no parecer recortado y
-   pegado encima. */
+   Y YO, apenas tocado: un poco menos de luz y de color, nada mas. Un velo
+   mas fuerte apagaba las sombras de la chaqueta y me dejaba gris y plano;
+   y sin girar el tono, que cualquier giro vuelve verde la piel. */
 html[data-tema="oscuro"] .ligero {
-  --escena-tinte: sepia(.73) hue-rotate(77.8deg) saturate(1.46) contrast(.77) brightness(.481);
+  --escena-tinte: sepia(.68) hue-rotate(77deg) saturate(2.02) contrast(.7) brightness(.325);
   --escena-tinte-roca: brightness(.66);
-  --escena-tinte-yo: brightness(.8) contrast(.94) saturate(.7);
+  --escena-tinte-yo: brightness(.92) contrast(.96) saturate(.86);
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-tema="claro"]) .ligero {
-    --escena-tinte: sepia(.73) hue-rotate(77.8deg) saturate(1.46) contrast(.77) brightness(.481);
+    --escena-tinte: sepia(.68) hue-rotate(77deg) saturate(2.02) contrast(.7) brightness(.325);
     --escena-tinte-roca: brightness(.66);
-    --escena-tinte-yo: brightness(.8) contrast(.94) saturate(.7);
+    --escena-tinte-yo: brightness(.92) contrast(.96) saturate(.86);
   }
 }
 
