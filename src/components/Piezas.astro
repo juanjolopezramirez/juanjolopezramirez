@@ -11,6 +11,13 @@ import { ENTITY, nombreDe } from '../data/entities.js';
    (`data-carril`, initCarriles). Todas miden lo mismo de alto; de ancho,
    lo que pide su forma.
 
+   DE UNA EN UNA Y SIEMPRE AL CENTRO, en todas las pantallas
+   (`data-carril="uno"`). Antes, en pantalla ancha se veian cinco a la vez
+   cuadradas por la izquierda, y en el movil una tumbada descuadraba el
+   centro de las demas: al pasar, la pieza quedaba corrida. Ahora se ve una
+   sola, en medio, y cada gesto —dedo, flecha o rueda— pasa exactamente a
+   la siguiente, en orden.
+
    EL FILTRO sale de lo que hay: por marca si en el carril hay mas de una,
    y por formato si hay verticales y horizontales. Si solo hay una cosa de
    cada, no hay nada que filtrar y no se pinta. Son los mismos chips que
@@ -68,7 +75,7 @@ if (formas.length > 1) {
       </div>
     )}
 
-    <ul class="piezas__lista" data-carril data-filtrable-lista
+    <ul class="piezas__lista" data-carril="uno" data-filtrable-lista
         data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
       {items.map((p) => {
         const titulo = say(p.title);

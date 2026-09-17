@@ -1038,6 +1038,20 @@ function initFilter() {
    relleno de centrar ya hace que la fila desborde, y medirlo por ahi la
    dejaria trabada en modo carril al pasar a una pantalla donde todo cabe.
 
+   DE UNA EN UNA (`data-carril="uno"`, los videos). Se ve una sola pieza, en
+   el centro, en todas las pantallas, y todo gesto pasa exactamente a la de
+   al lado. Tres cosas cambian para eso:
+
+     1. El relleno de cada lado se mide aparte: el izquierdo con la primera
+        y el derecho con la ultima. Con uno solo, medido con la mas ancha,
+        una tumbada dejaba el relleno en cero y ninguna de pie quedaba al
+        centro.
+     2. El iman obliga y no deja saltarse ninguna (CSS). La rueda ya no
+        empuja pixel a pixel —el iman lo desharia—: un gesto, una pieza.
+     3. Las de al lado no se tapan con una mascara fija, que solo sirve si
+        todas miden lo mismo: cada una se funde segun lo lejos que esta del
+        centro. A medio camino las dos van a la mitad.
+
    SIN GUION no hay flechas ni indicador, y la fila se sigue deslizando con
    el dedo. El indicador no se lee: es un dibujo de donde vas. Las flechas
    si, con su nombre en el idioma de la pagina. */
@@ -1045,8 +1059,9 @@ function initCarriles() {
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   d.querySelectorAll('[data-carril]').forEach((pista) => {
+    const uno = pista.getAttribute('data-carril') === 'uno';
     const caja = d.createElement('div');
-    caja.className = 'carril';
+    caja.className = uno ? 'carril carril--uno' : 'carril';
     pista.parentNode.insertBefore(caja, pista);
     caja.appendChild(pista);
 
@@ -1091,18 +1106,35 @@ function initCarriles() {
        tarjetas se cuadran por la izquierda (`scroll-snap-align: start`), y
        centrar la siguiente podia pedir un salto HACIA ATRAS: la flecha de
        «siguiente» no hacia nada, porque el carril ya estaba en el tope de
-       ese lado. Se mira cuanto cabe y se alinea como toque. */
+       ese lado. Se mira cuanto cabe y se alinea como toque.
+
+       De una en una siempre se centra. Y se recuerda a cual se va
+       (`destino`): dos toques seguidos a la flecha, con la fila todavia en
+       camino, tienen que pasar dos piezas y no volver a pedir la misma. */
+    let destino = -1;
     const ir = (i) => {
       const items = visibles();
-      const it = items[Math.max(0, Math.min(i, items.length - 1))];
+      const k = Math.max(0, Math.min(i, items.length - 1));
+      const it = items[k];
       if (!it) return;
       const caja = pista.getBoundingClientRect();
       const r = it.getBoundingClientRect();
       const relleno = parseFloat(getComputedStyle(pista).scrollPaddingLeft) || 0;
-      const delta = caja.width > r.width * 1.5
+      const delta = !uno && caja.width > r.width * 1.5
         ? r.left - caja.left - relleno
         : centro(r) - centro(caja);
+      if (uno) destino = k;
       pista.scrollBy({ left: delta, behavior: reducido ? 'instant' : 'smooth' });
+    };
+    const turno = () => (destino >= 0 ? destino : actual());
+
+    /* Cada numero se escribe solo si cambia: esto corre en cada cuadro del
+       scroll, y reescribir un valor igual obliga a recalcular estilos. */
+    const puesto = {};
+    const poner = (nombre, valor) => {
+      if (puesto[nombre] === valor) return;
+      puesto[nombre] = valor;
+      caja.style.setProperty(nombre, valor);
     };
 
     let marcado = -1;
@@ -1110,12 +1142,23 @@ function initCarriles() {
       const items = visibles();
       const primera = items[0] && items[0].getBoundingClientRect();
       const ultima = items.length && items[items.length - 1].getBoundingClientRect();
-      const sobra = items.length > 1 && ultima.right - primera.left > pista.clientWidth + 2;
+      if (uno && items.length) {
+        poner('--carril-ini', Math.max(0, (pista.clientWidth - primera.width) / 2).toFixed(1) + 'px');
+        poner('--carril-fin', Math.max(0, (pista.clientWidth - ultima.width) / 2).toFixed(1) + 'px');
+      }
+      const sobra = uno
+        ? items.length > 1
+        : items.length > 1 && ultima.right - primera.left > pista.clientWidth + 2;
       caja.classList.toggle('is-desborda', sobra);
       antes.hidden = despues.hidden = puntos.hidden = !sobra;
-      if (!sobra) return;
-      const masAncha = items.reduce((m, el) => Math.max(m, el.getBoundingClientRect().width), 0);
-      caja.style.setProperty('--carril-centro', Math.max(0, (pista.clientWidth - masAncha) / 2).toFixed(1) + 'px');
+      if (!sobra) {
+        if (uno) items.forEach((el) => { el.style.opacity = ''; });
+        return;
+      }
+      if (!uno) {
+        const masAncha = items.reduce((m, el) => Math.max(m, el.getBoundingClientRect().width), 0);
+        caja.style.setProperty('--carril-centro', Math.max(0, (pista.clientWidth - masAncha) / 2).toFixed(1) + 'px');
+      }
       if (puntos.children.length !== items.length) {
         puntos.replaceChildren(...items.map(() => d.createElement('span')));
         marcado = -1;
@@ -1132,12 +1175,39 @@ function initCarriles() {
         [...puntos.children].forEach((p, k) => p.classList.toggle('is-on', k === i));
         marcado = i;
       }
+      if (!uno) return;
+
+      /* LAS DE AL LADO SE FUNDEN. Cada pieza mira hacia que lado del centro
+         esta y cuanto le falta a su vecina de ese lado para llegar: a la
+         vecina en el centro, ella en cero; ella en el centro, entera. Primero
+         se mide todo y despues se escribe, para no medir y pintar a saltos.
+         Los medios pixeles del iman dejaban un 0.001: en los extremos se
+         redondea a cero o a entera. */
+      const c = centro(pista.getBoundingClientRect());
+      const centros = items.map((el) => centro(el.getBoundingClientRect()));
+      items.forEach((el, k) => {
+        const lejos = centros[k] - c;
+        const vecina = lejos < 0 ? centros[k + 1] : centros[k - 1];
+        const paso = vecina === undefined ? Infinity : Math.abs(vecina - centros[k]);
+        const o = Math.max(0, 1 - Math.abs(lejos) / paso);
+        el.style.opacity = o < .02 ? '0' : o > .98 ? '1' : o.toFixed(3);
+      });
+      /* Las flechas se arriman a la pieza de turno (CSS): en una pantalla
+         ancha, pegadas a los cantos, quedaban a media pantalla del video. */
+      poner('--carril-actual', items[i].getBoundingClientRect().width.toFixed(1) + 'px');
     };
 
     /* Los extremos se miran en el momento, no en el atributo: si el ultimo
-       repintado no llego, la flecha se quedaria apagada con sitio para ir. */
-    antes.addEventListener('click', () => { if (pista.scrollLeft > 2) ir(actual() - 1); });
-    despues.addEventListener('click', () => { if (pista.scrollLeft < tope() - 2) ir(actual() + 1); });
+       repintado no llego, la flecha se quedaria apagada con sitio para ir.
+       De una en una se cuenta por piezas, desde la que ya va de camino. */
+    antes.addEventListener('click', () => {
+      if (uno) { const i = turno(); if (i > 0) ir(i - 1); return; }
+      if (pista.scrollLeft > 2) ir(actual() - 1);
+    });
+    despues.addEventListener('click', () => {
+      if (uno) { const i = turno(); if (i < visibles().length - 1) ir(i + 1); return; }
+      if (pista.scrollLeft < tope() - 2) ir(actual() + 1);
+    });
 
     /* ARRASTRAR DESDE LA FLECHA. Un boton no es la fila: el dedo que empieza
        encima de una flecha no desliza nada, y en un movil las dos ocupan un
@@ -1147,10 +1217,21 @@ function initCarriles() {
        Se decide en los primeros pixeles: menos de seis es un toque —y
        entonces la flecha hace lo suyo, saltar de tarjeta—; mas es un
        arrastre, y el clic que llega despues de soltar se tira, o el carril
-       saltaria ademas una tarjeta. */
+       saltaria ademas una tarjeta.
+
+       De una en una el iman se suelta mientras dura el arrastre —si no,
+       cada pixel que se mueve a mano lo devolveria a su sitio— y al soltar
+       se decide como el dedo en la fila: pasados 40px, la de al lado; si no,
+       la misma. El iman vuelve cuando la pieza ya llego. */
+    const soltarIman = () => {
+      const listo = () => caja.classList.remove('is-arrastre');
+      pista.addEventListener('scrollend', listo, { once: true });
+      setTimeout(listo, 700);
+    };
     [antes, despues].forEach((flecha) => {
       let x0 = null;
       let desde = 0;
+      let desdeI = 0;
       let arrastro = false;
       flecha.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'mouse') return;
@@ -1163,12 +1244,23 @@ function initCarriles() {
           if (Math.abs(dx) < 6) return;
           arrastro = true;
           try { flecha.setPointerCapture(e.pointerId); } catch {}
+          if (uno) { desdeI = turno(); caja.classList.add('is-arrastre'); }
         }
         pista.scrollLeft = desde - dx;
       });
-      const soltar = () => { x0 = null; };
+      const soltar = (e) => {
+        if (uno && arrastro && x0 !== null) {
+          const dx = e.clientX - x0;
+          ir(Math.abs(dx) > 40 ? desdeI - Math.sign(dx) : desdeI);
+          soltarIman();
+        }
+        x0 = null;
+      };
       flecha.addEventListener('pointerup', soltar);
-      flecha.addEventListener('pointercancel', () => { x0 = null; arrastro = false; });
+      flecha.addEventListener('pointercancel', () => {
+        if (uno && arrastro) { ir(desdeI); soltarIman(); }
+        x0 = null; arrastro = false;
+      });
       flecha.addEventListener('click', (e) => {
         if (!arrastro) return;
         arrastro = false;
@@ -1188,13 +1280,38 @@ function initCarriles() {
 
        Mientras al carril le quede recorrido, el empujon es suyo y no sale de
        aqui (`stopPropagation`, o las diapositivas contarian el mismo gesto).
-       Al llegar al extremo se suelta: la pagina sigue a lo suyo. */
+       Al llegar al extremo se suelta: la pagina sigue a lo suyo.
+
+       DE UNA EN UNA, UN GESTO ES UNA PIEZA. Un trackpad manda decenas de
+       empujones por gesto, y la inercia sigue mandando despues de levantar
+       los dedos: pasados 40px se salta a la de al lado y el resto del gesto
+       se traga, hasta un cuarto de segundo de calma. Si no, un solo deslizar
+       recorria media fila. */
+    let enGesto = false;
+    let suma = 0;
+    let calma = 0;
     pista.addEventListener('wheel', (e) => {
       const lateral = Math.abs(e.deltaX) > Math.abs(e.deltaY);
       const bruto = lateral ? e.deltaX : e.deltaY;
       const dx = e.deltaMode === 1 ? bruto * 16
                : e.deltaMode === 2 ? bruto * pista.clientWidth
                : bruto;
+      if (uno) {
+        clearTimeout(calma);
+        calma = setTimeout(() => { enGesto = false; suma = 0; }, 250);
+        if (enGesto) { e.preventDefault(); e.stopPropagation(); return; }
+        const i = turno();
+        const puede = (dx > 0 && i < visibles().length - 1) || (dx < 0 && i > 0);
+        if (!puede) { suma = 0; return; }
+        e.preventDefault();
+        e.stopPropagation();
+        suma += dx;
+        if (Math.abs(suma) >= 40) {
+          enGesto = true;
+          ir(i + Math.sign(suma));
+        }
+        return;
+      }
       const max = tope();
       const puede = (dx > 0 && pista.scrollLeft < max - 2) || (dx < 0 && pista.scrollLeft > 2);
       if (!puede) return;
@@ -1215,8 +1332,13 @@ function initCarriles() {
     };
     pista.addEventListener('scroll', pronto, { passive: true });
     /* El scroll suave se detiene sin avisar; al terminar, se repinta por si
-       el ultimo cuadro quedo a medias. */
-    pista.addEventListener('scrollend', pintar);
+       el ultimo cuadro quedo a medias. Y la pieza a la que se iba ya llego:
+       desde aqui se cuenta otra vez por lo que se ve. El reloj es para los
+       navegadores sin `scrollend`. */
+    let quieta = 0;
+    const llego = () => { destino = -1; };
+    pista.addEventListener('scroll', () => { clearTimeout(quieta); quieta = setTimeout(llego, 200); }, { passive: true });
+    pista.addEventListener('scrollend', () => { llego(); pintar(); });
     if ('ResizeObserver' in window) new ResizeObserver(pronto).observe(pista);
     /* El filtro esconde casas: cambia cuantas hay y cuanto mide la fila. */
     new MutationObserver(pronto).observe(pista, { attributes: true, attributeFilter: ['hidden'], subtree: true });

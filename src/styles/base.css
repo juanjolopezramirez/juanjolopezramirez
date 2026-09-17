@@ -1566,8 +1566,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   line-height: 1.75;
 }
 
-/* El titular repite la palabra del hero a proposito: es el estribillo de
-   la casa. `ligero` va a mano, como en la cita. */
+/* El titular dice el camino: «aprendiendo a caminar por un solo camino». Lo
+   de a mano es «un solo camino», con la misma letra que la cita. */
 .about__heading {
   max-width: var(--measure);
   margin: 0 0 1.4rem;
@@ -1955,8 +1955,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-wrap: pretty;
 }
 
-/* `ligero.` es una sola cosa: la palabra escrita a mano y su punto. Si se
-   separan, el punto aparece solo al principio del renglon siguiente. */
+/* `un solo camino.` es una sola cosa: lo escrito a mano y su punto. Si se
+   separan, el punto aparece solo al principio del renglon siguiente. Sin
+   cortes cabe hasta en 320px: la mas larga, la italiana, sobra por 9px. */
 .about__heading-end { white-space: nowrap; }
 
 
@@ -2729,8 +2730,42 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   --carril-borde: calc(var(--gutter) * -1 + .45rem);
   --carril-sangre: var(--gutter);
 }
+
+/* DE UNA EN UNA (`data-carril="uno"`, los videos). Una sola pieza a la
+   vista y siempre al centro, en todas las pantallas.
+
+   El relleno de cada lado es el que centra la primera y la ultima, medido
+   aparte (--carril-ini, --carril-fin). El iman OBLIGA y no deja pasar de
+   largo ninguna (`scroll-snap-stop`): un deslizar del dedo, por fuerte que
+   sea, lleva a la siguiente y no tres mas alla. Sin mascara: las de al lado
+   se funden solas desde el guion, que es lo que funciona cuando unas son
+   de pie y otras tumbadas. Mientras se arrastra desde una flecha el iman se
+   suelta (`is-arrastre`), o devolveria la fila a su sitio a cada pixel. */
+.carril.carril--uno > [data-carril] {
+  padding-inline: var(--carril-ini, 0px) var(--carril-fin, 0px);
+  scroll-padding-inline: 0;
+  scroll-snap-type: x mandatory;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.carril--uno > [data-carril] > * { scroll-snap-align: center; scroll-snap-stop: always; }
+.carril.carril--uno.is-arrastre > [data-carril] { scroll-snap-type: none; }
+/* Las flechas, al lado de la pieza y no en los cantos: en una pantalla ancha
+   un video de pie mide un quinto de la fila, y con las flechas en los cantos
+   quedaban lejos de lo que mueven. Cuando la pieza llena la fila —una
+   tumbada en el movil— no hay sitio al lado y vuelven encima, al canto. */
+.carril--uno .carril__flecha {
+  transition: opacity .2s var(--ease), scale .2s var(--ease),
+              left .35s var(--ease-smooth), right .35s var(--ease-smooth);
+}
+.carril--uno .carril__flecha--antes {
+  left: max(var(--carril-borde, .35rem), calc(50% - var(--carril-actual, 100%) / 2 - 3.4rem));
+}
+.carril--uno .carril__flecha--despues {
+  right: max(var(--carril-borde, .35rem), calc(50% - var(--carril-actual, 100%) / 2 - 3.4rem));
+}
 @media (prefers-reduced-motion: reduce) {
-  .carril__flecha, .carril__puntos span { transition: none; }
+  .carril__flecha, .carril--uno .carril__flecha, .carril__puntos span { transition: none; }
 }
 
 /* --- La tarjeta ---------------------------------------------------
@@ -3325,14 +3360,18 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
      mas cerca por detras que por delante: lo deshace y la fila vuelve donde
      estaba. Se movia y regresaba, que es peor que no moverse. Con
      `proximity` el iman solo tira cuando el gesto termina cerca de una
-     tarjeta: la fila va donde la lleves, y al soltar se cuadra sola. */
+     tarjeta: la fila va donde la lleves, y al soltar se cuadra sola.
+
+     Esto es SIN GUION. Con guion la fila va de una en una (`.carril--uno`):
+     ahi el iman obliga, porque la rueda ya no empuja a pixeles sino a
+     piezas, y no hay empujon corto que deshacer. */
   scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 .piezas__lista::-webkit-scrollbar { display: none; }
 .piezas__item { flex: 0 0 auto; scroll-snap-align: center; display: flex; align-items: center; }
 .piezas__item--vertical { width: calc(var(--pieza-alto) * 9 / 16); }
-.piezas__item--horizontal { width: min(calc(var(--pieza-tumbada) * 16 / 9), calc(100% + var(--carril-centro, 0px) * 2)); }
+.piezas__item--horizontal { width: min(calc(var(--pieza-tumbada) * 16 / 9), calc(100% + var(--carril-ini, 0px) + var(--carril-fin, 0px))); }
 
 .pieza {
   position: relative;
@@ -3453,16 +3492,9 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 @media (min-width: 600px) {
   .piezas__lista { gap: 1rem; }
   .pieza__titulo { font-size: 1.02rem; }
-  /* Con pantalla ancha no se centra una sola: caben varias, y centrar la
-     primera dejaba media pantalla vacia a cada lado. Empiezan a la izquierda
-     y el borde se desvanece solo lo que ocupa el relleno. */
-  .piezas .carril.is-desborda > [data-carril] {
-    padding-inline: 2.5rem;
-    scroll-padding-inline: 2.5rem;
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0, #000 2.5rem, #000 calc(100% - 2.5rem), transparent 100%);
-  }
-  .piezas__item { scroll-snap-align: start; }
+  /* En pantalla ancha tambien de una en una y al centro (`.carril--uno`).
+     Antes se veian cinco cuadradas por la izquierda, y al pasar ninguna
+     quedaba en medio. */
 }
 
 /* EL VISOR. A pantalla entera, con el video en su forma: de pie ocupa el
