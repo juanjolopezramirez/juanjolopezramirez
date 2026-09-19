@@ -21,8 +21,10 @@
    - la ultima etapa de la «Memoir» era «"Este es el camino" — ?», una
      pregunta abierta. Ahora contesta con lo que dice el resto del sitio.
 
-   LAS MARCAS. IntouchCX, Booking.com y DeVry van con su nombre porque asi
-   estan en su perfil publico, y el fundador lo confirmo.
+   LOS NOMBRES. IntouchCX, Booking.com y DeVry van con su nombre porque asi
+   estan en su perfil publico, y el fundador lo confirmo. La Universidad de
+   La Sabana (dos semestres, 2022) la pidio nombrar el. Va con su nombre
+   entero, no «La Sabana» a secas: fuera de Colombia no se entenderia.
 
    CUANDO. Los años los dio el fundador o salen de LinkedIn (el colegio
    termino en junio de 2021). La pandemia, en sus palabras: la cuarentena
@@ -120,11 +122,11 @@ export const ETAPAS = [
       it: 'Fuori dal sentiero segnato'
     },
     texto: {
-      es: 'Entré a la universidad y salí a los pocos semestres. Aprendí a seguir mi camino, aunque no todos lo entendieran.',
-      en: 'I started university and left after a few semesters. I learned to follow my own path, even when not everyone understood it.',
-      pt: 'Entrei na universidade e saí ao fim de poucos semestres. Aprendi a seguir o meu caminho, mesmo que nem todos o entendessem.',
-      fr: 'Je suis entré à l’université et je l’ai quittée après quelques semestres. J’ai appris à suivre mon chemin, même si tout le monde ne le comprenait pas.',
-      it: 'Sono entrato all’università e l’ho lasciata dopo pochi semestri. Ho imparato a seguire la mia strada, anche se non tutti la capivano.'
+      es: 'Entré a la Universidad de La Sabana y salí después de dos semestres. Aprendí a seguir mi camino, aunque no todos lo entendieran.',
+      en: 'I started at the Universidad de La Sabana and left after two semesters. I learned to follow my own path, even when not everyone understood it.',
+      pt: 'Entrei na Universidad de La Sabana e saí ao fim de dois semestres. Aprendi a seguir o meu caminho, mesmo que nem todos o entendessem.',
+      fr: 'Je suis entré à l’Universidad de La Sabana et je l’ai quittée après deux semestres. J’ai appris à suivre mon chemin, même si tout le monde ne le comprenait pas.',
+      it: 'Sono entrato all’Universidad de La Sabana e l’ho lasciata dopo due semestri. Ho imparato a seguire la mia strada, anche se non tutti la capivano.'
     }
   },
   {
