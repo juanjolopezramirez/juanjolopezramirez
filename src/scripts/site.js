@@ -1982,6 +1982,30 @@ function initTachones() {
   preguntas.forEach((p) => io.observe(p));
 }
 
+/* ---------- El camino: los años en la niebla ----------------
+
+   En la linea de tiempo de la portada (Camino.astro) los años se ven
+   borrosos y se aclaran al tocar el punto de la etapa o el propio año; otro
+   toque los vuelve a velar. La niebla la pone este guion (`is-velado`) y no
+   el HTML: sin guion no hay forma de aclararla, asi que no se pone. */
+function initCamino() {
+  d.querySelectorAll('.camino').forEach((camino) => {
+    camino.classList.add('is-velado');
+    /* La transicion entra despues de la niebla: si no, al cargar se veria a
+       los años nublarse solos. Leer el ancho obliga a aplicar la niebla ya. */
+    void camino.offsetWidth;
+    camino.classList.add('is-listo');
+    camino.addEventListener('click', (e) => {
+      const toque = e.target.closest('.etapa__nodo, .etapa__cuando');
+      const etapa = toque && toque.closest('.etapa');
+      const nodo = etapa && etapa.querySelector('button.etapa__nodo');
+      if (!nodo) return;                 /* «Hoy» no se vela */
+      const abierta = etapa.classList.toggle('is-abierta');
+      nodo.setAttribute('aria-expanded', String(abierta));
+    });
+  });
+}
+
 /* ---------- Entradas ----------------------------------------
    Dos comportamientos, no uno:
 
@@ -2059,6 +2083,7 @@ initFamilia();
 initPiezas();
 initFichas();
 initTachones();
+initCamino();
 initReveal();
 initDiapositivas();
 /* Safari en iOS no aplica `:active` a nada si la pagina no escucha el

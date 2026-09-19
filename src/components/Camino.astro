@@ -1,0 +1,57 @@
+---
+import { ETAPAS } from '../data/camino.js';
+
+/* ¿POR DONDE HE CAMINADO? La respuesta a la pregunta del paramo.
+
+   LA ROCA DEBAJO DEL DIBUJO. La seccion es del gris de la roca donde estoy
+   de pie y empieza justo donde acaba el dibujo del paramo: la escena se va
+   entera, con su roca, y lo que queda debajo es roca, con un canto recto:
+   una seccion nueva. El dibujo no se tapa nunca.
+
+   EL CAMINO SE TRAZA. Una linea en el oro de la casa baja por la roca y
+   llega a cada etapa cuando la etapa pasa por el centro de la pantalla; ahi
+   el punto se enciende. Sin animacion —o con menos movimiento pedido— la
+   linea esta entera y todos los puntos encendidos.
+
+   LOS AÑOS, EN LA NIEBLA. Se ven borrosos y se aclaran al tocar el punto o
+   el propio año (initCamino). El punto es un boton para que tambien llegue
+   el teclado. Sin guion no hay niebla: los años se ven desde el principio.
+   Quien usa lector de pantalla oye el año siempre; la niebla es para la
+   vista. «Hoy» no lleva niebla ni boton.
+
+   El titulo de la seccion es la pregunta de arriba (`ligero-title`): esta
+   seccion es su respuesta, no otra pregunta. Las etapas son una lista
+   ordenada porque el orden es lo que cuentan. `data-libre`: mide mas de una
+   ventana, asi que aqui el scroll no salta (initDiapositivas). */
+const { lang, t } = Astro.props;
+const say = (o) => (o == null ? null : typeof o === 'string' ? o : (o[lang] ?? o.es));
+---
+<section class="camino" id="camino" data-libre data-glossary aria-labelledby="ligero-title">
+  <div class="camino__ruta">
+    <span class="camino__via" aria-hidden="true"></span>
+    <span class="camino__trazo" aria-hidden="true"></span>
+    <ol class="camino__lista">
+      {ETAPAS.map((e) => {
+        const cuando = say(e.cuando);
+        const titulo = say(e.titulo);
+        const velado = cuando && !e.hoy;
+        return (
+          <li class:list={['etapa', { 'etapa--hoy': e.hoy, 'etapa--sin-fecha': !cuando }]}>
+            {velado ? (
+              <button class="etapa__nodo" type="button" aria-expanded="false"
+                      aria-controls={`cuando-${e.id}`}
+                      aria-label={`${t('camino.cuando')}: ${titulo}`}></button>
+            ) : (
+              <span class="etapa__nodo" aria-hidden="true"></span>
+            )}
+            {cuando && <p class="etapa__cuando" id={`cuando-${e.id}`}>{cuando}</p>}
+            <div class="etapa__cuerpo">
+              <h3 class="etapa__titulo">{titulo}</h3>
+              <p class="etapa__texto">{say(e.texto)}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  </div>
+</section>

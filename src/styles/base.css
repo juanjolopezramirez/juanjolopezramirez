@@ -55,6 +55,10 @@
      hueso. En el directorio el tachon va en el oro de la casa. */
   --tachon: #E5383B;
   --bone-panel:#E7E4DB;
+  /* LA ROCA, el cuerpo de la roca del dibujo del paramo (roca.svg). La usan
+     la seccion del camino y el pie de la portada, que termina en ella. De
+     noche baja a dos tercios, como la roca del paramo (brightness .66). */
+  --roca: #333336;
 
   /* LAS SUPERFICIES CLARAS, con nombre propio. El hueso hace dos trabajos:
      es el FONDO de las secciones claras y es la LETRA sobre el pinar. El
@@ -150,6 +154,7 @@ html[data-tema="oscuro"] {
   --pino-tinta: var(--iris-300);
   --iris-tinta: var(--iris-300);
   --ring-tinta: var(--ring);
+  --roca: #222224;
   --tema-on: 1;
 }
 /* EL PARAMO DE NOCHE ES DE PINO. El risco, la meseta, la pared y el pasto
@@ -191,6 +196,7 @@ html[data-tema="oscuro"] .ligero {
     --pino-tinta: var(--iris-300);
     --iris-tinta: var(--iris-300);
     --ring-tinta: var(--ring);
+    --roca: #222224;
     --tema-on: 1;
   }
 }
@@ -3613,14 +3619,15 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 
 /* =============================================================
-   ¿QUE SIGNIFICA CAMINAR LIGERO? (Ligero.astro)
+   ¿POR DONDE HE CAMINADO? (Ligero.astro)
 
    El dibujo final del paramo en sus seis capas, pegado a la izquierda y
    apoyado abajo, con la niebla —el color de la pagina— a la derecha. Yo en
    el centro de la pantalla, sobre la roca.
 
    TRES PANTALLAS DE ALTO y la escena pegada en la primera: el recorrido es
-   la animacion. Es la unica seccion que no salta (`data-libre`).
+   la animacion. No salta (`data-libre`). Debajo empieza el camino
+   (Camino.astro), y la escena se va entera, con su roca, antes de que llegue.
    ============================================================= */
 .ligero {
   --escena-tinte: none;
@@ -3779,6 +3786,191 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
 }
 
 /* =============================================================
+   ¿POR DONDE HE CAMINADO? — LA ROCA DEL CAMINO (Camino.astro)
+
+   Del gris de la roca del dibujo (`--roca`, arriba con los demas colores),
+   que de noche baja con la roca del paramo. Encima, la letra de hueso y un
+   solo acento, el oro de la casa (`--ring`).
+
+   NO TAPA EL DIBUJO. Hubo una version en que la roca subia por delante de la
+   escena quieta y la cubria, y con ella se iba la roca donde estoy de pie:
+   el dibujo es del fundador y tiene que verse entero. Ahora la escena se va
+   completa, como siempre, y el camino empieza justo donde acaba el dibujo,
+   con un canto recto: es una seccion nueva y se nota. Se probo una franja
+   que imitaba el pie del dibujo para esconder el corte y se leia como una
+   mancha borrosa.
+   ============================================================= */
+.camino {
+  /* Donde cae la linea, medido desde el canto izquierdo de la ruta. En
+     escritorio se mueve a la derecha y deja a su izquierda la columna de
+     los años. */
+  --eje: .45rem;
+  position: relative;
+  padding: clamp(4.5rem, 14vh, 8rem) var(--gutter) clamp(6rem, 18vh, 10rem);
+  background: var(--roca);
+  color: var(--bone);
+}
+
+.camino__ruta {
+  position: relative;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+/* La via es el camino entero, apenas marcado; el trazo es lo recorrido, en
+   el oro de la casa, y crece con el scroll hasta la etapa que pasa por el
+   centro. */
+.camino__via,
+.camino__trazo {
+  position: absolute;
+  left: var(--eje);
+  top: .6rem;
+  bottom: .6rem;
+  width: 2px;
+  translate: -50% 0;
+  pointer-events: none;
+}
+.camino__via { background: rgb(241 239 233 / .16); }
+.camino__trazo {
+  background: var(--ring);
+  transform-origin: 50% 0;
+}
+.camino__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.etapa {
+  position: relative;
+  padding-left: calc(var(--eje) + 1.75rem);
+}
+.etapa + .etapa { margin-top: clamp(3.25rem, 11vh, 5.5rem); }
+/* El punto de cada etapa: hueco hasta que el camino llega, lleno despues.
+   El anillo del color de la roca lo separa de la linea que lo cruza. */
+.etapa__nodo {
+  position: absolute;
+  left: var(--eje);
+  top: .12rem;
+  width: .85rem;
+  height: .85rem;
+  translate: -50% 0;
+  padding: 0;
+  border: 2px solid var(--ring);
+  border-radius: 50%;
+  background: var(--ring);
+  box-shadow: 0 0 0 4px var(--roca);
+  transition: scale .25s var(--ease);
+}
+/* El punto que aclara el año es un boton: mas grande para el dedo de lo que
+   se dibuja, y crece un poco bajo el cursor para decir que se puede tocar. */
+button.etapa__nodo { cursor: pointer; }
+button.etapa__nodo::after {
+  content: "";
+  position: absolute;
+  inset: -.8rem;
+  border-radius: 50%;
+}
+@media (hover: hover) {
+  button.etapa__nodo:hover { scale: 1.3; }
+}
+button.etapa__nodo:focus-visible { outline: 2px solid var(--ring-300); outline-offset: 4px; }
+
+/* LOS AÑOS EN LA NIEBLA. Borrosos hasta que se toca el punto o el año: la
+   niebla del paramo, que se aclara. El desenfoque va en `em` para que sea
+   el mismo en el año chico del telefono y en el grande de escritorio. Solo
+   con guion (`is-velado`): sin el, los años se ven y ya. «Hoy» no tiene
+   boton delante, y por eso nunca se vela. */
+.camino.is-listo .etapa__cuando { transition: filter .7s var(--ease-smooth); }
+.camino.is-velado .etapa:not(.is-abierta) button.etapa__nodo ~ .etapa__cuando {
+  filter: blur(.3em);
+  cursor: pointer;
+  user-select: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .etapa__nodo,
+  .camino.is-listo .etapa__cuando { transition: none; }
+}
+/* Sin año, el primer renglon es el titulo: el punto baja a su altura. */
+.etapa--sin-fecha .etapa__nodo { top: .5rem; }
+/* Donde termina el camino: mas grande y con un halo. */
+.etapa--hoy .etapa__nodo {
+  width: 1.15rem;
+  height: 1.15rem;
+  box-shadow: 0 0 0 4px var(--roca), 0 0 0 8px rgb(192 138 46 / .32);
+}
+/* Y la linea se acaba en el: la via y el trazo miden la ruta entera, texto
+   de la ultima etapa incluido, asi que por debajo del ultimo punto se tapan
+   con roca. Va detras del punto y delante de la linea. */
+.etapa--hoy::after {
+  content: "";
+  position: absolute;
+  left: var(--eje);
+  top: 1.2rem;
+  bottom: -1rem;
+  width: 8px;
+  translate: -50% 0;
+  background: var(--roca);
+}
+.etapa--hoy .etapa__nodo { z-index: 1; }
+.etapa__cuando {
+  margin: 0 0 .35rem;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  /* El oro claro: a este tamaño, el de la linea no llega a leerse bien
+     sobre la roca. */
+  color: var(--ring-300);
+}
+.etapa__titulo {
+  margin: 0 0 .55rem;
+  font-family: var(--serif);
+  font-size: clamp(1.45rem, 4.6vw, 2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--bone);
+}
+.etapa__texto {
+  max-width: 34rem;
+  margin: 0;
+  font-size: .98rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: rgb(241 239 233 / .76);
+  text-wrap: pretty;
+}
+/* El glosario sobre la roca: el iris oscuro de la pagina clara no se leeria. */
+.camino .term:hover,
+.camino .term:focus-visible { color: var(--ring-300); }
+
+/* EN PANTALLA ANCHA los años salen a su propia columna, a la izquierda de la
+   linea y en la letra de los titulos: se leen de arriba abajo como una
+   regla, y el texto queda limpio a la derecha. */
+@media (min-width: 900px) {
+  .camino__ruta { --eje: 9.5rem; }
+  .etapa__cuando {
+    position: absolute;
+    top: 0;
+    right: calc(100% - var(--eje) + 1.75rem);
+    width: 8rem;
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1.55rem;
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    text-align: right;
+    text-transform: none;
+    color: rgb(241 239 233 / .5);
+  }
+  .etapa__nodo,
+  .etapa--sin-fecha .etapa__nodo { top: .62rem; }
+  .etapa--hoy .etapa__nodo { top: .47rem; }
+  .etapa--hoy .etapa__cuando { color: var(--ring); }
+}
+
+/* =============================================================
    Footer
    ============================================================= */
 /* El pie no llevaba nada de aire por arriba y cinco rem por abajo: el
@@ -3812,6 +4004,10 @@ main:has(.phero--sky) + .site-footer {
   color: var(--pine-200);
 }
 main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200); }
+
+/* La portada termina en la roca del camino, y el pie es de esa roca. */
+main:has(> .camino:last-child) + .site-footer { background: var(--roca); }
+main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(241 239 233 / .55); }
 /* Dim the wrapper, not the image: `.reveal` owns the image's opacity
    and the two would override each other. */
 .site-footer__line {
@@ -5657,10 +5853,10 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
     .about__heading    { --prx: 78; }
     .about__body > p   { --prx: 44; }
 
-    /* Y LA PALABRA, LA MAS LIGERA DE TODAS. Va dentro del titular, asi que
-       lo suyo se suma a lo del titular: llega la ultima, flotando y un poco
-       mas pequena, y se posa al final. Que la palabra «ligero» pese menos
-       que el renglon que la sostiene no es un adorno; es lo que dice. */
+    /* Y LO ESCRITO A MANO, LO MAS LIGERO DE TODO. Va dentro del titular, asi
+       que lo suyo se suma a lo del titular: llega lo ultimo, flotando y un
+       poco mas pequeño, y se posa al final. Que «un solo camino» pese menos
+       que el renglon que lo sostiene no es un adorno: es caminar ligero. */
     @keyframes capaPalabra {
       entry 0%   { translate: 0 calc(var(--prx) * 1px); scale: .93; opacity: .45; }
       entry 100% { translate: 0 0; scale: 1; opacity: 1; }
@@ -5730,6 +5926,72 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
         animation-range-end: contain 70%;
       }
     }
+
+    /* EL CAMINO LLEGA POR DELANTE. La escena del paramo se va entera, con
+       su roca, y la ruta entra un poco mas rapido que la pagina: es la capa
+       cercana del salto entre las dos, como en el resto de pantallas. */
+    .camino { view-timeline: --capa block; }
+    .camino__ruta {
+      --prx: 110;
+      animation-name: capa;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --capa;
+      animation-range: entry;
+    }
+
+    /* EL TRAZO. Crece de 0 a entero mientras la ruta pasa por el centro de la
+       pantalla: empieza cuando su canto de arriba llega al centro y termina
+       cuando llega el de abajo. Asi la punta del trazo va siempre a media
+       pantalla, que es donde se lee. */
+    .camino__ruta { view-timeline: --ruta block; }
+    @keyframes trazo {
+      from { scale: 1 0; }
+      to   { scale: 1 1; }
+    }
+    .camino__trazo {
+      animation-name: trazo;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --ruta;
+      animation-range-start: cover 50svh;
+      animation-range-end: cover calc(100% - 50svh);
+    }
+
+    /* CADA ETAPA. El punto se llena cuando la etapa cruza el centro —ahi le
+       llega el trazo—, y al entrar el año se queda un poco atras y el texto
+       se adelanta, como las capas del resto de la pagina. */
+    .etapa { view-timeline: --etapa block; }
+    @keyframes nodo {
+      from { background-color: var(--roca); }
+      to   { background-color: var(--ring); }
+    }
+    .etapa__nodo {
+      animation-name: nodo;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --etapa;
+      animation-range-start: cover calc(50svh + .3rem);
+      animation-range-end: cover calc(50svh + 1.3rem);
+    }
+    @keyframes llega {
+      entry 0%  { opacity: 0; }
+      entry 80% { opacity: 1; }
+    }
+    .etapa__cuando,
+    .etapa__cuerpo {
+      animation-name: capa, llega;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --etapa;
+      animation-range: cover;
+    }
+    .etapa__cuando { --prx: -26; }
+    .etapa__cuerpo { --prx: 34; }
     /* Y la niebla va a lo suyo, despacio: cada velo con su tiempo y su
        sentido, para que no se muevan en bloque. */
     @keyframes nieblaVa {
