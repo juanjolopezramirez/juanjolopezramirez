@@ -1,0 +1,30 @@
+---
+import Pregunta from './Pregunta.astro';
+import { ENLACE } from '../data/enlace.js';
+
+/* ¿POR QUE UN ENLACE PROPIO? Solo en el telefono.
+
+   ES UNA PANTALLA PROPIA, entre la hoja del hero —la de «Disponible para»—
+   y el hueso de «Sobre mi». No va dentro de la hoja: esa ya mide una
+   ventana justa, y con esto encima dejaria de caber en un telefono chico;
+   una pantalla que no cabe apaga el salto entre pantallas de toda la
+   portada (initDiapositivas).
+
+   SOLO EN EL TELEFONO, y a proposito: es la pregunta de quien llega desde
+   el enlace de una red, y eso pasa en el telefono. Desde 600px no se pinta
+   ni se mide, y el salto entre pantallas no la cuenta.
+
+   Sigue en el pinar, sin costura: el hero termina en pino liso en el
+   telefono, y esta pantalla empieza en ese mismo pino. Los ojos son los de
+   la primera version de la pagina, en los colores de la casa. */
+const { lang } = Astro.props;
+const say = (o) => (o ? (o[lang] ?? o.es) : null);
+---
+<section class="enlace">
+  <span class="enlace__ojos" aria-hidden="true"></span>
+  <div class="enlace__cuerpo">
+    <p class="enlace__rotulo">{say(ENLACE.rotulo)}</p>
+    <Pregunta texto={say(ENLACE.pregunta)} tacha={say(ENLACE.tacha)} pone={say(ENLACE.pone)} cls="enlace__pregunta" />
+    <p class="enlace__linea">{say(ENLACE.linea)}</p>
+  </div>
+</section>

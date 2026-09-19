@@ -25,11 +25,15 @@
    estan en su perfil publico, y el fundador lo confirmo.
 
    CUANDO. Los años los dio el fundador o salen de LinkedIn (el colegio
-   termino en junio de 2021). Van escondidos en la niebla y se aclaran al
-   tocar el punto o el año (initCamino): el camino se lee primero por lo que
-   paso, y la fecha es para quien la busca. «Hoy» no se esconde: no es una
-   fecha, es a donde llega el camino. Dentro de un mismo año van en el orden
-   en que pasaron.
+   termino en junio de 2021). La pandemia, en sus palabras: la cuarentena
+   empezo en marzo de 2020, duro hasta septiembre u octubre, y despues
+   siguieron controles muy estrictos; eso es lo que se llevo el final del
+   colegio, y por eso la etapa lo nombra aunque su año sea el del grado.
+
+   Los años van escondidos en la niebla y se aclaran al tocar el punto o el
+   año (initCamino): el camino se lee primero por lo que paso, y la fecha es
+   para quien la busca. «Hoy» no se esconde: no es una fecha, es a donde
+   llega el camino. Dentro de un mismo año van en el orden en que pasaron.
 
    HOY SE DICE EN GERUNDIO. Let Be, Recvid y la familia Fraterni todavia se
    estan sacando: «estoy construyendo», no «soy fundador de». Lo que aun no
@@ -98,11 +102,11 @@ export const ETAPAS = [
       it: 'Una fine senza addio'
     },
     texto: {
-      es: 'Estudié negocios y cine, y ya hacía contenido: un podcast de deportes y video con drones. Terminé el colegio en plena pandemia, sin poder vivir el final.',
-      en: 'I studied business and film, and I was already making content: a sports podcast and drone video. I finished school in the middle of the pandemic, without getting to live the ending.',
-      pt: 'Estudei gestão e cinema, e já fazia conteúdo: um podcast de desporto e vídeo com drones. Acabei a escola em plena pandemia, sem poder viver o fim.',
-      fr: 'J’ai étudié la gestion et le cinéma, et je faisais déjà du contenu : un podcast de sport et de la vidéo par drone. J’ai fini le lycée en pleine pandémie, sans pouvoir vivre la fin.',
-      it: 'Ho studiato economia e cinema, e facevo già contenuti: un podcast sportivo e video con i droni. Ho finito la scuola in piena pandemia, senza poter vivere la fine.'
+      es: 'Estudié negocios y cine, y ya hacía contenido: un podcast de deportes y video con drones. La cuarentena de 2020 y los controles que siguieron se llevaron el final del colegio.',
+      en: 'I studied business and film, and I was already making content: a sports podcast and drone video. The 2020 lockdown and the restrictions that followed took away the end of school.',
+      pt: 'Estudei gestão e cinema, e já fazia conteúdo: um podcast de desporto e vídeo com drones. A quarentena de 2020 e as restrições que se seguiram levaram o fim da escola.',
+      fr: 'J’ai étudié la gestion et le cinéma, et je faisais déjà du contenu : un podcast de sport et de la vidéo par drone. Le confinement de 2020 et les restrictions qui ont suivi m’ont pris la fin du lycée.',
+      it: 'Ho studiato economia e cinema, e facevo già contenuti: un podcast sportivo e video con i droni. Il lockdown del 2020 e le restrizioni che sono seguite si sono portati via la fine della scuola.'
     }
   },
   {

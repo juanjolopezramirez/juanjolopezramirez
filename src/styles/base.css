@@ -5992,6 +5992,21 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
     }
     .etapa__cuando { --prx: -26; }
     .etapa__cuerpo { --prx: 34; }
+
+    /* EL ENLACE (solo en el telefono). Al saltar hasta el, la pregunta se
+       adelanta y los ojos se quedan un poco atras: miran desde el fondo. */
+    .enlace { view-timeline: --capa block; }
+    .enlace__ojos,
+    .enlace__cuerpo {
+      animation-name: capa;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-iteration-count: 1;
+      animation-timeline: --capa;
+      animation-range: cover;
+    }
+    .enlace__ojos   { --prx: -40; }
+    .enlace__cuerpo { --prx: 48; }
     /* Y la niebla va a lo suyo, despacio: cada velo con su tiempo y su
        sentido, para que no se muevan en bloque. */
     @keyframes nieblaVa {
@@ -6301,6 +6316,102 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .cpage .corrige__nota { color: var(--ring); }
 @media (prefers-reduced-motion: reduce) {
   .corrige__palabra, .corrige__tacha, .corrige__tacha.is-on { transition: none; }
+}
+
+/* =============================================================
+   ¿POR QUE UN ENLACE PROPIO? (Enlace.astro) — solo en el telefono
+
+   Una pantalla entera en el pinar, entre la hoja del hero y el hueso de
+   «Sobre mi». En el telefono el hero termina en pino liso, asi que esta
+   empieza en el mismo pino y no hay costura. Desde 600px no existe: ni se
+   pinta ni ocupa sitio, y el salto entre pantallas no la cuenta.
+
+   La pregunta va como en el directorio de contacto, que tambien vive en el
+   pinar: la pregunta en hueso, el tachon y la buena en el oro de la casa.
+   Aqui es la unica cosa de la pantalla, asi que crece a letra de titular.
+   ============================================================= */
+.enlace { display: none; }
+@media (max-width: 599px) {
+  .enlace {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 100svh;
+    padding: calc(var(--header-h) + 1rem) var(--gutter) 2.5rem;
+    /* El mismo pie del campo del hero en el telefono: Pine con el velo
+       negro al 20% encima. Con Pine a secas quedaba una raya donde se tocan. */
+    background: linear-gradient(rgba(0, 0, 0, .2), rgba(0, 0, 0, .2)), var(--pine);
+    color: var(--bone);
+  }
+}
+/* LOS OJOS de la primera version, tal cual se movian: miran a un lado, al
+   otro, abajo, y parpadean, en un ciclo de diez segundos. Solo cambian los
+   colores —hueso y el pino mas hondo— y el alto de la caja queda fijo, para
+   que al parpadear se cierren hacia el centro sin mover nada debajo. */
+.enlace__ojos {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100px;
+  height: 48px;
+  margin: 0 0 1.6rem;
+}
+.enlace__ojos::before,
+.enlace__ojos::after {
+  content: "";
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--bone);
+  background-image: radial-gradient(circle 14px, var(--pine-900) 100%, transparent 0%);
+  background-repeat: no-repeat;
+  animation: ojosMiran 10s infinite, ojosParpadean 10s infinite;
+}
+@keyframes ojosMiran {
+  0%, 10%  { background-position: 0 0; }
+  13%, 40% { background-position: -15px 0; }
+  43%, 70% { background-position: 15px 0; }
+  73%, 90% { background-position: 0 15px; }
+  93%, 100% { background-position: 0 0; }
+}
+@keyframes ojosParpadean {
+  0%, 10%, 12%, 20%, 22%, 40%, 42%, 60%, 62%, 70%, 72%, 90%, 92%, 98%, 100% { height: 48px; }
+  11%, 21%, 41%, 61%, 71%, 91%, 99% { height: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .enlace__ojos::before,
+  .enlace__ojos::after { animation: none; }
+}
+.enlace__rotulo {
+  margin: 0;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--iris-300);
+}
+.enlace__pregunta { margin-top: .6rem; }
+.enlace__pregunta .pregunta__texto {
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -.02em;
+  color: var(--bone);
+}
+.enlace__pregunta .corrige { margin-top: .9rem; font-size: 1.2rem; }
+.enlace__pregunta .corrige__tacha { color: rgba(183, 199, 180, .62); }
+.enlace__pregunta .corrige__raya { stroke: var(--ring); }
+.enlace__pregunta .corrige__nota { color: var(--ring); }
+.enlace__linea {
+  max-width: 22rem;
+  margin: 1.5rem 0 0;
+  font-size: .92rem;
+  font-weight: 300;
+  line-height: 1.65;
+  color: var(--pine-200);
+  text-wrap: pretty;
 }
 
 /* =============================================================

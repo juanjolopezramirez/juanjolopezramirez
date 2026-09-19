@@ -7,6 +7,7 @@ import Orbit from '../../components/Orbit.astro';
 import Signature from '../../components/Signature.astro';
 import Ligero from '../../components/Ligero.astro';
 import Camino from '../../components/Camino.astro';
+import Enlace from '../../components/Enlace.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -16,6 +17,10 @@ const t = useT(lang);
 ---
 <Base lang={lang} path="">
   <Hero lang={lang} t={t} />
+
+  {/* Solo en el telefono: por que un enlace propio, entre la hoja del hero
+      y el hueso de «Sobre mi». */}
+  <Enlace lang={lang} />
 
   <section class="about" id="about" aria-labelledby="about-title" data-glossary>
     <h2 class="sr-only" id="about-title">{t('scroll.label')}</h2>
