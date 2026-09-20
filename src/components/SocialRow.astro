@@ -1,29 +1,35 @@
 ---
 import { SOCIAL } from '../data/social.js';
+import Red from './Red.astro';
 import Icon from './Icon.astro';
+
+/* La fila de redes del hero.
+
+   VAN LAS DOCE, EN TANDAS. Se ven tres en el telefono y cuatro desde 600px,
+   y cada siete segundos pasa la tanda siguiente (initRedes). El «+» del final
+   gira un cuarto de vuelta en cada cambio: es la puerta a todas, y el giro
+   dice que detras hay mas de lo que se ve. Al pasar el raton o el foco por
+   la fila, se queda quieta.
+
+   SIN GUION, o con menos movimiento pedido, no rota nada: se ve la primera
+   tanda (`row: true`) y el resto sigue a un toque, en la hoja.
+
+   Solo la primera tanda entra con `reveal`: las demas aparecen al rotar, y
+   una entrada encima de la otra se veia doble. */
 const { t } = Astro.props;
-const row = SOCIAL.filter((s) => s.row);
 ---
 <div class="links" id="links">
   <h2 class="links__title">{t('links.title')}</h2>
-  <ul class="links__list">
-    {row.map((s) => (
-      <li class={`links__item links__item--${s.id}`}>
-        <!-- Sigue siendo un enlace de verdad: sin JavaScript lleva a la
-             cuenta de casa. Con JavaScript el guion se pone delante y
-             abre la hoja, para que elija quien mira. -->
-        <a class={`link-chip net--${s.id} reveal`} href={s.href} target="_blank" rel="noopener noreferrer"
-           data-accounts={s.accounts ? s.id : undefined}
-           data-account-name={s.accounts ? s.name : undefined}
-           aria-haspopup={s.accounts ? 'dialog' : undefined}>
-          <Icon id={s.id} /><span class="sr-only">{s.name}{s.accounts ? ` — ${t('a11y.accounts')}` : ''}</span>
-        </a>
+  <ul class="links__list" data-redes>
+    {SOCIAL.map((s) => (
+      <li class:list={['links__item', `links__item--${s.id}`, { 'links__item--resto': !s.row }]}>
+        <Red s={s} t={t} cls={s.row ? 'reveal' : ''} />
       </li>
     ))}
-    <li>
+    <li class="links__mas">
       <button class="link-chip link-chip--more" type="button" data-open-social
               aria-haspopup="dialog" aria-label={t('a11y.more')}>
-        <Icon id="more" />
+        <Icon id="mas" />
       </button>
     </li>
   </ul>

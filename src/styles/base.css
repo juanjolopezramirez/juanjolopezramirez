@@ -842,6 +842,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   animation: floatYmid 5.5s var(--ease-smooth) infinite;
 }
 .hero__me img { width: 100%; height: auto; }
+/* La foto es un boton (abre el aviso del dominio, Enlace.astro). El reinicio
+   general ya le quita relleno, borde y fondo; falta que la caja mida lo que
+   la imagen y que el navegador no pinte su destello gris al tocarla. */
+.hero__me { line-height: 0; -webkit-tap-highlight-color: transparent; }
+.hero__me picture { display: block; }
 
 /* --- La hoja: de donde sale el trabajo, y para quien es -----------
    En movil no desaparece: solo espera. Cae por debajo del pliegue y se
@@ -1083,11 +1088,37 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   gap: .9rem;
   flex-wrap: nowrap;
 }
-/* Cinco iconos en una fila de movil se hacen largos. GitHub se retira de
-   la vista rapida —sigue estando, tras los tres puntos— y asi la fila
-   queda en cuatro piezas: tres redes y la puerta al resto. */
+/* LA FILA VA POR TANDAS. Estan las doce redes en el documento; se ven tres
+   en el telefono y cuatro desde 600px, y el guion pasa de tanda cada siete
+   segundos (initRedes). Asi caben todas sin hacer una fila larga, que es lo
+   que se queria evitar cuando GitHub se escondia en el telefono.
+
+   SIN GUION no rota nada: se ve la primera tanda (`row: true` en social.js)
+   y el resto vive en la hoja de todas. En el telefono, ademas, GitHub se
+   retira de esa primera tanda para que queden tres redes y la puerta. */
+.links__item--resto { display: none; }
 @media (max-width: 599px) {
   .links__item--github { display: none; }
+}
+/* Con guion manda la tanda. Pesa mas que las dos reglas de arriba, asi que
+   en el telefono GitHub vuelve cuando le toca su turno. */
+.links__list.is-rota .links__item { display: none; }
+.links__list.is-rota .links__item.is-on { display: block; }
+/* El cambio: la tanda que se va se apaga y baja un pelo, y la que llega
+   hace lo contrario. Los dos movimientos duran lo mismo que la espera del
+   guion entre una y otra. */
+.links__item { transition: opacity .26s var(--ease), translate .26s var(--ease); }
+.links__list.is-cambiando .links__item.is-on { opacity: 0; translate: 0 6px; }
+/* El «+» gira un cuarto de vuelta en cada cambio: la fila cambia y el boton
+   lo acompaña, para que se lea que detras hay mas. El guion escribe el
+   angulo, que va sumando. */
+.link-chip--more .icon {
+  rotate: var(--giro, 0deg);
+  transition: rotate .7s var(--ease-smooth);
+}
+@media (prefers-reduced-motion: reduce) {
+  .links__item { transition: none; }
+  .link-chip--more .icon { transition: none; }
 }
 
 .link-chip {
@@ -4308,11 +4339,27 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 
 /* =============================================================
-   All platforms — a sheet over the page, so nothing underneath moves.
+   TODAS LAS PLATAFORMAS, DE UN VISTAZO — se abre desde el «+» de la fila
+
+   Centrada en todos los anchos, como el aviso de «ya estas aqui»: se abre
+   desde un boton, y lo que se abre desde un boton se pone delante, no
+   asoma por el borde. Antes subia desde abajo como una hoja.
+
+   EL FONDO SE MUEVE. Un degradado de los verdes de la casa —del pino hondo
+   al verde de la luz del hero— tres veces mas grande que la hoja, que se
+   desplaza despacio de una esquina a otra. No hay nada encima que
+   distraiga: es el campo del hero, en pequeño. Con menos movimiento
+   pedido, se queda quieto.
+
+   LA REJILLA CUADRA JUSTA: doce redes en tres columnas en el telefono
+   (tres por cuatro) y en cuatro desde 600px (cuatro por tres). Cada ficha
+   conserva lo suyo: al pasar por encima se llena del color de su red y
+   rebota (`.link-chip`).
    ============================================================= */
 .social-panel {
   position: fixed; inset: 0; z-index: 70;
-  display: grid; align-items: end;
+  display: grid; place-items: center;
+  padding: var(--gutter);
 }
 .social-panel__scrim {
   position: absolute; inset: 0;
@@ -4322,20 +4369,35 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 .social-panel__sheet {
   position: relative;
-  padding: 1.6rem var(--gutter) calc(2rem + env(safe-area-inset-bottom));
-  background: var(--pine-700);
-  border-top: 3px solid var(--iris);
-  border-radius: 32px 32px 0 0;
-  translate: 0 100%;
-  transition: translate .42s var(--ease);
+  width: min(23rem, 100%);
+  padding: 1.9rem 1.4rem 1.8rem;
+  border-radius: 28px;
+  background: linear-gradient(135deg,
+    #16231A 0%, #263B28 26%, #3C5332 46%, #526B3B 58%, #31472D 74%, #1E2F20 100%);
+  background-size: 260% 260%;
+  box-shadow:
+    inset 0 0 0 1px rgba(169, 196, 127, .2),
+    0 30px 60px -30px rgba(0, 0, 0, .7);
+  text-align: center;
+  opacity: 0;
+  scale: .94;
+  transition: opacity .3s var(--ease), scale .3s var(--ease-smooth);
+  animation: redesFondo 16s ease-in-out infinite;
+}
+@keyframes redesFondo {
+  0%, 100% { background-position: 0% 20%; }
+  50%      { background-position: 100% 80%; }
 }
 .social-panel.is-open .social-panel__scrim { opacity: 1; }
-.social-panel.is-open .social-panel__sheet { translate: 0 0; }
+.social-panel.is-open .social-panel__sheet { opacity: 1; scale: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .social-panel__sheet { animation: none; }
+}
 
 .social-panel__title {
-  margin: 0 0 1.4rem;
+  margin: 0 0 1.5rem;
   font-family: var(--serif);
-  font-size: 1.15rem; font-weight: 400;
+  font-size: 1.2rem; font-weight: 400;
   letter-spacing: -.015em;
   color: var(--bone);
 }
@@ -4349,8 +4411,12 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 
 .social-panel__grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.3rem .5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.3rem .75rem;
+}
+@media (min-width: 600px) {
+  .social-panel__sheet { width: min(27rem, 100%); padding-inline: 1.8rem; }
+  .social-panel__grid { grid-template-columns: repeat(4, 1fr); }
 }
 .social-panel__item {
   display: grid; justify-items: center; gap: .45rem;
@@ -5038,6 +5104,54 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   transition: background-color .22s var(--ease);
 }
 .here-panel__ok:hover { background: var(--pine-700); }
+
+/* ---- ¿POR QUE TENGO UN DOMINIO? (Enlace.astro) ----------------------
+   El mismo aviso, con los ojos de la primera version de la pagina en vez
+   de la marca: miran a un lado, al otro, abajo, y parpadean, en un ciclo
+   de diez segundos. Son blancos con el aro del pinar, para que se vean
+   igual sobre el papel de dia y sobre el de noche, y la caja tiene alto
+   fijo: al parpadear se cierran hacia el centro sin mover el texto. */
+.enlace__ojos {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 92px;
+  height: 44px;
+  margin: 0 auto 1rem;
+}
+.enlace__ojos::before,
+.enlace__ojos::after {
+  content: "";
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  background-image: radial-gradient(circle 13px, var(--pine-900) 100%, transparent 0%);
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 2px var(--pine);
+  animation: ojosMiran 10s infinite, ojosParpadean 10s infinite;
+}
+@keyframes ojosMiran {
+  0%, 10%   { background-position: 0 0; }
+  13%, 40%  { background-position: -14px 0; }
+  43%, 70%  { background-position: 14px 0; }
+  73%, 90%  { background-position: 0 14px; }
+  93%, 100% { background-position: 0 0; }
+}
+@keyframes ojosParpadean {
+  0%, 10%, 12%, 20%, 22%, 40%, 42%, 60%, 62%, 70%, 72%, 90%, 92%, 98%, 100% { height: 44px; }
+  11%, 21%, 41%, 61%, 71%, 91%, 99% { height: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .enlace__ojos::before,
+  .enlace__ojos::after { animation: none; }
+}
+.enlace__rotulo {
+  margin: 0 0 .4rem;
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--iris-tinta);
+}
 
 /* El aviso. Aparece abajo, lo lee el lector de pantalla, y se va solo. */
 .toast {

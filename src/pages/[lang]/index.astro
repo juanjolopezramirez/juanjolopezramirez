@@ -7,6 +7,7 @@ import Orbit from '../../components/Orbit.astro';
 import Signature from '../../components/Signature.astro';
 import Ligero from '../../components/Ligero.astro';
 import Camino from '../../components/Camino.astro';
+import Enlace from '../../components/Enlace.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -66,4 +67,9 @@ const t = useT(lang);
       su respuesta: la roca que sube con el camino recorrido. */}
   <Ligero t={t} />
   <Camino lang={lang} t={t} />
+
+  {/* El aviso de por que tengo un dominio: se abre al tocar mi foto del
+      hero. Escondido no mide nada, asi que el salto entre pantallas no lo
+      cuenta. */}
+  <Enlace lang={lang} t={t} />
 </Base>

@@ -5,6 +5,7 @@ import { VIDEOS } from '../data/videos.js';
 import { ENTITY, nombreDe } from '../data/entities.js';
 import BrandDot from './BrandDot.astro';
 import Icon from './Icon.astro';
+import Red from './Red.astro';
 const { lang, t } = Astro.props;
 
 /* Las tres puertas de «Caminemos», EN EL ORDEN DEL RECORRIDO y no en el
@@ -42,21 +43,23 @@ const PUERTAS = [
 const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
   .map((id) => ENTITY[id]).filter(Boolean);
 ---
-<!-- Todas las plataformas: una hoja sobre la pagina, nada debajo se mueve -->
+<!-- Todas las plataformas, de un vistazo.
+
+     Centrada en todos los anchos, como el aviso de «ya estas aqui»: es lo
+     que se abre desde el «+» de la fila del hero, y lo que se abre desde un
+     boton se pone delante. Doce redes en una rejilla que cuadra justa: tres
+     columnas en el telefono (tres por cuatro) y cuatro desde 600px (cuatro
+     por tres). El fondo es un degradado de los verdes de la casa que se
+     mueve despacio; con menos movimiento pedido, se queda quieto. -->
 <div class="social-panel" id="social-panel" hidden>
   <div class="social-panel__scrim" data-close-social></div>
   <div class="social-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="social-panel-title">
     <button class="social-panel__close" type="button" data-close-social aria-label={t('a11y.closePanel')}>&times;</button>
     <h2 class="social-panel__title" id="social-panel-title">{t('social.title')}</h2>
     <ul class="social-panel__grid">
-      {SOCIAL.map((s) => (
-        <li class="social-panel__item">
-          <a class={`link-chip net--${s.id}`} href={s.href} target="_blank" rel="noopener noreferrer"
-             data-accounts={s.accounts ? s.id : undefined}
-             data-account-name={s.accounts ? s.name : undefined}
-             aria-haspopup={s.accounts ? 'dialog' : undefined}>
-            <Icon id={s.id} /><span class="sr-only">{s.name}{s.accounts ? ` — ${t('a11y.accounts')}` : ''}</span>
-          </a>
+      {SOCIAL.map((s, i) => (
+        <li class="social-panel__item" style={`--d:${i * 35}ms`}>
+          <Red s={s} t={t} />
           <span class="social-panel__name">{s.name}</span>
         </li>
       ))}

@@ -238,11 +238,9 @@
   .site-footer__logo { width: min(100%, 20rem); }
 
   /* ---- Hojas: no ocupan toda la pantalla ---- */
-  .social-panel,
   .contact-panel,
   .account-panel,
   .term-panel { align-items: center; justify-items: center; }
-  .social-panel__sheet,
   .contact-panel__sheet,
   .account-panel__sheet,
   .term-panel__sheet {
@@ -258,7 +256,6 @@
      que dos fichas sueltas, pero tampoco mucho mas. */
   .account-panel__sheet { width: min(25rem, calc(100vw - 6rem)); }
 
-  .social-panel.is-open .social-panel__sheet,
   .contact-panel.is-open .contact-panel__sheet,
   .account-panel.is-open .account-panel__sheet,
   .term-panel.is-open .term-panel__sheet { translate: 0 0; }

@@ -1,30 +1,29 @@
 ---
-import Pregunta from './Pregunta.astro';
 import { ENLACE } from '../data/enlace.js';
 
-/* ¿POR QUE UN ENLACE PROPIO? Solo en el telefono.
+/* ¿POR QUE TENGO UN DOMINIO? El aviso que sale al tocar mi foto del hero.
 
-   ES UNA PANTALLA PROPIA, entre la hoja del hero —la de «Disponible para»—
-   y el hueso de «Sobre mi». No va dentro de la hoja: esa ya mide una
-   ventana justa, y con esto encima dejaria de caber en un telefono chico;
-   una pantalla que no cabe apaga el salto entre pantallas de toda la
-   portada (initDiapositivas).
+   Es el mismo aviso que el de «ya estas aqui» —centrado, con velo, se
+   cierra con la equis, con el velo, con Escape o con el boton— y lleva sus
+   clases: se ve igual porque es la misma pieza. Solo cambia la cabeza: en
+   vez de la marca, los ojos de la primera version de la pagina, mirando a
+   los lados y parpadeando.
 
-   SOLO EN EL TELEFONO, y a proposito: es la pregunta de quien llega desde
-   el enlace de una red, y eso pasa en el telefono. Desde 600px no se pinta
-   ni se mide, y el salto entre pantallas no la cuenta.
-
-   Sigue en el pinar, sin costura: el hero termina en pino liso en el
-   telefono, y esta pantalla empieza en ese mismo pino. Los ojos son los de
-   la primera version de la pagina, en los colores de la casa. */
-const { lang } = Astro.props;
+   Vive solo en la portada, que es donde esta la foto que lo abre. El
+   boton sobre la foto esta en Hero.astro (`data-open-enlace`). */
+const { lang, t } = Astro.props;
 const say = (o) => (o ? (o[lang] ?? o.es) : null);
 ---
-<section class="enlace">
-  <span class="enlace__ojos" aria-hidden="true"></span>
-  <div class="enlace__cuerpo">
+<div class="here-panel enlace" id="enlace-panel" hidden>
+  <div class="here-panel__scrim" data-close-enlace></div>
+  <div class="here-panel__sheet" role="dialog" aria-modal="true"
+       aria-labelledby="enlace-titulo" aria-describedby="enlace-texto">
+    <button class="here-panel__close" type="button" data-close-enlace
+            aria-label={t('a11y.closePanel')}>&times;</button>
+    <span class="enlace__ojos" aria-hidden="true"></span>
     <p class="enlace__rotulo">{say(ENLACE.rotulo)}</p>
-    <Pregunta texto={say(ENLACE.pregunta)} tacha={say(ENLACE.tacha)} pone={say(ENLACE.pone)} cls="enlace__pregunta" />
-    <p class="enlace__linea">{say(ENLACE.linea)}</p>
+    <h2 class="here-panel__title" id="enlace-titulo">{say(ENLACE.titulo)}</h2>
+    <p class="here-panel__body" id="enlace-texto">{say(ENLACE.texto)}</p>
+    <button class="here-panel__ok" type="button" data-close-enlace>{say(ENLACE.ok)}</button>
   </div>
-</section>
+</div>

@@ -206,6 +206,102 @@ function initSocial() {
   const opener = d.querySelector('[data-open-social]');
   if (s && opener) opener.addEventListener('click', s.open);
 }
+
+/* ---------- Por que tengo un dominio ------------------------
+   El aviso que sale al tocar mi foto del hero. Es la misma hoja que las
+   demas; aqui solo se le cablea el boton que la abre. */
+function initEnlace() {
+  const s = sheet('enlace-panel', 'data-close-enlace');
+  if (!s) return;
+  d.querySelectorAll('[data-open-enlace]').forEach((b) => b.addEventListener('click', s.open));
+}
+
+/* ---------- Las redes, por tandas ---------------------------
+   En la fila del hero estan las doce, pero solo se ven tres en el telefono
+   y cuatro desde 600px. Cada siete segundos entra la tanda siguiente y el
+   «+» gira un cuarto de vuelta: la fila no crece y, aun asi, con el tiempo
+   se ven todas.
+
+   SE PARA SOLA cuando no puede aportar nada: fuera de la ventana, con la
+   pestaña escondida, o con el raton o el foco encima de la fila. Esto
+   ultimo no es un lujo: un contenido que cambia solo tiene que poder
+   detenerse, y quien esta a punto de pulsar una red no puede quedarse sin
+   ella a medio camino.
+
+   CON MENOS MOVIMIENTO PEDIDO no rota: se queda la primera tanda, que es la
+   misma que se ve sin guion.
+
+   El corte de cada tanda sale del orden de `SOCIAL` (social.js): con doce,
+   tres y cuatro caben justos. */
+function initRedes() {
+  const lista = d.querySelector('[data-redes]');
+  if (!lista) return;
+  const items = [...lista.querySelectorAll('.links__item')];
+  const mas = lista.querySelector('.link-chip--more');
+  if (items.length < 2) return;
+
+  const angosta = matchMedia('(max-width: 599px)');
+  const porTanda = () => (angosta.matches ? 3 : 4);
+  let tanda = 0;
+  let giro = 0;
+
+  const pintar = () => {
+    const n = porTanda();
+    items.forEach((li, i) => li.classList.toggle('is-on', Math.floor(i / n) === tanda));
+  };
+  lista.classList.add('is-rota');
+  pintar();
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const ESPERA = 7000;    /* lo que se queda cada tanda */
+  const CAMBIO = 260;     /* lo que tarda en irse una y llegar la otra */
+  let reloj = 0;
+  let quieta = false;
+  let aLaVista = true;
+
+  const pasar = () => {
+    const tandas = Math.ceil(items.length / porTanda());
+    if (tandas < 2) return;
+    lista.classList.add('is-cambiando');
+    setTimeout(() => {
+      tanda = (tanda + 1) % tandas;
+      pintar();
+      giro += 90;
+      if (mas) mas.style.setProperty('--giro', giro + 'deg');
+      /* Las que llegan empiezan apagadas: se les da un cuadro antes de
+         soltar el cambio, o entrarian de golpe y solo se veria la salida. */
+      requestAnimationFrame(() => lista.classList.remove('is-cambiando'));
+    }, CAMBIO);
+  };
+
+  const andar = () => {
+    if (reloj || quieta || !aLaVista || d.hidden) return;
+    reloj = setInterval(pasar, ESPERA);
+  };
+  const parar = () => { clearInterval(reloj); reloj = 0; };
+  const mirar = () => (quieta || !aLaVista || d.hidden ? parar() : andar());
+
+  lista.addEventListener('pointerenter', () => { quieta = true; mirar(); });
+  lista.addEventListener('pointerleave', () => { quieta = false; mirar(); });
+  lista.addEventListener('focusin', () => { quieta = true; mirar(); });
+  /* El foco sale antes de llegar a donde va: se mira en la vuelta
+     siguiente, cuando ya se sabe si se quedo dentro de la fila. */
+  lista.addEventListener('focusout', () => setTimeout(() => {
+    quieta = lista.contains(d.activeElement);
+    mirar();
+  }, 0));
+  d.addEventListener('visibilitychange', mirar);
+  /* Al cambiar de ancho cambia el tamaño de la tanda: se vuelve a la
+     primera, o la cuenta quedaria a medias. */
+  angosta.addEventListener('change', () => { tanda = 0; pintar(); });
+
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => { aLaVista = e.isIntersecting; mirar(); }).observe(lista);
+  } else {
+    andar();
+  }
+}
 /* ---------- Dos cuentas, una por idioma ----------------------
    Instagram y TikTok tienen casa en español y casa en ingles. La ficha
    sigue siendo un enlace de verdad: sin JavaScript lleva a la de casa,
@@ -2067,6 +2163,8 @@ initFieldGlow();
 initNav();
 initViewportLock();
 initSocial();
+initEnlace();
+initRedes();
 initContact();
 initAccounts();
 initOrbit();

@@ -1,6 +1,19 @@
-/* Las ocho plataformas, en un solo sitio.
+/* Las doce plataformas, en un solo sitio.
    El orden de este array es el orden en que aparecen.
-   `row: true` = sale en la fila visible del hero. */
+
+   DOCE A PROPOSITO. La fila del hero enseña tres en el telefono y cuatro
+   desde 600px, y va cambiando de tanda cada pocos segundos (initRedes): con
+   doce, las tandas salen justas en los dos anchos —cuatro de tres, tres de
+   cuatro— y ninguna queda coja. Por eso el orden importa: cada tanda es un
+   corte de esta lista.
+
+   `row: true` = la primera tanda, la que se ve sin guion y la que se ve
+   primero con el.
+
+   `soon: true`, SIN `href`: la cuenta existe o va a existir, pero todavia
+   no hay direccion. Sale igual, y al tocarla avisa (`soon.social`) en vez
+   de llevar a ninguna parte. El dia que tenga direccion se le pone el
+   `href` y se le quita `soon`. */
 export const SOCIAL = [
   { id: 'linkedin',  name: 'LinkedIn',  row: true,  href: 'https://www.linkedin.com/in/juanjoselopezramirez' },
   { id: 'github',    name: 'GitHub',    row: true,  href: 'https://github.com/juanjolopezramirez' },
@@ -29,7 +42,13 @@ export const SOCIAL = [
       { lang: 'en', handle: '@juanjo7opezramirez', soon: true }
     ] },
   { id: 'youtube',   name: 'YouTube',   row: false, href: 'https://www.youtube.com/@juanjolopezramirez' },
-  { id: 'x',         name: 'X',         row: false, href: 'https://x.com/juanjolopezr' }
+  { id: 'x',         name: 'X',         row: false, href: 'https://x.com/juanjolopezr' },
+  { id: 'pinterest', name: 'Pinterest', row: false, href: 'https://www.pinterest.com/juanjo7opezramirez/' },
+  /* El podcast. Todavia sin direccion: sale apagado y avisa. */
+  { id: 'spotify',   name: 'Spotify',   row: false, soon: true, label: 'Spotify — podcast' },
+  { id: 'platzi',    name: 'Platzi',    row: false, href: 'https://platzi.com/p/juanjolopezramirez/' },
+  /* El mismo numero que la puerta de WhatsApp de «Caminemos» (CONTACT). */
+  { id: 'whatsapp',  name: 'WhatsApp',  row: false, href: 'https://wa.me/573155278033' }
 ];
 
 /* Las secciones del sitio. Añade una aquí y aparece en el menú y en el pie.

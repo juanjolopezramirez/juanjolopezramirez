@@ -1,0 +1,28 @@
+---
+import Icon from './Icon.astro';
+
+/* Una red, la misma pieza en la fila del hero y en la hoja de todas.
+
+   CON DIRECCION es un enlace de verdad: sin JavaScript lleva a la cuenta.
+   Instagram y TikTok llevan ademas `data-accounts`, y con JavaScript abren
+   la hoja para elegir la cuenta de cada idioma (initAccounts).
+
+   SIN DIRECCION TODAVIA (`soon`) es un boton que avisa, no un enlace que no
+   lleva a ninguna parte: un <a> sin destino promete y no cumple. Se ve
+   igual —y responde igual al pasar por encima— para que la fila no tenga
+   huecos; al tocarlo sale el aviso de `soon.social` (initSoon). */
+const { s, t, cls = '' } = Astro.props;
+const nombre = s.label ?? s.name;
+---
+{s.href ? (
+  <a class:list={['link-chip', `net--${s.id}`, cls]} href={s.href} target="_blank" rel="noopener noreferrer"
+     data-accounts={s.accounts ? s.id : undefined}
+     data-account-name={s.accounts ? s.name : undefined}
+     aria-haspopup={s.accounts ? 'dialog' : undefined}>
+    <Icon id={s.id} /><span class="sr-only">{nombre}{s.accounts ? ` — ${t('a11y.accounts')}` : ''}</span>
+  </a>
+) : (
+  <button class:list={['link-chip', `net--${s.id}`, 'is-soon', cls]} type="button" data-soon="soon.social">
+    <Icon id={s.id} /><span class="sr-only">{nombre} — {t('a11y.soon')}</span>
+  </button>
+)}
