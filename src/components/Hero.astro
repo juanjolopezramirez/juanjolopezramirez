@@ -133,6 +133,32 @@ const DOORS = [
     </div>
 
     <Rhema t={t} where="panel" />
+
+    <!-- LAS DOS PUERTAS, EN EL TELEFONO. Arriba, en la identidad, viven las
+         mismas dos (`hero__doors`), pero ahi se esconden por debajo de
+         600px: en una pantalla estrecha no cabian al lado del nombre. Al
+         final de esta hoja si caben, y es el ultimo sitio antes del hueso —
+         quien llego hasta aqui ya sabe quien soy y lo siguiente que quiere
+         es ver el trabajo.
+
+         Con los nombres cortos del menu y no con los de arriba: dos
+         pastillas de una linea, lado a lado, se leen de un vistazo. Desde
+         600px esto no existe: mandan las puertas de la identidad. -->
+    <nav class="hero__cta" aria-labelledby="cta-puertas" data-lift>
+      <h3 class="hero__cta-title" id="cta-puertas">{t('hero.explore')}</h3>
+      <ul class="hero__cta-list">
+        <li>
+          <a class="cta cta--lleno" href={`/${lang}/work/`}>
+            <span>{t('nav.work')}</span><Icon id="corner" />
+          </a>
+        </li>
+        <li>
+          <a class="cta" href={`/${lang}/projects/`}>
+            <span>{t('nav.projects')}</span><Icon id="corner" />
+          </a>
+        </li>
+      </ul>
+    </nav>
   </section>
 
 </section>

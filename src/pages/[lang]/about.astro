@@ -3,6 +3,8 @@ import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import Planet from '../../components/Planet.astro';
+import Ligero from '../../components/Ligero.astro';
+import Camino from '../../components/Camino.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -17,4 +19,14 @@ const title = t('page.about.title');
          puertas ni boton de escribirme. El camino se mira, no se navega. -->
     <Planet slot="aside" />
   </PageHero>
+
+  {/* AQUI VIVE EL CAMINO. Estuvo en la portada y este es su sitio: la
+      pregunta es por donde he caminado, y la seccion se llama asi.
+
+      Es el mismo paramo de la portada, con su dibujo, su parallax y su
+      niebla —el recorrido entero—, pero preguntando otra cosa; debajo, la
+      roca con la linea de tiempo. En la portada se queda la pregunta de
+      siempre, la de caminar ligero. */}
+  <Ligero t={t} pregunta="camino" />
+  <Camino lang={lang} t={t} />
 </Base>

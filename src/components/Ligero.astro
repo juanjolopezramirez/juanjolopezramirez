@@ -1,9 +1,18 @@
 ---
-/* ¿POR DÓNDE HE CAMINADO?
+/* EL PÁRAMO, Y SU PREGUNTA
 
-   Antes preguntaba «¿Qué significa caminar ligero?». Ahora pregunta por el
-   camino recorrido, y la respuesta es la seccion que sube debajo: la roca con
-   la linea de tiempo (Camino.astro). «Ligero» sigue en la cita.
+   La misma escena hace dos preguntas, una por pagina:
+
+     `pregunta="ligero"` (la portada) — «¿Qué significa caminar ligero?»,
+     la de siempre. Ahi la escena es el final del recorrido: se pregunta y
+     se queda preguntado.
+
+     `pregunta="camino"` (Sobre el camino) — «¿Por dónde he caminado?», y
+     debajo la respuesta: la roca con la linea de tiempo (Camino.astro).
+
+   El dibujo, el parallax y la niebla son los mismos en las dos: lo unico
+   que cambia son las palabras de arriba. «Ligero» sigue tambien en la cita
+   de la portada.
 
    EL DIBUJO FINAL, CAPA POR CAPA. La escena es el diseño plano del páramo
    —la meseta con sus frailejones al fondo, el risco en dos masas, la pared
@@ -28,7 +37,12 @@
    meseta casi no se mueve, el pasto corre. Cada capa va en un plano del
    tamaño del dibujo, cuyo centro es el del ojo, y así nada se descoloca. El
    orden lo pone la distancia, no el HTML. */
-const { t } = Astro.props;
+const { t, pregunta = 'ligero' } = Astro.props;
+/* La de siempre lleva su palabra a mano en `hero.lightly`, que es la misma
+   que usa la cita; la del camino tiene la suya. */
+const q = pregunta === 'camino'
+  ? { texto: t('camino.q'), mano: t('camino.qHand'), fin: t('camino.qEnd') }
+  : { texto: t('light.q'), mano: t('hero.lightly'), fin: t('light.qEnd') };
 
 const base = '/assets/paramo/';
 const OJO = 700;                       /* la `perspective` de la caja, en px */
@@ -91,7 +105,7 @@ const PIE = '(max-aspect-ratio: 1/1)';
     </div>
 
     <h2 class="ligero__pregunta" id="ligero-title">
-      {t('light.q')}<em class="script">{t('light.qHand')}</em>{t('light.qEnd')}
+      {q.texto}<em class="script">{q.mano}</em>{q.fin}
     </h2>
   </div>
 </section>

@@ -6,8 +6,8 @@ import Rhema from '../../components/Rhema.astro';
 import Orbit from '../../components/Orbit.astro';
 import Signature from '../../components/Signature.astro';
 import Ligero from '../../components/Ligero.astro';
-import Camino from '../../components/Camino.astro';
 import Enlace from '../../components/Enlace.astro';
+import Icon from '../../components/Icon.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -60,13 +60,21 @@ const t = useT(lang);
       </h2>
 
       <p class="reveal">{t('about.p1')}</p>
+
+      {/* Donde termina de explicarse el ágape: quien acaba de leer de dónde
+          vengo es quien quiere seguir por el camino. La puerta va aquí y no
+          en el menú solo, porque aquí es donde nace la pregunta. */}
+      <a class="cta cta--tinta reveal" href={`/${lang}/about/`}>
+        <span>{t('nav.about')}</span><Icon id="corner" />
+      </a>
     </div>
   </section>
 
-  {/* La pregunta que sigue al titular de arriba, con el paramo detras, y
-      su respuesta: la roca que sube con el camino recorrido. */}
+  {/* La pregunta que sigue al titular de arriba, con el paramo detras. La
+      respuesta —el camino recorrido, con su linea de tiempo— ya no vive
+      aqui: se mudo a «Sobre el camino», y ahi el mismo paramo pregunta por
+      donde he caminado. Aqui se queda la pregunta de siempre. */}
   <Ligero t={t} />
-  <Camino lang={lang} t={t} />
 
   {/* El aviso de por que tengo un dominio: se abre al tocar mi foto del
       hero. Escondido no mide nada, asi que el salto entre pantallas no lo

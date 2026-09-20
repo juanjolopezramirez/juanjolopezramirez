@@ -217,10 +217,11 @@ function initEnlace() {
 }
 
 /* ---------- Las redes, por tandas ---------------------------
-   En la fila del hero estan las doce, pero solo se ven tres en el telefono
-   y cuatro desde 600px. Cada siete segundos entra la tanda siguiente y el
-   «+» gira un cuarto de vuelta: la fila no crece y, aun asi, con el tiempo
-   se ven todas.
+   En la fila del hero estan las nueve, pero solo se ven tres a la vez: las
+   mismas tres en el telefono y en el escritorio, porque las tandas las
+   eligio el fundador (social.js) y no pueden cambiar con el ancho. Cada
+   siete segundos entra la siguiente y el «+» gira un cuarto de vuelta: la
+   fila no crece y, aun asi, con el tiempo se ven todas.
 
    SE PARA SOLA cuando no puede aportar nada: fuera de la ventana, con la
    pestaña escondida, o con el raton o el foco encima de la fila. Esto
@@ -231,8 +232,7 @@ function initEnlace() {
    CON MENOS MOVIMIENTO PEDIDO no rota: se queda la primera tanda, que es la
    misma que se ve sin guion.
 
-   El corte de cada tanda sale del orden de `SOCIAL` (social.js): con doce,
-   tres y cuatro caben justos. */
+   El corte sale del orden de `SOCIAL` (social.js), de tres en tres. */
 function initRedes() {
   const lista = d.querySelector('[data-redes]');
   if (!lista) return;
@@ -240,14 +240,12 @@ function initRedes() {
   const mas = lista.querySelector('.link-chip--more');
   if (items.length < 2) return;
 
-  const angosta = matchMedia('(max-width: 599px)');
-  const porTanda = () => (angosta.matches ? 3 : 4);
+  const POR_TANDA = 3;
   let tanda = 0;
   let giro = 0;
 
   const pintar = () => {
-    const n = porTanda();
-    items.forEach((li, i) => li.classList.toggle('is-on', Math.floor(i / n) === tanda));
+    items.forEach((li, i) => li.classList.toggle('is-on', Math.floor(i / POR_TANDA) === tanda));
   };
   lista.classList.add('is-rota');
   pintar();
@@ -261,7 +259,7 @@ function initRedes() {
   let aLaVista = true;
 
   const pasar = () => {
-    const tandas = Math.ceil(items.length / porTanda());
+    const tandas = Math.ceil(items.length / POR_TANDA);
     if (tandas < 2) return;
     lista.classList.add('is-cambiando');
     setTimeout(() => {
@@ -292,9 +290,6 @@ function initRedes() {
     mirar();
   }, 0));
   d.addEventListener('visibilitychange', mirar);
-  /* Al cambiar de ancho cambia el tamaño de la tanda: se vuelve a la
-     primera, o la cuenta quedaria a medias. */
-  angosta.addEventListener('change', () => { tanda = 0; pintar(); });
 
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(([e]) => { aLaVista = e.isIntersecting; mirar(); }).observe(lista);
