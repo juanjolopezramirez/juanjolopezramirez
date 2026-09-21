@@ -100,6 +100,14 @@ const DOORS = [
     </nav>
 
     <div data-lift><SocialRow t={t} /></div>
+
+    <!-- LA PALABRA, EN LA PARTE VERDE. Solo en escritorio: ahi cierra la
+         columna del nombre, al lado de las redes, y la hoja blanca se queda
+         con lo que se ofrece y las dos puertas. Es otra copia de la misma
+         cita —como la de «Sobre mi»—, porque el sitio donde vive cambia con
+         el ancho y el documento es uno solo; la que no toca se esconde, y a
+         un lector de pantalla tampoco le llega dos veces. -->
+    <Rhema t={t} where="verde" />
   </div>
 
   <!-- El boton se queda siempre. Encima, exactamente encima, un gemelo
@@ -128,12 +136,22 @@ const DOORS = [
        siempre: por eso la palabra va la ultima en el documento —ese es su
        sitio en la hoja ancha— y en el telefono sube con `order`. -->
   <section class="hero__panel" aria-labelledby="offer-title">
-    <div class="hero__hoja" data-pantalla>
+    <!-- Pantalla 2: la palabra y, debajo, lo que hago. La palabra sola en
+         una ventana entera se quedaba vacia, y el titular sin ella llegaba
+         seco: juntos se leen como una sola idea. -->
+    <div class="hero__palabra" data-pantalla>
+    <Rhema t={t} where="panel" />
+
     <div class="hero__offer" data-glossary data-lift>
       <h2 class="hero__offer-title" id="offer-title"><span class="is-narrow">{t('panel.titleMobile')}</span><span class="is-wide">{t('panel.title')}</span></h2>
       <p class="hero__offer-body">{t('panel.body')}</p>
     </div>
 
+    </div>
+
+    <!-- Pantalla 3: para quien es esto y por donde seguir. Ligera a
+         proposito: es la que cierra el hero. -->
+    <div class="hero__hoja" data-pantalla>
     <div class="hero__available" data-glossary data-lift>
       <p class="hero__status">
         <span class="hero__status-dot" aria-hidden="true"></span>
@@ -167,11 +185,6 @@ const DOORS = [
         </li>
       </ul>
     </nav>
-    </div>
-
-    <!-- La palabra que me sostiene. En el telefono, su propia pantalla. -->
-    <div class="hero__palabra" data-pantalla>
-      <Rhema t={t} where="panel" />
     </div>
   </section>
 

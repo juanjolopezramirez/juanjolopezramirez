@@ -917,6 +917,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    En movil no desaparece: solo espera. Cae por debajo del pliegue y se
    levanta con el scroll, como el resto de los textos. */
 .hero__panel {
+  display: flex;
+  flex-direction: column;
   width: min(100%, 30rem);
   margin: 3.25rem auto 0;
   text-align: left;
@@ -926,6 +928,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    se deshacen: sus hijos cuelgan de la hoja como si nada los envolviera. */
 .hero__hoja,
 .hero__palabra { display: contents; }
+/* La copia de la palabra que vive en la columna verde solo existe en
+   escritorio (desktop.css la enciende). Hasta ahi, la que manda es la de la
+   hoja. */
+.rhema--verde { display: none; }
 
 /* El titular se dice distinto segun el ancho: en movil en gerundio, en
    pantalla grande en primera persona. Van los dos en el documento y el
@@ -1079,7 +1085,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   /* La hoja se vuelve flexible solo para poder mandar la palabra arriba
      sin tocar el orden del documento — en escritorio cierra la columna,
      y ahi se queda. */
-  .hero__panel { display: flex; flex-direction: column; }
   .rhema--panel { display: block; }
   .rhema--about { display: none; }
 
@@ -6387,8 +6392,11 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
    la palabra se metia debajo de la cabecera y se tapaba. Asi que la hoja
    mide dos ventanas y cada envoltorio se queda con una, centrada y con el
    hueco de la cabecera descontado por dentro (`border-box`), como la
-   primera pantalla. La palabra va primero: es lo que sostiene todo lo que
-   viene despues.
+   primera pantalla.
+
+   Y se reparten para que las dos se lean facil: arriba la palabra con el
+   titular —la palabra sola en una ventana entera se quedaba vacia—, y
+   debajo, ligera, la ficha de disponible con las dos puertas.
 
    El hero pasa a medir tres ventanas en el telefono, y el salto entre
    pantallas cuenta tres (initDiapositivas lee `data-pantalla`). */
@@ -6403,13 +6411,9 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
     min-height: 100svh;
     padding-top: calc(var(--header-h) + .45rem);
   }
-  .hero__palabra { order: -1; }
-  /* La pantalla ya pone el aire alrededor de la palabra. Y como ahora la
-     pantalla es suya, la palabra se lee mas grande: en una ventana entera,
-     al tamaño de antes, parecia una nota al pie. */
-  .rhema--panel { margin: 0; padding: 1.5rem 1.4rem 1.4rem; }
-  .hero__palabra .rhema__text { font-size: 1.1rem; line-height: 1.6; }
-  .hero__palabra .rhema .icon--quote { width: 1.6rem; height: 1.24rem; }
+  /* La palabra abre la pantalla y el titular la sigue: el aire entre las
+     dos lo pone este margen, no la pantalla. */
+  .rhema--panel { margin: 0 0 1.9rem; }
 }
 
 /* Y las de contenido. Centradas: con altura fija, el texto pegado arriba

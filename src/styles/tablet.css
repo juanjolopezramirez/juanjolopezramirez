@@ -73,8 +73,10 @@
   .hero__offer-title { font-size: 1.6rem; }
   .hero__available { margin-top: 1.6rem; }
 
-  /* La palabra vuelve a la hoja del hero */
-  .rhema--panel { display: block; }
+  /* La palabra vuelve a la hoja del hero, y cierra la columna: en el
+     documento va primera —en el telefono abre su pantalla—, asi que aqui
+     se manda al final con `order`. */
+  .rhema--panel { display: block; order: 3; }
   .rhema--about { display: none; }
 
   .cue { margin: 2.5rem auto 0; width: fit-content; }

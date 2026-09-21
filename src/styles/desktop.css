@@ -410,12 +410,73 @@
   }
   .hero__role { font-size: .74rem; letter-spacing: .18em; margin-bottom: .9rem; }
 
-  .hero__doors { margin-top: 1.9rem; }
-  .hero__doors-list { gap: .55rem; }
+  /* LAS DOS PUERTAS SE VAN A LA HOJA BLANCA. En la columna verde ocupaban
+     el sitio donde ahora cierra la palabra, y en la hoja son lo que son: lo
+     que se hace despues de leer lo que ofrezco. Son las mismas dos del
+     telefono (`.hero__cta`), que aqui se encienden. */
+  .hero__doors { display: none; }
 
   .links { margin-top: 1.9rem; }
   .link-chip { width: 2.9rem; height: 2.9rem; }
   .link-chip .icon { width: 1.75rem; height: 1.75rem; }
+
+  /* LA PALABRA CIERRA LA COLUMNA VERDE, con el mismo trato que en el
+     telefono: sin caja, letra de hueso sobre el pinar, y el color guardado
+     para lo que lo necesita —el oro de la comilla y el de `ahava`—. Iris
+     sobre el pinar tiñe la frase de verde sobre verde, y el iris oscuro de
+     la pagina clara no se leeria aqui.
+
+     Va con el nombre de la columna delante porque la regla general de
+     `.rhema` —la de la hoja, con su caja de hueso— viene despues en la hoja
+     de estilo y le ganaria por orden. La de la hoja se apaga. */
+  .rhema--panel { display: none; }
+  .hero__identity .rhema--verde {
+    display: block;
+    /* MAS ESTRECHA QUE LA COLUMNA. A 1200px la columna y la foto se
+       solapan —la foto entra recortada, con su lado izquierdo en nada— y
+       una cita del ancho de la columna se metia por debajo de mi hombro.
+       Con 21rem el renglon termina siempre antes de la foto. */
+    width: min(100%, 21rem);
+    margin: 2.4rem 0 0;
+    padding: 1.4rem 0 0;
+    background: none;
+    border: 0;
+    border-top: 1px solid rgba(241, 239, 233, .16);
+    border-radius: 0;
+    color: var(--bone);
+    animation: none;
+  }
+  .hero__identity .rhema .icon--quote { width: 1.2rem; height: .92rem; color: var(--ring); }
+  .hero__identity .rhema__text {
+    margin: .5rem 0 .85rem;
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--bone);
+  }
+  .hero__identity .rhema__text .ahava { color: var(--ring); }
+  .hero__identity .rhema__by {
+    gap: .6rem;
+    padding-top: .8rem;
+    border-top: 1px solid rgba(241, 239, 233, .16);
+  }
+  .hero__identity .rhema__face { width: 2.2rem; height: 2.2rem; }
+  .hero__identity .rhema__by b { font-size: .78rem; color: var(--bone); }
+  .hero__identity .rhema__by small { font-size: .68rem; color: var(--pine-200); }
+
+  /* EN UNA PANTALLA DE PORTATIL la columna llega justa: a 1280 x 720 la
+     palabra terminaba a siete pixeles del boton de bajar. Se recorta el
+     aire de las piezas, no su tamaño de letra, y quedan mas de treinta. */
+  /* Y en la mas estrecha de las anchas (1200-1279) la foto entra antes: la
+     palabra se recoge un poco mas para no rozarla. */
+  @media (max-width: 1279px) {
+    .hero__identity .rhema--verde { width: min(100%, 19rem); }
+  }
+  @media (max-height: 820px) {
+    .links { margin-top: 1.4rem; }
+    .hero__identity .rhema--verde { margin-top: 1.5rem; padding-top: 1rem; }
+    .hero__identity .rhema__text { margin: .4rem 0 .65rem; }
+    .hero__identity .rhema__by { padding-top: .7rem; }
+  }
 
   /* ---- La hoja de hueso ----
      Sin z-index propio tampoco: el fondo se queda detras de mi y las
@@ -450,6 +511,29 @@
     z-index: 4;                           /* delante de mi */
     width: min(100%, 22rem);
   }
+
+  /* LOS CTA, EN LA HOJA BLANCA. Los mismos del telefono, con la tinta al
+     reves: sobre hueso, el relleno es el pinar y el filo tambien, al 35%.
+     Los dos de la misma familia —el verde de la casa— y no uno verde y
+     otro gris, que se leian como dos botones de dos sitios distintos.
+
+     SIN ROTULO ENCIMA. En el telefono «Dos puertas, un mismo camino» dice
+     de que va lo que viene; aqui la hoja ya viene diciendolo desde arriba,
+     y un rotulo mas rompia el ritmo de la columna. El aire entre piezas lo
+     pone el `gap` de la hoja, asi que el bloque no lleva margen propio. */
+  .hero__cta { display: block; margin-top: 0; }
+  .hero__cta-title { display: none; }
+  .hero__cta-list { gap: .7rem; }
+  .hero__panel .cta {
+    padding: .78rem 1.2rem;
+    border-color: rgb(38 59 40 / .35);
+    color: var(--pine);
+  }
+  .hero__panel .cta:hover,
+  .hero__panel .cta:focus-visible { background: var(--pine); border-color: var(--pine); color: var(--bone); }
+  .hero__panel .cta--lleno { background: var(--pine); border-color: var(--pine); color: var(--bone); }
+  .hero__panel .cta--lleno:hover,
+  .hero__panel .cta--lleno:focus-visible { background: var(--pine-700); border-color: var(--pine-700); color: var(--bone); }
 
   .hero__offer-title { font-size: 1.5rem; color: var(--slate); }
   /* Sobre la hoja, hueso sobre hueso no se ve: el cuerpo va en slate. */
