@@ -598,14 +598,19 @@
     color: var(--slate);
   }
 
-  .rhema {
-    margin: 0;                            /* la palabra cierra la columna */
-    padding: 1.15rem 1.2rem 1.1rem;
-    background: var(--papel-2);
-    box-shadow: 0 18px 40px -22px rgba(11, 20, 13, .45);
-  }
-  .rhema__text { font-size: .88rem; margin: .6rem 0 .9rem; }
-  .rhema__face { width: 2.4rem; height: 2.4rem; }
+  /* AQUI VIVIA LA FICHA DE LA PALABRA, y de ahi salia la caja que no se
+     iba. Cuando la cita vivia en la hoja de hueso tenia sentido: hueso
+     sobre hueso pide un canto, y este `.rhema` le ponia fondo, relleno y
+     una sombra. Desde que la cita se mudo a la columna verde, la copia de
+     la hoja se esconde por encima de 1200px y esta regla solo alcanzaba a
+     la verde, peleando con su propio bloque de abajo: ese le quitaba
+     fondo, filo y radio, pero no la sombra — y una sombra sobre una caja
+     transparente pinta justo lo que se veia, un rectangulo oscuro y
+     difuso detras de la frase y de la firma.
+
+     No se reemplaza por nada: la cita de la columna verde se viste entera
+     unas lineas mas abajo, y lo que aqui quedaba —tamaño de letra y cara—
+     ya lo decide ella. */
 
   /* ---- El camino, abajo del todo, sobre el verde ---- */
   /* Aqui no hay gemelo que valga: el boton es un ancla, no una invitacion. */

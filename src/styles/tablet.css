@@ -28,22 +28,44 @@
   .site-nav__list { padding-inline: 1.5rem; }
   .site-nav__list a { font-size: 1.05rem; padding-block: .9rem; }
 
-  /* ---- Hero en dos columnas ---- */
+  /* ---- Hero en dos columnas ----
+
+     LA REJILLA VA EN `.hero__first`, NO EN EL HERO. Estuvo en el hero, con
+     las areas «identity stage», pero esas tres piezas no cuelgan del hero:
+     cuelgan de `.hero__first`, la caja de la primera pantalla. El hero solo
+     veia dos hijos —esa caja y la hoja—, asi que las areas no colocaban a
+     nadie: `.hero__first` se auto-colocaba en la primera columna y metia
+     dentro foto, nombre y boton, en 342px de una tableta de 820, con la
+     mitad derecha en blanco. Eso era el hueco.
+
+     Y no se arregla deshaciendo `.hero__first` con `display: contents` para
+     que las areas lleguen al hero: esa caja es la que mide una ventana, y
+     el salto entre pantallas la cuenta (initDiapositivas la busca por su
+     nombre). Sin caja, el hero entero entraria como una sola pantalla de
+     dos ventanas de alto, no cabria, y el salto se apagaria en la tableta.
+     Asi que la rejilla baja a donde estan las piezas.
+
+     Dos filas: la de arriba se lleva todo el alto que sobra y centra el
+     nombre y la foto; el boton de bajar cierra abajo, cruzando las dos. */
   .hero {
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--gutter);
+    text-align: left;
+  }
+  .hero__first {
     display: grid;                        /* la rejilla ignora el `order` de movil */
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr auto;
     grid-template-areas:
       "identity stage"
-      "panel    panel"
       "cue      cue";
     align-items: center;
     column-gap: 2.5rem;
-    padding: calc(var(--header-h) + 2rem) var(--gutter) 0;
-    text-align: left;
+    padding-top: calc(var(--header-h) + 2rem);
   }
   .hero__identity { grid-area: identity; }
   .hero__stage    { grid-area: stage; }
-  .hero__panel    { grid-area: panel; }
   .cue            { grid-area: cue; }
 
   .hero__name { margin-top: 0; font-size: clamp(2.6rem, 6.2vw, 3.5rem); }
