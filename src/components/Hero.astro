@@ -117,8 +117,18 @@ const DOORS = [
   </div>
   </div>
 
-  <!-- La hoja de hueso: de donde sale el trabajo, y para quien es. -->
+  <!-- La hoja de hueso: de donde sale el trabajo, y para quien es.
+
+       EN EL TELEFONO SON DOS PANTALLAS, no una. Todo junto —la cita, el
+       titular, el parrafo, la ficha de disponible y las dos puertas— era
+       demasiado para una ventana: la cita quedaba debajo de la cabecera y
+       se tapaba. Ahora la palabra tiene su pantalla y la hoja la suya, y
+       cada una respira. Desde 600px los dos envoltorios se deshacen
+       (`display: contents`) y la hoja vuelve a ser una sola pieza, como
+       siempre: por eso la palabra va la ultima en el documento —ese es su
+       sitio en la hoja ancha— y en el telefono sube con `order`. -->
   <section class="hero__panel" aria-labelledby="offer-title">
+    <div class="hero__hoja" data-pantalla>
     <div class="hero__offer" data-glossary data-lift>
       <h2 class="hero__offer-title" id="offer-title"><span class="is-narrow">{t('panel.titleMobile')}</span><span class="is-wide">{t('panel.title')}</span></h2>
       <p class="hero__offer-body">{t('panel.body')}</p>
@@ -131,8 +141,6 @@ const DOORS = [
       </p>
       <p class="hero__emet">{t('hero.emet')}</p>
     </div>
-
-    <Rhema t={t} where="panel" />
 
     <!-- LAS DOS PUERTAS, EN EL TELEFONO. Arriba, en la identidad, viven las
          mismas dos (`hero__doors`), pero ahi se esconden por debajo de
@@ -159,6 +167,12 @@ const DOORS = [
         </li>
       </ul>
     </nav>
+    </div>
+
+    <!-- La palabra que me sostiene. En el telefono, su propia pantalla. -->
+    <div class="hero__palabra" data-pantalla>
+      <Rhema t={t} where="panel" />
+    </div>
   </section>
 
 </section>

@@ -1516,7 +1516,16 @@ function initDiapositivas() {
        largo la comprobacion de «todo cabe» y apagaba el modulo en movil. */
     const pantallas = [];
     [...main.children].forEach((el) => {
+      /* Y una mitad puede venir partida por dentro: en el telefono la hoja
+         de hueso son dos pantallas —la palabra y el resto—, marcadas con
+         `data-pantalla`. Desde 600px esos envoltorios no generan caja, no
+         miden, y la hoja vuelve a contar como una sola. */
       const mitades = [...el.querySelectorAll(':scope > .hero__first, :scope > .hero__panel')]
+        .flatMap((p) => {
+          const trozos = [...p.querySelectorAll(':scope > [data-pantalla]')]
+            .filter((x) => x.getBoundingClientRect().height > 8);
+          return trozos.length ? trozos : [p];
+        })
         .filter((p) => p.getBoundingClientRect().height > 8);
       if (mitades.length >= 2) { mitades.forEach((p) => pantallas.push(p)); return; }
       pantallas.push(el);
