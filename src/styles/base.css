@@ -988,14 +988,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   justify-content: center;
   min-height: 100svh;
   padding: calc(var(--header-h) + 1.6rem) var(--gutter) 1.5rem;
-  /* El filo marca donde acaba el hueso de «Sobre mi» y empieza la noche,
-     igual que el que marca donde empieza el hueso. */
-  border-top: 3px solid var(--iris);
-  background: var(--space-sky);
-  background-size: 300% 300%;
-  animation: skyFlow 16s ease-in-out infinite;
-  color: var(--bone);
+  background: var(--papel);
 }
+/* ESTE MUNDO SE QUEDA EN EL HUESO, y sus estrellas pasan a ser de oro.
+
+   La regla de la casa —un planeta sobre hueso no es un planeta, es un
+   sello— viene de que las estrellas son color hueso: sobre papel no existen
+   y el globo se queda solo, como una calcomania pegada en un folio. Lo que
+   no se podia era traer el mundo Y dejarlo en hueso sin tocar nada; con las
+   estrellas en oro si se puede, y la portada se queda seguida —«Sobre mi»,
+   esto y el paramo, todo sobre el mismo papel— en vez de meter una pantalla
+   de noche en medio.
+
+   El de «Sobre el camino» no cambia: alli hay cielo de verdad y las
+   estrellas siguen siendo hueso, que es lo que es una estrella de noche. */
+.oferta--hueso .planet { --estrella: var(--ring-tinta); }
 /* El hueco de arriba no es decoracion: las estrellas asoman por encima del
    planeta —la mas alta, un 14% del diametro— y justo ahi flota la cabecera.
    Va en fracciones del diametro y dentro de `.planet`, que es donde
@@ -1017,14 +1024,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   line-height: 1.12;
   letter-spacing: -.02em;
   text-wrap: balance;
-  color: var(--bone);
+  color: var(--slate);
 }
 .oferta--hueso .oferta__texto {
   max-width: var(--measure);
   margin-top: 1.25rem;
   font-size: .9rem;
   line-height: 1.75;
-  color: var(--pine-200);
+  color: var(--slate);
 }
 
 .hero__status {
@@ -1810,6 +1817,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    ============================================================= */
 .planet {
   --planet: clamp(10rem, 42vw, 15rem);
+  /* EL COLOR DE LAS ESTRELLAS ES DE CADA PLANETA, no de la estrella. En un
+     cielo de noche son hueso, que es lo que es una estrella; sobre papel el
+     hueso no existe, asi que ahi se vuelven oro — el amarillo de la casa —
+     y el que manda entonces es `--ring-tinta`, que ya sabe bajar a oro
+     oscuro sobre claro y subir a oro normal en la apariencia oscura. Lo
+     pone quien coloca el planeta, no la estrella. */
+  --estrella: var(--bone);
   --map: 2;                               /* equirectangular: 360 x 180 */
   display: grid;
   place-items: center;
@@ -1955,10 +1969,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   width: 200%; height: 200%;
   border-radius: 50%;
 }
-.cc--bl::before { bottom: 0; left: 0;  box-shadow: -5px  5px 0 0 var(--bone); }
-.cc--br::before { bottom: 0; right: 0; box-shadow:  5px  5px 0 0 var(--bone); }
-.cc--tl::before { top: 0;    left: 0;  box-shadow: -5px -5px 0 0 var(--bone); }
-.cc--tr::before { top: 0;    right: 0; box-shadow:  5px -5px 0 0 var(--bone); }
+.cc--bl::before { bottom: 0; left: 0;  box-shadow: -5px  5px 0 0 var(--estrella); }
+.cc--br::before { bottom: 0; right: 0; box-shadow:  5px  5px 0 0 var(--estrella); }
+.cc--tl::before { top: 0;    left: 0;  box-shadow: -5px -5px 0 0 var(--estrella); }
+.cc--tr::before { top: 0;    right: 0; box-shadow:  5px -5px 0 0 var(--estrella); }
 
 
 /* =============================================================
@@ -3832,15 +3846,6 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
    debajo del pinar en la portada: asi el cambio de suelo se lee como una
    costura de la casa y no como un corte. */
 .phero--sky + .ligero { border-top: 3px solid var(--iris); }
-/* Y en la portada del telefono el paramo tambien viene de un cielo: la
-   pantalla del mundo (`.oferta--hueso`) se puso de noche para que el
-   planeta fuera un planeta. Mismo filo, misma razon — la costura entre dos
-   fondos distintos se marca igual en todo el sitio. Va con el ancho por
-   delante porque por encima de 600px esa pantalla no se pinta, pero el
-   hermano sigue estando ahi y el filo saldria donde no toca. */
-@media (max-width: 599px) {
-  .oferta--hueso + .ligero { border-top: 3px solid var(--iris); }
-}
 
 .ligero {
   --escena-tinte: none;
