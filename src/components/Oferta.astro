@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 const { t, where = 'panel' } = Astro.props;
 const id = `oferta-${where}`;
 ---
@@ -35,4 +36,10 @@ const id = `oferta-${where}`;
     {where === 'hueso' ? t('panel.titleMobile') : t('panel.title')}
   </h2>
   <p class="oferta__texto" data-lift={where === 'hueso' ? true : undefined}>{t('panel.body')}</p>
+  {/* El ictus de la casa, igual que al pie del carrusel de las tarjetas: doce
+      palabras y un parrafo no llenan una ventana entera, y dejarlas flotando
+      en medio de un hueso vacio se lee como una pagina a medio cargar. El
+      texto sube a la cabecera y el sello cierra abajo, como una firma al
+      final de una hoja. */}
+  {where === 'hueso' && <span class="oferta__sello" aria-hidden="true"><Icon id="mark" /></span>}
 </section>

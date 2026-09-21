@@ -967,25 +967,56 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
    El titular se queda por debajo del de «Sobre mi»: ese es el que manda en
    el hueso, y este lo sigue. */
+/* ARRIBA Y CON SELLO, como el carrusel de las tarjetas. Centrado en una
+   ventana entera, esto dejaba trescientos veintitres pixeles de vacio
+   encima y otros tantos debajo: la pantalla se llenaba a un cuarto y se
+   leia como una pagina a medio cargar. El texto sube a donde empieza a
+   leerse y el hueco que queda al pie lo cierra el ictus de la casa. */
 .oferta--hueso {
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 100svh;
-  padding: 2rem var(--gutter);
+  padding: calc(var(--header-h) + 1.6rem) var(--gutter) 1.5rem;
   background: var(--papel);
 }
+/* A ESCALA DE FRASE. Iba a 23px, por debajo del titular de «Sobre mi», y
+   era lo unico que habia en la pantalla: se leia como un pie de foto. Aqui
+   manda, asi que sube a la familia de la pregunta del paramo —la otra
+   frase que es dueña de su ventana— y se queda un paso por debajo de ella,
+   que esa es la que cierra la portada. */
 .oferta--hueso .oferta__titulo {
   max-width: var(--measure);
-  font-size: clamp(1.45rem, 5.6vw, 1.85rem);
+  font-size: clamp(1.75rem, 5.6vw, 2.6rem);
+  line-height: 1.12;
   letter-spacing: -.02em;
+  text-wrap: balance;
   color: var(--slate);
 }
 .oferta--hueso .oferta__texto {
   max-width: var(--measure);
-  margin-top: 1.15rem;
+  margin-top: 1.25rem;
   font-size: .9rem;
   line-height: 1.75;
   color: var(--slate);
+}
+/* Al PIE y no en medio. En las tarjetas el sello se centra en lo que sobra
+   porque sobra poco; aqui sobra media ventana, y centrado se quedaba
+   flotando en mitad del hueso como si se le hubiera caido. Abajo del todo
+   es lo que dice que es: una firma al final de una hoja, y el hueco que
+   queda encima pasa a leerse como margen y no como un vacio. */
+.oferta__sello {
+  flex: 1 0 auto;
+  display: grid; place-items: end center;
+  min-height: 4rem;
+  color: var(--iris-tinta);
+  opacity: .45;
+}
+.oferta__sello .icon {
+  width: auto; height: 2.1rem;
+  animation: floatY 7s var(--ease-smooth) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .oferta__sello .icon { animation: none; }
 }
 
 .hero__status {
