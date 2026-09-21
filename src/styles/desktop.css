@@ -436,9 +436,14 @@
        solapan —la foto entra recortada, con su lado izquierdo en nada— y
        una cita del ancho de la columna se metia por debajo de mi hombro.
        Con 21rem el renglon termina siempre antes de la foto. */
-    width: min(100%, 21rem);
-    margin: 2.4rem 0 0;
-    padding: 1.4rem 0 0;
+    /* NI CAJA NI AIRE DE CAJA. Quitados los filos, quedaban sus huecos:
+       2.4rem de margen mas 1.4rem de relleno, sesenta y un pixeles de nada
+       antes de la comilla, y la cita seguia leyendose como un bloque
+       aparte metido en la columna. El aire que la separa de las redes es
+       ahora el mismo que separa al resto entre si, y nada mas. */
+    width: min(100%, 25rem);
+    margin: 1.7rem 0 0;
+    padding: 0;
     background: none;
     /* SIN RAYAS. Habia un filo encima de la cita y otro encima de la firma,
        y como la cita se recorta antes que la foto, esos dos filos cortaban
@@ -453,17 +458,40 @@
     color: var(--bone);
     animation: none;
   }
-  .hero__identity .rhema .icon--quote { width: 1.2rem; height: .92rem; color: var(--ring); }
+  /* LA COMILLA, DENTRO DEL RENGLON. Ocupaba una linea entera para ella
+     sola, asi que la cita se leia en tres renglones: la comilla, y debajo
+     las dos mitades de la frase. Flotando entra en el primero y la frase
+     empieza donde empieza la comilla. El margen de arriba la baja hasta la
+     altura de las mayusculas de esa primera linea. */
+  .hero__identity .rhema .icon--quote {
+    float: left;
+    width: 1.2rem; height: .92rem;
+    margin: .3rem .5rem 0 0;
+    color: var(--ring);
+  }
+  /* Y UNA FRASE, NO DOS MITADES. Los dos renglones son cajas sueltas para
+     poder escribirse uno detras de otro en el telefono; aqui no se escribe
+     nada, asi que fluyen como lo que son y parten donde toque.
+
+     Entera en una linea no cabe: en español son sesenta y seis caracteres
+     —unos 480px— contra los 427 que hay desde el borde de la columna hasta
+     mi foto, y bajarla a 13px para forzarlo no es una opcion. `balance`
+     tampoco sirve aqui: el navegador se lo salta cuando hay algo flotando
+     dentro del bloque, y la comilla flota. */
+  .hero__identity .rhema__line { display: inline; }
   .hero__identity .rhema__text {
-    margin: .5rem 0 .85rem;
+    margin: 0 0 .7rem;
     font-size: 1rem;
     line-height: 1.55;
     color: var(--bone);
   }
   .hero__identity .rhema__text .ahava { color: var(--ring); }
   .hero__identity .rhema__by {
+    /* Por si la frase se queda en una sola linea en algun idioma: la
+       comilla flotante no puede meterse en la firma. */
+    clear: both;
     gap: .6rem;
-    padding-top: .8rem;
+    padding-top: 0;
     border-top: 0;
   }
   .hero__identity .rhema__face { width: 2.2rem; height: 2.2rem; }
@@ -476,13 +504,28 @@
   /* Y en la mas estrecha de las anchas (1200-1279) la foto entra antes: la
      palabra se recoge un poco mas para no rozarla. */
   @media (max-width: 1279px) {
-    .hero__identity .rhema--verde { width: min(100%, 19rem); }
+    .hero__identity .rhema--verde { width: min(100%, 21rem); }
   }
   @media (max-height: 820px) {
     .links { margin-top: 1.4rem; }
-    .hero__identity .rhema--verde { margin-top: 1.5rem; padding-top: 1rem; }
-    .hero__identity .rhema__text { margin: .4rem 0 .65rem; }
-    .hero__identity .rhema__by { padding-top: .7rem; }
+    .hero__identity .rhema--verde { margin-top: 1.3rem; }
+    .hero__identity .rhema__text { margin: 0 0 .55rem; }
+  }
+  /* VENTANA BAJA: QUE NO SE PISEN. El boton de bajar no esta en la fila,
+     esta clavado abajo (`position: absolute; bottom: 21px`), asi que la
+     columna no lo empuja: le crece encima. Por debajo de unos 660px de
+     alto la firma de la cita quedaba debajo del boton — se veia la
+     pastilla montada sobre «Rhema» y sobre mi cara.
+
+     No se quita nada: se recoge. Menos aire entre piezas y la cara de la
+     firma un punto mas chica, que es lo unico que puede encoger sin que
+     se note. Medido a 1280x600, el caso mas estrecho que se ve en un
+     portatil con la barra de marcadores abierta. */
+  @media (max-height: 700px) {
+    .links { margin-top: 1rem; }
+    .hero__identity .rhema--verde { margin-top: 1rem; }
+    .hero__identity .rhema__text { margin: 0 0 .45rem; line-height: 1.45; }
+    .hero__identity .rhema__face { width: 2rem; height: 2rem; }
   }
 
   /* ---- La hoja de hueso ----
