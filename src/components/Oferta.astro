@@ -1,5 +1,5 @@
 ---
-import Icon from './Icon.astro';
+import Planet from './Planet.astro';
 const { t, where = 'panel' } = Astro.props;
 const id = `oferta-${where}`;
 ---
@@ -32,14 +32,26 @@ const id = `oferta-${where}`;
      entera como siempre. -->
 <section class:list={['oferta', `oferta--${where}`]} aria-labelledby={id} data-glossary
          data-lift={where === 'hueso' ? undefined : true}>
+  {/* EL MUNDO, GIRANDO, ABRIENDO LA PANTALLA. El mismo de «Sobre el camino»
+      y en el mismo sitio que alli: arriba, antes del titulo, porque es lo
+      primero que hay que mirar y mandarlo debajo del texto es esconderlo
+      detras de un scroll.
+
+      Va primero en el documento y no con `order`: aqui no hay nada que
+      reordenar segun el ancho — esta pantalla solo existe en el telefono.
+
+      Y trae el cielo con el. La casa ya lo tiene escrito: «un planeta sobre
+      hueso no es un planeta, es un sello». Por eso esta pantalla deja de ser
+      hueso y pasa a ser noche, como la de «Sobre el camino»; si no, el
+      mundo se veria como una calcomania pegada en un folio y las estrellas
+      no se verian en absoluto. El sello que cerraba el pie se va: estaba
+      para que la pantalla no quedara medio vacia, y ahora eso lo hace el
+      planeta —que ademas es lo que se ha pedido mirar. */}
+  {where === 'hueso' && (
+    <div class="oferta__mundo"><Planet /></div>
+  )}
   <h2 class="oferta__titulo" id={id} data-lift={where === 'hueso' ? true : undefined}>
     {where === 'hueso' ? t('panel.titleMobile') : t('panel.title')}
   </h2>
   <p class="oferta__texto" data-lift={where === 'hueso' ? true : undefined}>{t('panel.body')}</p>
-  {/* El ictus de la casa, igual que al pie del carrusel de las tarjetas: doce
-      palabras y un parrafo no llenan una ventana entera, y dejarlas flotando
-      en medio de un hueso vacio se lee como una pagina a medio cargar. El
-      texto sube a la cabecera y el sello cierra abajo, como una firma al
-      final de una hoja. */}
-  {where === 'hueso' && <span class="oferta__sello" aria-hidden="true"><Icon id="mark" /></span>}
 </section>
