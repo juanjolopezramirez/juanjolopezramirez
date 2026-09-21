@@ -70,7 +70,7 @@
     max-width: 34rem;
     margin: 2.4rem auto 0;
   }
-  .hero__offer-title { font-size: 1.6rem; }
+  .oferta__titulo { font-size: 1.6rem; }
   .hero__available { margin-top: 1.6rem; }
 
   /* La palabra vuelve a la hoja del hero, y cierra la columna: en el

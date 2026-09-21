@@ -236,19 +236,38 @@ function initEnlace() {
 function initRedes() {
   const lista = d.querySelector('[data-redes]');
   if (!lista) return;
-  const items = [...lista.querySelectorAll('.links__item')];
+  const todas = [...lista.querySelectorAll('.links__item')];
   const mas = lista.querySelector('.link-chip--more');
-  if (items.length < 2) return;
+  if (todas.length < 2) return;
 
-  const POR_TANDA = 3;
+  /* CUANTAS SE VEN DE UNA VEZ depende del ancho, y con ellas cuantas hay.
+     Hasta 1200px son nueve en tandas de tres —las que eligio el fundador—;
+     de ahi en adelante la fila es ancha, caben cinco, y entra WhatsApp como
+     decima (`data-ancho`): dos tandas de cinco. Se vuelve a repartir al
+     cruzar el ancho, no solo al cargar, o quien gira la tableta se queda
+     con la cuenta vieja y una tanda sale coja. */
+  const ancho = matchMedia('(min-width: 1200px)');
+  let items = [];
+  let porTanda = 3;
   let tanda = 0;
   let giro = 0;
 
-  const pintar = () => {
-    items.forEach((li, i) => li.classList.toggle('is-on', Math.floor(i / POR_TANDA) === tanda));
+  const repartir = () => {
+    porTanda = ancho.matches ? 5 : 3;
+    items = todas.filter((li) => ancho.matches || !li.hasAttribute('data-ancho'));
+    tanda = 0;
   };
+
+  const pintar = () => {
+    /* Se apagan TODAS y no solo las repartidas: la que se queda fuera al
+       estrechar tiene que soltar su `is-on`, o se quedaria encendida. */
+    todas.forEach((li) => li.classList.remove('is-on'));
+    items.forEach((li, i) => li.classList.toggle('is-on', Math.floor(i / porTanda) === tanda));
+  };
+  repartir();
   lista.classList.add('is-rota');
   pintar();
+  ancho.addEventListener('change', () => { repartir(); pintar(); });
 
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -259,7 +278,7 @@ function initRedes() {
   let aLaVista = true;
 
   const pasar = () => {
-    const tandas = Math.ceil(items.length / POR_TANDA);
+    const tandas = Math.ceil(items.length / porTanda);
     if (tandas < 2) return;
     lista.classList.add('is-cambiando');
     setTimeout(() => {
@@ -1516,16 +1535,7 @@ function initDiapositivas() {
        largo la comprobacion de «todo cabe» y apagaba el modulo en movil. */
     const pantallas = [];
     [...main.children].forEach((el) => {
-      /* Y una mitad puede venir partida por dentro: en el telefono la hoja
-         de hueso son dos pantallas —la palabra y el resto—, marcadas con
-         `data-pantalla`. Desde 600px esos envoltorios no generan caja, no
-         miden, y la hoja vuelve a contar como una sola. */
       const mitades = [...el.querySelectorAll(':scope > .hero__first, :scope > .hero__panel')]
-        .flatMap((p) => {
-          const trozos = [...p.querySelectorAll(':scope > [data-pantalla]')]
-            .filter((x) => x.getBoundingClientRect().height > 8);
-          return trozos.length ? trozos : [p];
-        })
         .filter((p) => p.getBoundingClientRect().height > 8);
       if (mitades.length >= 2) { mitades.forEach((p) => pantallas.push(p)); return; }
       pantallas.push(el);
@@ -2129,7 +2139,7 @@ function initReveal() {
      entra junto, en orden, y no de golpe. */
   const groups = new Map();
   lift.forEach((el) => {
-    const key = el.closest('.hero__identity, .hero__panel, .about, .page') || d.body;
+    const key = el.closest('.hero__identity, .hero__panel, .about, .oferta--hueso, .page') || d.body;
     const i = groups.get(key) || 0;
     groups.set(key, i + 1);
     el.style.setProperty('--d', i * 90 + 'ms');

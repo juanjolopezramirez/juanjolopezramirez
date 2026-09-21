@@ -923,38 +923,69 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 3.25rem auto 0;
   text-align: left;
 }
-/* Los dos envoltorios de la hoja no existen salvo en el telefono, donde
-   parten la hoja en dos pantallas (ver «UNA SECCION, UNA PANTALLA»). Aqui
-   se deshacen: sus hijos cuelgan de la hoja como si nada los envolviera. */
-.hero__hoja,
-.hero__palabra { display: contents; }
 /* La copia de la palabra que vive en la columna verde solo existe en
    escritorio (desktop.css la enciende). Hasta ahi, la que manda es la de la
    hoja. */
 .rhema--verde { display: none; }
 
-/* El titular se dice distinto segun el ancho: en movil en gerundio, en
-   pantalla grande en primera persona. Van los dos en el documento y el
-   ancho elige — `display: none` tambien lo salta el lector de pantalla,
-   asi que nunca se oye dos veces. */
-.hero__offer-title .is-narrow { display: none; }
+/* LO QUE HAGO CAMBIA DE SITIO, no solo de tamaño. Desde 600px encabeza la
+   hoja del hero; en el telefono baja al hueso y es su propia pantalla
+   (Oferta.astro). Van las dos copias en el documento y el ancho elige:
+   `display: none` tambien lo salta el lector de pantalla, asi que nunca se
+   oye dos veces. Y la que no toca no mide, que es lo que deja al salto
+   entre pantallas contar bien en cada ancho.
+
+   El titular se dice distinto en cada sitio —en el hueso en gerundio, en la
+   hoja en primera persona—, pero eso ya no lo decide el CSS: cada copia
+   pide su clave. */
+.oferta--hueso { display: none; }
 @media (max-width: 599px) {
-  .hero__offer-title .is-narrow { display: inline; }
-  .hero__offer-title .is-wide { display: none; }
+  .oferta--panel { display: none; }
+  .oferta--hueso { display: flex; }
 }
 
-.hero__offer-title {
+.oferta__titulo {
   margin: 0;
   font-family: var(--serif);
   font-size: 1.35rem; font-weight: 400;
   line-height: 1.15; letter-spacing: -.015em;
   color: var(--bone);
 }
-.hero__offer-body {
+.oferta__texto {
   margin: .95rem 0 0;
   font-size: .88rem; font-weight: 300;
   line-height: 1.65;
   color: var(--pine-200);
+}
+
+/* ---- LA PANTALLA DEL HUESO. Solo en el telefono ----------------------
+   Viene detras de «Sobre mi» y es el mismo papel: sin filo y sin cambio de
+   fondo, para que se lean como una sola hoja que sigue. Lo unico que
+   cambia respecto a la copia de la hoja del hero es la tinta —alli el
+   titular va en hueso sobre el pinar; aqui, sobre papel, en la tinta del
+   resto del hueso— y el aire, que ahora es el de una pantalla entera.
+
+   El titular se queda por debajo del de «Sobre mi»: ese es el que manda en
+   el hueso, y este lo sigue. */
+.oferta--hueso {
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 2rem var(--gutter);
+  background: var(--papel);
+}
+.oferta--hueso .oferta__titulo {
+  max-width: var(--measure);
+  font-size: clamp(1.45rem, 5.6vw, 1.85rem);
+  letter-spacing: -.02em;
+  color: var(--slate);
+}
+.oferta--hueso .oferta__texto {
+  max-width: var(--measure);
+  margin-top: 1.15rem;
+  font-size: .9rem;
+  line-height: 1.75;
+  color: var(--slate);
 }
 
 .hero__status {
@@ -2066,7 +2097,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    entienda parte como siempre.
    ============================================================= */
 .about__heading,
-.hero__offer-title,
+.oferta__titulo,
 .hero__doors-title,
 .phero__title,
 .links__title,
@@ -2082,7 +2113,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 .about__body p,
-.hero__offer-body,
+.oferta__texto,
 .term-panel__def,
 .pillar__text,
 .site-footer__meta {
@@ -4504,6 +4535,19 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 @media (min-width: 600px) {
   .social-panel__sheet { width: min(25rem, 100%); padding-inline: 1.8rem; }
 }
+/* LA DECIMA RED NO EXISTE POR DEBAJO DE 1200px (social.js, `ancho: true`).
+   En la fila del hero lo decide el guion, que ni la reparte; aqui, en la
+   hoja de todas, lo decide el ancho — si no, el telefono veria diez donde
+   el fundador dejo nueve, y la rejilla de tres en tres quedaria coja. */
+@media (max-width: 1199px) {
+  .social-panel__item[data-ancho] { display: none; }
+}
+/* Y de 1200 para arriba son diez: cinco y cinco, las mismas dos tandas que
+   ensena la fila. */
+@media (min-width: 1200px) {
+  .social-panel__sheet { width: min(34rem, 100%); }
+  .social-panel__grid { grid-template-columns: repeat(5, 1fr); }
+}
 .social-panel__item {
   display: grid; justify-items: center; gap: .45rem;
   opacity: 0;
@@ -6005,6 +6049,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
     .hero__first,
     .hero__panel,
     .about,
+    .oferta--hueso,
     .phero,
     .partners,
     .ligero,
@@ -6027,7 +6072,12 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
     .hero__capa,
     .hero__identity,
     .cue,
-    .hero__offer,
+    /* La copia de la hoja se mueve entera, porque va dentro de la pantalla
+       de otro. La del hueso ES la pantalla, asi que lo que se mueve es lo
+       de dentro — igual que en «Sobre mi». */
+    .oferta--panel,
+    .oferta--hueso .oferta__titulo,
+    .oferta--hueso .oferta__texto,
     .rhema--panel,
     .about__portrait,
     .about__heading,
@@ -6052,13 +6102,6 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
       animation-range: cover;
     }
 
-    /* En el telefono la hoja son dos pantallas, y cada una mide su propio
-       recorrido: si midieran las dos contra la hoja entera, lo de dentro se
-       moveria a la mitad de velocidad y llegaria tarde. */
-    @media (max-width: 599px) {
-      .hero__hoja,
-      .hero__palabra { view-timeline: --capa block; }
-    }
 
     /* LA PORTADA. El bosque se queda atras, la foto va un poco por delante y
        el nombre mas: al bajar, la calcomania se abre en tres. */
@@ -6067,8 +6110,14 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
     .hero__identity    { --prx: 46; }
     .cue               { --prx: 90; }
     /* La hoja de hueso: el texto llega antes que la palabra. */
-    .hero__offer       { --prx: 54; }
+    .oferta--panel     { --prx: 54; }
     .rhema--panel      { --prx: 96; }
+
+    /* LO QUE HAGO, EN EL HUESO. El titular se adelanta y el parrafo lo
+       sigue: el mismo hueco que abre «Sobre mi», mas corto porque la
+       pantalla es mas ligera y no hay foto de la que separarse. */
+    .oferta--hueso .oferta__titulo { --prx: 62; }
+    .oferta--hueso .oferta__texto  { --prx: 34; }
 
     /* SOBRE MI. La copia se queda atras y el titular se adelanta: entre los
        dos se abre el hueco que hace de profundidad. Se separan mas que el
@@ -6387,32 +6436,21 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .hero__panel { min-height: 100svh; justify-content: center; margin-top: 0; }
 .hero { padding-bottom: 0; }
 
-/* EN EL TELEFONO LA HOJA SON DOS PANTALLAS. Junto todo —la palabra, el
-   titular, el parrafo, la ficha de disponible y las dos puertas— no cabia:
-   la palabra se metia debajo de la cabecera y se tapaba. Asi que la hoja
-   mide dos ventanas y cada envoltorio se queda con una, centrada y con el
-   hueco de la cabecera descontado por dentro (`border-box`), como la
-   primera pantalla.
+/* EN EL TELEFONO LA HOJA ES UNA, y vuelve a caber. Llego a medir dos
+   ventanas —la palabra en una y el resto en otra— porque todo junto no
+   entraba: la palabra se metia debajo de la cabecera y se tapaba. Pero
+   entonces el hero pedia tres ventanas antes de llegar a ningun sitio.
 
-   Y se reparten para que las dos se lean facil: arriba la palabra con el
-   titular —la palabra sola en una ventana entera se quedaba vacia—, y
-   debajo, ligera, la ficha de disponible con las dos puertas.
+   Lo que sobraba era lo que hago: no dice quien soy ni como escribirme.
+   Se fue al hueso, a su propia pantalla (`.oferta--hueso`). Lo que queda
+   —la palabra, para quien es esto y las dos puertas— cabe de sobra en una
+   sola, con el hueco de la cabecera descontado por dentro.
 
-   El hero pasa a medir tres ventanas en el telefono, y el salto entre
-   pantallas cuenta tres (initDiapositivas lee `data-pantalla`). */
+   El hero mide dos ventanas en el telefono, y el salto entre pantallas
+   cuenta dos. */
 @media (max-width: 599px) {
-  .hero__panel { min-height: 200svh; justify-content: flex-start; }
-  .hero__hoja,
-  .hero__palabra {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    box-sizing: border-box;
-    min-height: 100svh;
-    padding-top: calc(var(--header-h) + .45rem);
-  }
-  /* La palabra abre la pantalla y el titular la sigue: el aire entre las
-     dos lo pone este margen, no la pantalla. */
+  .hero__panel { padding-top: calc(var(--header-h) + .45rem); }
+  /* La palabra abre la pantalla y lo demas la sigue. */
   .rhema--panel { margin: 0 0 1.9rem; }
 }
 

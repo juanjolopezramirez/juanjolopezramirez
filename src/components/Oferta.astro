@@ -1,0 +1,38 @@
+---
+const { t, where = 'panel' } = Astro.props;
+const id = `oferta-${where}`;
+---
+<!-- LO QUE HAGO, EN UNA LINEA. Vive en dos sitios y nunca en los dos a la
+     vez: el ancho elige, y el que no toca se esconde con `display: none`
+     —que el lector de pantalla tambien salta—, asi que nunca se oye dos
+     veces. Es la misma idea que la palabra (Rhema.astro), que tambien
+     cambia de sitio segun el ancho.
+
+     where="panel"  Desde 600px: encabeza la hoja de hueso del hero, que es
+                    su sitio de siempre. Ahi se dice en primera persona.
+     where="hueso"  Por debajo de 600px: su propia pantalla, ya en el hueso,
+                    despues de la puerta de «Sobre el camino» y antes de que
+                    el paramo pregunte que es caminar ligero. Ahi se dice en
+                    gerundio, que es como se decia ya en el telefono.
+
+     POR QUE SE MUDO EN EL TELEFONO. La hoja del hero se habia partido en
+     dos pantallas para que la cita no quedara debajo de la cabecera, y el
+     hero acabo pidiendo tres ventanas enteras antes de llegar a nada. Esto
+     es lo unico que no tenia que estar ahi: no es quien soy ni como
+     escribirme, es lo que hago — y lo que hago se lee mejor junto al resto
+     del hueso. El hero vuelve a ser dos: yo, y luego la palabra con lo que
+     ofrezco y las dos puertas. -->
+<!-- LA ENTRADA VA EN EL TEXTO, NO EN LA SECCION, cuando la seccion pinta
+     fondo. `data-lift` arranca en `opacity: 0`, asi que puesto en la caja
+     del hueso lo que se desvanecia era el hueso entero: al pasar por ahi
+     se veia el verde de detras a traves de la pantalla, y cada vez que
+     volvia a entrar, otra vez. En la hoja del hero no pasa —ahi el bloque
+     no pinta nada y el fondo es de la hoja—, asi que esa copia se levanta
+     entera como siempre. -->
+<section class:list={['oferta', `oferta--${where}`]} aria-labelledby={id} data-glossary
+         data-lift={where === 'hueso' ? undefined : true}>
+  <h2 class="oferta__titulo" id={id} data-lift={where === 'hueso' ? true : undefined}>
+    {where === 'hueso' ? t('panel.titleMobile') : t('panel.title')}
+  </h2>
+  <p class="oferta__texto" data-lift={where === 'hueso' ? true : undefined}>{t('panel.body')}</p>
+</section>

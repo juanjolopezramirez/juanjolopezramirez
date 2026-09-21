@@ -6,6 +6,7 @@ import Rhema from '../../components/Rhema.astro';
 import Orbit from '../../components/Orbit.astro';
 import Signature from '../../components/Signature.astro';
 import Ligero from '../../components/Ligero.astro';
+import Oferta from '../../components/Oferta.astro';
 import Enlace from '../../components/Enlace.astro';
 import Icon from '../../components/Icon.astro';
 
@@ -69,6 +70,21 @@ const t = useT(lang);
       </a>
     </div>
   </section>
+
+  {/* LO QUE HAGO, SOLO EN EL TELEFONO. Encabezaba la hoja del hero y de
+      alli venia el problema: con esto dentro, el hero pedia tres ventanas
+      enteras antes de llegar a nada. Aqui cae donde se lee mejor — el
+      hueso ya viene hablando de donde vengo, y quien acaba de pasar por la
+      puerta de «Sobre el camino» esta listo para lo que hago, justo antes
+      de que el paramo pregunte que es caminar ligero.
+
+      SECCION PROPIA Y NO DENTRO DE «Sobre mi»: metido ahi, esa pantalla se
+      pasaba de la ventana entre cien y doscientos pixeles segun el
+      telefono, y una sola pantalla que no cabe apaga el salto entre
+      pantallas de TODA la portada (initDiapositivas). Aparte, cada una cabe
+      en la suya. Desde 600px esto no existe —no mide— y ni el salto ni el
+      escritorio se enteran. */}
+  <Oferta t={t} where="hueso" />
 
   {/* La pregunta que sigue al titular de arriba, con el paramo detras. La
       respuesta —el camino recorrido, con su linea de tiempo— ya no vive

@@ -1,18 +1,25 @@
-/* Las nueve plataformas, en un solo sitio.
+/* Las plataformas, en un solo sitio.
 
-   NUEVE, EN TRES TANDAS DE TRES. La fila del hero enseña tres, las mismas
-   en el telefono y en el escritorio, y cada siete segundos pasa a la
-   siguiente (initRedes). Las tandas las eligio el fundador y salen del
-   orden de esta lista, de tres en tres:
+   NUEVE EN EL TELEFONO, EN TRES TANDAS DE TRES. La fila del hero enseña
+   tres y cada siete segundos pasa a la siguiente (initRedes). Las tandas
+   las eligio el fundador y salen del orden de esta lista, de tres en tres:
 
      1. Facebook · Instagram · VSCO
      2. TikTok · YouTube · Pinterest
      3. LinkedIn · Platzi · GitHub
 
    Eran doce y se quitaron X, Spotify y WhatsApp: «quitar tanta bulla».
-   WhatsApp sigue donde hace falta, en las puertas de escribirme (CONTACT).
-   Si se añade o se quita una red, hay que dejar el total en multiplo de
-   tres o una tanda queda coja.
+   Si se añade o se quita una red de las que se ven aqui, hay que dejar el
+   total en multiplo de tres o una tanda queda coja.
+
+   DIEZ DE 1200px PARA ARRIBA, EN DOS TANDAS DE CINCO. Ahi la fila es ancha
+   y caben cinco de una vez, asi que se enseñan cinco y vuelve WhatsApp —
+   solo ahi— como decima. `ancho: true` es eso y nada mas: esta red existe
+   de 1200px en adelante, en la fila y en la hoja de todas. Por debajo no
+   se pinta y las tandas de tres siguen cuadrando.
+
+   WhatsApp sigue ademas donde siempre hizo falta, en las puertas de
+   escribirme (CONTACT), en todos los anchos.
 
    `row: true` = la primera tanda, la que se ve sin guion y la que se ve
    primero con el.
@@ -54,7 +61,12 @@ export const SOCIAL = [
   /* TERCERA TANDA. */
   { id: 'linkedin',  name: 'LinkedIn',  row: false, href: 'https://www.linkedin.com/in/juanjoselopezramirez' },
   { id: 'platzi',    name: 'Platzi',    row: false, href: 'https://platzi.com/p/juanjolopezramirez/' },
-  { id: 'github',    name: 'GitHub',    row: false, href: 'https://github.com/juanjolopezramirez' }
+  { id: 'github',    name: 'GitHub',    row: false, href: 'https://github.com/juanjolopezramirez' },
+
+  /* LA DECIMA, SOLO DE 1200px PARA ARRIBA (ver arriba). El numero no se
+     escribe en la pagina: viaja dentro del enlace, igual que en CONTACT,
+     que es de donde sale. */
+  { id: 'whatsapp',  name: 'WhatsApp',  row: false, ancho: true, href: 'https://wa.me/573155278033' }
 ];
 
 /* Las secciones del sitio. Añade una aquí y aparece en el menú y en el pie.

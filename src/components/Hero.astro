@@ -2,6 +2,7 @@
 import { NAV } from '../data/social.js';
 import SocialRow from './SocialRow.astro';
 import Rhema from './Rhema.astro';
+import Oferta from './Oferta.astro';
 import Icon from './Icon.astro';
 import { ENLACE } from '../data/enlace.js';
 const { lang, t } = Astro.props;
@@ -127,31 +128,33 @@ const DOORS = [
 
   <!-- La hoja de hueso: de donde sale el trabajo, y para quien es.
 
-       EN EL TELEFONO SON DOS PANTALLAS, no una. Todo junto —la cita, el
-       titular, el parrafo, la ficha de disponible y las dos puertas— era
-       demasiado para una ventana: la cita quedaba debajo de la cabecera y
-       se tapaba. Ahora la palabra tiene su pantalla y la hoja la suya, y
-       cada una respira. Desde 600px los dos envoltorios se deshacen
-       (`display: contents`) y la hoja vuelve a ser una sola pieza, como
-       siempre: por eso la palabra va la ultima en el documento —ese es su
-       sitio en la hoja ancha— y en el telefono sube con `order`. -->
-  <section class="hero__panel" aria-labelledby="offer-title">
-    <!-- Pantalla 2: la palabra y, debajo, lo que hago. La palabra sola en
-         una ventana entera se quedaba vacia, y el titular sin ella llegaba
-         seco: juntos se leen como una sola idea. -->
-    <div class="hero__palabra" data-pantalla>
+       EN EL TELEFONO ES UNA PANTALLA, la segunda y ultima del hero: la
+       palabra, para quien es esto y las dos puertas. Llego a ser dos, y
+       el hero entero pedia tres ventanas antes de llegar a ningun sitio.
+       Lo que sobraba era lo que hago —el titular y su parrafo—, que no
+       dice quien soy ni como escribirme: se mudo al hueso, detras de la
+       puerta de «Sobre el camino» (Oferta.astro, `where="hueso"`). Desde
+       600px no se mudo nada y esto sigue encabezando la hoja.
+
+       SIN ENVOLTORIOS. Los dos que partian la hoja iban en
+       `display: contents`, que no genera caja: eran los hijos directos de
+       la hoja, asi que se tragaban `.hero__panel > *` —el `z-index: 4` que
+       pone el contenido por delante del fondo de la hoja y de mi foto— y no
+       lo pasaban a nadie. Desde 1200px la hoja pinta su propio hueso por
+       encima, y el contenido entero se quedaba debajo: la hoja se veia
+       vacia. Si alguna vez vuelve a hacer falta partirla, que sea con algo
+       que genere caja. -->
+  <!-- La hoja ya no toma prestado el titular de lo que hago para nombrarse:
+       en el telefono ese titular no esta aqui —esta en el hueso— y un
+       `aria-labelledby` si entra en lo escondido, asi que quien escucha oia
+       la hoja llamarse por algo que no contiene, y ademas con las palabras
+       de la otra copia. Cada pieza de dentro trae su propio nombre. -->
+  <section class="hero__panel">
     <Rhema t={t} where="panel" />
 
-    <div class="hero__offer" data-glossary data-lift>
-      <h2 class="hero__offer-title" id="offer-title"><span class="is-narrow">{t('panel.titleMobile')}</span><span class="is-wide">{t('panel.title')}</span></h2>
-      <p class="hero__offer-body">{t('panel.body')}</p>
-    </div>
+    <!-- Solo desde 600px: en el telefono esto vive en el hueso. -->
+    <Oferta t={t} where="panel" />
 
-    </div>
-
-    <!-- Pantalla 3: para quien es esto y por donde seguir. Ligera a
-         proposito: es la que cierra el hero. -->
-    <div class="hero__hoja" data-pantalla>
     <div class="hero__available" data-glossary data-lift>
       <p class="hero__status">
         <span class="hero__status-dot" aria-hidden="true"></span>
@@ -185,7 +188,6 @@ const DOORS = [
         </li>
       </ul>
     </nav>
-    </div>
   </section>
 
 </section>

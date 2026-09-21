@@ -58,7 +58,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     <h2 class="social-panel__title" id="social-panel-title">{t('social.title')}</h2>
     <ul class="social-panel__grid">
       {SOCIAL.map((s, i) => (
-        <li class="social-panel__item" style={`--d:${i * 35}ms`}>
+        <li class="social-panel__item" style={`--d:${i * 35}ms`} data-ancho={s.ancho ? true : undefined}>
           <Red s={s} t={t} />
           <span class="social-panel__name">{s.name}</span>
         </li>

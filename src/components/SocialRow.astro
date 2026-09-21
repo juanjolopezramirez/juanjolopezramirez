@@ -5,11 +5,12 @@ import Icon from './Icon.astro';
 
 /* La fila de redes del hero.
 
-   VAN LAS DOCE, EN TANDAS. Se ven tres en el telefono y cuatro desde 600px,
-   y cada siete segundos pasa la tanda siguiente (initRedes). El «+» del final
-   gira un cuarto de vuelta en cada cambio: es la puerta a todas, y el giro
-   dice que detras hay mas de lo que se ve. Al pasar el raton o el foco por
-   la fila, se queda quieta.
+   VAN TODAS, EN TANDAS. Se ven tres hasta 1200px y cinco de ahi en adelante
+   —donde ademas entra WhatsApp, la decima (social.js)—, y cada siete
+   segundos pasa la tanda siguiente (initRedes). El «+» del final gira un
+   cuarto de vuelta en cada cambio: es la puerta a todas, y el giro dice que
+   detras hay mas de lo que se ve. Al pasar el raton o el foco por la fila,
+   se queda quieta.
 
    SIN GUION, o con menos movimiento pedido, no rota nada: se ve la primera
    tanda (`row: true`) y el resto sigue a un toque, en la hoja.
@@ -22,7 +23,8 @@ const { t } = Astro.props;
   <h2 class="links__title">{t('links.title')}</h2>
   <ul class="links__list" data-redes>
     {SOCIAL.map((s) => (
-      <li class:list={['links__item', `links__item--${s.id}`, { 'links__item--resto': !s.row }]}>
+      <li class:list={['links__item', `links__item--${s.id}`, { 'links__item--resto': !s.row }]}
+          data-ancho={s.ancho ? true : undefined}>
         <Red s={s} t={t} cls={s.row ? 'reveal' : ''} />
       </li>
     ))}

@@ -440,8 +440,15 @@
     margin: 2.4rem 0 0;
     padding: 1.4rem 0 0;
     background: none;
+    /* SIN RAYAS. Habia un filo encima de la cita y otro encima de la firma,
+       y como la cita se recorta antes que la foto, esos dos filos cortaban
+       a 392 mientras el nombre, el oficio y las redes llegan a 529: dos
+       lineas cortas al aire que se leian como una caja suelta y fuera de
+       proporcion con el resto de la columna. En esta columna no hay una
+       sola raya mas; el aire ya separa. Se van los filos y se queda el
+       hueco que tenian, para no mover el alto — a 1280x720 la columna
+       llega justa al boton de bajar. */
     border: 0;
-    border-top: 1px solid rgba(241, 239, 233, .16);
     border-radius: 0;
     color: var(--bone);
     animation: none;
@@ -457,7 +464,7 @@
   .hero__identity .rhema__by {
     gap: .6rem;
     padding-top: .8rem;
-    border-top: 1px solid rgba(241, 239, 233, .16);
+    border-top: 0;
   }
   .hero__identity .rhema__face { width: 2.2rem; height: 2.2rem; }
   .hero__identity .rhema__by b { font-size: .78rem; color: var(--bone); }
@@ -535,9 +542,9 @@
   .hero__panel .cta--lleno:hover,
   .hero__panel .cta--lleno:focus-visible { background: var(--pine-700); border-color: var(--pine-700); color: var(--bone); }
 
-  .hero__offer-title { font-size: 1.5rem; color: var(--slate); }
+  .oferta__titulo { font-size: 1.5rem; color: var(--slate); }
   /* Sobre la hoja, hueso sobre hueso no se ve: el cuerpo va en slate. */
-  .hero__offer-body { color: var(--slate-400); font-size: .85rem; }
+  .oferta__texto { color: var(--slate-400); font-size: .85rem; }
 
   .hero__available { margin: 0; }
   .hero__status { color: var(--slate-400); }
