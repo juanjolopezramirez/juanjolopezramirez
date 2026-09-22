@@ -1,41 +1,52 @@
 ---
 import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
-import Houses from '../../components/Houses.astro';
+import Ruta from '../../components/ruta/Ruta.astro';
+import { RUTA, di } from '../../data/ruta/textos.js';
 
-/* La pagina de las casas: /es/contact/, /en/contact/…
+/* DAR EL PRIMER PASO: /es/contact/, /en/contact/…
 
-   Fue un formulario y ya no lo es. Recogia la solicitud entera y la
-   guardaba para leerla despues, y ese era el fallo: la respuesta tenia que
-   salir de aqui, de una sola persona. Cada casa tiene equipo y sitio
-   propio, asi que ahora la peticion entra por donde la van a atender y
-   esta pagina solo decide por cual puerta.
+   Se llega por «Caminemos», por la puerta del paso (Panels.astro).
 
-   No entra en NAV a proposito. No es una seccion de la casa, es a donde
-   lleva el CTA — y meterla en el menu la pondria a competir con Trabajos y
-   Proyectos, que es justo lo que no debe hacer. Entra en el mapa del sitio
-   por su cuenta, en sitemap.xml.js.
+   AQUI HUBO UN DIRECTORIO DE MARCAS y antes de eso un formulario. Las dos
+   cosas pedian lo mismo sin decirlo: que la persona ya supiera lo que
+   necesita. El formulario le pedia que lo escribiera; el directorio, que
+   eligiera puerta. Y quien llega aqui casi nunca lo sabe — sabe lo que
+   quiere, que no es lo mismo.
 
-   La direccion va en ingles en los cinco idiomas, como el resto: /es/contact/
-   y no /es/contacto/. Es la misma regla que ya rige work y projects. */
+   Ahora la pagina no pregunta que necesitas: lo averigua. Cinco rondas de
+   dos cartas, lo que quiero contra de que depende, y al final dos cosas:
+   en que paso del camino estas y si lo que pides es lo que te sirve. La
+   pagina entrega el resultado entero antes de pedir nada, y lo unico que
+   pide despues es escribir, si se quiere.
+
+   TAMBIEN DICE QUE NO HACE FALTA. Siempre, en todos los resultados. Es la
+   parte que impide que esto sea un catalogo con pasos.
+
+   La direccion sigue en ingles en los cinco idiomas, como el resto del
+   sitio: /es/contact/ y no /es/primer-paso/. */
+
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
 
 const { lang } = Astro.params;
 const t = useT(lang);
-const title = t('page.contact.title');
+const title = di(RUTA.titulo, lang);
 ---
-<Base lang={lang} path="contact" active="contact" title={`${title} — Juan José López Ramírez`}
-      description={t('page.contact.lead')}>
-  <article class="epage cpage cpage--casas">
+<Base lang={lang} path="contact" active="contact"
+      title={`${title} — Juan José López Ramírez`}
+      description={di(RUTA.entrada, lang)}>
+  <article class="epage cpage cpage--ruta">
     {/* El mismo campo vivo del hero: el degradado que respira, no una
         imagen. Se anima solo — el guion lo busca por su clase. */}
     <div class="cpage__field" aria-hidden="true"></div>
     <div class="epage__shell">
-      <h1 class="cpage__title">{title}</h1>
-      <p class="cpage__lead">{t('page.contact.lead')}</p>
-      <Houses lang={lang} t={t} />
+      <Ruta lang={lang} />
     </div>
   </article>
+
+  {/* Solo en esta pagina: el juego no pinta nada en las demas y no tiene
+      por que viajar con ellas. */}
+  <script>import '../../scripts/ruta.js';</script>
 </Base>

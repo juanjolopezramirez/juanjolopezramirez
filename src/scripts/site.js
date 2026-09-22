@@ -1868,139 +1868,6 @@ function initPiezas() {
   });
 }
 
-/* ---------- La familia Fraterni, de una en una ---------------
-
-   Cuatro productos seguidos eran un reguero. Van en pestañas: uno a la vez,
-   y se cambia tocando la pestaña, con las flechas del teclado o deslizando
-   el dedo sobre la ficha. NO AVANZA SOLO: un carrusel que cambia lo que
-   estas leyendo sin que lo pidas es justo lo que las pautas de
-   accesibilidad piden poder parar.
-
-   SIN GUION no hay pestañas —el HTML las trae escondidas— y se ven las
-   cuatro fichas seguidas. Los roles de panel se ponen aqui y no en el HTML:
-   sin guion, un panel que dice ser de una pestaña que no se ve confunde al
-   lector de pantalla. */
-function initFamilia() {
-  d.querySelectorAll('[data-familia]').forEach((caja) => {
-    const lista = caja.querySelector('[role="tablist"]');
-    const tabs = lista ? [...lista.querySelectorAll('[role="tab"]')] : [];
-    const paneles = tabs.map((t) => d.getElementById(t.getAttribute('aria-controls')));
-    if (!tabs.length || paneles.some((p) => !p)) return;
-
-    paneles.forEach((p, i) => {
-      p.setAttribute('role', 'tabpanel');
-      p.setAttribute('aria-labelledby', tabs[i].id);
-      p.tabIndex = 0;
-    });
-
-    let actual = 0;
-    /* Trae la pestaña elegida a la vista DENTRO de su fila, que en movil se
-       desplaza de lado. `scrollIntoView` moveria tambien la pagina. */
-    const traer = (i) => {
-      const t = tabs[i].getBoundingClientRect(), l = lista.getBoundingClientRect();
-      if (t.left < l.left) lista.scrollLeft -= l.left - t.left + 12;
-      else if (t.right > l.right) lista.scrollLeft += t.right - l.right + 12;
-    };
-    const elegir = (i, foco) => {
-      actual = i;
-      tabs.forEach((t, k) => {
-        const si = k === i;
-        t.setAttribute('aria-selected', si ? 'true' : 'false');
-        t.tabIndex = si ? 0 : -1;
-        paneles[k].hidden = !si;
-      });
-      if (foco) tabs[i].focus();
-    };
-
-    tabs.forEach((t, i) => {
-      t.addEventListener('click', () => { elegir(i, false); traer(i); });
-      /* Las cuatro flechas: en escritorio la fila es una columna, y ahi lo
-         natural es subir y bajar. */
-      t.addEventListener('keydown', (e) => {
-        const n = tabs.length;
-        const j = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % n
-                : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + n) % n
-                : e.key === 'Home' ? 0
-                : e.key === 'End' ? n - 1
-                : null;
-        if (j === null) return;
-        e.preventDefault();
-        elegir(j, true);
-        traer(j);
-      });
-    });
-
-    /* Deslizar el dedo sobre la ficha pasa a la siguiente o a la anterior.
-       Solo si el gesto es claramente de lado: uno diagonal es alguien que
-       baja la pagina, y ese gesto es del navegador. */
-    const zona = caja.querySelector('.familia__paneles');
-    let x0 = null;
-    let y0 = 0;
-    zona.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) { x0 = null; return; }
-      x0 = e.touches[0].clientX;
-      y0 = e.touches[0].clientY;
-    }, { passive: true });
-    zona.addEventListener('touchend', (e) => {
-      if (x0 === null) return;
-      const dx = e.changedTouches[0].clientX - x0;
-      const dy = e.changedTouches[0].clientY - y0;
-      x0 = null;
-      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      const n = tabs.length;
-      const j = dx < 0 ? (actual + 1) % n : (actual - 1 + n) % n;
-      elegir(j, false);
-      traer(j);
-    }, { passive: true });
-
-    lista.hidden = false;
-    caja.classList.add('is-js');
-    elegir(0, false);
-  });
-}
-
-/* ---------- Las fichas de las casas, del derecho y del reves --
-
-   Cada ficha tiene tres caras apiladas en la misma celda: la de la
-   pregunta, la del «¿Por qué?» y la de la mision y la vision. Los botones
-   del pie le dan la vuelta; pulsar otra vez el mismo la devuelve a la
-   pregunta, y Escape tambien. Como las tres ocupan el mismo sitio, la ficha
-   no cambia de tamaño y la de al lado no se mueve.
-
-   SIN GUION no hay botones —el HTML los trae escondidos— y las tres caras
-   se ven seguidas. */
-function initFichas() {
-  d.querySelectorAll('[data-ficha]').forEach((ficha) => {
-    const botonera = ficha.querySelector('.hcard__botones');
-    const caras = [...ficha.querySelectorAll('.hcard__cara')];
-    if (!botonera || caras.length < 2) return;
-    const frente = caras[0];
-    const botones = [...botonera.querySelectorAll('[aria-controls]')];
-    const destino = (b) => d.getElementById(b.getAttribute('aria-controls'));
-    if (botones.some((b) => !destino(b))) return;
-
-    const ver = (cara) => {
-      caras.forEach((c) => c.classList.toggle('is-vista', c === cara));
-      botones.forEach((b) => b.setAttribute('aria-expanded', String(destino(b) === cara)));
-    };
-
-    botones.forEach((b) => b.addEventListener('click', () => {
-      const cara = destino(b);
-      ver(cara.classList.contains('is-vista') ? frente : cara);
-    }));
-    ficha.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || frente.classList.contains('is-vista')) return;
-      const abierto = botones.find((b) => b.getAttribute('aria-expanded') === 'true');
-      ver(frente);
-      if (abierto) abierto.focus();
-    });
-
-    botonera.hidden = false;
-    ficha.classList.add('is-js');
-    ver(frente);
-  });
-}
-
 /* ---------- Las respuestas de siempre, tachadas en bucle ----
 
    Cuando la correccion de una pregunta trae varias respuestas de siempre,
@@ -2191,9 +2058,7 @@ initCurrent();
 initCurtain();
 initFilter();
 initCarriles();
-initFamilia();
 initPiezas();
-initFichas();
 initTachones();
 initCamino();
 initReveal();

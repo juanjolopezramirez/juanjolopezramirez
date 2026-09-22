@@ -1,0 +1,118 @@
+---
+import { BARAJA } from '../../data/ruta/cartas.js';
+import { RUTA, di } from '../../data/ruta/textos.js';
+import { RAMA } from '../../data/ruta/diagnostico.js';
+import Ronda from './Ronda.astro';
+import Icon from '../Icon.astro';
+
+/* LA RUTA ENTERA, en una sola caja y en tres pantallas que se turnan:
+   la bifurcacion, las rondas y el resultado.
+
+   SIN JAVASCRIPT NO HAY JUEGO, y se dice. Un juego de cartas que se
+   voltean no se puede hacer con enlaces: no es que no se haya querido, es
+   que no existe la version sin guion. Asi que se avisa y se ofrece la
+   puerta que si funciona siempre, que es escribir. El aviso vive en un
+   <noscript> y por tanto solo lo ve quien lo necesita.
+
+   EL RESULTADO VIENE VACIO Y LO LLENA EL GUION. No es contenido que exista
+   antes de jugar: depende de lo que se elija. Lo que si esta escrito aqui
+   son los rotulos, que no dependen de nada.
+
+   EL AVISO DE LO QUE SE GUARDA VA ARRIBA, antes de la primera eleccion, y
+   con el boton de salir al lado. Decirlo al final, cuando ya se guardo,
+   seria avisar de algo que ya paso. */
+
+const { lang } = Astro.props;
+const ramas = Object.keys(RAMA);
+---
+<article class="ruta" data-ruta data-lang={lang}>
+
+  <noscript>
+    <p class="ruta__sinjs">{di(RUTA.sinGuion, lang)}</p>
+  </noscript>
+
+  <!-- ---------- Pantalla 0: la bifurcacion ---------- -->
+  <section class="ruta__paso" data-pantalla="inicio">
+    <h1 class="ruta__titulo">{di(RUTA.titulo, lang)}</h1>
+    <p class="ruta__entrada">{di(RUTA.entrada, lang)}</p>
+
+    <h2 class="ruta__pregunta">{di(RUTA.bifurcacion, lang)}</h2>
+    <ul class="ruta__ramas">
+      {ramas.map((r) => (
+        <li>
+          <button class="rama" type="button" data-rama-elegir={r}>
+            <span>{di(RUTA.ramas[r], lang)}</span>
+            <Icon id="corner" />
+          </button>
+        </li>
+      ))}
+    </ul>
+
+    <p class="ruta__aviso">
+      <span>{di(RUTA.aviso, lang)}</span>
+      <button class="ruta__salir" type="button" data-no-guardar>{di(RUTA.avisoSalir, lang)}</button>
+    </p>
+    <p class="ruta__aviso ruta__aviso--fuera" data-aviso-fuera hidden>{di(RUTA.avisoFuera, lang)}</p>
+  </section>
+
+  <!-- ---------- Pantalla 1..N: las rondas ---------- -->
+  <section class="ruta__paso" data-pantalla="juego" hidden>
+    <p class="ruta__progreso" data-progreso></p>
+    <div class="ruta__barra" aria-hidden="true"><span data-barra></span></div>
+
+    {ramas
+      .map((r) => RAMA[r].baraja)
+      .filter((b, i, todas) => todas.indexOf(b) === i)
+      .map((baraja) => BARAJA[baraja].map((ronda) => (
+        <Ronda lang={lang} rama={baraja} ronda={ronda} />
+      )))}
+
+    <div class="ruta__mandos">
+      <button class="ruta__atras" type="button" data-atras>
+        <Icon id="arrow" /><span>{di(RUTA.atras, lang)}</span>
+      </button>
+      <button class="cta cta--lleno" type="button" data-seguir disabled>
+        <span data-seguir-texto>{di(RUTA.seguir, lang)}</span><Icon id="corner" />
+      </button>
+    </div>
+  </section>
+
+  <!-- ---------- Pantalla final: el resultado ---------- -->
+  <section class="ruta__paso ruta__fin" data-pantalla="fin" hidden tabindex="-1">
+    <p class="fin__rotulo">{di(RUTA.dondeEstas, lang)}</p>
+    <h2 class="fin__paso" data-fin-paso></h2>
+
+    <div class="fin__lectura">
+      <h3 class="fin__titulo" data-fin-titulo></h3>
+      <p class="fin__cuerpo" data-fin-cuerpo></p>
+    </div>
+
+    <div class="fin__pruebas" data-fin-pruebas-caja>
+      <h3 class="fin__rotulo2">{di(RUTA.pruebaTitulo, lang)}</h3>
+      <ul data-fin-pruebas></ul>
+    </div>
+
+    <div class="fin__servicio" data-fin-servicio-caja>
+      <h3 class="fin__rotulo2">{di(RUTA.queSigue, lang)}</h3>
+      <p class="fin__nombre" data-fin-servicio></p>
+      <p class="fin__cerrada" data-fin-cerrada hidden></p>
+      <h4 class="fin__dato">{di(RUTA.incluye, lang)}</h4>
+      <ul class="fin__incluye" data-fin-incluye></ul>
+      <p class="fin__dato"><span>{di(RUTA.dura, lang)}</span> <b data-fin-dura></b></p>
+      <p class="fin__precio">{di(RUTA.precio, lang)}</p>
+      <p class="fin__atiende" data-fin-atiende></p>
+    </div>
+
+    <div class="fin__no">
+      <h3 class="fin__rotulo2">{di(RUTA.noNecesitas, lang)}</h3>
+      <p data-fin-no></p>
+    </div>
+
+    <div class="ruta__mandos ruta__mandos--fin">
+      <a class="cta cta--lleno" data-fin-wa target="_blank" rel="noopener noreferrer">
+        <span data-fin-wa-texto>{di(RUTA.escribir, lang)}</span><Icon id="corner" />
+      </a>
+      <button class="ruta__otra" type="button" data-otra-vez>{di(RUTA.otraVez, lang)}</button>
+    </div>
+  </section>
+</article>

@@ -6818,74 +6818,272 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .proposito__larga { margin: .35rem 0 0; font-size: .88rem; font-weight: 300; line-height: 1.65; text-wrap: pretty; }
 
 /* =============================================================
-   LA FAMILIA FRATERNI, DENTRO DEL MARCO DE FRATERNI VENTURES
+   DAR EL PRIMER PASO — el juego de las dos cartas
 
-   Un <fieldset> con el logotipo de Ventures en la leyenda: el borde del
-   marco se corta solo para dejarlo pasar. Dentro, las pestañas por ramas y
-   la ficha elegida, sin marco propio: el de Ventures ya las rodea, y un
-   marco dentro de otro se lee como una caja de cajas.
+   Movil primero, y aqui eso no es una postura: se llega desde
+   «Caminemos», que casi siempre se toca con el pulgar. En el telefono las
+   dos cartas van una encima de otra —la baraja arriba, lo que depende
+   debajo— porque lado a lado dejaria dos columnas de treinta caracteres.
+   Desde 700px se ponen a la par y entonces si se ve lo que el juego
+   quiere que se vea: la distancia entre las dos.
+
+   Vive sobre el pinar de `.cpage`, asi que todo va en hueso.
    ============================================================= */
-.familia { margin-top: 2.4rem; }
-.familia__marco {
-  /* Sin esto un fieldset no encoge por debajo de lo que lleva dentro, y la
-     fila de pestañas lo ensancharia hasta salirse de la pantalla. */
-  min-width: 0;
-  margin: 0;
-  padding: .5rem 1.15rem 1.25rem;
-  border: 1px solid rgba(241, 239, 233, .24);
-  border-radius: 1.4rem;
-}
-.cpage .familia__marco { background: rgba(22, 35, 26, .72); }
-.familia__marca { margin-left: .35rem; padding: 0 .6rem; }
-.familia__titulo { margin: 0; line-height: 0; }
-.familia__titulo a { display: inline-block; border-radius: 4px; transition: opacity .2s var(--ease); }
-.familia__titulo a:hover { opacity: .8; }
-.familia__titulo a:focus-visible { outline: 2px solid var(--bone); outline-offset: 4px; }
-.familia__titulo img { display: block; height: 2.5rem; width: auto; }
-/* El lema de Ventures: lo que dicen las seis marcas, dicho una vez. */
-.familia__lema { margin: .35rem 0 0; font-size: .95rem; font-weight: 600; line-height: 1.4; color: var(--bone); text-wrap: balance; }
+.cpage--ruta .epage__shell { padding-bottom: 3rem; }
 
-/* `display: flex` le ganaria al atributo `hidden`, y la fila de pestañas
-   se veria sin guion, sin hacer nada. */
-.familia__pestanas[hidden] { display: none; }
-/* Si las dos ramas no caben en una fila, la segunda baja entera. Deslizando
-   de lado, en el movil la ultima pestaña quedaba fuera de la vista, y una
-   pestaña que no se ve no se elige. */
-.familia__pestanas {
-  display: flex; flex-wrap: wrap; gap: .5rem;
-  margin: .5rem 0 0;
-  padding: .15rem;
-  overflow-x: auto; scrollbar-width: none;
+.ruta { display: block; }
+.ruta__sinjs {
+  margin: 0 0 1.5rem;
+  padding: .9rem 1rem;
+  border: 1px solid rgba(241, 239, 233, .28);
+  border-radius: 14px;
+  font-size: .9rem;
+  color: var(--bone);
 }
-.familia__pestanas::-webkit-scrollbar { display: none; }
-/* UNA RAMA, UNA PASTILLA: la madre y su producto van juntos. */
-.familia__rama {
-  flex: 0 0 auto;
-  display: flex; gap: .15rem;
-  padding: .2rem;
-  border: 1px solid rgba(241, 239, 233, .18);
-  border-radius: 999px;
+
+.ruta__titulo {
+  margin: 0 0 .6rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.9rem, 7vw, 2.6rem);
+  line-height: 1.1; letter-spacing: -.02em;
+  color: var(--bone);
+  text-wrap: balance;
 }
-.familia__pestana {
-  flex: 0 0 auto;
-  padding: .45rem .9rem;
-  border: 0; border-radius: 999px;
-  background: none;
+.ruta__entrada {
+  margin: 0 0 2.2rem;
+  max-width: 34rem;
+  font-size: .95rem; font-weight: 300; line-height: 1.65;
   color: var(--pine-200);
-  font: inherit; font-size: .82rem; font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.familia__pestana--hija { font-weight: 400; }
-.familia__pestana:hover { color: var(--bone); }
-/* La elegida, en hueso: es el «elegido» de toda la casa. */
-.familia__pestana[aria-selected="true"] { background: var(--bone); color: var(--pine); }
-.familia__pestana:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; }
-.familia__paneles { display: grid; gap: 1.6rem; margin-top: 1rem; }
-/* La ficha, sin marco ni suelo propios: los pone el de Ventures. */
-.cpage .familia .hcard,
-.cpage .familia .hcard:hover { padding: 0; border: 0; background: none; translate: none; }
+.ruta__pregunta {
+  margin: 0 0 1.1rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.25rem, 5.2vw, 1.6rem);
+  line-height: 1.2;
+  color: var(--bone);
+}
+
+/* ---- Las tres ramas ---- */
+.ruta__ramas { display: grid; gap: .7rem; margin: 0 0 2rem; padding: 0; list-style: none; }
+.rama {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(241, 239, 233, .28);
+  border-radius: 16px;
+  font-size: 1rem; font-weight: 500;
+  color: var(--bone);
+  text-align: left;
+  transition: background .2s var(--ease), border-color .2s var(--ease);
+}
+.rama:hover, .rama:focus-visible { background: rgba(241, 239, 233, .1); border-color: var(--bone); }
+.rama .icon { flex: 0 0 auto; width: 1rem; height: 1rem; }
+
+/* ---- El aviso de lo que se guarda ---- */
+.ruta__aviso {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem;
+  margin: 0;
+  font-size: .78rem; line-height: 1.5;
+  color: var(--pine-200);
+}
+.ruta__salir {
+  font-size: .78rem; font-weight: 600;
+  color: var(--bone);
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+.ruta__aviso--fuera { color: var(--iris-300); }
+
+/* ---- El progreso ---- */
+.ruta__progreso {
+  margin: 0 0 .5rem;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.ruta__barra {
+  height: 3px;
+  margin: 0 0 1.8rem;
+  border-radius: 3px;
+  background: rgba(241, 239, 233, .16);
+  overflow: hidden;
+}
+.ruta__barra span {
+  display: block; height: 100%; width: 0;
+  border-radius: inherit;
+  background: var(--iris);
+  transition: width .4s var(--ease-smooth);
+}
+
+/* ---- La mesa ---- */
+.ronda__pregunta {
+  margin: 0 0 1.4rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.25rem, 5.2vw, 1.7rem);
+  line-height: 1.2;
+  color: var(--bone);
+  text-wrap: balance;
+}
+.ronda__mesa { display: grid; gap: 1.6rem; }
+.mesa__rotulo {
+  margin: 0 0 .7rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.mesa__cartas { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+
+/* ---- Las cartas ---- */
+.carta {
+  display: block;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(241, 239, 233, .24);
+  border-radius: 16px;
+  font-size: .95rem; font-weight: 400; line-height: 1.45;
+  color: var(--bone);
+  text-align: left;
+  transition: background .2s var(--ease), border-color .2s var(--ease);
+}
+.carta--deseo:hover, .carta--deseo:focus-visible {
+  background: rgba(241, 239, 233, .1);
+  border-color: rgba(241, 239, 233, .5);
+}
+/* La elegida se queda encendida: es la que acaba de voltear la otra. */
+.carta--deseo[aria-pressed="true"] {
+  background: var(--bone);
+  border-color: var(--bone);
+  color: var(--pine);
+  font-weight: 500;
+}
+
+/* La derecha no es un boton: no se toca, se voltea sola. El dorso y la
+   cara comparten caja —una en el flujo y la otra encima— para que al
+   voltear no salte el alto. */
+.carta--depende {
+  position: relative;
+  min-height: 7.5rem;
+  display: grid; align-items: center;
+  border-style: dashed;
+  background: rgba(241, 239, 233, .04);
+}
+.carta__dorso, .carta__cara { margin: 0; transition: opacity .3s var(--ease); }
+.carta__cara {
+  position: absolute; inset: 1rem 1.1rem;
+  display: grid; align-items: center;
+  opacity: 0;
+}
+.carta__dorso { font-size: .85rem; color: var(--pine-200); font-style: italic; }
+.carta--depende[data-destapada="si"] {
+  border-style: solid;
+  border-color: var(--ring);
+  background: rgba(192, 138, 46, .1);
+}
+.carta--depende[data-destapada="si"] .carta__dorso { opacity: 0; }
+.carta--depende[data-destapada="si"] .carta__cara { opacity: 1; }
+
+/* ---- Los mandos ---- */
+.ruta__mandos {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin-top: 2rem;
+}
+.ruta__atras {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .85rem; font-weight: 600;
+  color: var(--pine-200);
+}
+.ruta__atras:hover, .ruta__atras:focus-visible { color: var(--bone); }
+.ruta__atras .icon { width: .9rem; height: .9rem; rotate: 90deg; }
+.ruta__mandos .cta[disabled] { opacity: .4; pointer-events: none; }
+
+/* ---- El resultado ---- */
+.ruta__fin:focus { outline: none; }
+.fin__rotulo {
+  margin: 0 0 .4rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--iris-300);
+}
+.fin__paso {
+  margin: 0 0 1.8rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.5rem, 6vw, 2.1rem);
+  line-height: 1.15; letter-spacing: -.02em;
+  color: var(--bone);
+  text-wrap: balance;
+}
+.fin__lectura, .fin__pruebas, .fin__servicio, .fin__no {
+  margin: 0 0 1.8rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(241, 239, 233, .18);
+  border-radius: 18px;
+}
+.fin__servicio { border-color: var(--ring); background: rgba(192, 138, 46, .08); }
+.fin__titulo {
+  margin: 0 0 .6rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: 1.15rem; line-height: 1.25;
+  color: var(--bone);
+}
+.fin__rotulo2 {
+  margin: 0 0 .7rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.fin__cuerpo,
+.fin__no p { margin: 0; font-size: .9rem; font-weight: 300; line-height: 1.65; color: var(--bone); }
+.fin__pruebas ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .6rem; }
+.fin__pruebas li {
+  font-size: .88rem; line-height: 1.5; color: var(--bone);
+  padding-left: .9rem;
+  border-left: 2px solid var(--ring);
+}
+.fin__nombre {
+  margin: 0 0 .8rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: 1.25rem; line-height: 1.2;
+  color: var(--bone);
+}
+.fin__cerrada {
+  margin: 0 0 .9rem;
+  font-size: .85rem; line-height: 1.55;
+  color: var(--ring-300);
+}
+.fin__dato {
+  margin: 0 0 .4rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pine-200);
+}
+.fin__dato b { font-size: .85rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--bone); }
+.fin__incluye { margin: 0 0 1rem; padding-left: 1.1rem; display: grid; gap: .35rem; }
+.fin__incluye li { font-size: .88rem; line-height: 1.5; color: var(--bone); }
+.fin__precio,
+.fin__atiende { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--pine-200); }
+.fin__atiende { margin-top: .5rem; font-weight: 600; color: var(--bone); }
+.ruta__mandos--fin { flex-wrap: wrap; }
+.ruta__otra {
+  font-size: .85rem; font-weight: 600;
+  color: var(--pine-200);
+  text-decoration: underline; text-underline-offset: .2em;
+}
+.ruta__otra:hover, .ruta__otra:focus-visible { color: var(--bone); }
+
+/* ---- Desde 700px: las dos cartas a la par ----
+   Aqui es donde el juego se explica solo. A la izquierda lo que quiero, a
+   la derecha de que depende, y el ojo mide la distancia sin que nadie se
+   la nombre. La derecha se queda pegada arriba mientras se recorre la
+   baraja, para que no haya que subir a leerla. */
+@media (min-width: 700px) {
+  .ronda__mesa { grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+  .carta--depende { position: sticky; top: calc(var(--header-h) + 1.5rem); min-height: 9rem; }
+  .ruta__ramas { grid-template-columns: repeat(3, 1fr); }
+  .rama { flex-direction: column; align-items: flex-start; gap: 1.6rem; min-height: 7rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .familia__pestana, .familia__titulo a { transition: none; }
+  .carta__dorso,
+  .carta__cara,
+  .ruta__barra span { transition: none; }
 }
