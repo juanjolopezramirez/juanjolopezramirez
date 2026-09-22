@@ -37,10 +37,11 @@ const title = di(RUTA.titulo, lang);
 <Base lang={lang} path="contact" active="contact"
       title={`${title} — Juan José López Ramírez`}
       description={di(RUTA.entrada, lang)}>
-  <article class="epage cpage cpage--ruta">
-    {/* El mismo campo vivo del hero: el degradado que respira, no una
-        imagen. Se anima solo — el guion lo busca por su clase. */}
-    <div class="cpage__field" aria-hidden="true"></div>
+  <article class="epage rpage">
+    {/* Aqui no va el campo verde del hero. Esta pagina es una mesa donde
+        se juega: las cartas se tienen que ver contra el papel, no contra
+        el bosque. El verde vuelve en lo que manda —las dianas, el nivel
+        elegido— y el hueso se queda quieto debajo. */}
     <div class="epage__shell">
       <Ruta lang={lang} />
     </div>

@@ -11,18 +11,24 @@
 create table recorrido (
   id          bigserial primary key,
 
-  -- Version del formato. El dia que cambien las cartas o el calculo, esto
-  -- sube y los recorridos viejos siguen siendo legibles sin mezclarse.
-  version     smallint    not null default 1,
+  -- Version del formato. El dia que cambien las cartas, los niveles o el
+  -- calculo, esto sube y los recorridos viejos siguen siendo legibles sin
+  -- mezclarse con los nuevos.
+  version     smallint    not null default 2,
 
   rama        text        not null check (rama in ('mi', 'negocio', 'marca')),
   baraja      text        not null check (baraja in ('empresa', 'persona')),
   voz         text        not null check (voz in ('tu', 'reflexivo')),
   idioma      text        not null check (idioma in ('es', 'en', 'pt', 'fr', 'it')),
 
-  -- Los ids de las cartas, en el orden en que se eligieron. El orden
-  -- importa: dice por que ronda se abandona o se cambia de idea.
-  cartas      text[]      not null check (array_length(cartas, 1) between 1 and 6),
+  -- JUEGO 1, el eje de la urgencia: las cartas que se mandaron a la
+  -- derecha, en el orden en que salieron. El orden importa: dice si se
+  -- cansaron a mitad del mazo.
+  urgentes    text[]      not null,
+
+  -- JUEGO 2, el eje de la importancia: donde quedo cada carta.
+  --   { "e-conocer": "primero", "e-chatbot": "noVa", ... }
+  niveles     jsonb       not null,
 
   paso        text        not null check (paso in ('alef', 'mem', 'tav')),
   lectura     text        not null check (lectura in ('emet', 'met', 'equilibrio')),
@@ -30,20 +36,19 @@ create table recorrido (
   creado      timestamptz not null default now()
 );
 
--- Las dos preguntas que se van a hacer siempre: que deseo aparece mas, y
--- en que paso se pierde la gente.
 create index recorrido_paso_lectura on recorrido (paso, lectura);
 create index recorrido_creado       on recorrido (creado desc);
-create index recorrido_cartas       on recorrido using gin (cartas);
+create index recorrido_urgentes     on recorrido using gin (urgentes);
+create index recorrido_niveles      on recorrido using gin (niveles);
 
 
 -- ============================================================
--- Las dos preguntas que se van a hacer siempre
+-- Lo que se le pregunta a la tabla
 -- ============================================================
 
--- Que deseo aparece mas, por rama
+-- Que deseo aprieta mas, por rama
 select rama, carta, count(*)
-from recorrido, unnest(cartas) as carta
+from recorrido, unnest(urgentes) as carta
 group by rama, carta
 order by count(*) desc;
 
@@ -51,4 +56,13 @@ order by count(*) desc;
 select paso, lectura, count(*)
 from recorrido
 group by paso, lectura
+order by count(*) desc;
+
+-- EL CUADRANTE QUE ROBA LOS DIAS: cartas que marcaron urgentes y despues
+-- mandaron abajo en la lista. Con doscientos recorridos, esto dice que es
+-- lo que de verdad le esta quitando las horas a la gente.
+select carta, count(*)
+from recorrido, unnest(urgentes) as carta
+where niveles ->> carta in ('algunDia', 'noVa')
+group by carta
 order by count(*) desc;

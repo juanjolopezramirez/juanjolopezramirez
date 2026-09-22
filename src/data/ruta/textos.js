@@ -284,6 +284,76 @@ export const RUTA = {
     fr: 'Recommencer', it: 'Rifarlo'
   },
 
+
+  /* ---- Juego 1: deslizar ---- */
+  juego1: {
+    es: 'Lo que te aprieta', en: 'What is pressing you', pt: 'O que te aperta',
+    fr: 'Ce qui te presse', it: 'Quello che ti stringe'
+  },
+  quedan: {
+    es: 'Quedan {n}', en: '{n} left', pt: 'Faltam {n}', fr: 'Il en reste {n}', it: 'Ne restano {n}'
+  },
+  deshacer: {
+    es: 'Devolver la última', en: 'Take the last one back', pt: 'Devolver a última',
+    fr: 'Reprendre la dernière', it: 'Riprendi l’ultima'
+  },
+
+  /* ---- Juego 2: la lista ---- */
+  juego2: {
+    es: 'En qué orden', en: 'In what order', pt: 'Em que ordem',
+    fr: 'Dans quel ordre', it: 'In che ordine'
+  },
+  listaPregunta: {
+    es: '¿Por cuál empezarías?',
+    en: 'Which one would you start with?',
+    pt: 'Por qual começarias?',
+    fr: 'Par laquelle commencerais-tu ?',
+    it: 'Da quale inizieresti?'
+  },
+  listaAyuda: {
+    es: 'Toca una carta y después el nivel donde va. En un computador también puedes arrastrarla.',
+    en: 'Tap a card and then the level it belongs to. On a computer you can also drag it.',
+    pt: 'Toca numa carta e depois no nível onde vai. Num computador também a podes arrastar.',
+    fr: 'Touche une carte puis le niveau où elle va. Sur un ordinateur tu peux aussi la glisser.',
+    it: 'Tocca una carta e poi il livello dove va. Su un computer puoi anche trascinarla.'
+  },
+  listaSinColocar: {
+    es: 'Sin colocar', en: 'Not placed yet', pt: 'Por colocar',
+    fr: 'Pas encore placées', it: 'Da collocare'
+  },
+  listaFaltan: {
+    es: 'Te falta colocar {n}', en: '{n} still to place', pt: 'Falta colocar {n}',
+    fr: 'Il en reste {n} à placer', it: 'Ne restano {n} da collocare'
+  },
+
+  /* ---- La matriz, en el resultado ---- */
+  matrizTitulo: {
+    es: 'Lo urgente contra lo que importa',
+    en: 'Urgent against what matters',
+    pt: 'O urgente contra o que importa',
+    fr: 'L’urgent face à ce qui compte',
+    it: 'L’urgente contro quello che conta'
+  },
+  matrizVacio: {
+    es: 'Nada aquí', en: 'Nothing here', pt: 'Nada aqui', fr: 'Rien ici', it: 'Niente qui'
+  },
+
+  /* ---- La prueba que sale de la lista ---- */
+  ordenTitulo: {
+    es: 'Y con tu propia lista',
+    en: 'And in your own list',
+    pt: 'E com a tua própria lista',
+    fr: 'Et dans ta propre liste',
+    it: 'E con la tua stessa lista'
+  },
+  ordenPrueba: {
+    es: 'Pusiste arriba «{arriba}» y dejaste abajo «{abajo}». Lo de abajo va antes.',
+    en: 'You put “{arriba}” up top and left “{abajo}” at the bottom. The one at the bottom comes first.',
+    pt: 'Puseste em cima «{arriba}» e deixaste em baixo «{abajo}». O de baixo vem antes.',
+    fr: 'Tu as mis « {arriba} » en haut et laissé « {abajo} » en bas. Celui du bas vient avant.',
+    it: 'Hai messo in alto «{arriba}» e lasciato in basso «{abajo}». Quello in basso viene prima.'
+  },
+
   /* Sin JavaScript no hay juego: se dice y se ofrece la puerta de siempre. */
   sinGuion: {
     es: 'Esta ruta necesita JavaScript para funcionar. Si no lo tienes, escríbeme y la hacemos hablando.',

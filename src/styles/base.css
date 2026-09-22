@@ -6818,27 +6818,39 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .proposito__larga { margin: .35rem 0 0; font-size: .88rem; font-weight: 300; line-height: 1.65; text-wrap: pretty; }
 
 /* =============================================================
-   DAR EL PRIMER PASO — el juego de las dos cartas
+   DAR EL PRIMER PASO — el mazo y la lista
 
-   Movil primero, y aqui eso no es una postura: se llega desde
-   «Caminemos», que casi siempre se toca con el pulgar. En el telefono las
-   dos cartas van una encima de otra —la baraja arriba, lo que depende
-   debajo— porque lado a lado dejaria dos columnas de treinta caracteres.
-   Desde 700px se ponen a la par y entonces si se ve lo que el juego
-   quiere que se vea: la distancia entre las dos.
+   SOBRE HUESO, no sobre el pinar. Esta pagina es una mesa donde se juega:
+   las cartas se ven contra el papel, no contra el bosque. El verde vuelve
+   en lo que manda —las dianas, el nivel elegido, la barra— y el papel se
+   queda quieto debajo, que es lo suyo.
 
-   Vive sobre el pinar de `.cpage`, asi que todo va en hueso.
+   MOVIL PRIMERO y de verdad, no de boquilla: se llega desde «Caminemos»,
+   que casi siempre se toca con el pulgar, y todo el juego cabe sin que la
+   mano se mueva del centro de la pantalla.
+
+   SE PUEDE JUGAR SIN ARRASTRAR. Las dos dianas son botones y la lista se
+   resuelve tocando. Arrastrar es lo bonito; tocar es lo que funciona
+   siempre — y con el teclado, arrastrar no existe.
    ============================================================= */
-.cpage--ruta .epage__shell { padding-bottom: 3rem; }
+.rpage {
+  position: relative;
+  background: var(--papel);
+  color: var(--slate);
+}
+.rpage .epage__shell { padding-bottom: 3.5rem; }
 
 .ruta { display: block; }
+/* La cabecera flota, asi que cuando el guion lleva el foco o el scroll a
+   una pantalla, el titulo se le mete debajo. Esto le reserva el hueco:
+   vale igual para `focus()` que para `scrollIntoView()`. */
+.ruta__paso { scroll-margin-top: calc(var(--header-h) + 1.2rem); }
 .ruta__sinjs {
   margin: 0 0 1.5rem;
   padding: .9rem 1rem;
-  border: 1px solid rgba(241, 239, 233, .28);
+  border: 1px solid rgb(var(--slate-rgb) / .25);
   border-radius: 14px;
   font-size: .9rem;
-  color: var(--bone);
 }
 
 .ruta__titulo {
@@ -6846,21 +6858,20 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   font-family: var(--serif); font-weight: 400;
   font-size: clamp(1.9rem, 7vw, 2.6rem);
   line-height: 1.1; letter-spacing: -.02em;
-  color: var(--bone);
+  color: var(--slate);
   text-wrap: balance;
 }
 .ruta__entrada {
   margin: 0 0 2.2rem;
   max-width: 34rem;
   font-size: .95rem; font-weight: 300; line-height: 1.65;
-  color: var(--pine-200);
+  color: var(--slate-400);
 }
 .ruta__pregunta {
   margin: 0 0 1.1rem;
   font-family: var(--serif); font-weight: 400;
   font-size: clamp(1.25rem, 5.2vw, 1.6rem);
   line-height: 1.2;
-  color: var(--bone);
 }
 
 /* ---- Las tres ramas ---- */
@@ -6869,14 +6880,17 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   width: 100%;
   padding: 1rem 1.1rem;
-  border: 1px solid rgba(241, 239, 233, .28);
+  border: 1px solid rgb(var(--slate-rgb) / .22);
   border-radius: 16px;
   font-size: 1rem; font-weight: 500;
-  color: var(--bone);
+  color: var(--slate);
   text-align: left;
-  transition: background .2s var(--ease), border-color .2s var(--ease);
+  transition: background .2s var(--ease), border-color .2s var(--ease), translate .2s var(--ease);
 }
-.rama:hover, .rama:focus-visible { background: rgba(241, 239, 233, .1); border-color: var(--bone); }
+.rama:hover, .rama:focus-visible {
+  background: var(--pine); border-color: var(--pine); color: var(--bone);
+  translate: 0 -2px;
+}
 .rama .icon { flex: 0 0 auto; width: 1rem; height: 1rem; }
 
 /* ---- El aviso de lo que se guarda ---- */
@@ -6884,206 +6898,379 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem;
   margin: 0;
   font-size: .78rem; line-height: 1.5;
-  color: var(--pine-200);
+  color: var(--slate-400);
 }
 .ruta__salir {
   font-size: .78rem; font-weight: 600;
-  color: var(--bone);
-  text-decoration: underline;
-  text-underline-offset: .2em;
+  color: var(--slate);
+  text-decoration: underline; text-underline-offset: .2em;
 }
-.ruta__aviso--fuera { color: var(--iris-300); }
+.ruta__aviso--fuera { color: var(--iris-tinta); }
 
-/* ---- El progreso ---- */
-.ruta__progreso {
-  margin: 0 0 .5rem;
-  font-size: .72rem; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: var(--pine-200);
+/* ---- El hilo de los dos juegos ---- */
+.ruta__pasos {
+  display: flex; gap: 1.2rem;
+  margin: 0 0 1.6rem; padding: 0;
+  list-style: none;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: rgb(var(--slate-rgb) / .38);
 }
-.ruta__barra {
-  height: 3px;
-  margin: 0 0 1.8rem;
-  border-radius: 3px;
-  background: rgba(241, 239, 233, .16);
-  overflow: hidden;
+.ruta__pasos li { display: flex; align-items: center; gap: .45rem; transition: color .3s var(--ease); }
+.ruta__pasos li::before {
+  content: "";
+  width: .5rem; height: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+  transition: scale .3s var(--ease);
 }
-.ruta__barra span {
-  display: block; height: 100%; width: 0;
-  border-radius: inherit;
-  background: var(--iris);
-  transition: width .4s var(--ease-smooth);
-}
+.ruta__pasos .is-aqui { color: var(--pine); }
+.ruta__pasos .is-aqui::before { scale: 1.4; }
+.ruta__pasos .is-hecho { color: var(--iris-tinta); }
 
-/* ---- La mesa ---- */
-.ronda__pregunta {
+/* =============================================================
+   JUEGO 1 — EL MAZO
+   ============================================================= */
+.mazo__tanda {
+  margin: 0 0 .4rem;
+  min-height: 1.2em;
+  font-size: .75rem; font-weight: 600;
+  color: var(--slate-400);
+}
+.mazo__pregunta {
   margin: 0 0 1.4rem;
   font-family: var(--serif); font-weight: 400;
-  font-size: clamp(1.25rem, 5.2vw, 1.7rem);
-  line-height: 1.2;
-  color: var(--bone);
+  font-size: clamp(1.4rem, 6vw, 1.9rem);
+  line-height: 1.15;
   text-wrap: balance;
 }
-.ronda__mesa { display: grid; gap: 1.6rem; }
-.mesa__rotulo {
-  margin: 0 0 .7rem;
-  font-size: .68rem; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: var(--pine-200);
-}
-.mesa__cartas { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
 
-/* ---- Las cartas ---- */
-.carta {
-  display: block;
-  width: 100%;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(241, 239, 233, .24);
+/* La mesa: diana, pila, diana. En el telefono las dianas se encogen a su
+   texto y la pila se lleva todo lo que sobra. */
+.mazo__mesa {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .5rem;
+}
+
+.diana {
+  display: grid; place-items: center;
+  min-height: 9rem;
+  padding: .8rem .5rem;
+  border: 1px dashed rgb(var(--slate-rgb) / .3);
   border-radius: 16px;
-  font-size: .95rem; font-weight: 400; line-height: 1.45;
-  color: var(--bone);
-  text-align: left;
-  transition: background .2s var(--ease), border-color .2s var(--ease);
+  font-size: .72rem; font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: .04em;
+  color: var(--slate-400);
+  text-align: center;
+  transition: background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease), scale .2s var(--ease);
 }
-.carta--deseo:hover, .carta--deseo:focus-visible {
-  background: rgba(241, 239, 233, .1);
-  border-color: rgba(241, 239, 233, .5);
+.diana__texto { max-width: 4.5rem; }
+.diana:hover:not(:disabled), .diana:focus-visible {
+  border-style: solid; border-color: var(--pine); color: var(--pine);
 }
-/* La elegida se queda encendida: es la que acaba de voltear la otra. */
-.carta--deseo[aria-pressed="true"] {
-  background: var(--bone);
-  border-color: var(--bone);
-  color: var(--pine);
-  font-weight: 500;
+/* Mientras la carta viene hacia ella, la diana se enciende sola. */
+.diana.is-cerca { border-style: solid; scale: 1.06; }
+.diana--si.is-cerca { background: var(--iris); border-color: var(--iris); color: var(--pine); }
+.diana--no.is-cerca { background: rgb(var(--slate-rgb) / .1); border-color: var(--slate); color: var(--slate); }
+.diana:disabled { opacity: .3; }
+
+/* ---- La pila ---- */
+.mazo__pila {
+  position: relative;
+  display: grid;
+  min-height: 15rem;
+  place-items: center;
+}
+/* Todas las cartas en la misma celda: la pila es una sola caja y lo que
+   las separa es el `--fondo`, no el flujo. */
+.mazo__pila > .naipe { grid-area: 1 / 1; }
+
+.naipe {
+  position: relative;            /* el sello de la esquina se cuelga de aqui */
+  display: grid; align-items: center;
+  width: min(100%, 17rem);
+  min-height: 13rem;
+  padding: 1.4rem 1.3rem;
+  border-radius: 20px;
+  background: var(--papel-2);
+  border: 1px solid rgb(var(--slate-rgb) / .16);
+  box-shadow: 0 10px 30px -18px rgba(11, 20, 13, .5);
+  /* Las de atras se ven un poco mas pequeñas y bajadas: eso es la pila. */
+  scale: calc(1 - var(--fondo, 0) * .045);
+  translate: 0 calc(var(--fondo, 0) * .5rem);
+  opacity: calc(1 - var(--fondo, 0) * .22);
+  transition: scale .3s var(--ease), translate .3s var(--ease), opacity .3s var(--ease);
+  touch-action: none;             /* el dedo arrastra la carta, no la pagina */
+  user-select: none;
+}
+.naipe.is-arriba { cursor: grab; }
+.naipe.is-agarrado { cursor: grabbing; transition: none; box-shadow: 0 18px 40px -20px rgba(11, 20, 13, .6); }
+.naipe.is-fuera { display: none; }
+
+.naipe__texto {
+  margin: 0;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.05rem, 4.6vw, 1.3rem);
+  line-height: 1.25;
+  color: var(--slate);
+  text-wrap: balance;
+}
+.naipe__sello {
+  position: absolute; right: 1rem; bottom: 1rem;
+  color: var(--iris-tinta);
+  opacity: .3;
+}
+.naipe__sello .icon { width: auto; height: 1.3rem; }
+
+/* El vuelo. La carta sale por su lado, girando, y se apaga por el camino. */
+.naipe.is-yendo-si, .naipe.is-yendo-no {
+  transition: translate .42s var(--ease), rotate .42s var(--ease), opacity .42s var(--ease);
+  opacity: 0;
+  pointer-events: none;
+}
+.naipe.is-yendo-si { translate: 130% -8%; rotate: 18deg; }
+.naipe.is-yendo-no { translate: -130% -8%; rotate: -18deg; }
+
+.mazo__ayuda {
+  margin: 1.2rem 0 0;
+  font-size: .78rem; line-height: 1.5;
+  color: var(--slate-400);
+  text-align: center;
 }
 
-/* La derecha no es un boton: no se toca, se voltea sola. El dorso y la
-   cara comparten caja —una en el flujo y la otra encima— para que al
-   voltear no salte el alto. */
-.carta--depende {
-  position: relative;
-  min-height: 7.5rem;
-  display: grid; align-items: center;
-  border-style: dashed;
-  background: rgba(241, 239, 233, .04);
+/* =============================================================
+   JUEGO 2 — LA LISTA
+   ============================================================= */
+.lista__pregunta {
+  margin: 0 0 .5rem;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.4rem, 6vw, 1.9rem);
+  line-height: 1.15;
 }
-.carta__dorso, .carta__cara { margin: 0; transition: opacity .3s var(--ease); }
-.carta__cara {
-  position: absolute; inset: 1rem 1.1rem;
-  display: grid; align-items: center;
-  opacity: 0;
+.lista__ayuda { margin: 0 0 1.4rem; font-size: .82rem; line-height: 1.55; color: var(--slate-400); }
+
+.lista__rotulo {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  margin: 0 0 .6rem;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--slate-400);
 }
-.carta__dorso { font-size: .85rem; color: var(--pine-200); font-style: italic; }
-.carta--depende[data-destapada="si"] {
-  border-style: solid;
-  border-color: var(--ring);
-  background: rgba(192, 138, 46, .1);
+.lista__faltan { letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ring-tinta); }
+.lista__mano {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  margin: 0 0 1.6rem; padding: 0;
+  list-style: none;
+  min-height: 2.6rem;
 }
-.carta--depende[data-destapada="si"] .carta__dorso { opacity: 0; }
-.carta--depende[data-destapada="si"] .carta__cara { opacity: 1; }
+
+.ficha {
+  padding: .6rem .8rem;
+  border: 1px solid rgb(var(--slate-rgb) / .2);
+  border-radius: 12px;
+  background: var(--papel-2);
+  font-size: .82rem; line-height: 1.3;
+  color: var(--slate);
+  text-align: left;
+  transition: background .2s var(--ease), border-color .2s var(--ease), scale .2s var(--ease);
+}
+.ficha:hover, .ficha:focus-visible { border-color: var(--pine); }
+/* Levantada, esperando nivel. */
+.ficha[aria-pressed="true"] {
+  background: var(--pine); border-color: var(--pine); color: var(--bone);
+  scale: 1.04;
+}
+.ficha.is-puesta { animation: fichaCae .3s var(--ease); }
+@keyframes fichaCae {
+  from { scale: 1.08; opacity: .4; }
+  to   { scale: 1; opacity: 1; }
+}
+
+.lista__niveles { display: grid; gap: .7rem; margin: 0; padding: 0; list-style: none; }
+.nivel {
+  display: grid;
+  border: 1px solid rgb(var(--slate-rgb) / .16);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color .2s var(--ease);
+}
+/* Mientras hay una ficha levantada, los niveles se ofrecen. */
+.lista.is-poniendo .nivel { border-color: var(--iris); }
+.lista.is-poniendo .nivel__rotulo:hover,
+.lista.is-poniendo .nivel__rotulo:focus-visible { background: var(--iris); color: var(--pine); }
+
+.nivel__rotulo {
+  display: grid; gap: .1rem;
+  padding: .7rem .9rem;
+  background: rgb(var(--slate-rgb) / .05);
+  text-align: left;
+  transition: background .2s var(--ease), color .2s var(--ease);
+}
+.nivel__nombre { font-size: .9rem; font-weight: 700; }
+.nivel__pista { font-size: .74rem; font-weight: 400; color: var(--slate-400); }
+.lista.is-poniendo .nivel__rotulo:hover .nivel__pista,
+.lista.is-poniendo .nivel__rotulo:focus-visible .nivel__pista { color: inherit; }
+
+.nivel__caja {
+  display: flex; flex-wrap: wrap; gap: .45rem;
+  margin: 0; padding: .7rem .9rem;
+  list-style: none;
+  min-height: 2.2rem;
+}
+.nivel__caja:empty::after {
+  content: "";
+  display: block; width: 100%; height: .9rem;
+}
+
+/* El orden de los niveles se ve en el filo de la izquierda: arriba pesa. */
+.nivel[data-nivel="primero"]  { border-left: 4px solid var(--pine); }
+.nivel[data-nivel="despues"]  { border-left: 4px solid var(--iris); }
+.nivel[data-nivel="algunDia"] { border-left: 4px solid var(--ring); }
+.nivel[data-nivel="noVa"]     { border-left: 4px solid rgb(var(--slate-rgb) / .25); }
 
 /* ---- Los mandos ---- */
 .ruta__mandos {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+  flex-wrap: wrap;
   margin-top: 2rem;
 }
 .ruta__atras {
   display: inline-flex; align-items: center; gap: .4rem;
   font-size: .85rem; font-weight: 600;
-  color: var(--pine-200);
+  color: var(--slate-400);
 }
-.ruta__atras:hover, .ruta__atras:focus-visible { color: var(--bone); }
+.ruta__atras:hover, .ruta__atras:focus-visible { color: var(--slate); }
 .ruta__atras .icon { width: .9rem; height: .9rem; rotate: 90deg; }
-.ruta__mandos .cta[disabled] { opacity: .4; pointer-events: none; }
+.ruta__otro {
+  font-size: .8rem; font-weight: 600;
+  color: var(--slate-400);
+  text-decoration: underline; text-underline-offset: .2em;
+}
+.ruta__otro:hover, .ruta__otro:focus-visible { color: var(--slate); }
+.ruta__mandos .cta[disabled] { opacity: .35; pointer-events: none; }
 
-/* ---- El resultado ---- */
+/* =============================================================
+   EL RESULTADO
+   ============================================================= */
 .ruta__fin:focus { outline: none; }
 .fin__rotulo {
   margin: 0 0 .4rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: var(--iris-300);
+  color: var(--iris-tinta);
 }
 .fin__paso {
   margin: 0 0 1.8rem;
   font-family: var(--serif); font-weight: 400;
   font-size: clamp(1.5rem, 6vw, 2.1rem);
   line-height: 1.15; letter-spacing: -.02em;
-  color: var(--bone);
   text-wrap: balance;
 }
-.fin__lectura, .fin__pruebas, .fin__servicio, .fin__no {
+.fin__lectura, .fin__pruebas, .fin__servicio, .fin__no, .fin__matriz {
   margin: 0 0 1.8rem;
   padding: 1.1rem 1.2rem;
-  border: 1px solid rgba(241, 239, 233, .18);
+  border: 1px solid rgb(var(--slate-rgb) / .16);
   border-radius: 18px;
 }
-.fin__servicio { border-color: var(--ring); background: rgba(192, 138, 46, .08); }
+.fin__servicio { border-color: var(--ring); background: rgb(192 138 46 / .07); }
 .fin__titulo {
   margin: 0 0 .6rem;
   font-family: var(--serif); font-weight: 400;
   font-size: 1.15rem; line-height: 1.25;
-  color: var(--bone);
 }
 .fin__rotulo2 {
   margin: 0 0 .7rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: var(--pine-200);
+  color: var(--slate-400);
 }
-.fin__cuerpo,
-.fin__no p { margin: 0; font-size: .9rem; font-weight: 300; line-height: 1.65; color: var(--bone); }
-.fin__pruebas ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .6rem; }
+.fin__cuerpo, .fin__no p { margin: 0; font-size: .9rem; font-weight: 300; line-height: 1.65; }
+.fin__pruebas ul { margin: 0 0 .2rem; padding: 0; list-style: none; display: grid; gap: .6rem; }
 .fin__pruebas li {
-  font-size: .88rem; line-height: 1.5; color: var(--bone);
+  font-size: .88rem; line-height: 1.5;
   padding-left: .9rem;
   border-left: 2px solid var(--ring);
 }
+.fin__pruebas [data-fin-orden-caja] { margin-top: 1.3rem; }
+.fin__pruebas [data-fin-orden] li { border-left-color: var(--pine); }
 .fin__nombre {
   margin: 0 0 .8rem;
   font-family: var(--serif); font-weight: 400;
   font-size: 1.25rem; line-height: 1.2;
-  color: var(--bone);
 }
-.fin__cerrada {
-  margin: 0 0 .9rem;
-  font-size: .85rem; line-height: 1.55;
-  color: var(--ring-300);
-}
+.fin__cerrada { margin: 0 0 .9rem; font-size: .85rem; line-height: 1.55; color: var(--ring-tinta); }
 .fin__dato {
   margin: 0 0 .4rem;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: var(--pine-200);
+  color: var(--slate-400);
 }
-.fin__dato b { font-size: .85rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--bone); }
+.fin__dato b { font-size: .85rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--slate); }
 .fin__incluye { margin: 0 0 1rem; padding-left: 1.1rem; display: grid; gap: .35rem; }
-.fin__incluye li { font-size: .88rem; line-height: 1.5; color: var(--bone); }
-.fin__precio,
-.fin__atiende { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--pine-200); }
-.fin__atiende { margin-top: .5rem; font-weight: 600; color: var(--bone); }
-.ruta__mandos--fin { flex-wrap: wrap; }
+.fin__incluye li { font-size: .88rem; line-height: 1.5; }
+.fin__precio, .fin__atiende { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--slate-400); }
+.fin__atiende { margin-top: .5rem; font-weight: 600; color: var(--slate); }
 .ruta__otra {
   font-size: .85rem; font-weight: 600;
-  color: var(--pine-200);
+  color: var(--slate-400);
   text-decoration: underline; text-underline-offset: .2em;
 }
-.ruta__otra:hover, .ruta__otra:focus-visible { color: var(--bone); }
+.ruta__otra:hover, .ruta__otra:focus-visible { color: var(--slate); }
 
-/* ---- Desde 700px: las dos cartas a la par ----
-   Aqui es donde el juego se explica solo. A la izquierda lo que quiero, a
-   la derecha de que depende, y el ojo mide la distancia sin que nadie se
-   la nombre. La derecha se queda pegada arriba mientras se recorre la
-   baraja, para que no haya que subir a leerla. */
+/* ---- La matriz ----
+   Dos por dos y en este orden, que no es el del manual: arriba lo que se
+   hace, abajo lo que no. Lo primero que se lee es lo que hay que hacer, y
+   lo segundo, lo que se esta llevando los dias. */
+.matriz { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.cuadro {
+  padding: .8rem .85rem;
+  border-radius: 14px;
+  border: 1px solid rgb(var(--slate-rgb) / .14);
+  background: rgb(var(--slate-rgb) / .03);
+  transition: opacity .3s var(--ease);
+}
+.cuadro--ahora  { border-color: var(--pine); background: rgb(38 59 40 / .07); }
+.cuadro--fecha  { border-color: var(--iris); background: rgb(125 155 78 / .09); }
+.cuadro--roba   { border-color: var(--ring); background: rgb(192 138 46 / .09); }
+.cuadro.is-vacio { opacity: .45; }
+.cuadro__nombre {
+  margin: 0 0 .5rem;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.cuadro--ahora .cuadro__nombre { color: var(--pine); }
+.cuadro--fecha .cuadro__nombre { color: var(--iris-tinta); }
+.cuadro--roba .cuadro__nombre  { color: var(--ring-tinta); }
+.cuadro__cartas { margin: 0 0 .6rem; padding: 0; list-style: none; display: grid; gap: .3rem; }
+.cuadro__cartas li { font-size: .76rem; line-height: 1.35; }
+.cuadro__vacio { color: var(--slate-400); font-style: italic; }
+.cuadro__que { margin: 0; font-size: .7rem; line-height: 1.4; color: var(--slate-400); }
+
+/* =============================================================
+   DESDE 700px — hay sitio para que el juego respire
+   ============================================================= */
 @media (min-width: 700px) {
-  .ronda__mesa { grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
-  .carta--depende { position: sticky; top: calc(var(--header-h) + 1.5rem); min-height: 9rem; }
   .ruta__ramas { grid-template-columns: repeat(3, 1fr); }
   .rama { flex-direction: column; align-items: flex-start; gap: 1.6rem; min-height: 7rem; }
+
+  .mazo__mesa { gap: 1.5rem; }
+  .diana { min-height: 11rem; padding: 1.2rem 1rem; font-size: .8rem; }
+  .diana__texto { max-width: 7rem; }
+  .naipe { min-height: 15rem; }
+  .mazo__pila { min-height: 17rem; }
+
+  .lista__niveles { gap: .8rem; }
+  .nivel { grid-template-columns: 12rem minmax(0, 1fr); align-items: stretch; }
+  .nivel__rotulo { align-content: center; }
+  .nivel__caja { align-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .carta__dorso,
-  .carta__cara,
-  .ruta__barra span { transition: none; }
+  .naipe, .naipe.is-yendo-si, .naipe.is-yendo-no,
+  .ficha, .diana, .rama, .ruta__pasos li { transition: none; }
+  .naipe.is-yendo-si, .naipe.is-yendo-no { opacity: 0; translate: 0; rotate: 0deg; }
+  .ficha.is-puesta { animation: none; }
 }

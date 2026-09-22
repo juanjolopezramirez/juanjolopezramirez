@@ -1,0 +1,55 @@
+---
+import { BARAJA } from '../../data/ruta/cartas.js';
+import { URGENCIA } from '../../data/ruta/juegos.js';
+import { RUTA, di } from '../../data/ruta/textos.js';
+import Icon from '../Icon.astro';
+
+/* JUEGO 1 — EL MAZO. Una carta a la vez, a un lado o al otro.
+
+   LA PILA ENTERA VIAJA EN EL HTML, las dos barajas, y el guion solo
+   descubre la que toca. Treinta y cuatro frases pesan menos que una foto,
+   y a cambio no hay ni una peticion a mitad del juego.
+
+   LAS DOS DIANAS SON BOTONES DE VERDAD, no solo sitios donde soltar. Se
+   puede jugar entero sin arrastrar nada: con el dedo en el boton, con el
+   raton o con el teclado. Arrastrar es lo bonito; tocar es lo que tiene
+   que funcionar siempre.
+
+   LA TANDA se lee de la carta que esta arriba: cada carta trae la pregunta
+   del grupo del que viene, y el rotulo de arriba cambia solo al pasar de
+   grupo. Asi las preguntas de la baraja siguen diciendo algo aunque el
+   juego ya no vaya por rondas.
+
+   Las cartas van en orden inverso en el HTML —la ultima primero— para que
+   la primera quede encima de la pila sin pelearse con z-index. */
+
+const { lang, baraja } = Astro.props;
+const cartas = BARAJA[baraja].flatMap((g) =>
+  g.cartas.map((c) => ({ ...c, tanda: di(g.pregunta, lang) }))
+);
+---
+<section class="mazo" data-baraja={baraja} hidden>
+  <p class="mazo__tanda" data-tanda></p>
+  <h2 class="mazo__pregunta">{di(URGENCIA.pregunta, lang)}</h2>
+
+  <div class="mazo__mesa">
+    <button class="diana diana--no" type="button" data-lado="no">
+      <span class="diana__texto">{di(URGENCIA.no, lang)}</span>
+    </button>
+
+    <div class="mazo__pila" data-pila>
+      {cartas.slice().reverse().map((c) => (
+        <article class="naipe" data-naipe={c.id} data-tanda-texto={c.tanda}>
+          <p class="naipe__texto">{di(c.deseo, lang)}</p>
+          <span class="naipe__sello" aria-hidden="true"><Icon id="mark" /></span>
+        </article>
+      ))}
+    </div>
+
+    <button class="diana diana--si" type="button" data-lado="si">
+      <span class="diana__texto">{di(URGENCIA.si, lang)}</span>
+    </button>
+  </div>
+
+  <p class="mazo__ayuda">{di(URGENCIA.ayuda, lang)}</p>
+</section>

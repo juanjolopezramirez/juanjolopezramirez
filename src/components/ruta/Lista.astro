@@ -1,0 +1,49 @@
+---
+import { NIVELES } from '../../data/ruta/juegos.js';
+import { RUTA, di } from '../../data/ruta/textos.js';
+
+/* JUEGO 2 — LA LISTA. Cuatro niveles y las cartas que quedaron.
+
+   NO ES UNA LISTA DE LETRAS. S, A, B, C no le dicen nada a nadie que no
+   venga de los juegos de pelea, y hay que explicarlas antes de usarlas.
+   Primero, despues, algun dia y no va se entienden sin manual, y son las
+   cuatro cosas que de verdad se dicen de una tarea.
+
+   SE JUEGA TOCANDO, no arrastrando. Tocas una carta, tocas el nivel, y la
+   carta se va. Arrastrar en un telefono pelea con el desplazamiento de la
+   pagina y se rompe en cuanto el dedo se sale un milimetro; tocar dos
+   veces funciona igual en un telefono, en un raton y con el teclado, que
+   es el unico que no puede arrastrar de ninguna manera.
+
+   Las cartas las pone el guion: cuales pasan depende de lo que haya
+   urgido en el juego anterior, y eso no se sabe hasta que termina.
+
+   `aria-live` en el hueco de las que faltan: al colocar una, quien
+   escucha se entera de cuantas quedan sin tener que buscarlo. */
+
+const { lang } = Astro.props;
+---
+<section class="lista" hidden>
+  <h2 class="lista__pregunta">{di(RUTA.listaPregunta, lang)}</h2>
+  <p class="lista__ayuda">{di(RUTA.listaAyuda, lang)}</p>
+
+  <div class="lista__sin">
+    <h3 class="lista__rotulo">
+      <span>{di(RUTA.listaSinColocar, lang)}</span>
+      <span class="lista__faltan" data-faltan aria-live="polite"></span>
+    </h3>
+    <ul class="lista__mano" data-sin></ul>
+  </div>
+
+  <ol class="lista__niveles">
+    {NIVELES.map((n) => (
+      <li class="nivel" data-nivel={n.id}>
+        <button class="nivel__rotulo" type="button" data-poner={n.id}>
+          <b class="nivel__nombre">{di(n.nombre, lang)}</b>
+          <small class="nivel__pista">{di(n.pista, lang)}</small>
+        </button>
+        <ul class="nivel__caja" data-caja={n.id}></ul>
+      </li>
+    ))}
+  </ol>
+</section>

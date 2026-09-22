@@ -1,4 +1,5 @@
-import { RAMA, esRama, cartasElegidas, pasoDe, lecturaDe } from '../data/ruta/diagnostico.js';
+import { RAMA, esRama, cartasElegidas, diagnosticar } from '../data/ruta/diagnostico.js';
+import { NIVEL } from '../data/ruta/juegos.js';
 import { PASOS } from '../data/ruta/pasos.js';
 import { LANGS } from '../i18n/ui.js';
 
@@ -40,7 +41,8 @@ import { LANGS } from '../i18n/ui.js';
 
 export const prerender = false;
 
-const MAX_CARTAS = 6;
+const MAX_URGENTES = 20;   /* la baraja entera, por si alguien marca todo */
+const MAX_NIVELES = 8;
 const RECOLECTOR = import.meta.env.RECOLECTOR_URL ?? process.env.RECOLECTOR_URL ?? '';
 
 const no = (motivo, estado = 400) =>
@@ -57,23 +59,36 @@ export async function POST({ request }) {
     return no('El cuerpo no es JSON.');
   }
 
-  const { rama, idioma, cartas } = cuerpo ?? {};
+  const { rama, idioma, urgentes, niveles } = cuerpo ?? {};
 
   if (!esRama(rama)) return no('Rama desconocida.');
   if (!LANGS.includes(idioma)) return no('Idioma desconocido.');
-  if (!Array.isArray(cartas) || !cartas.length || cartas.length > MAX_CARTAS) {
-    return no(`Entre 1 y ${MAX_CARTAS} cartas.`);
+
+  /* JUEGO 1 — las que se mandaron a la derecha. */
+  if (!Array.isArray(urgentes) || urgentes.length > MAX_URGENTES) {
+    return no(`Las urgentes van en una lista de como mucho ${MAX_URGENTES}.`);
   }
-  if (cartas.some((c) => typeof c !== 'string')) return no('Las cartas van por su id.');
-  if (new Set(cartas).size !== cartas.length) return no('Hay una carta repetida.');
+  if (urgentes.some((c) => typeof c !== 'string')) return no('Las cartas van por su id.');
+  if (new Set(urgentes).size !== urgentes.length) return no('Hay una carta repetida.');
+  if (cartasElegidas(rama, urgentes).length !== urgentes.length) {
+    return no('Alguna carta no es de esa baraja.');
+  }
 
-  /* Las cartas tienen que existir en la baraja de esa rama. */
-  const elegidas = cartasElegidas(rama, cartas);
-  if (elegidas.length !== cartas.length) return no('Alguna carta no es de esa baraja.');
+  /* JUEGO 2 — donde quedo cada una. */
+  if (!niveles || typeof niveles !== 'object' || Array.isArray(niveles)) {
+    return no('Los niveles van en un objeto.');
+  }
+  const ids = Object.keys(niveles);
+  if (!ids.length || ids.length > MAX_NIVELES) return no(`Entre 1 y ${MAX_NIVELES} cartas en la lista.`);
+  if (cartasElegidas(rama, ids).length !== ids.length) return no('Alguna carta de la lista no es de esa baraja.');
+  if (ids.some((id) => !NIVEL[niveles[id]])) return no('Hay un nivel que no existe.');
 
-  const paso = pasoDe(elegidas);
-  const lectura = lecturaDe(elegidas);
-  if (!PASOS.includes(paso)) return no('No se pudo calcular el paso.', 500);
+  /* EL PASO Y LA LECTURA SE RECALCULAN AQUI. Lo que llegue en el cuerpo
+     diciendo en que paso quedo alguien se ignora: si no, los recorridos
+     que van a servir para decidir no valdrian nada. */
+  const dx = diagnosticar(rama, urgentes, niveles);
+  if (!dx || !PASOS.includes(dx.paso)) return no('No se pudo calcular el paso.', 500);
+  const { paso, lectura } = dx;
 
   const fila = {
     version: 1,
@@ -81,7 +96,8 @@ export async function POST({ request }) {
     voz: RAMA[rama].voz,
     baraja: RAMA[rama].baraja,
     idioma,
-    cartas,
+    urgentes,
+    niveles,
     paso,
     lectura,
     creado: new Date().toISOString()

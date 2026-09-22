@@ -2,10 +2,22 @@
 
 La ruta de `/[lang]/contact/`. Se llega por **Caminemos → Dar el primer paso**.
 
-Cinco rondas de dos cartas. A la izquierda lo que la persona quiere; a la
-derecha, boca abajo hasta que elige, de qué depende eso. Al final, dos cosas
-distintas: **en qué paso del camino está** y **si lo que pide es lo que le
-sirve**.
+**Dos juegos, uno detrás del otro, y cada uno pone un eje.**
+
+1. **El mazo** — una carta a la vez, a la izquierda o a la derecha.
+   *¿Esto te urge?* → el eje de la **urgencia**.
+2. **La lista** — las que urgieron se ordenan en cuatro niveles:
+   primero, después, algún día, no va → el eje de la **importancia**.
+
+Cruzados dan la **matriz de Eisenhower completa**, que aparece en el
+resultado sin que nadie haya tenido que rellenar cuatro cajas. Y al final,
+dos cosas distintas: **en qué paso del camino está** y **si lo que pide es lo
+que le sirve**.
+
+> Eisenhower necesita dos ejes y una carta que se manda a un lado solo da
+> uno. Hacerla entera a deslizamientos pediría dos pasadas sobre la baraja
+> —treinta y cuatro gestos— y para el decimoquinto ya nadie está leyendo.
+> Por eso cada juego pone un eje.
 
 ---
 
@@ -15,11 +27,13 @@ sirve**.
 |---|---|
 | `src/data/ruta/pasos.js` | Los tres pasos y su lema, en las dos voces |
 | `src/data/ruta/cartas.js` | Las dos barajas — el mapa completo está abajo |
+| `src/data/ruta/juegos.js` | Los dos ejes, los cuatro niveles y los cuatro cuadrantes |
 | `src/data/ruta/servicios.js` | A qué trabajo lleva cada paso, y qué no hace falta todavía |
 | `src/data/ruta/textos.js` | Todos los textos de pantalla, en cinco idiomas |
 | `src/data/ruta/diagnostico.js` | El cálculo |
-| `src/components/ruta/Ruta.astro` | Las tres pantallas |
-| `src/components/ruta/Ronda.astro` | Una ronda: la pregunta y las dos cartas |
+| `src/components/ruta/Ruta.astro` | Las cuatro pantallas |
+| `src/components/ruta/Mazo.astro` | Juego 1: la pila y las dos dianas |
+| `src/components/ruta/Lista.astro` | Juego 2: los cuatro niveles |
 | `src/scripts/ruta.js` | El juego en el navegador |
 | `src/server/recorrido.js` | El endpoint, escrito y sin enchufar (ver abajo) |
 
@@ -38,6 +52,35 @@ original; los otros cuatro idiomas son traducción y se cambian a la vez.
 
 La marca personal usa la baraja de empresa —un deseo se dice igual lo firme
 una empresa o una persona con nombre— pero se le habla en reflexivo.
+
+---
+
+## Los cuatro niveles
+
+No son las letras S/A/B/C de los juegos de pelea: eso hay que explicarlo
+antes de usarlo. Son cuatro cosas que cualquiera sabe decir de una tarea.
+
+| Nivel | Qué quiere decir | ¿Importa? |
+|---|---|---|
+| **Primero** | Si esto no pasa, lo demás no importa | sí |
+| **Después** | Va, pero detrás de lo de arriba | sí |
+| **Algún día** | Me gustaría, pero no este año | no |
+| **No va** | Esto no es para mí | no |
+
+La línea entre *después* y *algún día* es la que parte la matriz.
+
+---
+
+## La matriz
+
+| | **Importa** | **No importa** |
+|---|---|---|
+| **Urge** | Ahora | Te roba el día |
+| **No urge** | Ponle fecha | Suéltalo |
+
+Lo que hace útil a esa matriz no es el dibujo: es el cuadrante de **lo
+urgente que no importa**. Eso es lo que se lleva los días, y solo se ve
+cuando los dos ejes ya están puestos — por eso no se pregunta, se deduce.
 
 ---
 
@@ -63,55 +106,74 @@ construir y el sitio **no compila** si baja del tercio.
 
 ## El cálculo
 
+Tres cuentas, y ninguna se pisa con las otras.
+
 ```
 ORDEN = { inicio: 0, medio: 1, fin: 2 }
 
-funcion diagnosticar(elegidas):
-    total = cuantas cartas se eligieron
-    si total == 0: no hay diagnostico
+funcion diagnosticar(rama, urgentes, niveles):
+
+    # QUE CARTAS MANDAN. Lo que aprieta es lo que define donde estas.
+    # Si no marco nada urgente, mandan las que puso arriba en la lista;
+    # y si tampoco, todas las que ordeno.
+    consideradas = urgentes                    si son 3 o mas
+                   si no, las de la lista con nivel importante
+                   si no, todas las de la lista
 
     # 1 — EN QUE PASO ESTA. Lo dicen las cartas DERECHAS.
-    cuenta = contar(c.depende) para c en elegidas
+    cuenta = contar(c.depende) para c en consideradas
     mayor  = el valor mas alto de cuenta
-    # Empate: manda el paso mas temprano. Si el inicio empata con
-    # cualquier otro, manda el inicio: nadie esta en el medio y en el
-    # inicio a la vez, y lo que falta primero es lo que falta.
+    # Empate: manda el paso mas temprano. Lo que falta primero es lo que falta.
     paso = el primero de [inicio, medio, fin] cuyo cuenta == mayor
 
-    # 2 — EMET O MET. Lo dice la DISTANCIA entre las dos cartas.
+    # 2 — EMET O MET, por las cartas. Lo dice la DISTANCIA entre las dos.
     coinciden   = cuantas c tienen  c.quiere == c.depende
     adelantados = cuantas c tienen  ORDEN[c.quiere] > ORDEN[c.depende]
     tocados     = conjunto de c.depende
 
     si coinciden == total y tamaño(tocados) == 3:
-        devolver EQUILIBRIO    # bien en los tres: no se le vende nada
-
-    si adelantados > coinciden:
-        devolver MET           # el tejado antes que el piso
+        lectura = EQUILIBRIO      # bien en los tres: no se le vende nada
+    si no si adelantados > coinciden:
+        lectura = MET
     si no:
-        devolver EMET          # pide lo que le sirve
+        lectura = EMET
+
+    # 3 — EL DESORDEN, por la lista. Lo dice SU PROPIA MANO.
+    arriba = cartas en PRIMERO o DESPUES
+    abajo  = cartas en ALGUN DIA o NO VA
+    inversiones = pares (a de arriba, b de abajo) donde
+                  ORDEN[b.depende] < ORDEN[a.depende]
+    # Es decir: pusiste arriba algo que depende de mas adelante y dejaste
+    # abajo algo que el camino pide antes.
+
+    # La lista puede ACUSAR, nunca ABSOLVER.
+    si lectura == EMET y inversiones >= 2:
+        lectura = MET
+
+    # LA MATRIZ, carta a carta
+    urgente + importante   -> ahora
+    importante, no urgente -> ponle fecha
+    urgente, no importante -> te roba el dia
+    ninguno                -> sueltalo
 ```
 
+**La tercera cuenta es la que no se puede discutir.** Que una carta esté
+adelantada lo decide la baraja, que la escribí yo. Que alguien ponga «que la
+gente vuelva» en PRIMERO y «saber qué me hace distinto» en ALGÚN DÍA lo
+decide él, con el dedo, y queda en pantalla. Eso es Met dicho por su propia
+mano; lo único que hace la página es leérselo de vuelta.
+
 **No se acusa por defecto.** Met solo sale si las cartas adelantadas son más
-que las que coinciden. En empate se lee Emet: decirle a alguien que está
-construyendo sobre nada es una frase seria y solo se dice cuando sus propias
-cartas lo sostienen.
+que las que coinciden, o si la lista tiene dos inversiones. En empate se lee
+Emet: decirle a alguien que está construyendo sobre nada es una frase seria y
+solo se dice cuando sus propias respuestas lo sostienen.
+
+**La lista puede acusar pero nunca absolver.** Una lista bien ordenada no
+borra unas cartas adelantadas; una lista invertida sí delata a quien eligió
+bien por casualidad.
 
 **`quiere` por debajo de `depende`** —pedir algo cuyo requisito está más
 adelante— no cuenta como ir adelantado. Ni acusa ni confirma: no suma.
-
-### Qué sale, de los 432 recorridos posibles por rama
-
-| | inicio | medio | fin |
-|---|---|---|---|
-| **negocio** | 272 (63 %) | 127 (29 %) | 33 (8 %) |
-| **por mí** | 300 (69 %) | 99 (23 %) | 33 (8 %) |
-
-El sesgo hacia el inicio es el punto: casi todo el mundo llega pidiendo lo
-que se ve. `fin` + Met da cero, y es correcto — si lo que necesitas ya está
-en el último paso, no hay nada más adelante que puedas estar pidiendo.
-
-El equilibrio sale en 4 de 432 recorridos por rama. Es raro, y debe serlo.
 
 ---
 
@@ -262,8 +324,9 @@ Supabase. El fichero de `src/server/` se copia ahí casi tal cual.
 
 ### Lo que se guarda
 
-Rama, cartas, paso, lectura, idioma y fecha. **Ni nombre, ni correo, ni
-teléfono, ni nada que identifique.** El dato personal aparece cuando la
+Rama, las cartas que urgieron, dónde quedó cada una en la lista, paso,
+lectura, idioma y fecha. **Ni nombre, ni correo, ni teléfono, ni nada que
+identifique.** El dato personal aparece cuando la
 persona escribe por WhatsApp, y entonces lo tiene WhatsApp, no esta tabla.
 
 Se avisa en una línea antes de la primera elección, con un botón para salir
@@ -275,51 +338,14 @@ los doscientos recorridos que van a servir para decidir no valdrían nada.
 
 ### La tabla
 
-```sql
-create table recorrido (
-  id          bigserial primary key,
-
-  -- Version del formato. El dia que cambien las cartas o el calculo, esto
-  -- sube y los recorridos viejos siguen siendo legibles sin mezclarse.
-  version     smallint    not null default 1,
-
-  rama        text        not null check (rama in ('mi', 'negocio', 'marca')),
-  baraja      text        not null check (baraja in ('empresa', 'persona')),
-  voz         text        not null check (voz in ('tu', 'reflexivo')),
-  idioma      text        not null check (idioma in ('es', 'en', 'pt', 'fr', 'it')),
-
-  -- Los ids de las cartas, en el orden en que se eligieron. El orden
-  -- importa: dice por que ronda se abandona o se cambia de idea.
-  cartas      text[]      not null check (array_length(cartas, 1) between 1 and 6),
-
-  paso        text        not null check (paso in ('alef', 'mem', 'tav')),
-  lectura     text        not null check (lectura in ('emet', 'met', 'equilibrio')),
-
-  creado      timestamptz not null default now()
-);
-
--- Las dos preguntas que se van a hacer siempre: que deseo aparece mas, y
--- en que paso se pierde la gente.
-create index recorrido_paso_lectura on recorrido (paso, lectura);
-create index recorrido_creado       on recorrido (creado desc);
-create index recorrido_cartas       on recorrido using gin (cartas);
+```
+El esquema completo, con sus índices y las tres consultas que valen,
+vive en `src/server/recorrido.sql`.
 ```
 
-Con esa tabla, las dos consultas que valen:
-
-```sql
--- Que deseo aparece mas, por rama
-select rama, carta, count(*)
-from recorrido, unnest(cartas) as carta
-group by rama, carta
-order by count(*) desc;
-
--- Donde se pierde de verdad la gente
-select paso, lectura, count(*)
-from recorrido
-group by paso, lectura
-order by count(*) desc;
-```
+Las consultas van en el mismo fichero. La que más rinde es la tercera:
+qué cartas se marcaron urgentes y después se mandaron abajo en la lista —
+el cuadrante que roba los días.
 
 ---
 
@@ -334,3 +360,8 @@ mismo.
 Se borraron `Houses.astro`, `Ficha.astro`, sus estilos y las dos funciones
 que los movían (`initFamilia`, `initFichas`). `houses.js` se queda: de ahí
 salen los nombres y el estado de cada marca.
+
+Y en la segunda vuelta se fue `Ronda.astro`, la mecánica de elegir una de
+tres: no servía. Las cartas que escribió siguen enteras — lo que cambió es
+cómo se juegan. Las preguntas de cada ronda tampoco se perdieron: ahora son
+el rótulo que va cambiando encima del mazo según por qué grupo va la pila.

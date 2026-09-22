@@ -1,57 +1,78 @@
 import { ORDEN, PASOS } from './pasos.js';
 import { cartasDe } from './cartas.js';
 import { servicioDe } from './servicios.js';
+import { NIVEL, cuadranteDe, LISTA_MAX, LISTA_MIN } from './juegos.js';
 
-/* EL CALCULO. Dos cuentas distintas, y no se pisan:
+/* EL CALCULO. Ahora hay tres cuentas y ninguna se pisa con las otras:
 
-     1. EN QUE PASO ESTA  —  lo dicen las cartas DERECHAS. Es donde la
-        persona esta parada, la diga o no.
-     2. EMET O MET        —  lo dice la DISTANCIA entre la carta izquierda
-        y la derecha. Es si sabe donde esta parada.
+     1. EN QUE PASO ESTA   — lo dicen las cartas DERECHAS de lo que le
+        aprieta. Es donde esta parado, lo diga o no.
+     2. EMET O MET         — lo dice la DISTANCIA entre la carta izquierda
+        y la derecha. Es si sabe donde esta parado.
+     3. EL DESORDEN        — lo dice la LISTA: que puso arriba y que dejo
+        abajo. Es la misma pregunta que la 2, pero contestada con la mano
+        en vez de con una eleccion, y por eso vale como prueba aparte.
 
-   Se puede estar en el inicio y en Emet: pides lo del inicio y lo del
-   inicio es lo que te falta. Y se puede estar en el inicio y en Met: pides
-   lo del final y lo que te falta es lo primero.
+   LA TERCERA ES LA QUE NO SE PUEDE DISCUTIR. Que una carta este adelantada
+   lo decide la baraja, que la escribi yo. Que alguien ponga «que la gente
+   vuelva» en PRIMERO y «saber que me hace distinto» en ALGUN DIA lo decide
+   el, con el dedo, y queda en pantalla. Eso es Met dicho por su propia
+   mano; lo unico que hace la pagina es leerselo de vuelta.
 
    ------------------------------------------------------------------
    PSEUDOCODIGO
 
      ORDEN = { alef: 0, mem: 1, tav: 2 }
 
-     funcion diagnosticar(elegidas):
-         total = cuantas cartas se eligieron
-         si total == 0: no hay diagnostico
+     funcion diagnosticar(rama, urgentes, niveles):
+
+         # QUE CARTAS MANDAN. Lo que aprieta es lo que define donde estas.
+         # Si no marco nada urgente, mandan las que puso arriba en la
+         # lista; y si tampoco, todas las que ordeno.
+         consideradas = urgentes                     si son 3 o mas
+                        si no, las de la lista con nivel importante
+                        si no, todas las de la lista
 
          # 1 — EN QUE PASO ESTA
-         cuenta = contar(c.depende) para c en elegidas
+         cuenta = contar(c.depende) para c en consideradas
          mayor  = el valor mas alto de cuenta
-         # Empate: manda el paso mas temprano. Si el inicio empata con
-         # cualquier otro, manda el inicio: nadie esta en el medio y en el
-         # inicio a la vez, y lo que falta primero es lo que falta.
+         # Empate: manda el paso mas temprano. Lo que falta primero es lo
+         # que falta.
          paso = el primero de [alef, mem, tav] cuyo cuenta == mayor
 
-         # 2 — EMET O MET
+         # 2 — EMET O MET, por las cartas
          coinciden   = cuantas c tienen  c.quiere == c.depende
          adelantados = cuantas c tienen  ORDEN[c.quiere] > ORDEN[c.depende]
          tocados     = conjunto de c.depende
 
          si coinciden == total y tamaño(tocados) == 3:
-             devolver EQUILIBRIO      # bien en los tres: no se vende nada
-
-         si adelantados > coinciden:
-             devolver MET             # el tejado antes que el piso
+             lectura = EQUILIBRIO       # bien en los tres: no se vende nada
+         si no si adelantados > coinciden:
+             lectura = MET
          si no:
-             devolver EMET            # pide lo que le sirve
+             lectura = EMET
 
-         # Nota: `quiere` POR DEBAJO de `depende` —pedir algo cuyo requisito
-         # esta mas adelante— no cuenta como ir adelantado. No es Met.
-         # Ni acusa ni confirma: solo no suma.
-   ------------------------------------------------------------------
+         # 3 — EL DESORDEN, por la lista
+         arriba = cartas en PRIMERO o DESPUES
+         abajo  = cartas en ALGUN DIA o NO VA
+         inversiones = pares (a de arriba, b de abajo) donde
+                       ORDEN[b.depende] < ORDEN[a.depende]
+         # Es decir: pusiste arriba algo que depende de mas adelante y
+         # dejaste abajo algo que el camino pide antes.
 
-   NO SE ACUSA POR DEFECTO. Met solo sale si las cartas adelantadas son
-   MAS que las que coinciden. En un empate se lee Emet: decirle a alguien
-   que esta construyendo sobre nada es una frase seria, y solo se dice
-   cuando sus propias cartas lo sostienen. */
+         # La lista puede volcar la lectura, pero solo en una direccion:
+         # puede acusar de Met, nunca puede absolver. Una lista ordenada no
+         # borra unas cartas adelantadas, pero una lista invertida si
+         # delata a quien eligio bien por casualidad.
+         si lectura == EMET y inversiones >= 2:
+             lectura = MET
+
+     LA MATRIZ sale de cruzar los dos ejes, carta a carta:
+         urgente + importante  -> ahora
+         importante, no urgente -> ponle fecha
+         urgente, no importante -> te roba el dia
+         ninguno                -> sueltalo
+   ------------------------------------------------------------------ */
 
 /* A que baraja va cada rama, y en que voz se le habla.
 
@@ -66,11 +87,22 @@ export const RAMA = {
 
 export const esRama = (r) => Object.prototype.hasOwnProperty.call(RAMA, r);
 
-/* De ids a cartas, en el orden en que se eligieron. Las que no existan se
-   caen: un id viejo guardado en el navegador no puede romper la pagina. */
+/* De ids a cartas, en el orden en que llegan. Las que no existan se caen:
+   un id viejo guardado en el navegador no puede romper la pagina. */
 export function cartasElegidas(rama, ids) {
   const baraja = cartasDe(RAMA[rama]?.baraja);
   return (ids ?? []).map((id) => baraja.find((c) => c.id === id)).filter(Boolean);
+}
+
+/* QUE CARTAS PASAN A LA LISTA. Las que urgen, con tope; y si urgieron muy
+   pocas, se completa con las siguientes de la baraja — una lista de dos
+   no tiene nada que ordenar. */
+export function paraLaLista(rama, urgentes) {
+  const baraja = cartasDe(RAMA[rama]?.baraja);
+  const elegidas = baraja.filter((c) => urgentes.includes(c.id));
+  if (elegidas.length >= LISTA_MIN) return elegidas.slice(0, LISTA_MAX);
+  const resto = baraja.filter((c) => !urgentes.includes(c.id));
+  return [...elegidas, ...resto.slice(0, LISTA_MIN - elegidas.length)];
 }
 
 /* 1 — EN QUE PASO ESTA. */
@@ -82,7 +114,7 @@ export function pasoDe(elegidas) {
   return PASOS.find((p) => cuenta[p] === mayor);
 }
 
-/* 2 — EMET, MET O EQUILIBRIO. */
+/* 2 — EMET, MET O EQUILIBRIO, por las cartas. */
 export function lecturaDe(elegidas) {
   const total = elegidas.length;
   if (!total) return null;
@@ -93,10 +125,25 @@ export function lecturaDe(elegidas) {
   return adelantados > coinciden ? 'met' : 'emet';
 }
 
+/* 3 — EL DESORDEN DE LA LISTA. Devuelve los pares que lo demuestran, el
+   mas separado primero: arriba algo que depende del final, abajo algo que
+   el camino pide antes. */
+export function inversionesDe(lista) {
+  const arriba = lista.filter((x) => NIVEL[x.nivel]?.importa);
+  const abajo = lista.filter((x) => x.nivel && !NIVEL[x.nivel]?.importa);
+  const pares = [];
+  arriba.forEach((a) => {
+    abajo.forEach((b) => {
+      const salto = ORDEN[a.carta.depende] - ORDEN[b.carta.depende];
+      if (salto > 0) pares.push({ arriba: a.carta, abajo: b.carta, salto });
+    });
+  });
+  return pares.sort((x, y) => y.salto - x.salto);
+}
+
 /* LAS CARTAS QUE SIRVEN DE PRUEBA. Como mucho dos, y las que de verdad
-   sostienen lo que se acaba de decir: si el diagnostico es Met, las que
-   van adelantadas —y primero la que mas se aleja—; si es Emet, las que
-   coinciden. Citar una carta que no prueba nada es peor que no citar. */
+   sostienen lo que se acaba de decir. Citar una carta que no prueba nada
+   es peor que no citar. */
 export function pruebasDe(elegidas, lectura) {
   const utiles = lectura === 'met'
     ? elegidas
@@ -106,19 +153,54 @@ export function pruebasDe(elegidas, lectura) {
   return (utiles.length ? utiles : elegidas).slice(0, 2);
 }
 
-/* Todo junto, que es lo que pinta la pantalla del resultado. */
-export function diagnosticar(rama, ids) {
-  const elegidas = cartasElegidas(rama, ids);
-  if (!elegidas.length) return null;
-  const lectura = lecturaDe(elegidas);
-  const paso = pasoDe(elegidas);
+/* Todo junto, que es lo que pinta la pantalla del resultado.
+
+   `urgentes` son los ids que se mandaron a la derecha en el juego 1.
+   `niveles` es { idDeCarta: idDeNivel } del juego 2. */
+export function diagnosticar(rama, urgentes = [], niveles = {}) {
+  if (!esRama(rama)) return null;
+  const baraja = cartasDe(RAMA[rama].baraja);
+
+  /* La lista, con el nivel donde quedo cada carta. */
+  const lista = Object.keys(niveles)
+    .map((id) => ({ carta: baraja.find((c) => c.id === id), nivel: niveles[id] }))
+    .filter((x) => x.carta && NIVEL[x.nivel]);
+
+  const urgentesCartas = baraja.filter((c) => urgentes.includes(c.id));
+  const importantes = lista.filter((x) => NIVEL[x.nivel].importa).map((x) => x.carta);
+
+  const consideradas = urgentesCartas.length >= 3
+    ? urgentesCartas
+    : (importantes.length ? importantes : lista.map((x) => x.carta));
+
+  if (!consideradas.length) return null;
+
+  const paso = pasoDe(consideradas);
+  let lectura = lecturaDe(consideradas);
+  const inversiones = inversionesDe(lista);
+
+  /* La lista puede acusar, nunca absolver: dos inversiones vuelcan un Emet
+     a Met, pero una lista bien ordenada no borra unas cartas adelantadas.
+     El equilibrio no se toca — ahi no se esta vendiendo nada. */
+  if (lectura === 'emet' && inversiones.length >= 2) lectura = 'met';
+
+  /* La matriz, carta a carta. Solo de las que pasaron por los dos juegos:
+     una carta sin nivel no tiene el segundo eje. */
+  const matriz = { ahora: [], fecha: [], roba: [], suelta: [] };
+  lista.forEach((x) => {
+    matriz[cuadranteDe(urgentes.includes(x.carta.id), x.nivel)].push(x.carta);
+  });
+
   return {
     rama,
     voz: RAMA[rama].voz,
     paso,
     lectura,
-    elegidas,
-    pruebas: pruebasDe(elegidas, lectura),
+    consideradas,
+    lista,
+    matriz,
+    inversiones,
+    pruebas: pruebasDe(consideradas, lectura),
     servicio: lectura === 'equilibrio' ? null : servicioDe(RAMA[rama].baraja, paso)
   };
 }
