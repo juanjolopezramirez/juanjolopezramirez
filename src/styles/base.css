@@ -494,6 +494,37 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .site-nav__list a:hover,
 .drop-write:hover { color: var(--iris-300); }
 
+/* «CAMINEMOS» NO ES UNA FILA MAS DEL MENU. En escritorio es la pastilla
+   clara de la cabecera y se ve que es lo que se pide; dentro del menu del
+   telefono estaba escrita igual que Trabajos o Proyectos, en la misma
+   letra y el mismo color, asi que se leia como una seccion mas y no como
+   la puerta.
+
+   Aqui se viste de lo que es: pastilla rellena, del hueso contra el pino
+   del menu, separada de la lista por su propio aire. Es el mismo gesto
+   que `.cta--lleno` usa en el resto del sitio — la accion que se pide va
+   rellena, y solo hay una por pantalla. */
+.drop-write {
+  width: auto;
+  margin-top: 1.1rem;
+  padding: .85rem 1.3rem;
+  border-radius: 999px;
+  background: var(--bone);
+  color: var(--pine);
+  font-weight: 600;
+  text-align: center;
+  transition: background .2s var(--ease), color .2s var(--ease), scale .2s var(--ease);
+}
+.drop-write:hover,
+.drop-write:focus-visible {
+  background: var(--iris);
+  color: var(--pine);
+  scale: 1.02;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drop-write { transition: none; }
+}
+
 /* Donde estas. La fila se enciende en Iris y lleva su etiqueta al lado,
    asi que no hace falta pulsarla para saberlo. Como no navega, tampoco
    se comporta como si fuera a hacerlo: ni cursor de mano ni cambio al
@@ -713,8 +744,17 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      Asi que ya no se mide contra la ventana, sino contra `--vh0`: la
      altura leida una vez al entrar y guardada. No la vuelve a tocar
      nadie salvo que la pantalla cambie de verdad, girandola. Sin
-     JavaScript se cae a `100svh` y se comporta como antes. */
-  width: min(94vw, 27rem, max(12rem, calc(var(--vh0, 100svh) - 382px)));
+     JavaScript se cae a `100svh` y se comporta como antes.
+
+     Y EL TOPE DE ANCHO ES EL DEL SITIO, no 94vw. Con 94vw la calcomania
+     medía mas que la caja que la contiene —el hero ya descuenta su margen
+     a cada lado—, asi que `margin: 0 auto` no tenia holgura que repartir:
+     los dos margenes se iban a cero, el bloque se salia por la derecha y
+     su centro quedaba doce pixeles corrido. La foto se centra dentro del
+     escenario, de modo que la foto salia descentrada con el. Se veia en
+     cualquier telefono de 360 o 412 de ancho. Con `100%` el escenario
+     cabe, `auto` vuelve a tener que repartir y el centro es el centro. */
+  width: min(100%, 27rem, max(12rem, calc(var(--vh0, 100svh) - 382px)));
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
@@ -985,7 +1025,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    pinar del hero. */
 .oferta--hueso {
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center;
   min-height: 100svh;
   padding: calc(var(--header-h) + 1.6rem) var(--gutter) 1.5rem;
   background: var(--papel);
@@ -1766,7 +1806,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     --orbit: min(11rem, calc(76vw - 62px));
     margin: 1.25rem 0 1.5rem;
   }
-  .about__body { padding: 1rem var(--gutter) 1rem; }
+  .about__body { padding: .8rem var(--gutter) .8rem; }
   .about__body p:last-child { margin-bottom: 0; }
   .about__body .cta { margin-top: .9rem; }
   .about__heading { margin-bottom: 1.1rem; }
@@ -6486,7 +6526,19 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
    el hueso se daban un testarazo. Ahora la hoja es una pantalla entera con el
    contenido centrado —el aire esta dentro— y ese margen solo servia para que
    una seccion midiera 52px mas que las demas. */
-.hero__panel { min-height: 100svh; justify-content: center; margin-top: 0; }
+/* CENTRADO SEGURO, no centrado a secas.
+
+   Una seccion de una ventana de alto con el contenido centrado se ve muy
+   bien mientras el contenido quepa. Cuando no cabe —un telefono bajo, la
+   letra mas grande del sistema, una traduccion mas larga— el centrado
+   reparte el desborde por los DOS lados, y lo que se sale por arriba no se
+   puede alcanzar: el scroll no sube por encima del principio de la caja.
+   Asi se quedaba el planeta cortado por la cabecera y asi se veian las
+   cosas «descentradas».
+
+   `safe` dice exactamente eso: centra mientras quepa y, en cuanto no
+   quepa, alinea al principio. Nada se pierde por arriba. */
+.hero__panel { min-height: 100svh; justify-content: safe center; margin-top: 0; }
 .hero { padding-bottom: 0; }
 
 /* EN EL TELEFONO LA HOJA ES UNA, y vuelve a caber. Llego a medir dos
@@ -6509,10 +6561,10 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 
 /* Y las de contenido. Centradas: con altura fija, el texto pegado arriba
    deja un pie de vacio que parece un fallo de carga. */
-.about { min-height: 100svh; justify-content: center; }
+.about { min-height: 100svh; justify-content: safe center; }
 .cards {
   min-height: 100svh;
-  display: flex; flex-direction: column; justify-content: center;
+  display: flex; flex-direction: column; justify-content: safe center;
 }
 
 /* EN MOVIL, ARRIBA Y CON SELLO. Centrado en una pantalla entera, el carrusel

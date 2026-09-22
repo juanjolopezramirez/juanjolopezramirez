@@ -10,11 +10,19 @@ const { t, where = 'panel' } = Astro.props;
      cuenta, que es lo que hace falta para que parezca escrito a mano. -->
 <figure class={`rhema rhema--${where}`} data-glossary data-lift>
   <Icon id="quote" />
+  {/* LOS ESPACIOS VAN ESCRITOS, no puestos por el salto de linea. Astro se
+      come el hueco que hay entre dos elementos hermanos en la plantilla, y
+      mientras los dos renglones fueron cajas sueltas eso no se noto: cada
+      uno caia en su linea y el hueco lo ponia el salto. Al pasarlos a
+      linea seguida en escritorio, el texto quedo pegado —«,along»— y el de
+      antes de la palabra a mano solo se salvaba por el trazo de la letra,
+      que entra ancha por la izquierda. Con `{' '}` el espacio es parte del
+      contenido y no depende de como se escriba la plantilla. */}
   <blockquote class="rhema__text">
     <span class="rhema__line">
-      <span>{t('hero.tagline1')}</span>
+      <span>{t('hero.tagline1')}</span>{' '}
       <em class="script">{t('hero.lightly')}</em><span>{t('hero.comma')}</span>
-    </span>
+    </span>{' '}
     <span class="rhema__line">
       <span>{t('hero.tagline2')}</span> <span class="ahava">{t('hero.ahava')}</span>
     </span>
