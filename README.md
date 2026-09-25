@@ -77,6 +77,8 @@ juanjo-web/
     ├── i18n/
     │   ├── ui.js           ← TODOS LOS TEXTOS de la interfaz
     │   ├── terms.js        ← glosario: Ahavá, Emet, Ágape
+    │   ├── term-cards.js   ← las tres lecturas de cada palabra (el libro)
+    │   ├── term-book.js    ← la cuarta: PaRDeS, la PARE y las fuentes
     │   └── utils.js        helpers
     ├── layouts/Base.astro  cabeza, cabecera, pie, paneles
     ├── components/         Header · Hero · SocialRow · Panels · LangPicker · Footer · Icon

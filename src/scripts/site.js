@@ -9,6 +9,7 @@
    ============================================================= */
 import { TERMS } from '../i18n/terms.js';
 import { CARDS, GLOSS } from '../i18n/term-cards.js';
+import { DEEP } from '../i18n/term-book.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { CONTACT } from '../data/social.js';
@@ -783,39 +784,418 @@ function linkTerms() {
   });
 }
 
-/* Ensena una de las tres lecturas y marca su pestana. `aria-selected` no
-   es decoracion: es lo unico que le dice a quien escucha cual esta puesta,
-   y ademas es de lo que cuelga el pez que se termina de dibujar. */
-let pickCard = () => {};
+/* ---------- El libro de una palabra -------------------------
+   Doce paginas: tapa, indice, las tres lecturas, PaRDeS en cuatro (la
+   entrada, lo comprobable, la PARE con Derash, y Sod sola), fuentes, fin
+   y contratapa.
+
+   COMO SE PASA UNA HOJA. Cada hoja tiene dos caras y gira sobre el lomo
+   con `rotateY`. El angulo vive en `--a` (0 = sin pasar, -180 = pasada),
+   registrado con @property en base.css: asi se puede animar, el dedo lo
+   puede arrastrar a medias, y la sombra de la hoja se calcula con el
+   mismo numero.
+
+   A doble pagina, la cara de delante de la hoja k es la derecha y su
+   espalda queda a la izquierda al pasarla. En movil cada hoja lleva una
+   sola pagina y al pasarla se desvanece hacia la izquierda: no hay sitio
+   para ver su espalda, y no hace falta. Al cruzar los 900px se vuelve a
+   encuadernar sin perder la pagina en la que ibas. */
+function initBook() {
+  const s = sheet('book-panel', 'data-close-book');
+  if (!s) return null;
+  const el = (id) => d.getElementById(id);
+  const book = el('book');
+  const block = el('book-block');
+  const folio = el('book-folio');
+  const markTpl = el('book-mark');
+  const prevBtn = s.panel.querySelector('[data-book-prev]');
+  const nextBtn = s.panel.querySelector('[data-book-next]');
+  const wide = matchMedia('(min-width: 900px)');
+  const quiet = matchMedia('(prefers-reduced-motion: reduce)');
+  const TURN = 900;       // lo mismo que dura la transicion de --a en base.css
+  const STAGGER = 110;    // saltar desde el indice pasa las hojas en cascada
+  const LEVELS = { peshat: 'Peshat', remez: 'Rémez', derash: 'Derash', sod: 'Sod' };
+
+  const say = (o) => (o ? (o[lang] || o.en || o.es) : '');
+  const h = (tag, cls, text) => {
+    const x = d.createElement(tag);
+    if (cls) x.className = cls;
+    if (text != null) x.textContent = text;
+    return x;
+  };
+  const seal = (cls) => {
+    const x = h('span', cls);
+    x.setAttribute('aria-hidden', 'true');
+    x.append(h('span', cls + '-ghost'), h('span', cls + '-ink'));
+    x.children[0].appendChild(markTpl.content.firstElementChild.cloneNode(true));
+    x.children[1].appendChild(markTpl.content.firstElementChild.cloneNode(true));
+    return x;
+  };
+
+  let pages = [];
+  let leaves = [];
+  let k = 0;              // hojas ya pasadas
+  let spread = false;
+  let timer = 0;
+  let autoOpen = 0;
+  let drag = null;
+  let suppress = false;
+
+  /* ---- Las paginas ---- */
+  function makePages(id) {
+    const term = TERMS[id], cards = CARDS[id], deep = DEEP[id];
+    const title = say(term.title);
+    const list = [];
+    const page = (kind) => { const p = h('div', 'page page--' + kind); list.push(p); return p; };
+    const script = (cls) => {
+      const x = h('p', cls, term.script);
+      x.dir = term.dir;
+      x.lang = term.dir === 'rtl' ? 'he' : 'el';
+      return x;
+    };
+    const run = (p, n, name) => {
+      p.append(h('p', 'page__run', title), h('p', 'page__kicker', n), h('h3', 'page__title', name));
+    };
+    const level = (p, key) => {
+      const L = deep[key];
+      const sec = h('section', 'lvl');
+      const head = h('header', 'lvl__head');
+      head.append(h('span', 'lvl__name', LEVELS[key]),
+                  h('span', 'lvl__sub', t('book.level.' + key)),
+                  h('span', 'lvl__tag lvl__tag--' + L.tag, t('book.tag.' + L.tag)));
+      sec.append(head, h('p', 'lvl__text', say(L)));
+      p.appendChild(sec);
+    };
+
+    /* 0 · la tapa */
+    const cover = page('cover');
+    const turn = h('p', 'cover__turn', t('book.turn'));
+    turn.appendChild(h('span', 'cover__arrow', '→')).setAttribute('aria-hidden', 'true');
+    cover.append(script('cover__script'), h('h3', 'cover__title', title),
+                 h('p', 'cover__gloss', say(GLOSS[id])), h('p', 'cover__lang', say(term.language)), turn);
+
+    /* 1 · el indice — se rellena al final, cuando ya se sabe donde cae cada cosa */
+    const toc = page('toc');
+    toc.appendChild(h('h3', 'page__title', t('book.contents')));
+    const ol = h('ol', 'toc');
+    toc.appendChild(ol);
+    const entries = [];
+
+    /* 2-4 · las tres lecturas */
+    [['now', 'term.tab.now'], ['history', 'term.tab.history'], ['theology', 'term.tab.theology']].forEach(([key, label], i) => {
+      const p = page(key);
+      run(p, '0' + (i + 1), t(label));
+      p.appendChild(h('p', 'page__text', say(cards[key])));
+      if (key === 'theology') {
+        p.appendChild(seal('page__seal'));
+        p.dataset.ink = '';
+      }
+      entries.push([t(label), list.length - 1, key === 'theology']);
+    });
+
+    /* 5 · la entrada a PaRDeS */
+    const intro = page('deep');
+    run(intro, '04', t('book.deep'));
+    intro.append(h('p', 'page__sub', t('book.deepSub')), h('p', 'page__text', t('book.deepIntro')));
+    if (deep.greek) intro.appendChild(h('p', 'page__note', t('book.greek')));
+    entries.push([t('book.deep'), list.length - 1]);
+
+    /* 6 · lo que se puede comprobar */
+    const above = page('levels');
+    above.appendChild(h('p', 'page__run', title));
+    level(above, 'peshat');
+    level(above, 'remez');
+
+    /* 7 · la PARE, y lo que se ofrece. Sod va sola en la siguiente: es la
+       mas especulativa y la que mas se lee despacio. */
+    const below = page('levels');
+    below.appendChild(h('p', 'page__run', title));
+    const pare = h('div', 'pare');
+    pare.append(h('p', 'pare__mark', '⛩ ' + t('book.pare')), h('p', 'pare__text', t('book.pareText')));
+    below.appendChild(pare);
+    level(below, 'derash');
+
+    /* 8 · sod */
+    const sod = page('levels');
+    sod.appendChild(h('p', 'page__run', title));
+    level(sod, 'sod');
+
+    /* 9 · fuentes */
+    const src = page('sources');
+    run(src, '05', t('book.sources'));
+    const refs = h('ul', 'refs');
+    deep.sources.forEach((r) => refs.appendChild(h('li', null, r)));
+    src.appendChild(refs);
+    if (deep.checked) src.appendChild(h('p', 'page__note', t('book.checked')));
+    entries.push([t('book.sources'), list.length - 1]);
+
+    /* 10 · fin — a doble pagina queda frente a las fuentes */
+    page('end').appendChild(h('p', 'page__end', t('book.end')));
+
+    /* 11 · contratapa */
+    const back = page('back');
+    back.append(seal('back__seal'), script('back__script'));
+
+    entries.forEach(([name, at, fish]) => {
+      const li = h('li');
+      const b = h('button', 'toc__item');
+      b.type = 'button';
+      b.dataset.goto = String(at);
+      if (fish) b.appendChild(seal('toc__fish'));
+      b.append(h('span', 'toc__name', name), h('span', 'toc__dots'), h('span', 'toc__num', String(at)));
+      li.appendChild(b);
+      ol.appendChild(li);
+    });
+    return list;
+  }
+
+  /* ---- Encuadernar ---- */
+  const hard = (p) => p.classList.contains('page--cover') || p.classList.contains('page--back');
+  const maxK = () => (spread ? leaves.length : leaves.length - 1);
+  const toK = (p) => (spread ? Math.ceil(p / 2) : p);
+  const shown = () => (spread ? [2 * k - 1, 2 * k] : [k]).filter((i) => i >= 0 && i < pages.length);
+
+  function face(side, p, i) {
+    const f = h('div', 'face face--' + side);
+    if (p) {
+      f.appendChild(p);
+      if (hard(p)) f.classList.add('face--hard');
+      if (i > 0 && i < pages.length - 1) f.appendChild(h('span', 'face__folio', String(i))).setAttribute('aria-hidden', 'true');
+    }
+    return f;
+  }
+
+  function layout(at) {
+    spread = wide.matches;
+    book.dataset.mode = spread ? 'spread' : 'single';
+    block.textContent = '';
+    const per = spread ? 2 : 1;
+    leaves = [];
+    for (let i = 0; i < Math.ceil(pages.length / per); i++) {
+      const leaf = h('div', 'leaf');
+      leaf.append(face('front', pages[i * per], i * per),
+                  face('back', spread ? pages[i * 2 + 1] : null, i * 2 + 1));
+      block.appendChild(leaf);
+      leaves.push(leaf);
+    }
+    k = 0;
+    set(toK(at), true);
+    /* Si una pagina no cabe se desliza por dentro, y el borde de abajo se
+       difumina para decirlo. Al llegar al final el borde vuelve a estar
+       nitido. */
+    if (!s.panel.hidden) measure();
+  }
+
+  function measure() {
+    pages.forEach((pg) => {
+      const long = () => pg.classList.toggle('is-long', pg.scrollHeight - pg.clientHeight - pg.scrollTop > 4);
+      long();
+      pg.onscroll = long;
+    });
+  }
+
+  /* La hoja que gira va por encima de todo; al posarse, cada una a su
+     monton: las pasadas crecen hacia la izquierda y las que faltan,
+     hacia la derecha. */
+  function settle() {
+    const n = leaves.length;
+    leaves.forEach((leaf, i) => {
+      leaf.style.zIndex = String(i < k ? i + 1 : 2 * n - i);
+      leaf.style.transitionDelay = '';
+      leaf.style.transitionDuration = '';
+    });
+  }
+
+  function set(nk, instant) {
+    nk = Math.max(0, Math.min(maxK(), nk));
+    const from = k;
+    k = nk;
+    const lo = Math.min(from, nk), hi = Math.max(from, nk);
+    const n = leaves.length;
+    clearTimeout(timer);
+    if (instant) block.classList.add('is-instant');
+    leaves.forEach((leaf, i) => {
+      leaf.classList.remove('is-peek');
+      leaf.classList.toggle('is-flipped', i < nk);
+      if (!instant && i >= lo && i < hi) {
+        const order = nk > from ? i - lo : hi - 1 - i;
+        leaf.style.transitionDelay = order * STAGGER + 'ms';
+        leaf.style.zIndex = String(3 * n + order);
+      }
+    });
+    if (instant) {
+      settle();
+      void block.offsetWidth;
+      requestAnimationFrame(() => requestAnimationFrame(() => block.classList.remove('is-instant')));
+    } else {
+      timer = setTimeout(settle, TURN + (hi - lo) * STAGGER);
+    }
+
+    book.dataset.state = k === 0 ? 'front' : (spread && k === n ? 'back' : 'open');
+    prevBtn.disabled = k === 0;
+    nextBtn.disabled = k === maxK();
+
+    /* Solo se puede tocar lo que se ve: las caras tapadas no entran en el
+       orden del tabulador ni las lee un lector de pantalla. */
+    block.querySelectorAll('.face').forEach((f) => { f.inert = true; f.setAttribute('aria-hidden', 'true'); });
+    const vis = shown();
+    vis.forEach((i) => {
+      const f = pages[i].parentElement;
+      f.inert = false;
+      f.removeAttribute('aria-hidden');
+      if (pages[i].dataset.ink != null) setTimeout(() => pages[i].classList.add('is-seen'), instant ? 0 : TURN * 0.6);
+    });
+
+    const nums = vis.filter((i) => i > 0 && i < pages.length - 1);
+    const total = pages.length - 2;
+    folio.textContent = nums.length ? nums.join('–') + ' / ' + total : '';
+    folio.setAttribute('aria-label', nums.length
+      ? t('book.pageOf').replace('{n}', nums.join('–')).replace('{t}', total)
+      : el('book-title').textContent);
+  }
+
+  const next = () => set(k + 1);
+  const prev = () => set(k - 1);
+
+  /* ---- Arrastrar la esquina ---- */
+  const pageWidth = () => block.getBoundingClientRect().width / (spread ? 2 : 1);
+
+  block.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('button, a')) return;
+    drag = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, dir: 0, p: 0 };
+  });
+
+  block.addEventListener('pointermove', (e) => {
+    if (!drag) { peek(e); return; }
+    if (e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.dir) {
+      /* Hasta que el gesto no es claramente de lado, es scroll del texto */
+      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) {
+        if (Math.abs(dy) > 12) drag = null;
+        return;
+      }
+      drag.dir = dx < 0 ? 1 : -1;
+      const i = drag.dir > 0 ? k : k - 1;
+      if (i < 0 || (drag.dir > 0 && k >= maxK())) { drag = null; return; }
+      clearTimeout(timer);
+      clearTimeout(autoOpen);
+      settle();
+      drag.leaf = leaves[i];
+      drag.leaf.classList.remove('is-peek');
+      drag.leaf.classList.add('is-dragging');
+      drag.leaf.style.zIndex = String(4 * leaves.length);
+      try { block.setPointerCapture(e.pointerId); } catch (err) { /* ya soltado */ }
+    }
+    drag.p = Math.max(0, Math.min(1, (-dx * drag.dir) / pageWidth()));
+    drag.leaf.style.setProperty('--a', String(drag.dir > 0 ? -180 * drag.p : -180 * (1 - drag.p)));
+  });
+
+  const release = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const g = drag;
+    drag = null;
+    if (!g.dir) return;                   // fue un toque: lo resuelve el click
+    suppress = true;
+    setTimeout(() => { suppress = false; }, 350);
+    const speed = ((g.x - e.clientX) * g.dir) / Math.max(1, performance.now() - g.t);
+    const go = g.p > 0.4 || (speed > 0.45 && g.p > 0.05);
+    /* Lo que le falta por girar tarda lo que le falta, no una vuelta entera */
+    const rest = go ? 1 - g.p : g.p;
+    g.leaf.style.transitionDuration = Math.max(220, rest * TURN) + 'ms';
+    g.leaf.classList.remove('is-dragging');
+    g.leaf.style.removeProperty('--a');
+    if (go) {
+      set(k + g.dir);
+    } else {
+      clearTimeout(timer);
+      timer = setTimeout(settle, Math.max(220, rest * TURN));
+    }
+  };
+  block.addEventListener('pointerup', release);
+  block.addEventListener('pointercancel', release);
+
+  /* Con raton, acercarse al borde levanta un poco la esquina: dice que
+     ahi se pasa la hoja sin tener que explicarlo. */
+  function peek(e) {
+    if (e.pointerType !== 'mouse' || quiet.matches) return;
+    const r = block.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const edge = Math.min(96, r.width * 0.12);
+    leaves.forEach((leaf, i) => {
+      const on = (i === k && k < maxK() && x > r.width - edge) ||
+                 (spread && i === k - 1 && x < edge);
+      leaf.classList.toggle('is-peek', on);
+    });
+  }
+  block.addEventListener('pointerleave', () => leaves.forEach((l) => l.classList.remove('is-peek')));
+
+  /* Tocar la mitad derecha pasa hacia delante y la izquierda hacia atras,
+     como en cualquier lector. Si hay texto seleccionado, se estaba
+     leyendo, no pasando. */
+  block.addEventListener('click', (e) => {
+    if (suppress) { suppress = false; return; }
+    const go = e.target.closest('[data-goto]');
+    if (go) { clearTimeout(autoOpen); set(toK(Number(go.dataset.goto))); return; }
+    if (e.target.closest('button, a')) return;
+    if (String(d.getSelection ? d.getSelection() : '').length) return;
+    clearTimeout(autoOpen);
+    const r = block.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    if (x < (spread ? 0.5 : 0.3)) prev(); else next();
+  });
+
+  prevBtn.addEventListener('click', () => { clearTimeout(autoOpen); prev(); });
+  nextBtn.addEventListener('click', () => { clearTimeout(autoOpen); next(); });
+
+  d.addEventListener('keydown', (e) => {
+    if (openSheets[openSheets.length - 1] !== s.panel) return;
+    const keys = { ArrowRight: next, PageDown: next, ArrowLeft: prev, PageUp: prev,
+                   Home: () => set(0), End: () => set(maxK()) };
+    if (!keys[e.key]) return;
+    e.preventDefault();
+    clearTimeout(autoOpen);
+    keys[e.key]();
+  });
+
+  wide.addEventListener('change', () => {
+    if (!pages.length) return;
+    const at = shown()[0] || 0;
+    layout(at);
+  });
+
+  /* Se abre cerrado, con la tapa delante, y a los pocos instantes se
+     abre solo por el indice: la tapa se ve, pero no hace falta un toque
+     de mas para empezar a leer. */
+  return function open(id) {
+    clearTimeout(autoOpen);
+    pages = makePages(id);
+    el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
+    layout(0);
+    s.open();
+    measure();
+    if (quiet.matches) { set(1, true); return; }
+    autoOpen = setTimeout(() => { if (k === 0 && openSheets.includes(s.panel)) set(1); }, 900);
+  };
+}
 
 function initGlossary() {
   const s = sheet('term-panel', 'data-close-term');
   if (!s) return;
   const el = (id) => d.getElementById(id);
   linkTerms();
-
-  const tabsBar = el('term-tabs');
-  pickCard = (cards, which) => {
-    const text = cards[which] || cards.now;
-    el('term-panel-card').textContent = text[lang] || text.es;
-    tabsBar.querySelectorAll('[data-card]').forEach((b) => {
-      b.setAttribute('aria-selected', String(b.getAttribute('data-card') === which));
-    });
-  };
-
-  tabsBar.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-card]');
-    if (!b) return;
-    const cards = CARDS[d.querySelector('.term-panel__sheet').getAttribute('data-term')];
-    if (cards) pickCard(cards, b.getAttribute('data-card'));
-  });
+  const openBook = initBook();
 
   d.addEventListener('click', (e) => {
     const btn = e.target.closest('.term');
     if (!btn) return;
-    const term = TERMS[btn.getAttribute('data-term')];
+    const id = btn.getAttribute('data-term');
+    const term = TERMS[id];
     if (!term) return;
-    d.querySelector('.term-panel__sheet').setAttribute('data-term', btn.getAttribute('data-term'));
+    /* Las palabras con sus cuatro lecturas se abren como libro. Las
+       demas —Timoteo— siguen en su hoja de siempre. */
+    if (openBook && CARDS[id] && DEEP[id]) { openBook(id); return; }
+    d.querySelector('.term-panel__sheet').setAttribute('data-term', id);
     el('term-panel-script').textContent = term.script;
     el('term-panel-script').setAttribute('dir', term.dir);
     el('term-panel-script').setAttribute('lang', term.dir === 'rtl' ? 'he' : 'el');
@@ -825,21 +1205,7 @@ function initGlossary() {
     const gloss = GLOSS[btn.getAttribute('data-term')];
     const idioma = term.language[lang] || term.language.en;
     el('term-panel-meta').textContent = gloss ? (gloss[lang] || gloss.es) + ' · ' + idioma : idioma;
-    /* Con tres lecturas manda la barra de pestanas y el parrafo unico se
-       va; sin ellas —Timoteo— vuelve el parrafo de siempre. */
-    const cards = CARDS[btn.getAttribute('data-term')];
-    const tabs = el('term-tabs');
-    const card = el('term-panel-card');
-    const def = el('term-panel-def');
-
-    tabs.hidden = !cards;
-    card.hidden = !cards;
-    def.hidden = !!cards;
-    if (!cards) {
-      def.textContent = term.def[lang] || term.def.en;
-    } else {
-      pickCard(cards, 'now');
-    }
+    el('term-panel-def').textContent = term.def[lang] || term.def.en;
 
     /* Lo que solo tiene Timoteo. Cada hueco se vacia primero: la hoja es
        una sola y la reutilizan las cinco palabras, asi que lo que dejo la

@@ -4383,82 +4383,6 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 
 /* =============================================================
-   LAS TRES LECTURAS
-
-   Tres pestanas: contemporaneo, historico y teologico. No son niveles de
-   dificultad, son registros — asi que pesan lo mismo y ninguna va primero
-   por ser mas facil.
-
-   EL PEZ QUE SE TERMINA DE TRAZAR. La tercera lleva el sello de la casa,
-   que es un pez escondido dentro de un siete. Va a medias: hasta que no
-   entras en esa lectura solo esta dibujada la mitad, y al entrar se traza
-   la otra. Debajo queda su fantasma —el mismo sello, muy tenue y entero—
-   para que se lea como un dibujo sin acabar y no como un icono roto.
-
-   El corte va con `clip-path` y no con opacidad porque lo que tiene que
-   parecer es que se DIBUJA: la misma tecnica con la que se escribe la
-   firma en la portada de arranque, y por eso se reconoce como de la casa.
-   ============================================================= */
-/* El rotulo delante, como los ejes del filtro: dice que lo que viene son
-   tres maneras de leer lo mismo y no tres cosas distintas. Si la fila no
-   cabe, bajan las fichas enteras y el rotulo se queda arriba. */
-.term-tabs {
-  display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .7rem;
-  margin: 0 0 1.1rem;
-}
-.term-tabs__label {
-  font-size: .62rem; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
-  color: var(--slate-400);
-}
-.term-tabs__row { display: flex; flex-wrap: wrap; gap: .4rem; }
-.term-tab {
-  display: inline-flex; align-items: center; gap: .4rem;
-  padding: .42rem .85rem .46rem;
-  border-radius: 999px;
-  background: rgb(var(--slate-rgb) / .07);
-  color: var(--slate-400);
-  font-size: .74rem; font-weight: 600;
-  transition: background-color .22s var(--ease), color .22s var(--ease);
-}
-.term-tab:hover { background: rgb(var(--slate-rgb) / .13); color: var(--slate); }
-.term-tab[aria-selected="true"] { background: var(--pine); color: var(--bone); }
-
-/* El pez, a media tinta. Las dos copias se apilan en la misma caja. */
-.term-tab__fish {
-  position: relative;
-  display: block;
-  width: .62rem; aspect-ratio: 41 / 69.4;
-  flex: 0 0 auto;
-}
-.term-tab__ghost,
-.term-tab__ink { position: absolute; inset: 0; }
-.term-tab__ghost { opacity: .3; }
-.term-tab__fish .icon { width: 100%; height: 100%; }
-
-/* Medio trazado, y entero al entrar. El recorte se abre de izquierda a
-   derecha, que es el sentido en el que se dibuja. */
-.term-tab__ink {
-  clip-path: inset(0 52% 0 0);
-  transition: clip-path .62s var(--ease-smooth);
-}
-.term-tab--ictus[aria-selected="true"] .term-tab__ink { clip-path: inset(0 0 0 0); }
-/* Al pasar por encima asoma un poco mas: dice que ahi hay algo que
-   completar sin llegar a completarlo. */
-.term-tab--ictus:hover .term-tab__ink { clip-path: inset(0 34% 0 0); }
-.term-tab--ictus[aria-selected="true"]:hover .term-tab__ink { clip-path: inset(0 0 0 0); }
-
-.term-panel__card {
-  margin: 0 0 1.35rem;
-  max-width: var(--measure);
-  font-size: .95rem; line-height: 1.7;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .term-tab__ink { transition: none; }
-}
-
-/* =============================================================
    Los tres pilares — dentro del panel de Timoteo
    Un acordeon de `<details>`: abre y cierra solo, se mueve con el
    teclado, lo lee un lector de pantalla y funciona igual si el script
@@ -4547,6 +4471,422 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   text-indent: -1.4rem;
   font-size: .76rem; line-height: 1.55;
   color: var(--slate-400);
+}
+
+/* =============================================================
+   EL LIBRO DE UNA PALABRA
+
+   Ahava, Rhema, Emet y Agape se abren como un libro pequeño que se pasa
+   hoja a hoja. Cada hoja gira sobre el lomo con `rotateY(--a)`:
+
+     0      sin pasar, a la derecha
+     -180   pasada, a la izquierda
+
+   `--a` va registrada para que se pueda ANIMAR (una variable normal
+   saltaria de golpe) y para que el dedo la deje a medias. De ese mismo
+   numero salen la sombra que cruza la hoja mientras gira y, en movil, el
+   desvanecerse de la que se va.
+
+   A doble pagina desde 900px — el mismo corte que usa site.js para
+   encuadernar —; por debajo, una pagina cada vez.
+   ============================================================= */
+@property --a {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.book-panel {
+  position: fixed; inset: 0; z-index: 76;
+  display: grid; place-items: center;
+}
+.book-panel__scrim {
+  position: absolute; inset: 0;
+  background: rgba(11, 20, 13, .88);
+  opacity: 0;
+  transition: opacity .4s var(--ease);
+}
+.book-panel.is-open .book-panel__scrim { opacity: 1; }
+
+.book-panel__close {
+  position: absolute; z-index: 2;
+  top: calc(.75rem + env(safe-area-inset-top)); right: .75rem;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 50%;
+  font-size: 1.7rem; line-height: 1;
+  color: var(--bone);
+  /* Opaca: debajo queda el boton del menu de la cabecera */
+  background: var(--night);
+  box-shadow: inset 0 0 0 1px rgb(241 239 233 / .14);
+  transition: background-color .2s var(--ease);
+}
+.book-panel__close:hover { background: var(--pine); }
+
+/* Llega un poco inclinado y de mas lejos, como un libro que se deja
+   sobre la mesa. */
+.book-panel__frame {
+  position: relative;
+  display: grid; justify-items: center; gap: 1.1rem;
+  opacity: 0;
+  transform: perspective(1400px) translateY(28px) rotateX(10deg) scale(.94);
+  transition: opacity .45s var(--ease), transform .8s var(--ease-smooth);
+}
+.book-panel.is-open .book-panel__frame { opacity: 1; transform: none; }
+
+/* ---- El tamaño de la pagina ----
+   Un movil ve una pagina que llena el ancho menos el margen; la altura
+   sale de la proporcion de un libro y nunca pasa de lo que cabe con la
+   barra de abajo. */
+.book {
+  --pw: min(calc(100vw - 2rem), 25rem);
+  --ph: min(calc(var(--pw) * 1.8), calc(100svh - 8.5rem));
+  perspective: 2200px;
+}
+@media (min-width: 900px) {
+  .book {
+    --pw: min(calc((100vw - 8rem) / 2), 27rem);
+    --ph: min(calc(var(--pw) * 1.42), calc(100svh - 8rem));
+  }
+}
+
+.book__block {
+  position: relative;
+  width: var(--pw); height: var(--ph);
+  transform-style: preserve-3d;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: translate .9s var(--ease-smooth);
+}
+.book[data-mode="spread"] .book__block { width: calc(var(--pw) * 2); }
+/* Cerrado, el libro se centra sobre la tapa o la contratapa */
+.book[data-mode="spread"][data-state="front"] .book__block { translate: calc(var(--pw) * -.5) 0; }
+.book[data-mode="spread"][data-state="back"]  .book__block { translate: calc(var(--pw) * .5) 0; }
+
+.leaf {
+  position: absolute; top: 0; left: 0;
+  width: var(--pw); height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transform: rotateY(calc(var(--a) * 1deg));
+  transition: --a .9s cubic-bezier(.45, .05, .2, 1);
+  cursor: grab;
+}
+.book[data-mode="spread"] .leaf { left: var(--pw); }
+.leaf.is-flipped { --a: -180; }
+.leaf.is-peek { --a: -11; transition-duration: .4s; }
+.leaf.is-flipped.is-peek { --a: -169; }
+.leaf.is-dragging { transition: none; cursor: grabbing; }
+.book__block.is-instant .leaf,
+.book__block.is-instant { transition: none; }
+
+/* En movil la hoja que se va se desvanece al pasar de los 130 grados:
+   no hay sitio a la izquierda para ver su espalda. */
+.book[data-mode="single"] .leaf { opacity: clamp(0, calc((180 + var(--a)) / 50), 1); }
+
+.face {
+  position: absolute; inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: var(--papel-alto);
+  color: var(--slate);
+  box-shadow: 0 22px 44px -18px rgb(0 0 0 / .55);
+}
+.face--back { transform: rotateY(180deg); }
+
+/* El pliegue del lomo: la pagina se hunde un poco hacia el centro */
+.face--front { border-radius: 0 6px 6px 0; background-image: linear-gradient(90deg, rgb(0 0 0 / .13), transparent 7%); }
+.face--back  { border-radius: 6px 0 0 6px; background-image: linear-gradient(270deg, rgb(0 0 0 / .13), transparent 7%); }
+.book[data-mode="single"] .face--front { border-radius: 4px 8px 8px 4px; }
+
+/* La luz que cruza la hoja mientras gira: nada quieta, mas en vertical */
+.face::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: calc(min(var(--a) * -1, 180 + var(--a)) / 90 * .7);
+}
+.face--front::after { background: linear-gradient(90deg, rgb(255 255 255 / .1), rgb(0 0 0 / .28)); }
+.face--back::after  { background: linear-gradient(270deg, rgb(255 255 255 / .1), rgb(0 0 0 / .28)); }
+
+.face--hard { background: var(--pine); color: var(--bone); }
+.face--hard.face--front { background-image: linear-gradient(90deg, rgb(0 0 0 / .3), transparent 5%); }
+.face--hard.face--back  { background-image: linear-gradient(270deg, rgb(0 0 0 / .3), transparent 5%); }
+
+.face__folio {
+  position: absolute; bottom: .85rem; left: 0; right: 0;
+  text-align: center;
+  font-size: .66rem; font-weight: 600; letter-spacing: .1em;
+  color: var(--slate-400);
+  pointer-events: none;
+}
+
+/* ---- La pagina ---- */
+.page {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 1.7rem 1.4rem 2.6rem 1.7rem;
+  font-size: .86rem; line-height: 1.62;
+}
+.face--back .page { padding: 1.7rem 1.7rem 2.6rem 1.4rem; }
+@media (min-width: 900px) {
+  .page { padding: 2.4rem 2.3rem 2.8rem 2.6rem; font-size: .88rem; line-height: 1.64; }
+  .face--back .page { padding: 2.4rem 2.6rem 2.8rem 2.3rem; }
+}
+/* Queda texto por debajo: el borde se difumina */
+.page.is-long {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 3.2rem), transparent calc(100% - .6rem));
+          mask-image: linear-gradient(to bottom, #000 calc(100% - 3.2rem), transparent calc(100% - .6rem));
+}
+.page--end { display: grid; place-items: center; }
+
+.page__run {
+  margin: 0 0 1.6rem;
+  font-family: var(--serif);
+  font-size: .72rem; font-style: italic;
+  color: var(--slate-400);
+}
+.page__kicker {
+  margin: 0 0 .2rem;
+  font-size: .66rem; font-weight: 700; letter-spacing: .14em;
+  color: var(--iris-tinta);
+}
+.page__title {
+  margin: 0 0 1rem;
+  font-family: var(--serif);
+  font-size: 1.55rem; font-weight: 400; line-height: 1.2;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+}
+.page__sub {
+  margin: -.6rem 0 1rem;
+  font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--slate-400);
+}
+.page__text { margin: 0; text-wrap: pretty; }
+.page__note {
+  margin: 1.2rem 0 0;
+  padding-left: .9rem;
+  border-left: 2px solid rgb(var(--slate-rgb) / .18);
+  font-size: .8rem; line-height: 1.6;
+  color: var(--slate-400);
+  text-wrap: pretty;
+}
+.page__end {
+  margin: 0;
+  text-align: center;
+  font-family: var(--hand);
+  font-size: 3.6rem; line-height: 1;
+  color: var(--pino-tinta);
+}
+
+/* «Lo que es» lleva el sello, y el pez se termina de trazar cuando la
+   pagina queda a la vista — el mismo gesto que tenia su pestaña. */
+.page__seal,
+.toc__fish,
+.back__seal {
+  position: relative;
+  display: block;
+  aspect-ratio: 41 / 69.4;
+}
+.page__seal { width: 1.6rem; margin: 1.8rem auto 0; color: var(--pino-tinta); }
+.page__seal-ghost, .page__seal-ink,
+.toc__fish-ghost, .toc__fish-ink,
+.back__seal-ghost, .back__seal-ink { position: absolute; inset: 0; }
+.page__seal-ghost, .toc__fish-ghost, .back__seal-ghost { opacity: .28; }
+.page__seal .icon, .toc__fish .icon, .back__seal .icon { width: 100%; height: 100%; }
+.page__seal-ink {
+  clip-path: inset(0 52% 0 0);
+  transition: clip-path 1s var(--ease-smooth);
+}
+.page.is-seen .page__seal-ink { clip-path: inset(0 0 0 0); }
+.toc__fish-ink { clip-path: inset(0 52% 0 0); }
+
+/* ---- La tapa ---- */
+.page--cover,
+.page--back {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+}
+/* El filete de la tapa, a un dedo del borde */
+.page--cover::before,
+.page--back::before {
+  content: "";
+  position: absolute; inset: .85rem;
+  border: 1px solid rgb(241 239 233 / .22);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.cover__script {
+  margin: 0 0 .6rem;
+  font-size: clamp(2.8rem, 12vw, 3.8rem); line-height: 1.3;
+  color: var(--iris-300);
+}
+.cover__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 2rem; font-weight: 400;
+  letter-spacing: -.015em;
+}
+.cover__gloss {
+  margin: .35rem 0 0;
+  font-size: .95rem;
+  opacity: .85;
+}
+.cover__lang {
+  margin: 1.6rem 0 0;
+  font-size: .64rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  opacity: .6;
+}
+.cover__turn {
+  position: absolute; bottom: 1.9rem; left: 0; right: 0;
+  margin: 0;
+  font-size: .72rem; font-weight: 600; letter-spacing: .06em;
+  opacity: .7;
+}
+.cover__arrow {
+  display: inline-block;
+  margin-left: .4rem;
+  animation: book-nudge 1.8s var(--ease) infinite;
+}
+@keyframes book-nudge {
+  0%, 60%, 100% { translate: 0 0; }
+  30% { translate: 5px 0; }
+}
+
+.back__seal { width: 2.2rem; color: var(--iris-300); }
+.back__seal-ink { clip-path: none; }
+.back__script {
+  margin: 1.2rem 0 0;
+  font-size: 1.1rem;
+  opacity: .45;
+}
+
+/* ---- El indice ---- */
+.toc { list-style: none; margin: .4rem 0 0; padding: 0; }
+.toc li + li { border-top: 1px solid rgb(var(--slate-rgb) / .12); }
+.toc__item {
+  display: flex; align-items: baseline; gap: .5rem;
+  width: 100%;
+  padding: .85rem 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: color .2s var(--ease);
+}
+.toc__item:hover, .toc__item:focus-visible { color: var(--iris-tinta); }
+.toc__fish { width: .6rem; align-self: center; color: var(--pino-tinta); }
+.toc__item:hover .toc__fish-ink { clip-path: inset(0 0 0 0); transition: clip-path .6s var(--ease-smooth); }
+.toc__name { font-family: var(--serif); font-size: 1.02rem; }
+.toc__dots {
+  flex: 1 1 auto;
+  min-width: 1rem;
+  border-bottom: 1px dotted rgb(var(--slate-rgb) / .35);
+  translate: 0 -.3em;
+}
+.toc__num { font-size: .75rem; font-weight: 600; color: var(--slate-400); }
+
+/* ---- PaRDeS ---- */
+.lvl + .lvl { margin-top: 1.35rem; }
+.lvl__head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .55rem;
+  margin: 0 0 .4rem;
+}
+.lvl__name {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+}
+.lvl__sub {
+  font-size: .72rem; font-style: italic;
+  color: var(--slate-400);
+}
+.lvl__tag {
+  margin-left: auto;
+  padding: .12rem .5rem .16rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.lvl__tag--verifiable  { color: var(--pino-tinta); }
+.lvl__tag--tradition   { color: var(--iris-tinta); }
+.lvl__tag--speculative { color: var(--slate-400); border-style: dashed; }
+.lvl__tag--gap         { color: var(--slate-400); border-style: dotted; }
+.lvl__text { margin: 0; font-size: .86rem; line-height: 1.66; text-wrap: pretty; }
+
+/* La PARE: el suelo cambia aqui. Una linea que se corta para dejar
+   pasar el nombre, y debajo, en pequeño, que es lo que cambia. */
+.pare { margin: 0 0 1.5rem; text-align: center; }
+.pare__mark {
+  display: flex; align-items: center; gap: .8rem;
+  margin: 0 0 .5rem;
+  font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--iris-tinta);
+}
+.pare__mark::before,
+.pare__mark::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: currentColor;
+  opacity: .45;
+}
+.pare__text {
+  margin: 0;
+  font-size: .78rem; font-style: italic; line-height: 1.55;
+  color: var(--slate-400);
+  text-wrap: balance;
+}
+
+/* ---- Fuentes: APA, con sangria francesa ---- */
+.refs { list-style: none; margin: 0; padding: 0; }
+.refs li {
+  margin: 0 0 .75rem;
+  padding-left: 1.4rem;
+  text-indent: -1.4rem;
+  font-size: .78rem; line-height: 1.55;
+  color: var(--slate-400);
+}
+
+/* ---- Debajo del libro ---- */
+.book__nav {
+  display: flex; align-items: center; gap: 1.2rem;
+  color: var(--bone);
+}
+.book__arrow {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 50%;
+  background: rgb(241 239 233 / .1);
+  color: inherit;
+  transition: background-color .2s var(--ease), opacity .2s var(--ease);
+}
+.book__arrow:hover { background: rgb(241 239 233 / .2); }
+.book__arrow:disabled { opacity: .3; cursor: default; background: rgb(241 239 233 / .1); }
+.book__arrow svg {
+  width: 1.2rem; height: 1.2rem;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.book__folio {
+  min-width: 5.5rem;
+  margin: 0;
+  text-align: center;
+  font-size: .78rem; font-weight: 600; letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+  opacity: .8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaf, .book__block, .page__seal-ink { transition: none; }
+  .book-panel__frame { transform: none; transition: opacity .2s linear; }
+  .cover__arrow { animation: none; }
 }
 
 /* =============================================================
