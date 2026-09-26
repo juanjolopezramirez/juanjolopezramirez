@@ -242,6 +242,7 @@ export const UI = {
       'book.pageOf': 'Page {n} of {t}',
       'a11y.bookPrev': 'Previous page',
       'a11y.bookNext': 'Next page',
+      'a11y.bookSound': 'Page-turn sound',
 
       'scroll.label':   'About me',
 
@@ -486,6 +487,7 @@ export const UI = {
       'book.pageOf': 'Página {n} de {t}',
       'a11y.bookPrev': 'Página anterior',
       'a11y.bookNext': 'Página siguiente',
+      'a11y.bookSound': 'Sonido de las páginas',
 
       'scroll.label':   'Sobre mí',
 
@@ -730,6 +732,7 @@ export const UI = {
       'book.pageOf': 'Página {n} de {t}',
       'a11y.bookPrev': 'Página anterior',
       'a11y.bookNext': 'Página seguinte',
+      'a11y.bookSound': 'Som das páginas',
 
       'scroll.label':   'Sobre mim',
 
@@ -974,6 +977,7 @@ export const UI = {
       'book.pageOf': 'Page {n} sur {t}',
       'a11y.bookPrev': 'Page précédente',
       'a11y.bookNext': 'Page suivante',
+      'a11y.bookSound': 'Son des pages',
 
       'scroll.label':   'À propos de moi',
 
@@ -1217,6 +1221,7 @@ export const UI = {
       'book.pageOf': 'Pagina {n} di {t}',
       'a11y.bookPrev': 'Pagina precedente',
       'a11y.bookNext': 'Pagina successiva',
+      'a11y.bookSound': 'Suono delle pagine',
 
       'scroll.label':   'Su di me',
 

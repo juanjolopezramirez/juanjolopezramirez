@@ -4854,6 +4854,120 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   color: var(--slate-400);
 }
 
+/* ---- El libro en PDF (StPageFlip) ----
+   La libreria calcula tamaños, curva y sombras; aqui va lo que ella da
+   por supuesto (sus clases stf__*) y el papel: el hundido del lomo en
+   cada pagina y la sombra del libro sobre la mesa. */
+.flip {
+  --board-front: #1f3b2c;
+  --board-back: #1f3b2c;
+  --over: 8px;
+  --stack-l: 0px;
+  --stack-r: 0px;
+  position: relative;
+  display: block; max-width: 100%;
+}
+.flip[hidden] { display: none; }
+.flip__stage { position: relative; z-index: 1; user-select: none; -webkit-user-select: none; }
+
+/* ---- La tapa dura ----
+   Dos cartones detras de las hojas, cada uno en su mitad. Asoman
+   `--over` por arriba, por abajo y por fuera, como en un libro de
+   verdad, y encima de cada uno el canto de las hojas apiladas: rayitas
+   crema, mas gruesas en el lado que tiene mas hojas. Cerrado solo queda
+   el carton de la tapa; al final, solo el de la contratapa. */
+.flip__boards { position: absolute; inset: 0; pointer-events: none; }
+.flip__board {
+  position: absolute;
+  top: calc(var(--over) * -1); bottom: calc(var(--over) * -1);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / .1), transparent 30%, rgb(0 0 0 / .14)),
+    var(--board);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / .1),
+    inset 0 0 calc(var(--over) * .8) rgb(0 0 0 / .3),
+    0 22px 34px rgb(0 0 0 / .5),
+    0 4px 8px rgb(0 0 0 / .35);
+  transition: opacity .35s var(--ease), transform .5s var(--ease-smooth);
+}
+.flip__board--l {
+  --board: var(--board-front);
+  left: calc(var(--over) * -1); right: 50%;
+  border-radius: 5px 1px 1px 5px;
+  transform-origin: right center;
+}
+.flip__board--r {
+  --board: var(--board-back);
+  left: 50%; right: calc(var(--over) * -1);
+  border-radius: 1px 5px 5px 1px;
+}
+.flip[data-mode="one"] .flip__board--l { display: none; }
+.flip[data-mode="one"] .flip__board--r { left: 0; }
+.flip[data-at="front"] .flip__board--r { --board: var(--board-front); }
+.flip[data-at="front"] .flip__board--l,
+.flip[data-at="back"] .flip__board--r { opacity: 0; transform: scaleX(.96); }
+.flip[data-mode="one"][data-at="back"] .flip__board--r { opacity: 1; transform: none; }
+
+/* El canto: pegado al borde de fuera de las hojas, un pelo mas bajo que
+   ellas, y una raya por cada par de hojas. */
+.flip__edges {
+  position: absolute;
+  top: calc(var(--over) + 2px); bottom: calc(var(--over) + 2px);
+  background: repeating-linear-gradient(90deg, #f3eee2 0 1px, #cbc2ae 1px 2px);
+  box-shadow: 0 0 2px rgb(0 0 0 / .25);
+  transition: width .6s var(--ease-smooth);
+}
+.flip__board--l .flip__edges { right: calc(100% - var(--over)); width: var(--stack-l); border-radius: 2px 0 0 2px; }
+.flip__board--r .flip__edges { left: calc(100% - var(--over)); width: var(--stack-r); border-radius: 0 2px 2px 0; }
+.flip[data-mode="one"] .flip__board--r .flip__edges { left: calc(100% - var(--over)); }
+
+/* El golpe: al caer una tapa el libro baja un pixel y se asienta */
+.flip.is-thud { animation: flip-thud .42s var(--ease-smooth); }
+@keyframes flip-thud {
+  0%   { transform: none; }
+  30%  { transform: translateY(2px) scale(.996); }
+  65%  { transform: translateY(-.5px) scale(1.001); }
+  100% { transform: none; }
+}
+
+.flip .stf__parent { position: relative; display: block; box-sizing: border-box; transform: translateZ(0); touch-action: pan-y; }
+.flip .stf__wrapper { position: relative; width: 100%; box-sizing: border-box; }
+.flip .stf__block {
+  position: absolute; inset: 0;
+  box-sizing: border-box;
+  perspective: 2000px;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / .25));
+}
+.flip .stf__item { display: none; position: absolute; transform-style: preserve-3d; }
+.flip .stf__outerShadow,
+.flip .stf__innerShadow,
+.flip .stf__hardShadow,
+.flip .stf__hardInnerShadow { position: absolute; left: 0; top: 0; }
+
+.flip__page { background: #f4f1ea; overflow: hidden; }
+.flip__page img {
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+/* El lomo: la pagina se hunde un poco hacia el centro del libro. La
+   libreria marca cada pagina con --left o --right segun donde cae. */
+.flip__page::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+}
+.flip__page.--left::after  { background: linear-gradient(270deg, rgb(0 0 0 / .16), rgb(0 0 0 / .04) 4%, transparent 11%); }
+.flip__page.--right::after { background: linear-gradient(90deg,  rgb(0 0 0 / .16), rgb(0 0 0 / .04) 4%, transparent 11%); }
+.flip__page[data-density="hard"]::after { background: none; }
+
+.flip__link {
+  position: absolute; z-index: 1;
+  border-radius: 3px;
+  transition: background-color .2s var(--ease);
+}
+.flip__link:hover,
+.flip__link:focus-visible { background: rgb(47 107 78 / .14); }
+
 /* ---- Debajo del libro ---- */
 .book__nav {
   display: flex; align-items: center; gap: 1.2rem;
@@ -4874,6 +4988,18 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   fill: none; stroke: currentColor; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
+/* El altavoz va fuera de la fila, a la derecha: asi las flechas y el
+   numero de pagina siguen centrados bajo el libro. */
+.book__nav { position: relative; }
+.book__sound {
+  position: absolute; left: calc(100% + .9rem);
+  width: 2.3rem; height: 2.3rem;
+  opacity: .75;
+}
+.book__sound:hover { opacity: 1; }
+.book__sound svg { width: 1.05rem; height: 1.05rem; }
+.book__sound[aria-pressed="true"] .book__sound-off,
+.book__sound[aria-pressed="false"] .book__sound-on { display: none; }
 .book__folio {
   min-width: 5.5rem;
   margin: 0;

@@ -197,6 +197,9 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     <div class="book" id="book">
       <div class="book__block" id="book-block"></div>
     </div>
+    <!-- Si la palabra tiene su PDF (tools/books.py), el libro es este:
+         las paginas del PDF, que se doblan desde la esquina como papel. -->
+    <div class="flip" id="flip" hidden></div>
     <nav class="book__nav">
       <button class="book__arrow" type="button" data-book-prev aria-label={t('a11y.bookPrev')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
@@ -204,6 +207,15 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
       <p class="book__folio" id="book-folio" aria-live="polite"></p>
       <button class="book__arrow" type="button" data-book-next aria-label={t('a11y.bookNext')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+      </button>
+      <!-- El sonido de las hojas, como en un flipbook: se puede apagar y
+           el navegador lo recuerda -->
+      <button class="book__arrow book__sound" type="button" data-book-sound aria-pressed="true" aria-label={t('a11y.bookSound')}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" />
+          <path class="book__sound-on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" />
+          <path class="book__sound-off" d="M16 9.5l5 5M21 9.5l-5 5" />
+        </svg>
       </button>
     </nav>
   </div>

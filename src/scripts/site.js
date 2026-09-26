@@ -10,6 +10,7 @@
 import { TERMS } from '../i18n/terms.js';
 import { CARDS, GLOSS } from '../i18n/term-cards.js';
 import { DEEP } from '../i18n/term-book.js';
+import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { CONTACT } from '../data/social.js';
@@ -1023,6 +1024,7 @@ function initBook() {
         leaf.style.zIndex = String(3 * n + order);
       }
     });
+    if (!instant && nk !== from) rustle(from === 0 || nk === 0 || (spread && (from === n || nk === n)), TURN / 1000);
     if (instant) {
       settle();
       void block.offsetWidth;
@@ -1054,8 +1056,362 @@ function initBook() {
       : el('book-title').textContent);
   }
 
-  const next = () => set(k + 1);
-  const prev = () => set(k - 1);
+  /* ---- El libro en PDF ----------------------------------------
+     Si la palabra tiene su PDF convertido (tools/books.py → BOOKS), se
+     abre ese en lugar del de HTML. Lo pasa StPageFlip (page-flip), que
+     dobla la hoja desde la esquina que agarras, con su curva y su sombra,
+     como papel y no como una tarjeta que gira. Se carga solo al abrir el
+     primer libro: quien no abre ninguno no lo descarga.
+
+     Las paginas son <img> y no un <canvas> porque el canvas de la
+     libreria no tiene en cuenta la densidad de la pantalla y en un movil
+     se veria borroso. La tapa y la contratapa son de carton: giran
+     rigidas; las de dentro se doblan. */
+  /* ---- El sonido de la hoja ----------------------------------
+     Como en un flipbook: cada hoja suena al pasar. No es una grabacion,
+     se hace aqui con Web Audio (nada que descargar), y cada vez sale un
+     poco distinta para que no suene a bucle. Tres capas:
+
+       el grano    ruido con rafagas y chasquidos sueltos: la fibra del papel
+       el barrido  ese grano por un filtro que sube y baja: la hoja en el aire
+       el golpe    un soplo corto y grave al posarse
+
+     Las tapas suenan mas graves y mas largas, y al caer dan un golpe
+     sordo de carton. El boton del altavoz lo apaga; se recuerda. */
+  const soundBtn = s.panel.querySelector('[data-book-sound]');
+  let soundOn = true;
+  try { soundOn = localStorage.getItem('book-sound') !== 'off'; } catch (err) { /* sin almacenamiento */ }
+  let ac = null;
+  let grain = null;
+  let master = null;
+
+  const paintSound = () => { if (soundBtn) soundBtn.setAttribute('aria-pressed', String(soundOn)); };
+  paintSound();
+  if (soundBtn) soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    paintSound();
+    try { localStorage.setItem('book-sound', soundOn ? 'on' : 'off'); } catch (err) { /* nada */ }
+    if (soundOn) rustle(false, 0.7);
+  });
+
+  function audio() {
+    if (ac) return ac;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ac = new AC();
+    master = ac.createGain();
+    master.gain.value = 0.7;
+    master.connect(ac.destination);
+    /* Dos segundos de papel: ruido cuya fuerza cambia a saltos cortos
+       (6-26 ms) y, muy de vez en cuando, un chasquido. */
+    const sr = ac.sampleRate, n = sr * 2;
+    const a = new Float32Array(n);
+    let amp = 0.6, target = 0.6, next = 0;
+    for (let i = 0; i < n; i++) {
+      if (i >= next) { target = 0.2 + Math.random() * 0.8; next = i + sr * (0.006 + Math.random() * 0.02); }
+      amp += (target - amp) * 0.004;
+      a[i] = (Math.random() * 2 - 1) * amp + (Math.random() < 0.0006 ? (Math.random() * 2 - 1) * 0.9 : 0);
+    }
+    grain = ac.createBuffer(1, n, sr);
+    grain.copyToChannel(a, 0);
+    return ac;
+  }
+
+  /* `heavy`: es carton. `land`: en cuantos segundos se posa la hoja. */
+  function rustle(heavy, land) {
+    if (!soundOn) return;
+    const c = audio();
+    if (!c) return;
+    if (c.state === 'suspended') c.resume();
+    const t0 = c.currentTime + 0.01;
+    const d = Math.max(0.25, land);
+    const noise = (at, len) => {
+      const src = c.createBufferSource();
+      src.buffer = grain;
+      src.playbackRate.value = 0.9 + Math.random() * 0.2;
+      src.start(at, Math.random() * 1.2, len);
+      return src;
+    };
+    const filter = (type, f, q) => {
+      const x = c.createBiquadFilter();
+      x.type = type;
+      x.frequency.value = f;
+      if (q) x.Q.value = q;
+      return x;
+    };
+
+    /* El barrido: sube mientras la hoja se levanta y baja al caer */
+    const lo = heavy ? 380 : 1100, hi = (heavy ? 1300 : 3400) * (0.9 + Math.random() * 0.2);
+    const bp = filter('bandpass', lo, 0.8);
+    bp.frequency.setValueAtTime(lo, t0);
+    bp.frequency.exponentialRampToValueAtTime(hi, t0 + d * 0.4);
+    bp.frequency.exponentialRampToValueAtTime(lo * 0.8, t0 + d);
+    const g = c.createGain();
+    const peak = heavy ? 0.28 : 0.42;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + 0.07);
+    g.gain.exponentialRampToValueAtTime(peak * 0.45, t0 + d * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.08);
+    noise(t0, d + 0.12).connect(filter('highpass', heavy ? 180 : 500)).connect(bp).connect(g).connect(master);
+
+    /* El golpe al posarse */
+    const tl = t0 + d * 0.92;
+    const fg = c.createGain();
+    const fl = heavy ? 0.18 : 0.09;
+    fg.gain.setValueAtTime(0.0001, tl);
+    fg.gain.exponentialRampToValueAtTime(heavy ? 0.55 : 0.3, tl + 0.006);
+    fg.gain.exponentialRampToValueAtTime(0.0001, tl + fl);
+    noise(tl, fl + 0.02).connect(filter('lowpass', heavy ? 650 : 1700)).connect(fg).connect(master);
+
+    /* El carton, ademas, retumba un poco */
+    if (heavy) {
+      const o = c.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(105, tl);
+      o.frequency.exponentialRampToValueAtTime(48, tl + 0.16);
+      const og = c.createGain();
+      og.gain.setValueAtTime(0.0001, tl);
+      og.gain.exponentialRampToValueAtTime(0.45, tl + 0.008);
+      og.gain.exponentialRampToValueAtTime(0.0001, tl + 0.26);
+      o.connect(og).connect(master);
+      o.start(tl);
+      o.stop(tl + 0.3);
+    }
+  }
+
+  const flipBox = el('flip');
+  let fb = null;
+  let fbInfo = null;
+  let fbGen = 0;
+  let heavy = false;     // la hoja que gira ahora es de carton
+  const LIGHT = quiet.matches ? 300 : 950;
+  const HEAVY = quiet.matches ? 300 : 1500;
+
+  function flipSize(ratio) {
+    const two = wide.matches;
+    const nav = 8 * parseFloat(getComputedStyle(d.documentElement).fontSize);
+    const room = Math.max(240, innerHeight - nav);
+    const pw = Math.floor(Math.min(two ? (innerWidth - 96) / 2 : innerWidth - 24, room * ratio, 640));
+    return { two, pw, ph: Math.round(pw / ratio) };
+  }
+
+  function flipFolio() {
+    if (!fb) return;
+    const n = fb.getPageCount();
+    const i = fb.getCurrentPageIndex();
+    const two = fb.getOrientation() === 'landscape';
+    const vis = two && i > 0 && i < n - 1 ? [i, i + 1].filter((x) => x < n) : [i];
+    prevBtn.disabled = i === 0;
+    nextBtn.disabled = vis[vis.length - 1] >= n - 1;
+    /* El carton y el canto de las hojas: cerrado solo hay tapa a la
+       derecha; al final, contratapa a la izquierda. El grosor de cada
+       lado crece con las hojas que tiene encima. */
+    flipBox.dataset.at = i === 0 ? 'front' : (two && vis.length === 1 && i === n - 1 ? 'back' : 'open');
+    flipBox.dataset.mode = two ? 'two' : 'one';
+    const deep = flipBox.offsetWidth / (two ? 2 : 1) * 0.016;
+    const thick = (c) => (c > 0 ? (2 + deep * c / n).toFixed(1) + 'px' : '0px');
+    flipBox.style.setProperty('--stack-l', thick(two ? vis[0] : 0));
+    flipBox.style.setProperty('--stack-r', thick(n - 1 - vis[vis.length - 1]));
+    const nums = vis.map((x) => x + 1);
+    folio.textContent = nums.join('–') + ' / ' + n;
+    folio.setAttribute('aria-label', t('book.pageOf').replace('{n}', nums.join('–')).replace('{t}', n));
+    flipBox.querySelectorAll('.flip__page').forEach((p, x) => {
+      const on = vis.includes(x);
+      p.inert = !on;
+      p.toggleAttribute('aria-hidden', !on);
+    });
+  }
+
+  function closeFlip() {
+    fbGen++;
+    if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
+    fb = null;
+    flipBox.textContent = '';
+    flipBox.removeAttribute('style');
+    flipBox.hidden = true;
+    el('book').hidden = false;
+  }
+
+  /* Las tapas pesan: la hoja de carton tarda mas en girar y, al caer, el
+     libro se asienta un poco. Hay que saber ANTES de girar que hoja se
+     mueve: hacia delante la de la derecha, hacia atras la de la izquierda. */
+  function weigh(dir) {
+    if (!fb) return;
+    const i = fb.getCurrentPageIndex();
+    const two = fb.getOrientation() === 'landscape';
+    const p = dir > 0 ? (two && i > 0 ? i + 1 : i) : (two ? i : i - 1);
+    const all = flipBox.querySelectorAll('.flip__page');
+    const sheet = two ? [p, dir > 0 ? p + 1 : p - 1] : [p];
+    heavy = sheet.some((x) => all[x] && all[x].dataset.density === 'hard');
+    fb.getSettings().flippingTime = heavy ? HEAVY : LIGHT;
+  }
+
+  function thud() {
+    if (!heavy || quiet.matches) return;
+    heavy = false;
+    flipBox.classList.remove('is-thud');
+    void flipBox.offsetWidth;
+    flipBox.classList.add('is-thud');
+  }
+
+  async function buildFlip(id, at) {
+    const gen = ++fbGen;
+    const info = fbInfo;
+    const [{ PageFlip }, texts] = await Promise.all([
+      import('page-flip'),
+      fetch(info.base + 'pages.json?v=' + info.v).then((r) => r.json()).catch(() => []),
+    ]);
+    if (gen !== fbGen) return;          // se cerro o se abrio otra mientras cargaba
+
+    if (fb) { try { fb.destroy(); } catch (err) { /* nada */ } }
+    flipBox.textContent = '';
+    const { two, pw, ph } = flipSize(info.ratio);
+    /* El ancho va en la caja de fuera: la libreria le pone width:100% al
+       escenario, y de ese ancho saca si caben dos paginas o una. */
+    const stage = h('div', 'flip__stage');
+    flipBox.style.width = (two ? pw * 2 : pw) + 'px';
+
+    /* Los cartones de detras: asoman un poco por fuera de las hojas, del
+       color de la tapa (lo mide tools/books.py), con el canto de las
+       hojas apiladas encima. */
+    const shelf = h('div', 'flip__boards');
+    shelf.setAttribute('aria-hidden', 'true');
+    ['l', 'r'].forEach((side) => {
+      const b = h('div', 'flip__board flip__board--' + side);
+      b.appendChild(h('span', 'flip__edges'));
+      shelf.appendChild(b);
+    });
+    const [front, back] = info.board || [];
+    if (front) flipBox.style.setProperty('--board-front', front);
+    if (back) flipBox.style.setProperty('--board-back', back);
+    flipBox.style.setProperty('--over', Math.max(5, Math.round(pw * 0.018)) + 'px');
+    flipBox.append(shelf, stage);
+
+    const n = info.pages;
+    /* Tapa dura: se marcan la tapa y la contratapa. A doble pagina la
+       libreria pone rigida la hoja entera si una de sus caras lo es, asi
+       que la pagina 2 y la penultima giran pegadas a su carton. */
+    const hardAt = [0, n - 1];
+    const els = [];
+    for (let i = 0; i < n; i++) {
+      const pg = h('div', 'flip__page');
+      if (hardAt.includes(i)) pg.dataset.density = 'hard';
+      const src = (w) => info.base + String(i + 1).padStart(2, '0') + '-' + w + '.jpg?v=' + info.v;
+      const img = h('img');
+      img.src = src(900);
+      img.srcset = src(900) + ' 900w, ' + src(1600) + ' 1600w';
+      img.sizes = pw + 'px';
+      img.alt = '';
+      img.draggable = false;
+      img.decoding = 'async';
+      if (i > 3) img.loading = 'lazy';
+      pg.appendChild(img);
+
+      /* Lo que el PDF tiene escrito, para quien no ve la imagen */
+      const txt = texts[i] && texts[i].text;
+      if (txt) pg.appendChild(h('p', 'sr-only', txt));
+
+      /* Los enlaces del PDF siguen siendo enlaces: los del indice pasan a
+         su pagina, los de fuera abren en otra pestaña. */
+      ((texts[i] && texts[i].links) || []).forEach((L) => {
+        const a = h(L.href ? 'a' : 'button', 'flip__link');
+        if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener'; }
+        else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
+        a.setAttribute('aria-label', L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
+        Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
+        pg.appendChild(a);
+      });
+      stage.appendChild(pg);
+      els.push(pg);
+    }
+
+    fb = new PageFlip(stage, {
+      width: pw, height: ph,
+      size: 'stretch',
+      minWidth: two ? pw - 1 : pw, maxWidth: pw,
+      minHeight: 100, maxHeight: ph,
+      startPage: Math.max(0, Math.min(n - 1, at)),
+      showCover: true,
+      usePortrait: true,
+      drawShadow: true,
+      maxShadowOpacity: 0.55,
+      flippingTime: LIGHT,
+      showPageCorners: !quiet.matches,
+      mobileScrollSupport: false,
+      swipeDistance: 24,
+      startZIndex: 1,
+    });
+    fb.loadFromHTML(els);
+    fb.on('flip', () => { flipFolio(); thud(); });
+    /* Suena cuando la hoja echa a volar. Si venia del dedo, ya lleva
+       medio camino hecho y se posa antes. */
+    let was = 'read';
+    fb.on('changeState', (e) => {
+      if (e.data === 'flipping') {
+        const full = fb.getSettings().flippingTime / 1000;
+        rustle(heavy, was === 'user_fold' ? full * 0.5 : full);
+      }
+      was = e.data;
+    });
+    fb.on('init', flipFolio);
+    fb.on('changeOrientation', flipFolio);
+    return fb;
+  }
+
+  flipBox.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-flip-to]');
+    if (go && fb) { clearTimeout(autoOpen); heavy = false; fb.getSettings().flippingTime = LIGHT; fb.flip(Number(go.dataset.flipTo)); }
+  });
+
+  /* Arrastrar con el dedo o el raton: la libreria decide el sentido por
+     el lado donde se agarra, y aqui se pesa la hoja con la misma regla. */
+  flipBox.addEventListener('pointerdown', (e) => {
+    if (!fb || e.target.closest('a, button')) return;
+    clearTimeout(autoOpen);
+    const r = flipBox.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const back = fb.getOrientation() === 'landscape' ? x < r.width / 2 : x < r.width / 5;
+    weigh(back ? -1 : 1);
+  });
+
+  /* Al cambiar de tamaño se vuelve a encuadernar en la misma pagina:
+     cruzar los 900px pasa de una a dos paginas, y la altura cambia con la
+     barra del navegador del movil. */
+  let fbResize = 0;
+  addEventListener('resize', () => {
+    if (!fb || s.panel.hidden) return;
+    clearTimeout(fbResize);
+    fbResize = setTimeout(() => {
+      if (!fb) return;
+      const at = fb.getCurrentPageIndex();
+      const { two, pw } = flipSize(fbInfo.ratio);
+      const was = fb.getOrientation() === 'landscape';
+      if (two === was && Math.abs(flipBox.offsetWidth - (two ? pw * 2 : pw)) < 2) return;
+      buildFlip(fbInfo.id, at);
+    }, 180);
+  });
+
+  /* Cerrar el panel suelta el libro: sin eso seguiria escuchando el raton */
+  new MutationObserver(() => { if (s.panel.hidden && fb) closeFlip(); })
+    .observe(s.panel, { attributes: true, attributeFilter: ['hidden'] });
+
+  function openFlip(id, pdf) {
+    const which = BOOKS[id][lang] ? lang : 'all';
+    fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + which + '/' };
+    el('book').hidden = true;
+    flipBox.hidden = false;
+    folio.textContent = '';
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    buildFlip(id, 0).then((book) => {
+      if (!book || quiet.matches) return;
+      /* Como el de HTML: se ve la tapa y al momento se abre solo */
+      autoOpen = setTimeout(() => { if (fb === book && fb.getCurrentPageIndex() === 0) next(); }, 1100);
+    });
+  }
+
+  const next = () => (fb ? (weigh(1), fb.flipNext('bottom')) : set(k + 1));
+  const prev = () => (fb ? (weigh(-1), fb.flipPrev('bottom')) : set(k - 1));
 
   /* ---- Arrastrar la esquina ---- */
   const pageWidth = () => block.getBoundingClientRect().width / (spread ? 2 : 1);
@@ -1151,7 +1507,8 @@ function initBook() {
   d.addEventListener('keydown', (e) => {
     if (openSheets[openSheets.length - 1] !== s.panel) return;
     const keys = { ArrowRight: next, PageDown: next, ArrowLeft: prev, PageUp: prev,
-                   Home: () => set(0), End: () => set(maxK()) };
+                   Home: () => (fb ? fb.flip(0) : set(0)),
+                   End: () => (fb ? fb.flip(fb.getPageCount() - 1) : set(maxK())) };
     if (!keys[e.key]) return;
     e.preventDefault();
     clearTimeout(autoOpen);
@@ -1159,7 +1516,7 @@ function initBook() {
   });
 
   wide.addEventListener('change', () => {
-    if (!pages.length) return;
+    if (fb || !pages.length) return;       // el de PDF se reencuaderna solo, en su resize
     const at = shown()[0] || 0;
     layout(at);
   });
@@ -1169,8 +1526,11 @@ function initBook() {
      de mas para empezar a leer. */
   return function open(id) {
     clearTimeout(autoOpen);
-    pages = makePages(id);
     el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
+    const pdf = BOOKS[id] && (BOOKS[id][lang] || BOOKS[id].all);
+    if (pdf) { s.open(); openFlip(id, pdf); return; }
+    closeFlip();
+    pages = makePages(id);
     layout(0);
     s.open();
     measure();
