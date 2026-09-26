@@ -88,6 +88,31 @@ def board(page):
     return '#' + ''.join(f'{round(c / cnt):02x}' for c in tot)
 
 
+def folio(page):
+    """El numero impreso en la pagina, si lo tiene: un numero solo, en el
+    ultimo 12% de la altura (donde van los folios). """
+    limit = page.rect.height * 0.88
+    for block in page.get_text('dict')['blocks']:
+        for line in block.get('lines', []):
+            for span in line['spans']:
+                txt = span['text'].strip()
+                if txt.isdigit() and len(txt) <= 3 and span['bbox'][1] >= limit:
+                    return int(txt)
+    return None
+
+
+def offset(doc):
+    """Cuantas paginas del PDF van antes de la que lleva impreso el 1.
+    Se decide por mayoria entre las paginas numeradas; si el PDF no
+    numera, None y el contador cuenta paginas del PDF. """
+    votes = {}
+    for i, page in enumerate(doc):
+        n = folio(page)
+        if n is not None:
+            votes[i + 1 - n] = votes.get(i + 1 - n, 0) + 1
+    return max(votes, key=votes.get) if votes else None
+
+
 def render(pdf, dest, version):
     doc = pymupdf.open(pdf)
     if doc.page_count == 0:
@@ -123,12 +148,14 @@ def render(pdf, dest, version):
         pages.append({'text': text, 'links': links} if links else {'text': text})
 
     (dest / 'pages.json').write_text(json.dumps(pages, ensure_ascii=False), encoding='utf-8')
+    off = offset(doc)
     uneven = any(abs(p.rect.width / p.rect.height - first.width / first.height) > 0.01 for p in doc)
     return {
         'pages': doc.page_count,
         'board': [board(doc[0]), board(doc[doc.page_count - 1])],
         'ratio': round(first.width / first.height, 4),
         'v': version,
+        **({'offset': off} if off is not None else {}),
         **({'uneven': True} if uneven else {}),
     }
 
@@ -174,6 +201,8 @@ def main():
             note += f' (ojo: no es la plantilla {TEMPLATE[0]}x{TEMPLATE[1]} px)'
         if info['pages'] % 2:
             note += ' (ojo: numero impar de paginas; la contratapa no cerrara el libro)'
+        if 'offset' in info:
+            note += f' (numeracion impresa: la pagina {info["offset"] + 1} del PDF es la 1)'
         print(f'  +  {pdf.name}: {info["pages"]} paginas{note}')
 
     # Lo que ya no tiene PDF se borra, para no publicar libros viejos

@@ -9,6 +9,7 @@ export const BOOKS = {
         "#a37005",
         "#a37005"
       ],
+      "offset": 2,
       "pages": 10,
       "ratio": 0.7143,
       "v": "8d6973ba61"

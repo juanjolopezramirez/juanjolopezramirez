@@ -100,15 +100,16 @@ const DOORS = [
       </ul>
     </nav>
 
-    <div data-lift><SocialRow t={t} /></div>
-
-    <!-- LA PALABRA, EN LA PARTE VERDE. Solo en escritorio: ahi cierra la
-         columna del nombre, al lado de las redes, y la hoja blanca se queda
-         con lo que se ofrece y las dos puertas. Es otra copia de la misma
-         cita —como la de «Sobre mi»—, porque el sitio donde vive cambia con
-         el ancho y el documento es uno solo; la que no toca se esconde, y a
-         un lector de pantalla tampoco le llega dos veces. -->
+    <!-- LA PALABRA, EN LA PARTE VERDE. Solo en escritorio: ahi va debajo
+         del nombre y ENCIMA de las redes —primero se lee, despues se busca
+         donde seguir—, y la hoja blanca se queda con lo que se ofrece y las
+         dos puertas. Es otra copia de la misma cita —como la de «Sobre
+         mi»—, porque el sitio donde vive cambia con el ancho y el documento
+         es uno solo; la que no toca se esconde, y a un lector de pantalla
+         tampoco le llega dos veces. -->
     <Rhema t={t} where="verde" />
+
+    <div data-lift><SocialRow t={t} /></div>
   </div>
 
   <!-- El boton se queda siempre. Encima, exactamente encima, un gemelo

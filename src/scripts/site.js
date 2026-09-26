@@ -1068,22 +1068,32 @@ function initBook() {
      se veria borroso. La tapa y la contratapa son de carton: giran
      rigidas; las de dentro se doblan. */
   /* ---- El sonido de la hoja ----------------------------------
-     Como en un flipbook: cada hoja suena al pasar. No es una grabacion,
-     se hace aqui con Web Audio (nada que descargar), y cada vez sale un
-     poco distinta para que no suene a bucle. Tres capas:
+     Como en un flipbook: cada hoja suena al pasar. Es una grabacion
+     (public/sounds/page-flip.mp3, 1,2 s): el roce empieza enseguida y
+     la hoja CAE a los 0,70 s. Ese golpe se hace coincidir con el momento
+     en que la hoja animada se posa: si la hoja tarda mas, el sonido
+     espera un poco; si ya venia a medio camino (el dedo la solto), se
+     entra en la grabacion mas adelante.
 
-       el grano    ruido con rafagas y chasquidos sueltos: la fibra del papel
-       el barrido  ese grano por un filtro que sube y baja: la hoja en el aire
-       el golpe    un soplo corto y grave al posarse
+     Las tapas —abrir el libro y cerrarlo— tienen su propia grabacion
+     (public/sounds/cover.mp3, 0,55 s, cae a los 0,27 s), y suena tal
+     cual: sin cambiarle tono, filtro ni volumen. Solo se espera lo justo
+     para que caiga con el carton. Las hojas de dentro salen cada una un
+     poco distinta para que no suenen a bucle.
 
-     Las tapas suenan mas graves y mas largas, y al caer dan un golpe
-     sordo de carton. El boton del altavoz lo apaga; se recuerda. */
+     Mientras la grabacion carga (o si fallara) suena un papel hecho aqui
+     con ruido. El boton del altavoz lo apaga todo; se recuerda. */
   const soundBtn = s.panel.querySelector('[data-book-sound]');
   let soundOn = true;
   try { soundOn = localStorage.getItem('book-sound') !== 'off'; } catch (err) { /* sin almacenamiento */ }
   let ac = null;
   let grain = null;
   let master = null;
+  let sample = null;
+  let cover = null;
+  const HIT = 0.70;       // en la grabacion: cuando cae la hoja
+  const CUT = 0.95;       // y donde se corta: despues queda un clic suelto
+  const COVER_HIT = 0.27; // en la de las tapas: cuando cae el carton
 
   const paintSound = () => { if (soundBtn) soundBtn.setAttribute('aria-pressed', String(soundOn)); };
   paintSound();
@@ -1100,7 +1110,9 @@ function initBook() {
     if (!AC) return null;
     ac = new AC();
     master = ac.createGain();
-    master.gain.value = 0.7;
+    /* Bajito: acompaña la lectura, no la interrumpe (un 25% de lo que
+       sonaba al principio). */
+    master.gain.value = 0.25;
     master.connect(ac.destination);
     /* Dos segundos de papel: ruido cuya fuerza cambia a saltos cortos
        (6-26 ms) y, muy de vez en cuando, un chasquido. */
@@ -1114,7 +1126,66 @@ function initBook() {
     }
     grain = ac.createBuffer(1, n, sr);
     grain.copyToChannel(a, 0);
+    const load = (file, keep) => fetch(import.meta.env.BASE_URL + 'sounds/' + file)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+      .then((buf) => ac.decodeAudioData(buf))
+      .then(keep)
+      .catch(() => { /* se queda el papel hecho con ruido */ });
+    load('page-flip.mp3', (dec) => { sample = dec; });
+    load('cover.mp3', (dec) => { cover = dec; });
     return ac;
+  }
+
+  const filterOf = (c, type, f, q, gain) => {
+    const x = c.createBiquadFilter();
+    x.type = type;
+    x.frequency.value = f;
+    if (q) x.Q.value = q;
+    if (gain) x.gain.value = gain;
+    return x;
+  };
+
+  /* El carton retumba un poco al caer */
+  function boom(c, tl) {
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(105, tl);
+    o.frequency.exponentialRampToValueAtTime(48, tl + 0.16);
+    const og = c.createGain();
+    og.gain.setValueAtTime(0.0001, tl);
+    og.gain.exponentialRampToValueAtTime(0.45, tl + 0.008);
+    og.gain.exponentialRampToValueAtTime(0.0001, tl + 0.26);
+    o.connect(og).connect(master);
+    o.start(tl);
+    o.stop(tl + 0.3);
+  }
+
+  function playSample(c, heavy, land) {
+    const rate = heavy ? 0.72 : 0.96 + Math.random() * 0.08;
+    const t0 = c.currentTime + 0.01;
+    const lead = land - HIT / rate;            // cuanto esperar para caer a la vez
+    const at = t0 + Math.max(0, lead);
+    const from = Math.min(HIT - 0.05, Math.max(0, -lead * rate));   // o cuanto saltarse
+    const src = c.createBufferSource();
+    src.buffer = sample;
+    src.playbackRate.value = rate;
+    const g = c.createGain();
+    const vol = heavy ? 1.2 : 1;
+    g.gain.setValueAtTime(from > 0 ? 0.0001 : vol, at);
+    if (from > 0) g.gain.exponentialRampToValueAtTime(vol, at + 0.03);
+    let chain = src;
+    if (heavy) chain = chain.connect(filterOf(c, 'lowshelf', 220, 0, 6)).connect(filterOf(c, 'lowpass', 2300, 0.7));
+    chain.connect(g).connect(master);
+    src.start(at, from, CUT - from);
+    if (heavy) boom(c, at + (HIT - from) / rate);
+  }
+
+  /* La de las tapas, entera y sin tocar: solo cuando empieza */
+  function playCover(c, land) {
+    const src = c.createBufferSource();
+    src.buffer = cover;
+    src.connect(master);
+    src.start(c.currentTime + 0.01 + Math.max(0, land - COVER_HIT));
   }
 
   /* `heavy`: es carton. `land`: en cuantos segundos se posa la hoja. */
@@ -1123,6 +1194,8 @@ function initBook() {
     const c = audio();
     if (!c) return;
     if (c.state === 'suspended') c.resume();
+    if (heavy && cover) { playCover(c, land); return; }
+    if (sample) { playSample(c, heavy, land); return; }
     const t0 = c.currentTime + 0.01;
     const d = Math.max(0.25, land);
     const noise = (at, len) => {
@@ -1132,13 +1205,7 @@ function initBook() {
       src.start(at, Math.random() * 1.2, len);
       return src;
     };
-    const filter = (type, f, q) => {
-      const x = c.createBiquadFilter();
-      x.type = type;
-      x.frequency.value = f;
-      if (q) x.Q.value = q;
-      return x;
-    };
+    const filter = (type, f, q) => filterOf(c, type, f, q);
 
     /* El barrido: sube mientras la hoja se levanta y baja al caer */
     const lo = heavy ? 380 : 1100, hi = (heavy ? 1300 : 3400) * (0.9 + Math.random() * 0.2);
@@ -1163,20 +1230,7 @@ function initBook() {
     fg.gain.exponentialRampToValueAtTime(0.0001, tl + fl);
     noise(tl, fl + 0.02).connect(filter('lowpass', heavy ? 650 : 1700)).connect(fg).connect(master);
 
-    /* El carton, ademas, retumba un poco */
-    if (heavy) {
-      const o = c.createOscillator();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(105, tl);
-      o.frequency.exponentialRampToValueAtTime(48, tl + 0.16);
-      const og = c.createGain();
-      og.gain.setValueAtTime(0.0001, tl);
-      og.gain.exponentialRampToValueAtTime(0.45, tl + 0.008);
-      og.gain.exponentialRampToValueAtTime(0.0001, tl + 0.26);
-      o.connect(og).connect(master);
-      o.start(tl);
-      o.stop(tl + 0.3);
-    }
+    if (heavy) boom(c, tl);
   }
 
   const flipBox = el('flip');
@@ -1184,37 +1238,94 @@ function initBook() {
   let fbInfo = null;
   let fbGen = 0;
   let heavy = false;     // la hoja que gira ahora es de carton
-  const LIGHT = quiet.matches ? 300 : 950;
-  const HEAVY = quiet.matches ? 300 : 1500;
+  /* Cuanto tarda en girar: la hoja, casi lo que tarda en caer la
+     grabacion; el carton, lo que tarda la grabacion lenta de las tapas. */
+  const LIGHT = quiet.matches ? 300 : 850;
+  const HEAVY = quiet.matches ? 300 : 1300;
+
+  /* DOS MANERAS DE MIRAR EL MISMO LIBRO. En pantalla ancha se ve el
+     pliego entero. En el movil el libro es el mismo —dos paginas, el
+     mismo papel, la misma curva— y cada pagina ocupa la pantalla, asi
+     que la pantalla solo abarca una: una «camara» va de una a otra.
+     Pasar de la izquierda a la derecha es deslizar la mirada; pasar de
+     la derecha a la siguiente es girar la hoja de verdad, y la camara la
+     acompaña hasta que se posa. Asi el movil ve el mismo pliego, el mismo
+     lomo y la misma hoja que se dobla que el ordenador.
+
+     `side` es hacia donde mira: 'l', 'r' o 'c' (el pliego entero). En
+     pantalla ancha tambien se usa: cerrado, el libro se centra sobre la
+     tapa ('r') o la contratapa ('l'). */
+  let cam = false;
+  let side = 'c';
+  let pw = 0;
+  let jump = null;       // salto del indice: a que pliego va y hacia donde mirar
+  let g = null;          // el dedo, mientras esta sobre el libro
 
   function flipSize(ratio) {
     const two = wide.matches;
-    const nav = 8 * parseFloat(getComputedStyle(d.documentElement).fontSize);
-    const room = Math.max(240, innerHeight - nav);
-    const pw = Math.floor(Math.min(two ? (innerWidth - 96) / 2 : innerWidth - 24, room * ratio, 640));
-    return { two, pw, ph: Math.round(pw / ratio) };
+    const room = Math.max(240, innerHeight - 8 * parseFloat(getComputedStyle(d.documentElement).fontSize));
+    const w = Math.floor(Math.min(two ? (innerWidth - 96) / 2 : innerWidth - 28, room * ratio, 640));
+    return { cam: !two, pw: w, ph: Math.round(w / ratio) };
   }
 
-  function flipFolio() {
+  /* Pliegos con tapa: [0] · [1,2] · [3,4] … y, si hay numero par de
+     paginas, la contratapa sola al final. Un pliego se nombra por su
+     primera pagina, igual que lo hace la libreria. */
+  const count = () => fb.getPageCount();
+  const pagesOf = (i) => {
+    const n = count();
+    if (i === 0) return [0];
+    if (i === n - 1 && n % 2 === 0) return [n - 1];
+    return [i, i + 1].filter((x) => x < n);
+  };
+  const spreadOf = (p) => {
+    const n = count();
+    if (p <= 0) return 0;
+    if (p >= n - 1 && n % 2 === 0) return n - 1;
+    return p % 2 ? p : p - 1;
+  };
+
+  function aim(ms) {
+    flipBox.style.setProperty('--cam-ms', Math.round(ms || 0) + 'ms');
+    flipBox.style.translate = (side === 'r' ? -pw / 2 : side === 'l' ? pw / 2 : 0) + 'px 0';
+  }
+
+  /* Pone el libro en el pliego `i`: camara, cartones, canto, flechas y
+     contador. Se llama cuando la hoja EMPIEZA a girar, con lo que va a
+     pasar, y no cuando termina: asi el libro se centra y el carton se
+     aparta a la vez que cae la tapa, no un segundo despues. */
+  function show(i, ms) {
     if (!fb) return;
-    const n = fb.getPageCount();
-    const i = fb.getCurrentPageIndex();
-    const two = fb.getOrientation() === 'landscape';
-    const vis = two && i > 0 && i < n - 1 ? [i, i + 1].filter((x) => x < n) : [i];
-    prevBtn.disabled = i === 0;
+    const n = count();
+    const v = pagesOf(i);
+    if (v.length === 1) side = i === 0 ? 'r' : 'l';
+    else if (!cam) side = 'c';
+    else if (side === 'c') side = 'l';
+    aim(ms);
+
+    const vis = cam ? [side === 'l' ? v[0] : v[v.length - 1]] : v;
+    prevBtn.disabled = vis[0] === 0;
     nextBtn.disabled = vis[vis.length - 1] >= n - 1;
-    /* El carton y el canto de las hojas: cerrado solo hay tapa a la
-       derecha; al final, contratapa a la izquierda. El grosor de cada
-       lado crece con las hojas que tiene encima. */
-    flipBox.dataset.at = i === 0 ? 'front' : (two && vis.length === 1 && i === n - 1 ? 'back' : 'open');
-    flipBox.dataset.mode = two ? 'two' : 'one';
-    const deep = flipBox.offsetWidth / (two ? 2 : 1) * 0.016;
+
+    /* Cerrado solo hay tapa; al final, contratapa. El canto de cada lado
+       crece con las hojas que tiene encima. */
+    flipBox.dataset.at = i === 0 ? 'front' : (v.length === 1 ? 'back' : 'open');
+    const deep = pw * 0.016;
     const thick = (c) => (c > 0 ? (2 + deep * c / n).toFixed(1) + 'px' : '0px');
-    flipBox.style.setProperty('--stack-l', thick(two ? vis[0] : 0));
-    flipBox.style.setProperty('--stack-r', thick(n - 1 - vis[vis.length - 1]));
-    const nums = vis.map((x) => x + 1);
-    folio.textContent = nums.join('–') + ' / ' + n;
-    folio.setAttribute('aria-label', t('book.pageOf').replace('{n}', nums.join('–')).replace('{t}', n));
+    flipBox.style.setProperty('--stack-l', thick(i === 0 ? 0 : v[0]));
+    flipBox.style.setProperty('--stack-r', thick(n - 1 - v[v.length - 1]));
+
+    /* El contador sigue la numeracion impresa del PDF (tools/books.py la
+       lee del pie de las paginas). Tapas y guardas no llevan numero. */
+    const off = fbInfo.offset;
+    const num = (x) => (off == null ? x + 1 : (x > 0 && x < n - 1 && x + 1 - off >= 1 ? x + 1 - off : null));
+    const total = off == null ? n : n - 1 - off;
+    const nums = vis.map(num).filter((x) => x != null);
+    folio.textContent = nums.length ? nums.join('–') + ' / ' + total : '';
+    folio.setAttribute('aria-label', nums.length
+      ? t('book.pageOf').replace('{n}', nums.join('–')).replace('{t}', total)
+      : el('book-title').textContent);
+
     flipBox.querySelectorAll('.flip__page').forEach((p, x) => {
       const on = vis.includes(x);
       p.inert = !on;
@@ -1226,8 +1337,10 @@ function initBook() {
     fbGen++;
     if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
     fb = null;
+    g = null;
     flipBox.textContent = '';
     flipBox.removeAttribute('style');
+    flipBox.removeAttribute('data-cam');
     flipBox.hidden = true;
     el('book').hidden = false;
   }
@@ -1238,11 +1351,9 @@ function initBook() {
   function weigh(dir) {
     if (!fb) return;
     const i = fb.getCurrentPageIndex();
-    const two = fb.getOrientation() === 'landscape';
-    const p = dir > 0 ? (two && i > 0 ? i + 1 : i) : (two ? i : i - 1);
+    const p = dir > 0 ? (i > 0 ? i + 1 : i) : i;
     const all = flipBox.querySelectorAll('.flip__page');
-    const sheet = two ? [p, dir > 0 ? p + 1 : p - 1] : [p];
-    heavy = sheet.some((x) => all[x] && all[x].dataset.density === 'hard');
+    heavy = [p, dir > 0 ? p + 1 : p - 1].some((x) => all[x] && all[x].dataset.density === 'hard');
     fb.getSettings().flippingTime = heavy ? HEAVY : LIGHT;
   }
 
@@ -1265,19 +1376,26 @@ function initBook() {
 
     if (fb) { try { fb.destroy(); } catch (err) { /* nada */ } }
     flipBox.textContent = '';
-    const { two, pw, ph } = flipSize(info.ratio);
+    const size = flipSize(info.ratio);
+    cam = size.cam;
+    pw = size.pw;
+    const ph = size.ph;
     /* El ancho va en la caja de fuera: la libreria le pone width:100% al
-       escenario, y de ese ancho saca si caben dos paginas o una. */
+       escenario. En el movil el pliego mide dos pantallas y los margenes
+       negativos lo dejan ocupar una, centrado en el lomo: la camara se
+       mueve con `translate`. */
     const stage = h('div', 'flip__stage');
-    flipBox.style.width = (two ? pw * 2 : pw) + 'px';
+    flipBox.style.width = pw * 2 + 'px';
+    flipBox.style.marginInline = cam ? -pw / 2 + 'px' : '';
+    flipBox.toggleAttribute('data-cam', cam);
 
     /* Los cartones de detras: asoman un poco por fuera de las hojas, del
        color de la tapa (lo mide tools/books.py), con el canto de las
        hojas apiladas encima. */
     const shelf = h('div', 'flip__boards');
     shelf.setAttribute('aria-hidden', 'true');
-    ['l', 'r'].forEach((side) => {
-      const b = h('div', 'flip__board flip__board--' + side);
+    ['l', 'r'].forEach((at2) => {
+      const b = h('div', 'flip__board flip__board--' + at2);
       b.appendChild(h('span', 'flip__edges'));
       shelf.appendChild(b);
     });
@@ -1288,9 +1406,9 @@ function initBook() {
     flipBox.append(shelf, stage);
 
     const n = info.pages;
-    /* Tapa dura: se marcan la tapa y la contratapa. A doble pagina la
-       libreria pone rigida la hoja entera si una de sus caras lo es, asi
-       que la pagina 2 y la penultima giran pegadas a su carton. */
+    /* Tapa dura: se marcan la tapa y la contratapa. La libreria pone
+       rigida la hoja entera si una de sus caras lo es, asi que la pagina
+       2 y la penultima giran pegadas a su carton. */
     const hardAt = [0, n - 1];
     const els = [];
     for (let i = 0; i < n; i++) {
@@ -1328,66 +1446,192 @@ function initBook() {
     fb = new PageFlip(stage, {
       width: pw, height: ph,
       size: 'stretch',
-      minWidth: two ? pw - 1 : pw, maxWidth: pw,
+      minWidth: pw - 1, maxWidth: pw,
       minHeight: 100, maxHeight: ph,
       startPage: Math.max(0, Math.min(n - 1, at)),
       showCover: true,
-      usePortrait: true,
+      usePortrait: false,             // siempre el pliego entero, tambien en el movil
+      useMouseEvents: !cam,           // en el movil el dedo lo lleva la camara (abajo)
       drawShadow: true,
       maxShadowOpacity: 0.55,
       flippingTime: LIGHT,
-      showPageCorners: !quiet.matches,
+      showPageCorners: !cam && !quiet.matches,
       mobileScrollSupport: false,
       swipeDistance: 24,
       startZIndex: 1,
     });
     fb.loadFromHTML(els);
-    fb.on('flip', () => { flipFolio(); thud(); });
-    /* Suena cuando la hoja echa a volar. Si venia del dedo, ya lleva
-       medio camino hecho y se posa antes. */
+    fb.on('init', () => show(fb.getCurrentPageIndex(), 0));
+    fb.on('flip', () => { show(fb.getCurrentPageIndex(), 250); thud(); });
+
+    /* Al girar solo (flecha, toque, indice) la libreria avisa con
+       «flipping»; al soltar un arrastre no avisa, asi que eso se atiende
+       al levantar el dedo (land(true), abajo). Al volver a «read», todo se
+       pone como de verdad quedo: tambien si la hoja volvio a su sitio. */
     let was = 'read';
     fb.on('changeState', (e) => {
-      if (e.data === 'flipping') {
-        const full = fb.getSettings().flippingTime / 1000;
-        rustle(heavy, was === 'user_fold' ? full * 0.5 : full);
-      }
+      if (e.data === 'flipping') land(false);
+      if (e.data === 'read' && was !== 'read' && was !== 'fold_corner') show(fb.getCurrentPageIndex(), 250);
       was = e.data;
     });
-    fb.on('init', flipFolio);
-    fb.on('changeOrientation', flipFolio);
     return fb;
+  }
+
+  /* Cuando la hoja echa a volar: suena, y el libro se prepara para donde
+     va a caer. Si venia del dedo ya lleva medio camino hecho, se posa
+     antes, y solo pasa si el pliegue cruzo el lomo. */
+  function land(dragged) {
+    if (!fb) return;
+    const full = fb.getSettings().flippingTime;
+    const left = dragged ? full * 0.5 : full;
+    const c = fb.getFlipController().calc;
+    let target = null;
+    if (jump) {
+      target = jump.i;
+      if (cam) side = jump.side;
+    } else if (c && (!dragged || c.getPosition().x <= 0)) {
+      const fwd = c.getDirection() === 0;
+      const i = fb.getCurrentPageIndex();
+      target = fwd ? spreadOf(i === 0 ? 1 : i + 2) : spreadOf(i - 1);
+      if (cam) side = fwd ? 'l' : 'r';
+    }
+    jump = null;
+    if (target != null) show(target, left * 0.95);
+    rustle(heavy, left / 1000);
+  }
+
+  /* Con raton, el arrastre lo lleva la libreria: se suelta en `window`,
+     y este aviso llega antes que el suyo, con el pliegue aun donde quedo. */
+  addEventListener('pointerup', () => {
+    if (fb && !cam && fb.getState() === 'user_fold') land(true);
+  });
+
+  /* ---- Pasar ---- */
+  function step(dir) {
+    if (!fb) return;
+    clearTimeout(autoOpen);
+    if (cam && fb.getState() !== 'read') return;
+    const i = fb.getCurrentPageIndex();
+    const v = pagesOf(i);
+    if (cam && v.length === 2 && (dir > 0 ? side === 'l' : side === 'r')) {
+      side = dir > 0 ? 'r' : 'l';
+      show(i, 420);
+      return;
+    }
+    if (dir > 0 ? v[v.length - 1] >= count() - 1 : i === 0) return;
+    weigh(dir);
+    if (dir > 0) fb.flipNext('bottom'); else fb.flipPrev('bottom');
+  }
+
+  function goTo(p) {
+    if (!fb) return;
+    clearTimeout(autoOpen);
+    const target = spreadOf(Math.max(0, Math.min(count() - 1, p)));
+    const look = pagesOf(target).length === 2 ? (p === target ? 'l' : 'r') : side;
+    if (target === fb.getCurrentPageIndex()) {
+      if (cam) side = look;
+      show(target, 420);
+      return;
+    }
+    jump = { i: target, side: look };
+    heavy = false;
+    fb.getSettings().flippingTime = LIGHT;
+    fb.flip(target);
   }
 
   flipBox.addEventListener('click', (e) => {
     const go = e.target.closest('[data-flip-to]');
-    if (go && fb) { clearTimeout(autoOpen); heavy = false; fb.getSettings().flippingTime = LIGHT; fb.flip(Number(go.dataset.flipTo)); }
+    if (go) goTo(Number(go.dataset.flipTo));
   });
 
-  /* Arrastrar con el dedo o el raton: la libreria decide el sentido por
-     el lado donde se agarra, y aqui se pesa la hoja con la misma regla. */
+  /* ---- El dedo en el movil ----
+     Se decide con el primer movimiento claro: hacia la pagina que no se
+     ve, la camara se desliza con el dedo; hacia fuera del libro, la hoja
+     se dobla con el dedo (se le pasa a la libreria como si fuera suyo, un
+     poco amplificado, porque el lomo queda en el borde de la pantalla).
+     Un toque pasa: a la derecha adelante, a la izquierda atras. */
+  const local = (e) => {
+    const r = flipBox.querySelector('.stf__block').getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
   flipBox.addEventListener('pointerdown', (e) => {
-    if (!fb || e.target.closest('a, button')) return;
+    if (!fb || e.button > 0 || e.target.closest('a, button')) return;
     clearTimeout(autoOpen);
-    const r = flipBox.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    const back = fb.getOrientation() === 'landscape' ? x < r.width / 2 : x < r.width / 5;
-    weigh(back ? -1 : 1);
+    if (!cam) {
+      /* Con raton: la libreria decide el sentido por el lado donde se
+         agarra, y aqui se pesa la hoja con la misma regla. */
+      const r = flipBox.getBoundingClientRect();
+      weigh(e.clientX - r.left < r.width / 2 ? -1 : 1);
+      return;
+    }
+    if (fb.getState() !== 'read') return;
+    g = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, mode: null, p0: local(e) };
+    try { flipBox.setPointerCapture(e.pointerId); } catch (err) { /* ya soltado */ }
   });
+
+  flipBox.addEventListener('pointermove', (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.mode) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) { g.mode = 'none'; return; }
+      const dir = dx < 0 ? 1 : -1;
+      const i = fb.getCurrentPageIndex();
+      const v = pagesOf(i);
+      g.base = side === 'r' ? -pw / 2 : side === 'l' ? pw / 2 : 0;
+      if (v.length === 2 && (dir > 0 ? side === 'l' : side === 'r')) g.mode = 'pan';
+      else if (dir > 0 ? v[v.length - 1] < count() - 1 : i > 0) {
+        g.mode = 'flip';
+        g.dir = dir;
+        weigh(dir);
+        fb.startUserTouch(g.p0);
+      } else g.mode = 'none';
+    }
+    if (g.mode === 'pan') {
+      flipBox.style.setProperty('--cam-ms', '0ms');
+      flipBox.style.translate = Math.max(-pw / 2, Math.min(pw / 2, g.base + dx)) + 'px 0';
+    } else if (g.mode === 'flip') {
+      fb.userMove({ x: g.p0.x + dx * 1.6, y: local(e).y }, true);
+    }
+  });
+
+  const lift = (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const G = g;
+    g = null;
+    const dx = e.clientX - G.x;
+    const fast = Math.abs(dx) / Math.max(1, performance.now() - G.t) > 0.45 && Math.abs(dx) > 30;
+    if (!G.mode) {
+      if (e.type === 'pointerup') step(e.clientX > innerWidth * 0.4 ? 1 : -1);
+    } else if (G.mode === 'pan') {
+      if (fast || Math.abs(dx) > pw * 0.22) side = dx < 0 ? 'r' : 'l';
+      show(fb.getCurrentPageIndex(), 380);
+    } else if (G.mode === 'flip') {
+      /* En el movil el lomo queda en el borde de la pantalla: pasa la hoja
+         un golpe rapido o llevarla mas de un cuarto, aunque el pliegue no
+         haya llegado al lomo. */
+      const c = fb.getFlipController().calc;
+      if ((fast || Math.abs(dx) > pw * 0.25) && c && c.getPosition().x > 0) fb.userMove({ x: pw * (G.dir > 0 ? 0.85 : 1.15), y: local(e).y }, true);
+      land(true);
+      fb.userStop(local(e));
+    }
+  };
+  flipBox.addEventListener('pointerup', lift);
+  flipBox.addEventListener('pointercancel', lift);
 
   /* Al cambiar de tamaño se vuelve a encuadernar en la misma pagina:
-     cruzar los 900px pasa de una a dos paginas, y la altura cambia con la
-     barra del navegador del movil. */
+     cruzar los 900px cambia de pliego a camara, y la altura cambia con
+     la barra del navegador del movil. */
   let fbResize = 0;
   addEventListener('resize', () => {
     if (!fb || s.panel.hidden) return;
     clearTimeout(fbResize);
     fbResize = setTimeout(() => {
       if (!fb) return;
-      const at = fb.getCurrentPageIndex();
-      const { two, pw } = flipSize(fbInfo.ratio);
-      const was = fb.getOrientation() === 'landscape';
-      if (two === was && Math.abs(flipBox.offsetWidth - (two ? pw * 2 : pw)) < 2) return;
-      buildFlip(fbInfo.id, at);
+      const fit = flipSize(fbInfo.ratio);
+      if (fit.cam === cam && Math.abs(fit.pw - pw) < 2) return;
+      buildFlip(fbInfo.id, fb.getCurrentPageIndex());
     }, 180);
   });
 
@@ -1396,6 +1640,7 @@ function initBook() {
     .observe(s.panel, { attributes: true, attributeFilter: ['hidden'] });
 
   function openFlip(id, pdf) {
+    if (soundOn) audio();              // que la grabacion ya este cargada al primer giro
     const which = BOOKS[id][lang] ? lang : 'all';
     fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + which + '/' };
     el('book').hidden = true;
@@ -1403,15 +1648,16 @@ function initBook() {
     folio.textContent = '';
     prevBtn.disabled = true;
     nextBtn.disabled = true;
+    side = 'r';
     buildFlip(id, 0).then((book) => {
       if (!book || quiet.matches) return;
       /* Como el de HTML: se ve la tapa y al momento se abre solo */
-      autoOpen = setTimeout(() => { if (fb === book && fb.getCurrentPageIndex() === 0) next(); }, 1100);
+      autoOpen = setTimeout(() => { if (fb === book && fb.getCurrentPageIndex() === 0) step(1); }, 1100);
     });
   }
 
-  const next = () => (fb ? (weigh(1), fb.flipNext('bottom')) : set(k + 1));
-  const prev = () => (fb ? (weigh(-1), fb.flipPrev('bottom')) : set(k - 1));
+  const next = () => (fb ? step(1) : set(k + 1));
+  const prev = () => (fb ? step(-1) : set(k - 1));
 
   /* ---- Arrastrar la esquina ---- */
   const pageWidth = () => block.getBoundingClientRect().width / (spread ? 2 : 1);
@@ -1507,8 +1753,8 @@ function initBook() {
   d.addEventListener('keydown', (e) => {
     if (openSheets[openSheets.length - 1] !== s.panel) return;
     const keys = { ArrowRight: next, PageDown: next, ArrowLeft: prev, PageUp: prev,
-                   Home: () => (fb ? fb.flip(0) : set(0)),
-                   End: () => (fb ? fb.flip(fb.getPageCount() - 1) : set(maxK())) };
+                   Home: () => (fb ? goTo(0) : set(0)),
+                   End: () => (fb ? goTo(fb.getPageCount() - 1) : set(maxK())) };
     if (!keys[e.key]) return;
     e.preventDefault();
     clearTimeout(autoOpen);

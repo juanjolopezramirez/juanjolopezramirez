@@ -4499,6 +4499,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .book-panel {
   position: fixed; inset: 0; z-index: 76;
   display: grid; place-items: center;
+  overflow: clip;        /* la pagina que la camara no mira queda fuera */
 }
 .book-panel__scrim {
   position: absolute; inset: 0;
@@ -4865,9 +4866,15 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   --stack-l: 0px;
   --stack-r: 0px;
   position: relative;
-  display: block; max-width: 100%;
+  display: block;
+  /* La camara: en el movil el pliego mide dos paginas y se desliza para
+     mirar una u otra; en pantalla ancha centra el libro cerrado. Va en
+     `translate` para no pisar el `transform` del golpe de la tapa. */
+  translate: 0 0;
+  transition: translate var(--cam-ms, 0ms) cubic-bezier(.45, 0, .25, 1);
 }
 .flip[hidden] { display: none; }
+.flip[data-cam] { touch-action: none; }
 .flip__stage { position: relative; z-index: 1; user-select: none; -webkit-user-select: none; }
 
 /* ---- La tapa dura ----
@@ -4901,12 +4908,9 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   left: 50%; right: calc(var(--over) * -1);
   border-radius: 1px 5px 5px 1px;
 }
-.flip[data-mode="one"] .flip__board--l { display: none; }
-.flip[data-mode="one"] .flip__board--r { left: 0; }
 .flip[data-at="front"] .flip__board--r { --board: var(--board-front); }
 .flip[data-at="front"] .flip__board--l,
 .flip[data-at="back"] .flip__board--r { opacity: 0; transform: scaleX(.96); }
-.flip[data-mode="one"][data-at="back"] .flip__board--r { opacity: 1; transform: none; }
 
 /* El canto: pegado al borde de fuera de las hojas, un pelo mas bajo que
    ellas, y una raya por cada par de hojas. */
@@ -4919,7 +4923,6 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 .flip__board--l .flip__edges { right: calc(100% - var(--over)); width: var(--stack-l); border-radius: 2px 0 0 2px; }
 .flip__board--r .flip__edges { left: calc(100% - var(--over)); width: var(--stack-r); border-radius: 0 2px 2px 0; }
-.flip[data-mode="one"] .flip__board--r .flip__edges { left: calc(100% - var(--over)); }
 
 /* El golpe: al caer una tapa el libro baja un pixel y se asienta */
 .flip.is-thud { animation: flip-thud .42s var(--ease-smooth); }
