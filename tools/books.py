@@ -13,9 +13,10 @@ Las palabras que tienen libro son las de term-book.js: ahava, rhema,
 emet, agape. Una palabra sin PDF en un idioma sigue abriendo el libro
 escrito en HTML, asi que se pueden ir subiendo de uno en uno.
 
-QUE SALE. Cada pagina del PDF se pinta dos veces en JPEG, a 900 y a
-1600 px de ancho: el navegador coge la que le toca segun la pantalla, y
-el movil no descarga la grande si no la necesita. Tambien sale el texto
+QUE SALE. Cada pagina del PDF se pinta en JPEG a 900 y a 1600 px de
+ancho: el navegador coge la que le toca segun la pantalla, y el movil no
+descarga la grande si no la necesita. Y a 2400, que solo se baja al
+pulsar la lupa, para ver los detalles. Tambien sale el texto
 de cada pagina (para lectores de pantalla) y los enlaces del PDF, que en
 el flipbook se pueden tocar igual que en el PDF. Todo en
 public/books/<palabra>/<idioma|all>/, y el indice de lo que hay en
@@ -54,7 +55,7 @@ INDEX = ROOT / 'src' / 'data' / 'books.js'
 
 WORDS = {'ahava', 'rhema', 'emet', 'agape'}
 LANGS = {'es', 'en', 'pt', 'fr', 'it'}
-WIDTHS = (900, 1600)
+WIDTHS = (900, 1600, 2400)   # la de 2400 solo se pide con la lupa
 
 # LA PLANTILLA: 1600 x 2240 px (5:7). Todas las paginas del mismo tamaño.
 # Otro tamaño funciona, pero el libro no quedaria igual que los demas:

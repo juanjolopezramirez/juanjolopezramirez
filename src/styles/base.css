@@ -4500,7 +4500,14 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   position: fixed; inset: 0; z-index: 76;
   display: grid; place-items: center;
   overflow: clip;        /* la pagina que la camara no mira queda fuera */
+  /* SIN ZOOM DEL NAVEGADOR. Pasar rapido es tocar dos veces el mismo
+     sitio, y el movil lo tomaba por un doble toque: agrandaba la pagina y
+     costaba volver. Aqui dentro no hay pellizco ni doble toque; para ver
+     un detalle esta la lupa. Las paginas del libro escrito, que pueden
+     ser largas, siguen dejando deslizar hacia abajo. */
+  touch-action: none;
 }
+.book-panel .page { touch-action: pan-y; }
 .book-panel__scrim {
   position: absolute; inset: 0;
   background: rgba(11, 20, 13, .88);
@@ -4523,16 +4530,43 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 .book-panel__close:hover { background: var(--pine); }
 
-/* Llega un poco inclinado y de mas lejos, como un libro que se deja
-   sobre la mesa. */
+/* LLEGA LANZADO SOBRE LA MESA. Sale de cerca y de arriba, ladeado,
+   cae cada vez mas deprisa, golpea (al 55%: 396 ms, cuando suena
+   sounds/slam.mp3; site.js cuenta con ese numero), se aplasta un pelo,
+   rebota un poco y se asienta. La barra de abajo llega despues del
+   golpe. Al cerrarse se levanta y se va. */
 .book-panel__frame {
   position: relative;
   display: grid; justify-items: center; gap: 1.1rem;
-  opacity: 0;
-  transform: perspective(1400px) translateY(28px) rotateX(10deg) scale(.94);
-  transition: opacity .45s var(--ease), transform .8s var(--ease-smooth);
+  transform-origin: 50% 60%;
+  animation: book-away .38s var(--ease) both;
 }
-.book-panel.is-open .book-panel__frame { opacity: 1; transform: none; }
+.book-panel.is-open .book-panel__frame { animation: book-throw .72s both; }
+.book-panel.is-open .book__nav { animation: book-nav .45s .5s var(--ease) both; }
+
+@keyframes book-throw {
+  0% {
+    opacity: 0;
+    transform: perspective(1400px) translate3d(0, -14vh, 0) rotateX(32deg) rotateZ(-8deg) scale(1.4);
+    animation-timing-function: cubic-bezier(.55, 0, 1, .5);
+  }
+  18% { opacity: 1; }
+  55% {
+    transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0) rotateZ(1.2deg) scale(1);
+    animation-timing-function: cubic-bezier(.2, .7, .3, 1);
+  }
+  66% { transform: perspective(1400px) translate3d(0, 4px, 0) rotateZ(1.2deg) scale(1.012, .975); }
+  82% { transform: perspective(1400px) translate3d(0, -3px, 0) rotateZ(-.3deg) scale(.998, 1.008); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes book-away {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: perspective(1400px) translate3d(0, 24px, 0) rotateX(10deg) scale(.95); }
+}
+@keyframes book-nav {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
 
 /* ---- El tamaño de la pagina ----
    Un movil ve una pagina que llena el ancho menos el margen; la altura
@@ -5003,6 +5037,60 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .book__sound svg { width: 1.05rem; height: 1.05rem; }
 .book__sound[aria-pressed="true"] .book__sound-off,
 .book__sound[aria-pressed="false"] .book__sound-on { display: none; }
+/* La lupa, en el lado de enfrente */
+.book__zoom {
+  position: absolute; right: calc(100% + .9rem);
+  width: 2.3rem; height: 2.3rem;
+  opacity: .75;
+}
+.book__zoom:hover { opacity: 1; }
+.book__zoom[hidden] { display: none; }
+.book__zoom svg { width: 1.1rem; height: 1.1rem; }
+.book__zoom[aria-pressed="true"] .book__zoom-plus { display: none; }
+
+/* ---- La lupa abierta ----
+   Una capa que tapa el libro: las paginas que se veian, a 2400 px, se
+   agrandan desde donde estaban. Se arrastran, se pellizcan, y en el
+   ordenador la rueda acerca y aleja. Aqui el dedo es de quien mira. */
+.zoom {
+  position: fixed; inset: 0; z-index: 1;
+  background: rgb(11 20 13 / 0);
+  touch-action: none;
+  cursor: grab;
+  transition: background-color .32s var(--ease);
+}
+.zoom.is-on { background: rgb(11 20 13 / .94); }
+.zoom:active { cursor: grabbing; }
+.zoom__canvas {
+  position: absolute; left: 0; top: 0;
+  transform-origin: 0 0;
+  box-shadow: 0 20px 50px rgb(0 0 0 / .5);
+  will-change: transform;
+}
+.zoom__canvas img {
+  position: absolute; top: 0;
+  display: block;
+  user-select: none; -webkit-user-select: none;
+  pointer-events: none;
+}
+.zoom__out {
+  position: absolute; left: 50%; bottom: calc(1.4rem + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  display: grid; place-items: center;
+  width: 3.2rem; height: 3.2rem;
+  border-radius: 50%;
+  color: var(--bone);
+  background: var(--night);
+  box-shadow: inset 0 0 0 1px rgb(241 239 233 / .2), 0 6px 18px rgb(0 0 0 / .4);
+  opacity: 0;
+  transition: opacity .3s var(--ease);
+}
+.zoom.is-on .zoom__out { opacity: 1; }
+.zoom__out svg {
+  width: 1.3rem; height: 1.3rem;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 .book__folio {
   min-width: 5.5rem;
   margin: 0;
@@ -5014,7 +5102,10 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 
 @media (prefers-reduced-motion: reduce) {
   .leaf, .book__block, .page__seal-ink { transition: none; }
-  .book-panel__frame { transform: none; transition: opacity .2s linear; }
+  .book-panel__frame { animation: none; transition: opacity .2s linear; }
+  .book-panel:not(.is-open) .book-panel__frame { opacity: 0; }
+  .book-panel.is-open .book-panel__frame,
+  .book-panel.is-open .book__nav { animation: none; }
   .cover__arrow { animation: none; }
 }
 

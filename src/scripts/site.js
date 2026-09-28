@@ -1091,6 +1091,10 @@ function initBook() {
   let master = null;
   let sample = null;
   let cover = null;
+  let thump = null;       // el libro contra la mesa
+  let thumpReady = null;
+  const SLAM_HIT = 0.775; // en sounds/slam.mp3: el golpe (antes, casi silencio)
+  const IMPACT = 396;     // cuando toca la mesa en book-throw (base.css: 55% de 720 ms)
   const HIT = 0.70;       // en la grabacion: cuando cae la hoja
   const CUT = 0.95;       // y donde se corta: despues queda un clic suelto
   const COVER_HIT = 0.27; // en la de las tapas: cuando cae el carton
@@ -1133,6 +1137,7 @@ function initBook() {
       .catch(() => { /* se queda el papel hecho con ruido */ });
     load('page-flip.mp3', (dec) => { sample = dec; });
     load('cover.mp3', (dec) => { cover = dec; });
+    thumpReady = load('slam.mp3', (dec) => { thump = dec; });
     return ac;
   }
 
@@ -1179,6 +1184,39 @@ function initBook() {
     src.start(at, from, CUT - from);
     if (heavy) boom(c, at + (HIT - from) / rate);
   }
+
+  /* EL LIBRO CAE SOBRE LA MESA. El golpe de la grabacion se hace caer
+     justo cuando el libro toca la mesa en la animacion: se entra en ella
+     saltandose parte del silencio de antes. Si la grabacion aun no habia
+     llegado (el primer libro que se abre), suena en cuanto llega, si
+     todavia esta a tiempo; si ya es tarde, mejor callar que sonar
+     despues del golpe. */
+  function slam() {
+    if (!soundOn) return;
+    const c = audio();
+    if (!c) return;
+    if (c.state === 'suspended') c.resume();
+    const opened = performance.now();
+    const hit = quiet.matches ? 0 : IMPACT / 1000;
+    const play = () => {
+      const late = (performance.now() - opened) / 1000;
+      const lead = hit - late;                  // lo que falta para el golpe
+      if (!thump || lead < -0.08) return;
+      const src = c.createBufferSource();
+      src.buffer = thump;
+      const g = c.createGain();
+      g.gain.value = 0.6;                       // es mucho mas fuerte que las hojas
+      src.connect(g).connect(master);
+      src.start(c.currentTime + 0.01, Math.max(0, SLAM_HIT - Math.max(0, lead)));
+    };
+    if (thump) play(); else if (thumpReady) thumpReady.then(play);
+  }
+
+  /* Cargar los sonidos al tocar una palabra: el libro se abre un momento
+     despues y el golpe ya esta listo. */
+  d.addEventListener('pointerdown', (e) => {
+    if (soundOn && !ac && e.target.closest && e.target.closest('.term')) audio();
+  }, true);
 
   /* La de las tapas, entera y sin tocar: solo cuando empieza */
   function playCover(c, land) {
@@ -1259,6 +1297,7 @@ function initBook() {
   let side = 'c';
   let pw = 0;
   let jump = null;       // salto del indice: a que pliego va y hacia donde mirar
+  let lastVis = [];      // las paginas que se ven ahora (para la lupa)
   let g = null;          // el dedo, mientras esta sobre el libro
 
   function flipSize(ratio) {
@@ -1304,6 +1343,7 @@ function initBook() {
     aim(ms);
 
     const vis = cam ? [side === 'l' ? v[0] : v[v.length - 1]] : v;
+    lastVis = vis;
     prevBtn.disabled = vis[0] === 0;
     nextBtn.disabled = vis[vis.length - 1] >= n - 1;
 
@@ -1338,6 +1378,8 @@ function initBook() {
     if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
     fb = null;
     g = null;
+    dropZoom();
+    zoomBtn.hidden = true;
     flipBox.textContent = '';
     flipBox.removeAttribute('style');
     flipBox.removeAttribute('data-cam');
@@ -1626,6 +1668,7 @@ function initBook() {
   let fbResize = 0;
   addEventListener('resize', () => {
     if (!fb || s.panel.hidden) return;
+    dropZoom();
     clearTimeout(fbResize);
     fbResize = setTimeout(() => {
       if (!fb) return;
@@ -1639,12 +1682,180 @@ function initBook() {
   new MutationObserver(() => { if (s.panel.hidden && fb) closeFlip(); })
     .observe(s.panel, { attributes: true, attributeFilter: ['hidden'] });
 
+  /* ---- La lupa -----------------------------------------------
+     El navegador no agranda nada dentro del libro: ni pellizco ni doble
+     toque (touch-action en base.css, y aqui lo que Safari no respeta).
+     Para mirar un detalle esta este boton: las paginas que se ven se
+     agrandan desde donde estan, primero con la imagen que ya habia y
+     enseguida con la de 2400 px. Dentro, el dedo es de quien mira:
+     arrastrar mueve, pellizcar (o la rueda) acerca y aleja. Se sale con
+     el boton de abajo, con la lupa o con Escape. */
+  const zoomBtn = s.panel.querySelector('[data-book-zoom]');
+  let zoom = null;
+  const ZOOM_OUT_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M8 10.5h5"/></svg>';
+
+  /* Donde queda el lienzo: escala `k` y esquina en (x, y). Mientras se
+     mira no se puede perder de vista: si cabe se centra, si no, sus
+     bordes no pasan del borde de la pantalla. */
+  function zoomSet(k, x, y, ms, free) {
+    const Z = zoom;
+    if (!free) {
+      const fit = (p, size, view) => (size <= view ? (view - size) / 2 : Math.min(0, Math.max(view - size, p)));
+      x = fit(x, Z.w * k, innerWidth);
+      y = fit(y, Z.h * k, innerHeight);
+    }
+    Z.k = k; Z.x = x; Z.y = y;
+    Z.canvas.style.transition = ms ? 'transform ' + ms + 'ms cubic-bezier(.3, .7, .2, 1)' : 'none';
+    Z.canvas.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(' + k + ')';
+  }
+  /* Acercar o alejar dejando quieto el punto (cx, cy) de la pantalla */
+  function zoomAt(k, cx, cy, ms) {
+    const Z = zoom;
+    k = Math.max(1, Math.min(5, k));
+    const u = (cx - Z.x) / Z.k, v = (cy - Z.y) / Z.k;
+    zoomSet(k, cx - k * u, cy - k * v, ms);
+  }
+
+  function zoomIn() {
+    if (!fb || zoom || fb.getState() !== 'read') return;
+    clearTimeout(autoOpen);
+    const all = flipBox.querySelectorAll('.flip__page');
+    const pages = lastVis.map((i) => all[i]).filter(Boolean);
+    if (!pages.length) return;
+    const rects = pages.map((p) => p.getBoundingClientRect());
+    const x0 = Math.min(...rects.map((r) => r.left));
+    const y0 = Math.min(...rects.map((r) => r.top));
+    const w = Math.max(...rects.map((r) => r.right)) - x0;
+    const hh = rects[0].height;
+
+    const layer = h('div', 'zoom');
+    layer.setAttribute('role', 'dialog');
+    layer.setAttribute('aria-label', t('a11y.bookZoom'));
+    const canvas = h('div', 'zoom__canvas');
+    canvas.style.width = w + 'px';
+    canvas.style.height = hh + 'px';
+    pages.forEach((p, j) => {
+      const was = p.querySelector('img');
+      const im = h('img');
+      im.src = was.currentSrc || was.src;
+      im.alt = '';
+      im.draggable = false;
+      Object.assign(im.style, { left: rects[j].left - x0 + 'px', width: rects[j].width + 'px', height: hh + 'px' });
+      const big = new Image();
+      big.onload = () => { im.src = big.src; };
+      big.src = (was.currentSrc || was.src).replace(/-(900|1600)\.jpg/, '-2400.jpg');
+      canvas.appendChild(im);
+    });
+    const out = h('button', 'zoom__out');
+    out.type = 'button';
+    out.setAttribute('aria-label', t('a11y.bookZoom'));
+    out.setAttribute('aria-pressed', 'true');
+    out.innerHTML = ZOOM_OUT_SVG;
+    out.addEventListener('click', zoomOut);
+    layer.append(canvas, out);
+    s.panel.appendChild(layer);
+
+    zoom = { layer, canvas, w, h: hh, k: 1, x: x0, y: y0, home: [x0, y0], ptrs: new Map(), last: null };
+    zoomSet(1, x0, y0, 0, true);
+    void layer.offsetWidth;
+    layer.classList.add('is-on');
+    zoomAt(cam ? 2.5 : 2, x0 + w / 2, y0 + hh / 2, 420);
+    zoomBtn.setAttribute('aria-pressed', 'true');
+    out.focus();
+
+    /* Arrastrar con un dedo; pellizcar con dos (el punto medio de los
+       dedos se queda bajo los dedos). */
+    const pair = () => {
+      const [a, b] = [...zoom.ptrs.values()];
+      return { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    };
+    layer.addEventListener('pointerdown', (e) => {
+      if (!zoom || e.target.closest('button')) return;
+      zoom.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { layer.setPointerCapture(e.pointerId); } catch (err) { /* nada */ }
+      zoom.last = zoom.ptrs.size > 1 ? pair() : { x: e.clientX, y: e.clientY };
+    });
+    layer.addEventListener('pointermove', (e) => {
+      if (!zoom || !zoom.ptrs.has(e.pointerId)) return;
+      zoom.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const L = zoom.last;
+      if (zoom.ptrs.size > 1) {
+        const P = pair();
+        if (L && L.d) {
+          zoomAt(zoom.k * P.d / L.d, L.mx, L.my, 0);
+          zoomSet(zoom.k, zoom.x + P.mx - L.mx, zoom.y + P.my - L.my, 0);
+        }
+        zoom.last = P;
+      } else if (L && L.x != null) {
+        zoomSet(zoom.k, zoom.x + e.clientX - L.x, zoom.y + e.clientY - L.y, 0);
+        zoom.last = { x: e.clientX, y: e.clientY };
+      }
+    });
+    const lift2 = (e) => {
+      if (!zoom) return;
+      zoom.ptrs.delete(e.pointerId);
+      const rest = [...zoom.ptrs.values()][0];
+      zoom.last = rest ? { x: rest.x, y: rest.y } : null;
+    };
+    layer.addEventListener('pointerup', lift2);
+    layer.addEventListener('pointercancel', lift2);
+    layer.addEventListener('wheel', (e) => {
+      if (!zoom) return;
+      e.preventDefault();
+      zoomAt(zoom.k * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY, 0);
+    }, { passive: false });
+  }
+
+  function zoomOut() {
+    if (!zoom) return;
+    const Z = zoom;
+    zoomSet(1, Z.home[0], Z.home[1], 320, true);
+    Z.layer.classList.remove('is-on');
+    zoom = null;
+    setTimeout(() => Z.layer.remove(), 340);
+    zoomBtn.setAttribute('aria-pressed', 'false');
+    zoomBtn.focus();
+  }
+
+  /* Sin animacion: al cerrar el libro o si cambia el tamaño */
+  function dropZoom() {
+    if (!zoom) return;
+    zoom.layer.remove();
+    zoom = null;
+    zoomBtn.setAttribute('aria-pressed', 'false');
+  }
+
+  zoomBtn.addEventListener('click', () => (zoom ? zoomOut() : zoomIn()));
+
+  /* Con la lupa abierta el teclado mueve la vista y no el libro: Escape
+     cierra la lupa (no el libro), las flechas desplazan, + y - acercan. */
+  addEventListener('keydown', (e) => {
+    if (!zoom) return;
+    const pan = { ArrowLeft: [80, 0], ArrowRight: [-80, 0], ArrowUp: [0, 80], ArrowDown: [0, -80] }[e.key];
+    if (e.key === 'Escape') zoomOut();
+    else if (pan) zoomSet(zoom.k, zoom.x + pan[0], zoom.y + pan[1], 160);
+    else if (e.key === '+' || e.key === '=') zoomAt(zoom.k * 1.3, innerWidth / 2, innerHeight / 2, 200);
+    else if (e.key === '-') zoomAt(zoom.k / 1.3, innerWidth / 2, innerHeight / 2, 200);
+    else return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
+
+  /* Lo que Safari hace aunque touch-action diga que no: pellizcar la
+     pagina entera. Mientras el libro esta abierto, fuera de la lupa, dos
+     dedos no agrandan nada. */
+  d.addEventListener('gesturestart', (e) => { if (!s.panel.hidden) e.preventDefault(); });
+  d.addEventListener('touchmove', (e) => {
+    if (!s.panel.hidden && !zoom && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
   function openFlip(id, pdf) {
     if (soundOn) audio();              // que la grabacion ya este cargada al primer giro
     const which = BOOKS[id][lang] ? lang : 'all';
     fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + which + '/' };
     el('book').hidden = true;
     flipBox.hidden = false;
+    zoomBtn.hidden = false;
     folio.textContent = '';
     prevBtn.disabled = true;
     nextBtn.disabled = true;
@@ -1772,6 +1983,7 @@ function initBook() {
      de mas para empezar a leer. */
   return function open(id) {
     clearTimeout(autoOpen);
+    slam();
     el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
     const pdf = BOOKS[id] && (BOOKS[id][lang] || BOOKS[id].all);
     if (pdf) { s.open(); openFlip(id, pdf); return; }
