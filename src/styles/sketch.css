@@ -1,0 +1,253 @@
+/* =============================================================
+   LA TINTA — trazos hechos a mano
+
+   El papel es el soporte (paper.css); esto es lo que se dibuja encima.
+   Es un lenguaje de ENFASIS, no de relleno: un contorno aqui, un
+   subrayado alli. Lo que no tiene trazo se queda limpio, y esa es la mitad
+   del efecto.
+
+   COMO SE DIBUJA. Cada trazo es un SVG pequeño dentro de un `mask-image`
+   y se pinta con `background`. El SVG solo dice la FORMA —va en negro—;
+   el COLOR lo pone el token de tinta que toque, asi que el mismo trazo es
+   tinta de dia y tiza de noche sin duplicar nada. Los SVG llevan
+   `vector-effect: non-scaling-stroke`: la linea mide lo mismo aunque la
+   caja se estire, que es lo que hace falta para una tarjeta de cualquier
+   tamaño.
+
+   QUE COLOR. Siempre tinta (--ink, --ink-soft, --ink-muted) o, sobre el
+   pinar, el mismo verde claro que ya lleva la letra (--pine-200). Nunca
+   oro: el oro es de la correccion escrita y de nada mas. El iris solo en
+   el trazo que ya era iris —el indicador de la cabecera—.
+
+   FUERA DE FLUJO. Todo son pseudo-elementos con `position: absolute` y
+   `pointer-events: none`: no empujan nada, no tapan un clic y no se
+   seleccionan con el texto. Al ser `content: ""` sin texto, los lectores de
+   pantalla no los anuncian. No hay animacion en ningun trazo.
+
+   Si algo necesita un trazo nuevo, se añade aqui UNA forma y se pide por su
+   variable; no se copia un SVG dentro de un componente.
+   ============================================================= */
+:root {
+  /* Una linea larga con un temblor de pulso. Para divisores. */
+  --tr-linea: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 8' preserveAspectRatio='none'%3E%3Cpath d='M2 4.2C60 2.4 104 6.2 172 4.1S262 2.3 332 4.6 452 6.1 522 3.6 584 4.1 598 3.3' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+
+  /* Un subrayado de dos pasadas: la larga y, debajo, una corta que sale
+     del mismo gesto. Para la palabra que se quiere marcar. */
+  --tr-sub: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M2 5.6C20 3 38 7.8 60 5.2S100 3.6 118 5.4' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M16 9.6C42 8 70 10.4 98 8.8' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+
+  /* Un subrayado de una pasada, mas corto y mas fino. Para la cabecera. */
+  --tr-sub-fino: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.4C15 1.6 27 4.7 41 3S70 2 84 3.6 96 3 99 2.6' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+
+  /* Un circulo hecho de una sola vuelta que se pasa un poco del punto de
+     partida, como lo cierra una mano. Para las fichas de las redes. */
+  --tr-circulo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M52 3.2C78 2.6 97.6 23.4 96.8 50S76 97.6 48.6 96.8 2.4 76 3.4 49 25 4.4 52.6 4.6C58 4.7 63.5 6 68 8.2' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+
+  /* La comilla de apertura: dos gotas con cola hacia arriba a la derecha, un
+     poco distintas entre si, como las deja una pluma. Es relleno y no trazo:
+     con trazo fino se leia como un «66» (dos digitos), y una comilla es una
+     mancha con cola. Escala con la caja (2.5rem en el telefono, 1.5rem en la
+     columna de escritorio), asi que no lleva `vector-effect`. */
+  --tr-comilla: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 48'%3E%3Cg fill='%23000'%3E%3Cpath d='M5.5 33C5 20 13 9.5 27.5 3.5c-5.5 8-7 13.5-5.5 21 3 2 3.6 6.4 1.6 10C21.4 40.5 17.5 43 14 42.5 9 41.8 5.8 38 5.5 33z'/%3E%3Cpath d='M35.5 33C35 20 43 9.5 57.5 3.5c-5.5 8-7 13.5-5.5 21 3 2 3.6 6.4 1.6 10C51.4 40.5 47.5 43 44 42.5 39 41.8 35.8 38 35.5 33z'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* Un marco dibujado a cuatro lados, cada uno con su pulso y con el pico
+     que sobra en las esquinas cuando se dibuja deprisa. Para tarjetas. */
+  --tr-marco: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' vector-effect='non-scaling-stroke'%3E%3Cpath d='M1.2 1.6C28 .7 66 2.3 98.8 1.1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M98.9 1C99.8 30 98.6 68 99.2 99' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M98.6 98.9C68 99.9 30 98.3 1.1 99.1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M1.1 99C.4 68 1.7 30 .9 1.2' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* El mismo molde para todos los trazos: una caja vacia, fuera de flujo,
+   que deja pasar los clics y se tiñe con `background`. Lo que cambia entre
+   uno y otro es la forma (la mascara) y el color. */
+.phero__sub::after,
+.ecard::after,
+.rama::after,
+.naipe::after,
+.term::after,
+.link-chip::after,
+.rhema__by::before,
+.rhema__face::after,
+.site-footer::before,
+.site-nav__wide-list a::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+          mask-size: 100% 100%;
+}
+
+/* --- El titulo de cada seccion ------------------------------------
+   La ultima palabra lleva un subrayado de tinta: es la palabra que dice
+   donde estas. Lo pone PageHero.astro (la palabra va en su propio <span>;
+   el texto es el mismo). `inline-block` para que la caja mida la palabra y
+   no el renglon; si la palabra baja de linea, el trazo baja con ella. */
+.phero__sub {
+  position: relative;
+  display: inline-block;
+}
+.phero__sub::after {
+  left: -.04em; right: -.06em;
+  bottom: -.2em;
+  height: .3em;
+  background: var(--ink);
+  -webkit-mask-image: var(--tr-sub);
+          mask-image: var(--tr-sub);
+}
+
+/* --- La tarjeta de cada casa --------------------------------------
+   El contorno va por dentro (la tarjeta recorta lo que se sale) y en tinta
+   suave; al acercarse pasa a tinta plena. Sustituye a la sombra de elevacion
+   de antes: una hoja sobre otra no proyecta una sombra de cristal, se
+   distingue por su canto. */
+.ecard { position: relative; }
+.ecard::after {
+  inset: 0;
+  background: var(--trazo-suave);
+  -webkit-mask-image: var(--tr-marco);
+          mask-image: var(--tr-marco);
+  transition: background-color .28s var(--ease);
+}
+.ecard:hover, .ecard:focus-visible { box-shadow: none; }
+.ecard:hover::after, .ecard:focus-visible::after { background: var(--trazo); }
+
+/* --- Las ramas y las cartas del primer paso -----------------------
+   Lo que se toca en /contact/: las tres ramas del principio y el mazo.
+   Llevan el mismo marco que la tarjeta de una casa; su borde recto de
+   antes pasa a transparente (sigue ocupando su sitio, para que nada se
+   mueva). Al pasar por encima la rama se rellena de pino, y el trazo se
+   vuelve verde claro para seguir viendose sobre ese fondo. */
+.rama { position: relative; border-color: transparent; }
+.rama::after {
+  inset: 0;
+  border-radius: inherit;               /* recorta el marco como el fondo */
+  background: var(--trazo-suave);
+  -webkit-mask-image: var(--tr-marco);
+          mask-image: var(--tr-marco);
+}
+.rama:hover::after, .rama:focus-visible::after { background: var(--pine-200); }
+
+/* La ficha de «Disponible para» (telefono): papel secundario con su marco. */
+.hero__available::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--trazo-suave);
+  -webkit-mask: var(--tr-marco) 0 0 / 100% 100% no-repeat;
+          mask: var(--tr-marco) 0 0 / 100% 100% no-repeat;
+}
+@media (min-width: 600px) { .hero__available::after { display: none; } }
+
+.naipe { border-color: transparent; }
+.naipe::after {
+  inset: 0;
+  border-radius: inherit;
+  background: var(--trazo-suave);
+  -webkit-mask-image: var(--tr-marco);
+          mask-image: var(--tr-marco);
+}
+
+/* --- Las palabras que se pueden preguntar ------------------------
+   El glosario marca cada palabra «que no es nuestra» (ágape, Emet,
+   Timoteo…) con un punteado recto. Es una anotacion, y una anotacion se
+   subraya a mano: el mismo sitio, el mismo color —`currentColor`, que ya
+   es el del contexto: iris sobre papel, oro en la hoja del hero— pero con
+   pulso. El borde de antes sigue ahi, transparente, para no mover ni un
+   pixel de la linea. Al acercarse el trazo se llena. */
+.term { position: relative; border-bottom-color: transparent; }
+.term::after {
+  left: 0; right: 0;
+  bottom: -2px;
+  height: 5px;
+  background: currentColor;
+  opacity: .62;
+  -webkit-mask-image: var(--tr-sub-fino);
+          mask-image: var(--tr-sub-fino);
+  transition: opacity .22s var(--ease);
+}
+.term:hover::after, .term:focus-visible::after { opacity: 1; }
+
+/* --- Los iconos de las redes --------------------------------------
+   Cada ficha lleva un aro a tinta, dibujado de una vuelta, en el verde claro
+   que ya lleva la letra del pinar (--pine-200). El disco mate de debajo va
+   en paper.css. Al tocarla la ficha sigue llenandose con el color de su
+   marca, como antes; el aro se queda y se enciende. El glifo no se toca. */
+.link-chip::after {
+  inset: -1px;
+  background: var(--chip-aro, var(--pine-200));
+  opacity: .5;
+  -webkit-mask-image: var(--tr-circulo);
+          mask-image: var(--tr-circulo);
+  transition: opacity .28s var(--ease);
+}
+.link-chip:hover::after,
+.link-chip:focus-visible::after,
+.link-chip:active::after { opacity: .95; }
+
+/* --- La cita --------------------------------------------------------
+   Tres trazos y nada mas: la comilla de apertura, una raya corta sobre la
+   firma y un aro alrededor de la cara. El color de los tres lo decide la
+   variable `--rh-trazo` de la cita (tinta sobre papel, verde claro sobre el
+   pinar). La maqueta —tamaños, aire, letra— esta en base.css. */
+.rhema__marca {
+  background: var(--rh-trazo);
+  opacity: .92;
+  -webkit-mask: var(--tr-comilla) no-repeat left center / contain;
+          mask: var(--tr-comilla) no-repeat left center / contain;
+}
+.rhema__by::before {
+  top: 0; left: 0;
+  width: 3.4rem; height: 7px;
+  background: var(--rh-trazo);
+  opacity: .55;
+  -webkit-mask-image: var(--tr-linea);
+          mask-image: var(--tr-linea);
+}
+/* En la columna verde de escritorio no hay una sola raya: el aire separa. */
+.hero__identity .rhema__by::before { display: none; }
+.rhema__face::after {
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--rh-trazo);
+  -webkit-mask-image: var(--tr-circulo);
+          mask-image: var(--tr-circulo);
+}
+
+/* --- El indicador de la cabecera ----------------------------------
+   Era una linea recta de 2px en iris; sigue siendo iris y sigue entrando
+   por la izquierda, pero ahora con pulso. Mas alta (6px) porque el trazo
+   necesita sitio para su curva. */
+.site-nav__wide-list a::after {
+  left: -1px; right: -1px;
+  bottom: -3px;
+  height: 6px;
+  background: var(--iris);
+  -webkit-mask-image: var(--tr-sub-fino);
+          mask-image: var(--tr-sub-fino);
+}
+
+/* --- La costura del pie --------------------------------------------
+   Una linea dibujada en el canto de arriba del pie, para que la pagina
+   termine donde acaba y no se deshaga en el papel. Donde el pie ya es de
+   otro suelo —el pinar, el cielo, la roca— o donde viene del dibujo del
+   paramo, no se pinta: ahi la costura ya la hace el color. */
+.site-footer { position: relative; }
+.site-footer::before {
+  top: 0;
+  left: var(--gutter); right: var(--gutter);
+  height: 8px;
+  translate: 0 -50%;
+  background: var(--trazo-suave);
+  -webkit-mask-image: var(--tr-linea);
+          mask-image: var(--tr-linea);
+}
+main:has(.cpage) + .site-footer::before,
+main:has(.phero--sky) + .site-footer::before,
+main:has(> .camino:last-child) + .site-footer::before,
+main:has(> .ligero:last-child) + .site-footer::before { display: none; }
+
+/* Ningun trazo se anima: lo unico que se mueve es el cambio de color al
+   acercarse, y con el movimiento reducido ni eso. */
+@media (prefers-reduced-motion: reduce) {
+  .ecard::after, .term::after, .link-chip::after { transition: none; }
+}

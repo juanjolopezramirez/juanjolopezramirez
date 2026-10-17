@@ -73,11 +73,18 @@
 
      Y los que se usan COMO LETRA sobre ese papel: la pizarra y su gris, y
      el pino, el iris y el oro en su version para fondo claro. */
-  --papel: var(--bone);
-  --papel-2: var(--bone-panel);
-  --papel-alto: var(--bone);
+  --papel: var(--paper);
+  --papel-2: var(--paper-raised);
+  --papel-alto: var(--paper);
   --papel-copia: #FBFAF7;
   --slate-400: #5A6B74;
+  /* El gris de segundo orden SOBRE UN SUELO HUNDIDO. El slate 400 a secas
+     da 4.4:1 sobre --papel-2 (y 3.9:1 en las fichas, que oscurecen un poco
+     mas): le falta una pizca. Con un 40% de slate pleno pasa de 5:1 sin
+     dejar de ser el mismo gris. Lo reasignan como --slate-400 las
+     superficies hundidas (.cards, .naipe, .ficha), y asi todo lo
+     que ya pedia el gris dentro de ellas se corrige sin tocar una regla. */
+  --slate-400-hundido: color-mix(in srgb, var(--slate) 40%, var(--slate-400));
   --slate-rgb: 43 58 67;
   --pino-tinta: var(--pine);
   --iris-tinta: var(--iris-700);
@@ -131,27 +138,29 @@
    Caminemos— ya es de noche y se queda como esta: es la casa. Lo que se
    apaga es el hueso, que de noche deslumbra.
 
-   El papel oscuro no es negro: es el mismo pino llevado a casi nada
-   (#141E17), para que la pagina siga siendo verde en la penumbra y el
-   pinar del hero se lea como el tono mas vivo, que es lo que es. Las
-   tarjetas y las hojas suben un escalon (#1A261D) y las secciones hundidas
-   bajan uno (#0F1712): la misma jerarquia de alturas que de dia.
+   El papel oscuro ya no es el pino casi apagado (#141E17) de antes: es el
+   carbon de la paleta Paper & Ink (tokens.css, «Charcoal & Chalk»). El pinar
+   del hero y la cabecera se quedan verdes y se leen como el tono mas vivo
+   de la pagina. Las tarjetas y las hojas suben un escalon (--paper-raised)
+   y las secciones hundidas bajan uno (--paper-sunken): la misma jerarquia
+   de alturas que de dia.
 
-   La letra pasa a hueso apagado y su gris a un verde gris; los acentos que
-   de dia iban oscuros para leerse sobre el hueso —el iris 700, el oro 700,
-   el pino como letra— pasan a su version clara. Todos por encima de 4.5:1.
+   La letra pasa a tiza y su gris a un gris calido (los dos de tokens.css);
+   los acentos que de dia iban oscuros para leerse sobre el papel —el iris
+   700, el oro 700, el pino como letra— pasan a su version clara. Todos por
+   encima de 4.5:1.
 
    Se aplica si se eligio oscuro, o si se dejo en automatico y el
    dispositivo esta en oscuro. Elegir claro gana siempre. */
 html[data-tema="oscuro"] {
   color-scheme: dark;
-  --papel: #141E17;
-  --papel-2: #0F1712;
-  --papel-alto: #1A261D;
+  --papel: var(--paper);
+  --papel-2: var(--paper-sunken);
+  --papel-alto: var(--paper-raised);
   --papel-copia: #E4E1D8;
-  --slate: #E6E4DC;
-  --slate-400: #A8B6A5;
-  --slate-rgb: 230 228 220;
+  --slate: var(--ink);
+  --slate-400: var(--ink-muted);
+  --slate-rgb: 240 237 227;       /* = --ink, para los que piden el canal */
   --pino-tinta: var(--iris-300);
   --iris-tinta: var(--iris-300);
   --ring-tinta: var(--ring);
@@ -187,13 +196,13 @@ html[data-tema="oscuro"] .ligero {
 @media (prefers-color-scheme: dark) {
   html:not([data-tema="claro"]) {
     color-scheme: dark;
-    --papel: #141E17;
-    --papel-2: #0F1712;
-    --papel-alto: #1A261D;
+    --papel: var(--paper);
+    --papel-2: var(--paper-sunken);
+    --papel-alto: var(--paper-raised);
     --papel-copia: #E4E1D8;
-    --slate: #E6E4DC;
-    --slate-400: #A8B6A5;
-    --slate-rgb: 230 228 220;
+    --slate: var(--ink);
+    --slate-400: var(--ink-muted);
+    --slate-rgb: 240 237 227;
     --pino-tinta: var(--iris-300);
     --iris-tinta: var(--iris-300);
     --ring-tinta: var(--ring);
@@ -265,8 +274,14 @@ a { color: inherit; text-decoration: none; }
    bandera puesta se encoge frente a las que puedes elegir. */
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
+/* EL ANILLO DE FOCO, el mismo iris de siempre pero mezclado con la letra
+   del propio elemento (`currentColor`). El iris claro a secas (#A9C47F) era
+   el anillo del pinar y daba 1.7:1 sobre papel: casi no se veia. Con la
+   mezcla es oscuro donde la letra es oscura —sobre papel— y claro donde es
+   hueso o tiza —pinar y carbon—, asi que sale por encima de 3:1 en todas las
+   superficies sin tener que listar cuales son oscuras. */
 :focus-visible {
-  outline: 2px solid var(--iris-300);
+  outline: 2px solid color-mix(in srgb, var(--iris) 55%, currentColor);
   outline-offset: 3px;
 }
 
@@ -1133,112 +1148,122 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    pisan con el transform de la entrada. */
 @keyframes floatTilt { 50% { translate: 0 -5px; rotate: -.4deg; } }
 
-/* La palabra, en su propia caja. */
-/* La palabra nunca esta del todo quieta. Doce segundos de ida y vuelta:
-   no llama la atencion, pero la caja respira. */
-.rhema { animation: floatY 12s var(--ease-smooth) infinite; }
+/* =============================================================
+   LA PALABRA (Rhema.astro) — una frase, no una ficha
 
+   Nacio como una tarjeta de hueso con radio de 24px y, al subir al hero, se
+   le fueron quitando la caja, el filo, la sombra y el relleno uno a uno, en
+   rondas distintas, hasta quedar una frase con restos de tarjeta: huecos de
+   cuando tenia caja, una comilla que era un icono relleno y una firma
+   pegada debajo. Ahora se disena como lo que es, una cita.
+
+     · LA LETRA SUBE. Es lo unico que dice la pantalla en ese momento: se lee
+       a escala de frase (1.3 a 1.7rem), no de nota al pie. Y en peso 400:
+       la 300 de antes se perdia sobre papel.
+     · EL TRAZO ES DE sketch.css. La comilla de apertura (`rhema__marca`), la
+       raya corta sobre la firma y el aro de la cara se dibujan alli; aqui
+       solo se les guarda el sitio.
+     · NADA SE MUEVE. Antes respiraba doce segundos de ida y vuelta, como una
+       caja flotando. Una frase escrita a mano no flota: se escribe (el
+       reveal de abajo, en el telefono) y se queda.
+     · TRES VARIABLES DE COLOR y ninguna regla duplicada. Papel por defecto;
+       cada contexto cambia las variables y no la pieza. La columna verde de
+       escritorio las pone en hueso (desktop.css).
+
+         --rh-tinta  la frase y el nombre
+         --rh-suave  el oficio («Rhema»)
+         --rh-oro    la palabra que se pregunta (agape)
+         --rh-trazo  la comilla, la raya y el aro
+   ============================================================= */
 .rhema {
+  --rh-tinta: var(--slate);
+  --rh-suave: var(--slate-400);
+  /* El oro de la palabra que se pregunta, con una pizca de tinta: el oro
+     oscuro de la pagina (--ring-tinta) da 4.3:1 sobre papel a este tamaño y
+     no llega a 4.5. Un 12% de la tinta lo deja en 4.8 sin dejar de ser oro;
+     de noche la tinta es tiza y lo aclara, que es lo que hace falta. */
+  --rh-oro: color-mix(in srgb, var(--ring-tinta) 88%, var(--slate));
+  --rh-trazo: var(--trazo);
+
   margin: 1.6rem 0 0;
-  padding: 1.25rem 1.3rem 1.2rem;
-  background: var(--papel-2);
-  color: var(--slate);
-  border-radius: 24px;
+  padding: 0;
+  color: var(--rh-tinta);
   text-align: left;
 }
-.rhema .icon--quote {
-  width: 1.35rem; height: 1.04rem;
-  color: var(--ring);
+.rhema__marca {
+  display: block;
+  width: 2.5rem; height: 2rem;
+  margin: 0 0 .55rem;
 }
 .rhema__text {
-  margin: .7rem 0 1rem;
-  font-size: .95rem; font-weight: 300;
-  line-height: 1.55;
+  margin: 0;
+  font-size: clamp(1.3rem, 5.6vw, 1.7rem);
+  font-weight: 400;
+  line-height: 1.32;
+  letter-spacing: -.015em;
+  text-wrap: balance;
 }
-.rhema__text .ahava { color: var(--iris-tinta); white-space: nowrap; }
+/* Cada mitad en su renglon: son cajas aparte para poder escribirse una
+   detras de otra (el reveal de abajo). Desde 1200px fluyen como una sola
+   frase (desktop.css). */
+.rhema__line { display: block; }
+.rhema__text .ahava { color: var(--rh-oro); white-space: nowrap; }
+/* «ligero» es la palabra escrita a mano, y la Petemoss es de trazo fino: a la
+   escala de la frase se perdia. Un poco mas grande y con un hilo de contorno
+   para que aguante sobre papel. */
+.rhema__text .script {
+  font-size: 1.55em;
+  margin-left: .1em;
+  -webkit-text-stroke: .35px currentColor;
+}
+
 .rhema__by {
-  display: flex; align-items: center; gap: .7rem;
-  padding-top: .9rem;
-  border-top: 1px solid rgb(var(--slate-rgb) / .14);
+  position: relative;
+  display: flex; align-items: center; gap: .8rem;
+  margin-top: 1.1rem;
+  padding-top: 1.15rem;                  /* aqui cae la raya corta de sketch.css */
 }
 .rhema__face {
+  position: relative;
   flex: 0 0 auto;
   display: block;
-  width: 2.6rem; height: 2.6rem;
+  width: 2.8rem; height: 2.8rem;
+  /* Sin `overflow: hidden`: el aro de sketch.css cae FUERA de la foto. Sobre
+     la foto, que es oscura, la tinta no se veia. La foto se recorta ella. */
   border-radius: 50%;
-  overflow: hidden;
   background: var(--pine-700);
 }
-.rhema__face img { width: 100%; height: 100%; object-fit: cover; }
+.rhema__face img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .rhema__by b {
   display: block;
-  font-size: .82rem; font-weight: 600; letter-spacing: -.01em;
+  font-size: .9rem; font-weight: 600; letter-spacing: -.01em;
 }
 .rhema__by small {
   display: block;
-  font-size: .7rem;
-  color: var(--slate-400);                         /* Slate 400 — texto secundario */
+  margin-top: .1rem;
+  font-size: .76rem;
+  color: var(--rh-suave);
 }
 
-/* En movil la palabra vive sobre el hueso de la seccion siguiente;
-   desde tablet vuelve a la hoja del hero. */
+/* En movil y tablet vive en la hoja del hero; en escritorio, en la columna
+   verde (la otra copia). Las dos se piden por ancho y la que no toca no
+   mide. */
 .rhema--panel { display: none; }
-/* Los renglones sustituyen al <br>: mismo salto, pero cada uno es una caja
-   que se puede descubrir por separado. */
-.rhema__line { display: block; }
 
-/* =============================================================
-   MOVIL — la palabra sale de su caja
-   Sube a la cabecera de la hoja, justo debajo del sticker de Sobre mi y
-   encima del titular, y ahi deja de ser una ficha: sin fondo, sin borde
-   y sin relleno. Solo la letra, en Iris, y la cara debajo.
-
-   Se escribe sola. Cada renglon se descubre de izquierda a derecha, uno
-   detras de otro, como una mano que va dejando la frase — el mismo gesto
-   que la firma de la portada. Arranca cuando entra en pantalla, no al
-   cargar: si no, se escribe para nadie.
-   ============================================================= */
+/* EN EL TELEFONO SE ESCRIBE SOLA. Cada renglon se descubre de izquierda a
+   derecha, uno detras de otro, como una mano que va dejando la frase — el
+   mismo gesto que la firma de la portada. Arranca cuando entra en pantalla,
+   no al cargar: si no, se escribe para nadie. */
 @media (max-width: 599px) {
-  /* La hoja se vuelve flexible solo para poder mandar la palabra arriba
-     sin tocar el orden del documento — en escritorio cierra la columna,
-     y ahi se queda. */
-  .rhema--panel { display: block; }
+  .rhema--panel { display: block; margin: 0 0 2.25rem; }
   .rhema--about { display: none; }
 
-  .rhema--panel {
-    margin: 0 0 2.25rem;
-    padding: 0;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    color: var(--bone);
-    animation: none;                      /* aqui no flota: se escribe */
-  }
-  .rhema--panel .icon--quote { color: var(--ring); }
-
-  /* En hueso y no en Iris. Iris 300 daba 7.6:1 sobre el pinar cerrado y
-     se leia de sobra, pero teñia la frase de verde sobre un fondo que ya
-     es verde, y la palabra escrita a mano se perdia dentro del campo.
-     El hueso la despega —13:1— y deja el color para lo que de verdad lo
-     necesita: el oro de la comilla y el de `ahava`. */
-  .rhema--panel .rhema__text {
-    margin: .55rem 0 .9rem;
-    font-size: 1.05rem;
-    line-height: 1.5;
-    color: var(--bone);
-  }
-  .rhema--panel .rhema__text .ahava { color: var(--ring); }
-
-  .rhema--panel .rhema__by {
-    border-top: 1px solid rgba(241, 239, 233, .16);
-  }
-  .rhema--panel .rhema__by b { color: var(--bone); }
-  .rhema--panel .rhema__by small { color: var(--pine-200); }
-
   /* Nada se esconde hasta que el script se hace cargo: sin JavaScript la
-     frase esta escrita desde el primer momento. */
+     frase esta escrita desde el primer momento. El margen vertical del
+     recorte es generoso a proposito: la palabra a mano sube y baja mas que
+     la linea. */
   .js-reveal .rhema--panel .rhema__line {
-    clip-path: inset(-12% 101% -12% -4%);
+    clip-path: inset(-40% 101% -40% -6%);
   }
   .js-reveal .rhema--panel.is-in .rhema__line {
     animation: writeLine 820ms var(--ease) forwards;
@@ -1251,14 +1276,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* El renglon se descubre de izquierda a derecha. `clip-path` y no `width`:
    el texto no se recoloca mientras aparece, solo se destapa. */
 @keyframes writeLine {
-  to { clip-path: inset(-12% -4% -12% -4%); }
+  to { clip-path: inset(-40% -6% -40% -6%); }
 }
 
 .rhema--about {
   max-width: var(--measure);
   margin: 1rem 0 2.75rem;                 /* aire, sobre todo por debajo */
-  background: var(--papel);
-  border: 1px solid rgb(var(--slate-rgb) / .14);
 }
 
 /* =============================================================
@@ -2777,6 +2800,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: 2.6rem var(--gutter) 3rem;
   background: var(--papel-2);
   color: var(--slate);
+  --slate-400: var(--slate-400-hundido);
 }
 /* El rotulo y los filtros en la misma linea mientras quepan; cuando no,
    los filtros bajan enteros en vez de partirse por la mitad. */
@@ -2838,7 +2862,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: .38rem .8rem .42rem;
   border-radius: 999px;
   background: rgb(var(--slate-rgb) / .08);
-  color: var(--slate-400);
+  color: var(--slate-400-hundido);      /* la ficha ya es un fondo oscurecido */
   font-size: .74rem; font-weight: 600;
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
@@ -4256,6 +4280,9 @@ main:has(.cpage) + .site-footer {
   color: var(--pine-200);
 }
 main:has(.cpage) + .site-footer a { color: var(--bone); }
+/* Y su renglon de abajo: heredaba el gris de la letra sobre papel (el
+   slate 400) y sobre el pino quedaba en 2.2:1. */
+main:has(.cpage) + .site-footer .site-footer__meta { color: var(--pine-200); }
 
 main:has(.phero--sky) + .site-footer {
   background: var(--space-900);
@@ -4266,7 +4293,7 @@ main:has(.phero--sky) + .site-footer .site-footer__meta { color: var(--pine-200)
 /* Donde termina el camino —la portada antes, «Sobre el camino» ahora— el
    suelo es la roca, y el pie es de esa roca. */
 main:has(> .camino:last-child) + .site-footer { background: var(--roca); }
-main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(241 239 233 / .55); }
+main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(241 239 233 / .66); }
 /* Dim the wrapper, not the image: `.reveal` owns the image's opacity
    and the two would override each other. */
 .site-footer__line {
@@ -7536,7 +7563,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   background: currentColor;
   transition: scale .3s var(--ease);
 }
-.ruta__pasos .is-aqui { color: var(--pine); }
+.ruta__pasos .is-aqui { color: var(--pino-tinta); }
 .ruta__pasos .is-aqui::before { scale: 1.4; }
 .ruta__pasos .is-hecho { color: var(--iris-tinta); }
 
@@ -7581,7 +7608,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 .diana__texto { max-width: 4.5rem; }
 .diana:hover:not(:disabled), .diana:focus-visible {
-  border-style: solid; border-color: var(--pine); color: var(--pine);
+  border-style: solid; border-color: var(--pino-tinta); color: var(--pino-tinta);
 }
 /* Mientras la carta viene hacia ella, la diana se enciende sola. */
 .diana.is-cerca { border-style: solid; scale: 1.06; }
@@ -7608,6 +7635,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   padding: 1.4rem 1.3rem;
   border-radius: 20px;
   background: var(--papel-2);
+  --slate-400: var(--slate-400-hundido);
   border: 1px solid rgb(var(--slate-rgb) / .16);
   box-shadow: 0 10px 30px -18px rgba(11, 20, 13, .5);
   /* Las de atras se ven un poco mas pequeñas y bajadas: eso es la pila. */
@@ -7684,12 +7712,13 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   border: 1px solid rgb(var(--slate-rgb) / .2);
   border-radius: 12px;
   background: var(--papel-2);
+  --slate-400: var(--slate-400-hundido);
   font-size: .82rem; line-height: 1.3;
   color: var(--slate);
   text-align: left;
   transition: background .2s var(--ease), border-color .2s var(--ease), scale .2s var(--ease);
 }
-.ficha:hover, .ficha:focus-visible { border-color: var(--pine); }
+.ficha:hover, .ficha:focus-visible { border-color: var(--pino-tinta); }
 /* Levantada, esperando nivel. */
 .ficha[aria-pressed="true"] {
   background: var(--pine); border-color: var(--pine); color: var(--bone);
@@ -7738,7 +7767,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 
 /* El orden de los niveles se ve en el filo de la izquierda: arriba pesa. */
-.nivel[data-nivel="primero"]  { border-left: 4px solid var(--pine); }
+.nivel[data-nivel="primero"]  { border-left: 4px solid var(--pino-tinta); }
 .nivel[data-nivel="despues"]  { border-left: 4px solid var(--iris); }
 .nivel[data-nivel="algunDia"] { border-left: 4px solid var(--ring); }
 .nivel[data-nivel="noVa"]     { border-left: 4px solid rgb(var(--slate-rgb) / .25); }
@@ -7807,7 +7836,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   border-left: 2px solid var(--ring);
 }
 .fin__pruebas [data-fin-orden-caja] { margin-top: 1.3rem; }
-.fin__pruebas [data-fin-orden] li { border-left-color: var(--pine); }
+.fin__pruebas [data-fin-orden] li { border-left-color: var(--pino-tinta); }
 .fin__nombre {
   margin: 0 0 .8rem;
   font-family: var(--serif); font-weight: 400;
@@ -7844,7 +7873,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   background: rgb(var(--slate-rgb) / .03);
   transition: opacity .3s var(--ease);
 }
-.cuadro--ahora  { border-color: var(--pine); background: rgb(38 59 40 / .07); }
+.cuadro--ahora  { border-color: var(--pino-tinta); background: color-mix(in srgb, var(--pino-tinta) 8%, transparent); }
 .cuadro--fecha  { border-color: var(--iris); background: rgb(125 155 78 / .09); }
 .cuadro--roba   { border-color: var(--ring); background: rgb(192 138 46 / .09); }
 .cuadro.is-vacio { opacity: .45; }
@@ -7853,7 +7882,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   font-size: .72rem; font-weight: 700;
   letter-spacing: .06em; text-transform: uppercase;
 }
-.cuadro--ahora .cuadro__nombre { color: var(--pine); }
+.cuadro--ahora .cuadro__nombre { color: var(--pino-tinta); }
 .cuadro--fecha .cuadro__nombre { color: var(--iris-tinta); }
 .cuadro--roba .cuadro__nombre  { color: var(--ring-tinta); }
 .cuadro__cartas { margin: 0 0 .6rem; padding: 0; list-style: none; display: grid; gap: .3rem; }

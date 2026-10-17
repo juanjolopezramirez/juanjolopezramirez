@@ -1,15 +1,23 @@
 ---
-import Icon from './Icon.astro';
 const { t, where = 'panel' } = Astro.props;
 ---
-<!-- La palabra que me sostiene. En escritorio vive en la hoja del hero;
-     en movil sube a la cabecera de la hoja, justo debajo del sticker.
+<!-- La palabra que me sostiene.
+
+     Hay tres copias en el documento y el ancho elige cual se ve (`display:
+     none` tambien la salta el lector de pantalla, asi que nunca se oye dos
+     veces): `verde` en la columna de escritorio, `panel` en la hoja del hero
+     de movil y tablet, `about` en «Sobre mi» (hoy escondida).
+
+     Es una frase, no una ficha. Lo unico que la distingue es el trazo: la
+     comilla de apertura —`rhema__marca`, dibujada en sketch.css— y la raya
+     corta sobre la firma. Los colores salen de las variables locales
+     `--rh-*` de base.css, asi la misma pieza vive sobre papel y sobre pinar.
 
      Los dos renglones van en su propio <span> en vez de separados por un
      <br>: se ven igual, pero asi cada uno se puede descubrir por su
      cuenta, que es lo que hace falta para que parezca escrito a mano. -->
 <figure class={`rhema rhema--${where}`} data-glossary data-lift>
-  <Icon id="quote" />
+  <span class="rhema__marca" aria-hidden="true"></span>
   {/* LOS ESPACIOS VAN ESCRITOS, no puestos por el salto de linea. Astro se
       come el hueco que hay entre dos elementos hermanos en la plantilla, y
       mientras los dos renglones fueron cajas sueltas eso no se noto: cada

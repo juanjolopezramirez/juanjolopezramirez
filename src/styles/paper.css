@@ -1,0 +1,274 @@
+/* =============================================================
+   EL PAPEL — grano y fibra sobre las superficies claras
+
+   Un color plano parece una pantalla; con un poco de tooth parece una
+   hoja. Hay dos capas, y las dos son del PAPEL, no de la pagina:
+
+     --grano   el tooth fino: motas de tinta de unos pocos pixeles
+     --fibra   la variacion lenta: manchas muy grandes y casi invisibles
+               que impiden que dos tarjetas contiguas sean la misma hoja
+
+   COMO SE PINTAN. Son SVG con feTurbulence dentro de un data-URI, y el
+   navegador los rasteriza UNA vez por baldosa (240 y 480 px) y las repite.
+   No hay filtro en vivo, ni mix-blend-mode, ni capa fija encima: el color
+   de la mota va cosido en el SVG (con alfa), asi que no hace falta mezclar
+   nada. Y van de FONDO de cada superficie, no en una capa de pantalla: el
+   grano se mueve con la hoja al hacer scroll. Una capa fija se queda quieta
+   y se lee como una mancha en el cristal.
+
+   Nada que interceptar: es un `background-image`, no un elemento.
+
+   DE DIA, motas de tinta (#24231F); DE NOCHE, motas de tiza (#F0EDE3). El
+   alfa va ya en el SVG: el grano ronda el 2% de media (con motas sueltas
+   hasta el 10%) y la fibra el 1%. Es lo bastante para romper el plano y no
+   tanto como para que se lea algo distinto del color que ya habia: a la
+   primera tanda, con un alfa triple, parecia una mancha y no un papel.
+
+   CUANTO CUESTA. feTurbulence es un filtro caro SI se recalcula, y aqui no se
+   recalcula: es el contenido de una imagen, y el navegador la rasteriza una
+   vez por baldosa y tamaño de pantalla. Por eso son pocas octavas (2) y
+   baldosas pequeñas (240 y 480 px): en un movil de 3x la fibra son 1440 px
+   de lado, y cada octava de mas se paga una vez, al primer pintado.
+   Debajo del pinar no hay grano: el pinar es el campo vivo y tiene su propio
+   movimiento.
+
+   QUE SUPERFICIES. Las que ya piden --papel, --papel-2 o --papel-alto,
+   listadas una vez, abajo. Los botones y las pastillas de la casa (hueso y
+   pino) no son papel y no llevan nada.
+   ============================================================= */
+:root {
+  /* Tooth fino, de dia: motas de tinta. Alfa = .34 * R - .15. */
+  --grano-claro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g' filterUnits='userSpaceOnUse' x='0' y='0' width='240' height='240' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .14 0 0 0 0 .13 0 0 0 0 .11 .34 0 0 0 -.15'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* Tooth fino, de noche: motas de tiza, un poco menos densas. */
+  --grano-oscuro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g' filterUnits='userSpaceOnUse' x='0' y='0' width='240' height='240' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .93 0 0 0 0 .89 .3 0 0 0 -.13'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* La variacion lenta, de dia: una sombra calida. Alfa = .14 * R - .055. */
+  --fibra-claro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='480' height='480' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .016' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .36 0 0 0 0 .24 .14 0 0 0 -.055'/%3E%3C/filter%3E%3Crect width='480' height='480' filter='url(%23f)'/%3E%3C/svg%3E");
+  /* ...y de noche, una luz de tiza. */
+  --fibra-oscuro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='480' height='480' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .016' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .92 0 0 0 0 .85 .1 0 0 0 -.04'/%3E%3C/filter%3E%3Crect width='480' height='480' filter='url(%23f)'/%3E%3C/svg%3E");
+
+  /* EL PINAR. Verde mate: motas de tiza como las de la noche, algo mas
+     densas porque el pino absorbe mas que el carbon (alfa = .4*R - .17), y
+     la fibra con un toque mas de luz. No cambia con el tema: el pinar es de
+     noche siempre. */
+  --grano-pino: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g' filterUnits='userSpaceOnUse' x='0' y='0' width='240' height='240' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .93 0 0 0 0 .89 .4 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+  --fibra-pino: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='480' height='480' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .016' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .93 0 0 0 0 .86 .11 0 0 0 -.04'/%3E%3C/filter%3E%3Crect width='480' height='480' filter='url(%23f)'/%3E%3C/svg%3E");
+
+  --grano: var(--grano-claro);
+  --fibra: var(--fibra-claro);
+  --grano-tam: 240px;
+  --fibra-tam: 480px;
+}
+html[data-tema="oscuro"] {
+  --grano: var(--grano-oscuro);
+  --fibra: var(--fibra-oscuro);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema="claro"]) {
+    --grano: var(--grano-oscuro);
+    --fibra: var(--fibra-oscuro);
+  }
+}
+
+/* LAS SUPERFICIES DE PAPEL, en un solo sitio. Si una nueva hoja pide
+   --papel, --papel-2 o --papel-alto, se anade aqui y ya esta. Solo se toca
+   `background-image` y `background-size`: el color lo sigue poniendo la
+   regla de cada componente, asi que el tema funciona solo. */
+.about,
+.oferta--hueso,
+.ligero,
+.videos,
+.cards,
+.site-footer,
+.phero,
+.epage,
+.rpage,
+.ecard,
+.naipe,
+.ficha,
+.term-panel__sheet,
+.here-panel__sheet,
+.video-panel__sheet {
+  background-image: var(--grano), var(--fibra);
+  background-size: var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+}
+
+/* La hoja blanca del hero de escritorio es un ::before. */
+@media (min-width: 1200px) {
+  .hero__panel::before {
+    background-image: var(--grano), var(--fibra);
+    background-size: var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+  }
+}
+
+/* =============================================================
+   EL PINAR TAMBIEN ES UNA HOJA
+
+   Las pastillas de la cabecera y los discos de las redes son pino —el verde
+   de la casa—, pero pintado como una hoja mate: el mismo grano y la misma
+   fibra que el papel, en tiza.
+
+   (El campo verde del hero NO lleva grano: bajo 1200px ya no se pinta, el
+   hero es papel —bloque «EL HERO, EN HOJA», mas abajo—, y desde 1200px la
+   columna verde de escritorio se queda lisa, como estaba.)
+
+   LAS PASTILLAS son opacas y su color lo pone `--night`; solo se les anade
+   la imagen. Los DISCOS de las redes van aparte, mas abajo.
+   ============================================================= */
+
+.brand,
+.header-bar {
+  background-image: var(--grano-pino), var(--fibra-pino);
+  background-size: var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+}
+
+/* Los discos de las redes. Un velo de tiza al 7% y el grano encima, DETRAS
+   del icono (z-index -1 dentro de una caja aislada), y por ENCIMA del color
+   de la marca que la ficha toma al tocarla: asi el rojo de YouTube o el azul
+   de Facebook salen impresos sobre papel mate y no pintados sobre cristal. */
+.link-chip {
+  /* Pinar por defecto (/meet/, la hoja de todas las redes). El hero, que
+     bajo 1200px es papel, las cambia (mas abajo). */
+  --chip-velo: rgb(241 239 233 / .07);
+  --chip-grano: var(--grano-pino), var(--fibra-pino);
+  --chip-aro: var(--pine-200);
+  position: relative;
+  isolation: isolate;
+}
+.link-chip::before {
+  content: "";
+  position: absolute; inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background-color: var(--chip-velo);
+  background-image: var(--chip-grano);
+  background-size: var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+}
+
+/* =============================================================
+   EL HERO, EN HOJA — bajo 1200px
+
+   El hero de movil y tablet era un campo verde animado con degradado y tres
+   luces. Ahora es la misma hoja de papel que el resto de la portada: fondo
+   --papel con su grano, letra en tinta y el trazo de sketch.css. Lo que
+   sigue siendo pinar —las pastillas de la cabecera, los botones rellenos—
+   sigue siendo pinar: son la marca, y sobre papel se leen mejor.
+
+   POR QUE ES UN BLOQUE APARTE y no tocar las reglas de cada pieza: esas
+   reglas son de cuando el hero era verde (letra de hueso, bordes de hueso,
+   fichas de cristal), estan repartidas por tres hojas y cada una tiene su
+   ancho. Aqui se reasigna el COLOR de cada pieza en un solo sitio y solo bajo
+   1200px; desde 1200 el hero es el de siempre (columna verde a la izquierda,
+   hoja de papel a la derecha) y no se toca.
+
+   `:where(.hero)` pesa cero a proposito: estas reglas dicen de que color va
+   una pieza EN REPOSO, y no tienen que ganarle a su `:hover` ni a su foco,
+   que ya viven en otros sitios con su propio peso.
+
+   LA ALTURA NO SE TOCA. Cada pantalla de la portada mide una ventana y la
+   primera va justa en un telefono bajo (5px de holgura a 375x667): aqui solo
+   se cambian colores, fondos y trazos, nunca tamaños ni margenes.
+
+   Y UN EFECTO: sobre el hero ahora hay papel, asi que el boton de tema de
+   movil (`initTema`, site.js) asoma tambien aqui. Antes se escondia porque
+   el tema no cambiaba nada que se viera sobre el pinar.
+   ============================================================= */
+@media (max-width: 1199px) {
+  /* El suelo. El campo verde ya no se pinta ni se anima (initFieldGlow para
+     solo: un elemento sin caja no esta a la vista). */
+  .hero {
+    background-color: var(--papel);
+    background-image: var(--grano), var(--fibra);
+    background-size: var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+    color: var(--slate);
+  }
+  .hero__field { display: none; }
+
+  /* La primera pantalla: nombre, oficio, redes. */
+  :where(.hero) .hero__greet { color: var(--slate-400); }
+  :where(.hero) .hero__name { color: var(--slate); }
+  :where(.hero) .hero__role { color: var(--iris-tinta); }
+  :where(.hero) .links__title { color: var(--slate); }
+  :where(.hero) .hero__doors-title,
+  :where(.hero) .hero__cta-title { color: var(--slate-400); }
+
+  /* Las redes: el disco y el aro pasan a tinta; el glifo, a la tinta de la
+     pagina. Al tocarlas siguen tomando el color de su marca. */
+  :where(.hero) .link-chip {
+    --chip-velo: var(--velo-hoja);
+    --chip-grano: var(--grano), var(--fibra);
+    --chip-aro: var(--trazo);
+    color: var(--slate);
+  }
+  :where(.hero) .link-chip--more { color: var(--slate-400); }
+
+  /* Las puertas de tablet (en movil se esconden): las de la hoja, en tinta
+     y no en hueso. */
+  :where(.hero) .door {
+    border-color: rgb(var(--slate-rgb) / .3);
+    color: var(--slate);
+  }
+  :where(.hero) .door__badge { background: rgb(var(--slate-rgb) / .1); }
+  .hero .door:hover, .hero .door:focus-visible {
+    background: var(--slate); color: var(--papel); border-color: var(--slate);
+  }
+  .hero .door:hover .door__badge, .hero .door:focus-visible .door__badge {
+    background: color-mix(in srgb, var(--papel) 20%, transparent);
+  }
+
+  /* «Sobre mi»: la calcomania, pero sobre papel. Perfilada en tinta; el
+     gemelo —el que invita a bajar— relleno de pino con letra de hueso, que es
+     el color que ya llevan todos los botones llenos de la casa. */
+  :where(.hero) .scroll-cue { color: var(--slate); }
+  :where(.hero) .scroll-cue__sticker {
+    background: var(--papel);
+    border-color: var(--slate);
+    color: var(--slate);
+  }
+  .hero .scroll-cue:hover .scroll-cue__sticker {
+    background: var(--slate); color: var(--papel);
+  }
+  .hero .scroll-cue--twin .scroll-cue__sticker {
+    background: var(--pine); border-color: var(--pine); color: var(--bone);
+  }
+  .hero .scroll-cue:hover .icon { color: var(--iris-tinta); }
+
+  /* La segunda pantalla: la palabra (base.css), lo que ofrezco y para quien
+     es, y las dos puertas. */
+  :where(.hero) .hero__status { color: var(--slate-400); }
+  :where(.hero) .hero__status-dot { background: var(--iris-tinta); }
+  :where(.hero) .hero__emet { color: var(--slate); }
+  :where(.hero) .oferta__titulo { color: var(--slate); }
+  :where(.hero) .oferta__texto { color: var(--slate-400); }
+
+  /* Las dos puertas del final: perfiladas en tinta; la primera, rellena de
+     pino. Es lo mismo que ya hace la hoja de escritorio (desktop.css). */
+  .hero .cta {
+    border-color: color-mix(in srgb, var(--slate) 35%, transparent);
+    color: var(--slate);
+  }
+  .hero .cta:hover, .hero .cta:focus-visible {
+    background: var(--pine); border-color: var(--pine); color: var(--bone);
+  }
+  .hero .cta--lleno { background: var(--pine); border-color: var(--pine); color: var(--bone); }
+  .hero .cta--lleno:hover, .hero .cta--lleno:focus-visible {
+    background: var(--pine-700); border-color: var(--pine-700); color: var(--bone);
+  }
+}
+
+/* La ficha de «Disponible para», solo en el telefono: era cristal (degradado
+   verde, desenfoque y sombra) sobre el pinar. Sobre papel es una hoja mas: el
+   papel secundario, con el marco dibujado de sketch.css, sin cristal ni
+   sombra. */
+@media (max-width: 599px) {
+  .hero .hero__available {
+    position: relative;
+    background: var(--papel-2);
+    border-color: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+  }
+  .hero .hero__available .hero__status { color: var(--slate-400-hundido); }
+  .hero .hero__available .hero__status-dot { background: var(--iris-tinta); }
+}

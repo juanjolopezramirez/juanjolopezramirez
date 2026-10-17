@@ -420,54 +420,42 @@
   .link-chip { width: 2.9rem; height: 2.9rem; }
   .link-chip .icon { width: 1.75rem; height: 1.75rem; }
 
-  /* LA PALABRA CIERRA LA COLUMNA VERDE, con el mismo trato que en el
-     telefono: sin caja, letra de hueso sobre el pinar, y el color guardado
-     para lo que lo necesita —el oro de la comilla y el de `ahava`—. Iris
-     sobre el pinar tiñe la frase de verde sobre verde, y el iris oscuro de
-     la pagina clara no se leeria aqui.
+  /* LA PALABRA CIERRA LA COLUMNA VERDE. La misma pieza de siempre —frase,
+     comilla dibujada, firma— con sus tres variables de color puestas en
+     hueso: el pinar pide letra clara, y el oro se queda para lo que lo
+     necesita, el de `ahava`. Iris sobre el pinar tiñe la frase de verde sobre
+     verde, y el iris oscuro de la pagina clara no se leeria aqui.
 
      Va con el nombre de la columna delante porque la regla general de
-     `.rhema` —la de la hoja, con su caja de hueso— viene despues en la hoja
-     de estilo y le ganaria por orden. La de la hoja se apaga. */
+     `.rhema` viene antes en la hoja de estilo y esta tiene que ganarle. La
+     de la hoja del hero se apaga: aqui vive la de la columna. */
   .rhema--panel { display: none; }
   .hero__identity .rhema--verde {
+    --rh-tinta: var(--bone);
+    --rh-suave: var(--pine-200);
+    --rh-oro: var(--ring);
+    --rh-trazo: var(--pine-200);
     display: block;
     /* MAS ESTRECHA QUE LA COLUMNA. A 1200px la columna y la foto se
        solapan —la foto entra recortada, con su lado izquierdo en nada— y
        una cita del ancho de la columna se metia por debajo de mi hombro.
-       Con 21rem el renglon termina siempre antes de la foto. */
-    /* NI CAJA NI AIRE DE CAJA. Quitados los filos, quedaban sus huecos:
-       2.4rem de margen mas 1.4rem de relleno, sesenta y un pixeles de nada
-       antes de la comilla, y la cita seguia leyendose como un bloque
-       aparte metido en la columna. El aire que la separa de las redes es
-       ahora el mismo que separa al resto entre si, y nada mas. */
+       Con 25rem el renglon termina siempre antes de la foto (21rem entre
+       1200 y 1279, mas abajo). */
+    /* SIN CAJA NI AIRE DE CAJA, Y SIN RAYAS. En esta columna no hay una sola
+       raya: el aire ya separa. El alto no se toca —a 1280x720 la columna
+       llega justa al boton de bajar—. */
     width: min(100%, 25rem);
     margin: 1.7rem 0 0;
-    padding: 0;
-    background: none;
-    /* SIN RAYAS. Habia un filo encima de la cita y otro encima de la firma,
-       y como la cita se recorta antes que la foto, esos dos filos cortaban
-       a 392 mientras el nombre, el oficio y las redes llegan a 529: dos
-       lineas cortas al aire que se leian como una caja suelta y fuera de
-       proporcion con el resto de la columna. En esta columna no hay una
-       sola raya mas; el aire ya separa. Se van los filos y se queda el
-       hueco que tenian, para no mover el alto — a 1280x720 la columna
-       llega justa al boton de bajar. */
-    border: 0;
-    border-radius: 0;
-    color: var(--bone);
-    animation: none;
   }
   /* LA COMILLA, DENTRO DEL RENGLON. Ocupaba una linea entera para ella
      sola, asi que la cita se leia en tres renglones: la comilla, y debajo
      las dos mitades de la frase. Flotando entra en el primero y la frase
      empieza donde empieza la comilla. El margen de arriba la baja hasta la
      altura de las mayusculas de esa primera linea. */
-  .hero__identity .rhema .icon--quote {
+  .hero__identity .rhema__marca {
     float: left;
-    width: 1.2rem; height: .92rem;
-    margin: .3rem .5rem 0 0;
-    color: var(--ring);
+    width: 1.5rem; height: 1.2rem;
+    margin: .28rem .55rem 0 0;
   }
   /* Y UNA FRASE, NO DOS MITADES. Los dos renglones son cajas sueltas para
      poder escribirse uno detras de otro en el telefono; aqui no se escribe
@@ -479,24 +467,28 @@
      tampoco sirve aqui: el navegador se lo salta cuando hay algo flotando
      dentro del bloque, y la comilla flota. */
   .hero__identity .rhema__line { display: inline; }
+  /* La palabra a mano, a su tamaño de siempre y sin el hilo de contorno de
+     base.css: a 1rem de frase el contorno la emborronaba. */
+  .hero__identity .rhema__text .script { font-size: 1.7em; -webkit-text-stroke: 0; }
   .hero__identity .rhema__text {
     margin: 0 0 .7rem;
     font-size: 1rem;
+    font-weight: 400;
     line-height: 1.55;
-    color: var(--bone);
+    letter-spacing: 0;
+    text-wrap: wrap;
   }
-  .hero__identity .rhema__text .ahava { color: var(--ring); }
   .hero__identity .rhema__by {
     /* Por si la frase se queda en una sola linea en algun idioma: la
        comilla flotante no puede meterse en la firma. */
     clear: both;
     gap: .6rem;
+    margin-top: 0;
     padding-top: 0;
-    border-top: 0;
   }
   .hero__identity .rhema__face { width: 2.2rem; height: 2.2rem; }
-  .hero__identity .rhema__by b { font-size: .78rem; color: var(--bone); }
-  .hero__identity .rhema__by small { font-size: .68rem; color: var(--pine-200); }
+  .hero__identity .rhema__by b { font-size: .78rem; }
+  .hero__identity .rhema__by small { font-size: .68rem; margin-top: 0; }
 
   /* EN UNA PANTALLA DE PORTATIL la columna llega justa: a 1280 x 720 la
      palabra terminaba a siete pixeles del boton de bajar. Se recorta el
@@ -576,8 +568,10 @@
   .hero__cta-list { gap: .7rem; }
   .hero__panel .cta {
     padding: .78rem 1.2rem;
-    border-color: rgb(38 59 40 / .35);
-    color: var(--pine);
+    /* --pino-tinta es el pino de dia y el iris claro de noche: con el pino
+       fijo, la pastilla se perdia sobre la hoja oscura. */
+    border-color: color-mix(in srgb, var(--pino-tinta) 35%, transparent);
+    color: var(--pino-tinta);
   }
   .hero__panel .cta:hover,
   .hero__panel .cta:focus-visible { background: var(--pine); border-color: var(--pine); color: var(--bone); }

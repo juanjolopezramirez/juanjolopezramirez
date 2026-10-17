@@ -13,6 +13,13 @@ const others = NAV.filter((n) => n.slug !== slug);
 /* Si la seccion trae pie, la hoja deja de tener relleno abajo: lo que se
    apoya ahi va a sangre y pegado al borde, no dentro de un margen. */
 const hasFoot = Astro.slots.has('foot');
+
+/* El titulo, partido en «todo menos la ultima palabra» y «la ultima». El
+   espacio de en medio se queda con la primera parte. */
+const title = String(t(`page.${slug}.title`) ?? '');
+const cut = title.lastIndexOf(' ') + 1;
+const titleHead = title.slice(0, cut);
+const titleTail = title.slice(cut);
 ---
 <!-- El mismo hero del home, con los lados cambiados: aqui el hueso esta a
      la izquierda y el pinar a la derecha. Movil primero — una columna, lo
@@ -22,7 +29,10 @@ const hasFoot = Astro.slots.has('foot');
   <div class="phero__field" aria-hidden="true"></div>
 
   <div class="phero__panel">
-    <h1 class="phero__title" data-lift>{t(`page.${slug}.title`)}</h1>
+    <!-- La ultima palabra va en su <span> para que sketch.css la subraye a
+         mano. El texto es exactamente el mismo; solo cambia que se pueda
+         marcar aparte. -->
+    <h1 class="phero__title" data-lift>{titleHead}<span class="phero__sub">{titleTail}</span></h1>
     <p class="phero__lead" data-lift>{t(`page.${slug}.lead`) ?? ''}</p>
 
     {here?.soon && (

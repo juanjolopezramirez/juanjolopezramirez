@@ -36,8 +36,14 @@
    mueve el mundo entero y cada capa responde según lo lejos que está: la
    meseta casi no se mueve, el pasto corre. Cada capa va en un plano del
    tamaño del dibujo, cuyo centro es el del ojo, y así nada se descoloca. El
-   orden lo pone la distancia, no el HTML. */
-const { t, pregunta = 'ligero' } = Astro.props;
+   orden lo pone la distancia, no el HTML.
+
+   LA NIEBLA (niebla.css). Solo en la portada (`nubes`, que por defecto es
+   verdad cuando la pregunta es la de «caminar ligero»): un velo de nubes
+   DELANTE de la escena que la tapa al empezar y se abre al bajar, y unas
+   pocas nubes MAS entre sus planos. Al terminar el recorrido no queda
+   ninguna delante: el dibujo se ve entero. */
+const { t, pregunta = 'ligero', nubes = pregunta === 'ligero' } = Astro.props;
 /* La de siempre lleva su palabra a mano en `hero.lightly`, que es la misma
    que usa la cita; la del camino tiene la suya. */
 const q = pregunta === 'camino'
@@ -75,15 +81,60 @@ const PLANOS = [
    ve dónde acaba y qué hay debajo. El paisaje de detrás es el mismo, así que
    solo cambian esas dos capas, y el navegador baja solo la que va a usar. */
 const PIE = '(max-aspect-ratio: 1/1)';
+
+/* LAS NUBES DE DENTRO, en su plano. x, y y w en % del dibujo; o es la opacidad
+   y dur la deriva, en segundos. Todas DETRAS de la roca, de mi y del pasto
+   (z mayor que 170): nunca tapan lo que importa. */
+const NUBES_DENTRO = [
+  { z: 575, nubes: [
+    { f: 'c', x: -6, y: 13, w: 62, o: .75, dur: 61 },
+    { f: 'c', x: 44, y: 8, w: 64, o: .7, dur: 47 }
+  ] },
+  { z: 430, nubes: [
+    { f: 'e', x: -8, y: 29, w: 82, o: .6, dur: 70 },
+    { f: 'b', x: 60, y: 19, w: 24, o: .6, dur: 52 }
+  ] },
+  { z: 310, nubes: [
+    { f: 'a', x: 50, y: 37, w: 52, o: .72, dur: 58 },
+    { f: 'd', x: 30, y: 47, w: 18, o: .55, dur: 43 }
+  ] }
+];
+const planos = (nubes ? [...PLANOS, ...NUBES_DENTRO] : PLANOS).sort((a, b) => b.z - a.z);
+
+/* EL VELO, de la nube mas lejana a la mas cercana. Cada fila:
+     [forma, x vw, y %, ancho vw, dx vw, dy svh, ini %, fin %, crece, opacidad, flota s]
+   `ini` y `fin` son los puntos del recorrido entre los que se va (la escena
+   se posa a los 70%). Las cercanas salen primero y mas rapido; las del centro
+   se van antes que las de los lados; las lejanas se quedan hasta el final. */
+const VELO = [
+  /* Lejos: finas y lentas. */
+  ['c',  -8, 34, 70,  -26,  -6, 30, 66, 1.08, .9, 52],
+  ['c',  42, 30, 72,   28,  -8, 34, 68, 1.08, .85, 44],
+  ['d',  70, 46, 26,   18, -10, 28, 62, 1.1,  .9, 36],
+  ['d',   4, 50, 24,  -18,  -8, 26, 60, 1.1,  .9, 41],
+  /* A media distancia. */
+  ['b', -10, 44, 46,  -44, -12, 16, 58, 1.2,  .96, 48],
+  ['b',  62, 42, 50,   46, -12, 18, 60, 1.2,  .96, 39],
+  ['a',  24, 56, 56,  -10, -30, 22, 62, 1.25, .95, 57],
+  /* Cerca: grandes, rapidas, las primeras en irse. */
+  ['a', -24, 52, 78,  -62,  -8,  8, 48, 1.3,  1, 45],
+  ['a',  46, 56, 84,   66,  -6, 10, 50, 1.3,  1, 54],
+  ['b',  30, 44, 42,    0, -46,  6, 42, 1.4,  1, 33],
+  ['e', -12, 76, 124,   0,  22, 20, 64, 1.1,  1, 63]
+];
 ---
 <section class="ligero" id="ligero" data-libre aria-labelledby="ligero-title">
   <div class="ligero__fijo">
     <div class="ligero__camara">
       <div class="ligero__mundo">
         <div class="ligero__escena" role="img" aria-label={t('light.scene')}>
-          {PLANOS.map((p) => (
+          {planos.map((p) => (
             <div class="ligero__plano" style={plano(p.z)}>
-              {p.piezas.map((x) =>
+              {p.nubes && p.nubes.map((n) => (
+                <span class={`ligero__nube ligero__nube--${n.f}`}
+                      style={`--x:${n.x}%;--y:${n.y}%;--w:${n.w}%;--o:${n.o};--dur:${n.dur}s`}></span>
+              ))}
+              {p.piezas && p.piezas.map((x) =>
                 x.capa
                   ? <picture>
                       {x.movil && <source media={PIE} srcset={`${base}${x.capa}-movil.svg`} />}
@@ -103,6 +154,15 @@ const PIE = '(max-aspect-ratio: 1/1)';
         </div>
       </div>
     </div>
+
+    {nubes && (
+      <div class="ligero__velo" aria-hidden="true">
+        {VELO.map(([f, x, y, w, dx, dy, ini, fin, sc, o, dur]) => (
+          <span class={`nube nube--${f}`}
+                style={`--x:${x}vw;--y:${y}%;--w:${w}vw;--dx:${dx}vw;--dy:${dy}svh;--ini:${ini}%;--fin:${fin}%;--sc:${sc};--o:${o};--dur:${dur}s`}></span>
+        ))}
+      </div>
+    )}
 
     <h2 class="ligero__pregunta" id="ligero-title">
       {q.texto}<em class="script">{q.mano}</em>{q.fin}

@@ -612,11 +612,12 @@ function initTema() {
 
   /* SOLO DONDE SE NOTA (movil y tablet, donde el boton cuelga del canto).
 
-     El tema solo cambia el papel: el hero, las paginas de Caminemos, el cielo
-     del planeta y la cinta de aliados son de noche siempre. Pulsar el boton
-     sobre ellos no cambiaba nada que se viera, y un boton que no hace nada
-     parece roto. Asi que asoma solo cuando lo que hay en pantalla es papel, y
-     se hunde en el canto cuando no.
+     El tema solo cambia el papel: las paginas de Caminemos, el cielo del
+     planeta y la cinta de aliados son de noche siempre (y, desde 1200px, la
+     columna verde del hero; bajo 1200px el hero ya es papel y el boton asoma
+     tambien ahi). Pulsar el boton sobre lo que no cambia no hacia nada que se
+     viera, y un boton que no hace nada parece roto. Asi que asoma solo cuando
+     lo que hay en pantalla es papel, y se hunde en el canto cuando no.
 
      Como se sabe si es papel: se miran tres puntos de la pantalla y, en cada
      uno, la primera superficie GRANDE que pinta algo (una foto o una ficha
@@ -633,12 +634,23 @@ function initTema() {
   const aRgb = (v) => { muestra.style.color = ''; muestra.style.color = v; return getComputedStyle(muestra).color; };
   const transparente = (c) => c === 'transparent' || /^rgba\([^)]*,\s*0\)$/.test(c) || /\/\s*0\)$/.test(c);
 
+  /* EL GRANO DEL PAPEL NO ES UN CAMPO. paper.css pinta el grano y la fibra de
+     cada hoja como `background-image` (un SVG en data-URI). Sin esta salvedad,
+     «hay imagen de fondo» se leia como «es un campo o un cielo» y en el papel
+     el boton nunca asomaba. Un degradado o una foto siguen diciendo que no:
+     solo cuenta como papel lo que es SVG embebido y nada mas.
+
+     Se quitan primero las capas de grano enteras (`url("data:image/svg+xml…")`)
+     y se pide que no quede nada: ni un degradado ni otra imagen. No vale
+     buscar `url(` suelto, porque el propio SVG lleva dentro un `url(#filtro)`. */
+  const soloGrano = (bi) => bi.replace(/url\("data:image\/svg\+xml[^"]*"\)/g, '').replace(/[\s,]/g, '') === '';
+
   const fondoEn = (x, y) => {
     for (const el of d.elementsFromPoint(x, y)) {
       if (el === root || el.closest('.site-header, .lang__list, .lang__scrim, [aria-modal="true"]')) continue;
       if (el.getBoundingClientRect().width < innerWidth * 0.6) continue;
       const s = getComputedStyle(el);
-      if (s.backgroundImage !== 'none') return null;
+      if (s.backgroundImage !== 'none' && !soloGrano(s.backgroundImage)) return null;
       if (!transparente(s.backgroundColor)) return s.backgroundColor;
     }
     return null;

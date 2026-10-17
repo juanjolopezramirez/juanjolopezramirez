@@ -1,0 +1,92 @@
+/* =============================================================
+   PAPER & INK — la paleta del soporte
+
+   Esto NO sustituye la paleta de la casa. Los cinco —slate, bone, pine,
+   iris, ring— siguen en base.css, con su nombre y para lo que ya hacian:
+   el hueso y el pino de los botones, el iris de la cabecera, el oro de
+   la correccion escrita. Lo que se define aqui es el PAPEL en el que esos
+   colores se asientan y la TINTA con la que se marcan los trazos.
+
+     paper          el fondo de la pagina
+     paper-raised   la otra hoja: tarjetas, paneles, lo que se diferencia
+     paper-border   el borde de una hoja sobre otra
+     ink            la tinta: trazos y marcas de contorno
+     ink-muted      el grafito: notas y trazos de segundo orden
+     ink-soft       la tinta aguada: lo que acompaña y no manda
+
+   Se enchufan a los ROLES que base.css ya tenia (--papel, --papel-2,
+   --papel-alto, y en oscuro la letra), asi que no hay que tocar los
+   cientos de reglas que ya piden «el papel» y no un color. La lista de que
+   rol toma cual esta en base.css, junto a cada rol, y se resume aqui:
+
+                    claro              oscuro
+     --papel        paper              paper
+     --papel-alto   paper              paper-raised   (la hoja que flota)
+     --papel-2      paper-raised       paper-sunken   (la hundida)
+
+   LA LETRA NO CAMBIA DE DIA. La letra y su gris siguen siendo el slate de
+   la casa: es el color de marca con mas presencia en la pagina, y ink-muted
+   (#777164 sobre paper) da 4.4:1, que no llega a 4.5 para texto pequeño.
+   La tinta es para trazos, no para la lectura. Si algun dia se quiere la
+   letra en tinta, es una linea en base.css: `--slate: var(--ink)`.
+
+   DE NOCHE SI: el slate de noche ya era un neutro (#E6E4DC, un hueso
+   apagado), no un color de marca, y pasa a la tiza. Charcoal & Chalk no es
+   la inversion del claro: es su propia paleta, con la tinta mas clara que
+   el papel y los bordes un paso por encima de el.
+
+   Mismo mecanismo de tema que el resto: se aplica si se eligio oscuro, o
+   si se dejo en automatico y el dispositivo esta en oscuro. Elegir claro
+   gana siempre.
+   ============================================================= */
+:root {
+  --paper:        #F7F4EB;   /* papel mate */
+  --ink:          #24231F;   /* tinta */
+  --ink-muted:    #777164;   /* grafito calido */
+  --paper-border: #DED8CA;
+  --paper-raised: #EAE5D9;   /* papel secundario */
+  --ink-soft:     #B8AFA0;   /* tinta suave */
+
+  /* El suelo hundido de dia ES el papel secundario; solo de noche hace
+     falta un escalon por debajo del papel (la paleta no lo trae). */
+  --paper-sunken: var(--paper-raised);
+
+  /* LOS TRAZOS. La tinta es la de arriba; esto solo dice cuanto pesa. */
+  --trazo-ancho: 1.5px;
+  --trazo: var(--ink);
+  --trazo-suave: var(--ink-soft);
+
+  /* UN VELO MAS CLARO QUE LA HOJA, para lo que se levanta un poco (los discos
+     de las redes sobre el hero): de dia, blanco al 55%; de noche, tiza al 7%. */
+  --velo-hoja: rgb(255 255 255 / .55);
+}
+
+html[data-tema="oscuro"] {
+  --paper:        #20211F;   /* carbon */
+  --ink:          #F0EDE3;   /* tiza */
+  --ink-muted:    #B8B5AA;
+  --paper-border: #42433F;
+  --paper-raised: #2B2C29;
+  --ink-soft:     #D0CDC3;
+  /* Un paso por debajo del carbon: el 22% hacia el negro. */
+  --paper-sunken: color-mix(in srgb, var(--paper) 78%, #000);
+  /* La tinta suave de noche (#D0CDC3) es CLARA —tiza aguada—, y como
+     contorno de una tarjeta sobre carbon queda a gritos. Se deja a un 42%:
+     sigue siendo ink-soft, solo que el trazo no manda. */
+  --trazo-suave: color-mix(in srgb, var(--ink-soft) 42%, transparent);
+  --velo-hoja: rgb(240 237 227 / .07);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema="claro"]) {
+    --paper:        #20211F;
+    --ink:          #F0EDE3;
+    --ink-muted:    #B8B5AA;
+    --paper-border: #42433F;
+    --paper-raised: #2B2C29;
+    --ink-soft:     #D0CDC3;
+    --paper-sunken: color-mix(in srgb, var(--paper) 78%, #000);
+    --trazo-suave: color-mix(in srgb, var(--ink-soft) 42%, transparent);
+    --velo-hoja: rgb(240 237 227 / .07);
+  }
+}

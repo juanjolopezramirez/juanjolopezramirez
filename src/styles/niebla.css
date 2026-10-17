@@ -1,0 +1,155 @@
+/* =============================================================
+   LA NIEBLA DEL PARAMO — «¿Qué significa caminar ligero?»
+
+   Dos cosas, las dos hechas de las mismas nubes (SVG en
+   /assets/paramo/nubes/, generadas con una semilla fija: cinco formas por
+   dos paletas):
+
+   1. EL VELO. Una capa de nubes DELANTE de la escena que la tapa al empezar
+      y se abre mientras se baja: cada nube sale hacia un lado, mas rapido
+      cuanto mas cerca esta, y las del centro se van primero. A los 70% del
+      recorrido —cuando el dibujo se posa— no queda ninguna: EL DIBUJO SE
+      VE ENTERO. Es la regla de esta escena desde que una roca de color le
+      tapo la suya (ver Camino.astro); aqui la niebla se levanta, no se queda.
+
+   2. LAS NUBES DE DENTRO. Entre los planos del dibujo hay unas pocas mas, a
+      su distancia: heredan el parallax 3D que ya tiene la escena (la camara
+      tiene `perspective` y cada plano su `translateZ`) y solo les hace falta
+      flotar. Van DETRAS de la roca, de mi y del pasto, asi que nunca los
+      tapan; se asoman entre la meseta, el risco y el vacio.
+
+   COMO SE MUEVE EL VELO. Con las mismas animaciones atadas al scroll de CSS
+   que ya mueven el ojo y la pregunta (`--capa`, la linea de tiempo de la
+   seccion): sin guion, fuera del hilo principal. Cada nube lleva en la
+   etiqueta lo suyo: de donde sale, adonde va, cuanto crece y entre que dos
+   puntos del recorrido se va (`--ini`, `--fin`).
+
+   COLOR. Las nubes llevan su color cosido en el SVG (brillo, cuerpo y
+   borde), asi que hay una paleta de dia —blancos calidos sobre papel— y una
+   de noche —grises claros sobre carbon— y el tema elige cual con una
+   variable, igual que el grano.
+
+   SIN MOVIMIENTO, o en un navegador que no ata animaciones al scroll
+   (`animation-timeline`, hoy Firefox), no hay velo: la escena es la de
+   siempre, con sus pocas nubes de dentro quietas.
+
+   NO SE TOCA LA ALTURA. Todo es absoluto dentro de la caja fija de 100svh,
+   que recorta (`overflow: clip`): nada empuja ni desborda, y el salto entre
+   pantallas sigue contando la seccion como `data-libre`.
+   ============================================================= */
+:root {
+  --nube-a: url("/assets/paramo/nubes/nube-a-claro.svg");
+  --nube-b: url("/assets/paramo/nubes/nube-b-claro.svg");
+  --nube-c: url("/assets/paramo/nubes/nube-c-claro.svg");
+  --nube-d: url("/assets/paramo/nubes/nube-d-claro.svg");
+  --nube-e: url("/assets/paramo/nubes/nube-e-claro.svg");
+}
+html[data-tema="oscuro"] {
+  --nube-a: url("/assets/paramo/nubes/nube-a-oscuro.svg");
+  --nube-b: url("/assets/paramo/nubes/nube-b-oscuro.svg");
+  --nube-c: url("/assets/paramo/nubes/nube-c-oscuro.svg");
+  --nube-d: url("/assets/paramo/nubes/nube-d-oscuro.svg");
+  --nube-e: url("/assets/paramo/nubes/nube-e-oscuro.svg");
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema="claro"]) {
+    --nube-a: url("/assets/paramo/nubes/nube-a-oscuro.svg");
+    --nube-b: url("/assets/paramo/nubes/nube-b-oscuro.svg");
+    --nube-c: url("/assets/paramo/nubes/nube-c-oscuro.svg");
+    --nube-d: url("/assets/paramo/nubes/nube-d-oscuro.svg");
+    --nube-e: url("/assets/paramo/nubes/nube-e-oscuro.svg");
+  }
+}
+
+/* La forma de cada nube: su SVG y su proporcion (ancho / alto del lienzo). */
+.nube--a, .ligero__nube--a { --forma: var(--nube-a); --r: 1200 / 420; }
+.nube--b, .ligero__nube--b { --forma: var(--nube-b); --r: 640 / 400; }
+.nube--c, .ligero__nube--c { --forma: var(--nube-c); --r: 1400 / 240; }
+.nube--d, .ligero__nube--d { --forma: var(--nube-d); --r: 420 / 260; }
+.nube--e, .ligero__nube--e { --forma: var(--nube-e); --r: 1600 / 320; }
+
+/* ---- Las nubes de dentro: en su plano, a su distancia ------------------
+   Posicion y tamaño en % del dibujo (el plano mide lo que el dibujo), asi
+   que se quedan donde se pusieron sea cual sea la pantalla. */
+.ligero__nube {
+  position: absolute;
+  left: var(--x); top: var(--y);
+  width: var(--w);
+  aspect-ratio: var(--r);
+  background: var(--forma) center / 100% 100% no-repeat;
+  opacity: var(--o, .7);
+  pointer-events: none;
+}
+
+/* ---- El velo: solo donde se puede mover --------------------------------
+   Fuera de este bloque no se pinta: sin linea de tiempo, un velo quieto
+   seria una escena tapada para siempre. */
+.ligero__velo { display: none; }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* DELANTE de la escena y DETRAS de la pregunta (z-index 2, base.css). */
+    .ligero__velo {
+      display: block;
+      position: absolute; inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      /* En una pantalla de pie el ancho es poco y el alto mucho: las nubes
+         se agrandan y recorren mas para cubrir y destapar lo mismo. */
+      --k: 1;
+    }
+    @media (max-aspect-ratio: 1 / 1) {
+      .ligero__velo { --k: 1.75; }
+    }
+    /* EN UN TELEFONO, MENOS NUBES. Cada una se rasteriza una vez a su tamaño
+       de pantalla (un SVG con ruido fractal), y con 3x de densidad y las
+       nubes agrandadas eso es lo unico caro de la escena. Se quedan las
+       grandes, que son las que tapan y destapan; las chicas del fondo solo
+       adornaban. */
+    @media (max-width: 599px) {
+      .ligero__velo .nube--d { display: none; }
+    }
+
+    .nube {
+      position: absolute;
+      left: var(--x); top: var(--y);
+      width: calc(var(--w) * var(--k));
+      aspect-ratio: var(--r);
+      background: var(--forma) center / 100% 100% no-repeat;
+      opacity: var(--o);
+
+      /* Dos animaciones sobre la misma nube, cada una en lo suyo: SE VA con
+         el scroll (translate, scale, opacity) y FLOTA con el tiempo (transform).
+         No se pisan porque no comparten propiedad. */
+      animation-name: nubeSeVa, nubeFlota;
+      animation-duration: auto, var(--dur, 40s);
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: 1, infinite;
+      animation-direction: normal, alternate;
+      animation-fill-mode: both, none;
+      animation-timeline: --capa, auto;
+      animation-range-start: contain var(--ini), normal;
+      animation-range-end: contain var(--fin), normal;
+    }
+    /* Se mantiene entera la mayor parte del camino y se desvanece al final de
+       su tramo: asi tapa mientras se aparta, y no se queda a medias. */
+    @keyframes nubeSeVa {
+      from { translate: 0 0; scale: 1; opacity: var(--o); }
+      55%  { opacity: var(--o); }
+      to   { translate: calc(var(--dx) * var(--k)) var(--dy); scale: var(--sc); opacity: 0; }
+    }
+    @keyframes nubeFlota {
+      from { transform: translateX(-1.4vw); }
+      to   { transform: translateX(1.4vw); }
+    }
+
+    /* Las de dentro tambien flotan, despacio, cada una con su tiempo. */
+    .ligero__nube {
+      animation: nubeDeriva var(--dur, 55s) ease-in-out var(--ret, 0s) infinite alternate;
+    }
+    @keyframes nubeDeriva {
+      from { translate: -4% 0; }
+      to   { translate: 4% 0; }
+    }
+  }
+}

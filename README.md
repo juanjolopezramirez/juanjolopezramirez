@@ -86,7 +86,7 @@ juanjo-web/
     │   ├── index.astro     redirige a /es/
     │   └── [lang]/         index · work · projects · writing · about
     ├── scripts/site.js     todo el comportamiento del cliente
-    └── styles/             base.css · tablet.css · desktop.css
+    └── styles/             tokens.css · base.css · tablet.css · desktop.css · paper.css · sketch.css
 ```
 
 **Ver [TEXTOS.md](TEXTOS.md)** para cambiar cualquier palabra sin romper nada.
@@ -114,6 +114,65 @@ quieras, esa sección puede leer archivos `.md` directamente y convertirlos en p
 
 Si quieres otro orden o quitar una, se edita `NAV` en `src/data/social.js` y aparece o
 desaparece del menú y del pie a la vez.
+
+---
+
+## Papel y tinta
+
+El sitio se dibuja como una hoja de papel mate sobre la que se han marcado ideas con tinta.
+Los colores y las tipografías de la casa no cambian: cambia el soporte y el trazo.
+
+| Archivo | Qué hace |
+|---|---|
+| `src/styles/tokens.css` | La paleta **Paper & Ink** (claro) y **Charcoal & Chalk** (oscuro): `--paper`, `--paper-raised`, `--paper-border`, `--ink`, `--ink-muted`, `--ink-soft`. Se enchufan a los roles que ya existían (`--papel`, `--papel-2`, `--papel-alto`) en `base.css`; no sustituyen a los cinco de la marca. |
+| `src/styles/paper.css` | El grano y la fibra del papel, como `background-image` de las superficies. **Una sola lista** de selectores: si una hoja nueva pide `--papel`, se añade ahí. |
+| `src/styles/sketch.css` | Los trazos: subrayados, marcos de tarjeta, la costura del pie. Cada forma es un SVG en una variable `--tr-*` que se usa como `mask`, así que el color lo pone el tema. |
+
+**Reglas que conviene no romper**
+
+- **El oro es de la corrección escrita** (y de la línea del camino). Los trazos van en tinta
+  (`--ink`, `--trazo-suave`) o en `currentColor`; nunca en `--ring`.
+- **La letra sigue siendo el slate de la casa de día.** `ink-muted` da 4.4:1 sobre el papel y no
+  llega para texto pequeño. Si algún día se quiere la letra en tinta, es una línea en `base.css`:
+  `--slate: var(--ink)`.
+- **Los trazos van fuera de flujo** (`::before`/`::after` con `position: absolute` y
+  `pointer-events: none`): las pantallas de la portada caben justas y no admiten altura extra.
+- **El grano no se anima ni se pone fijo en pantalla.** Va con la hoja.
+- **El botón de tema en móvil mira el fondo.** `initTema` (en `site.js`) decide si hay papel debajo
+  leyendo el color de fondo de la primera superficie grande, y trata cualquier `background-image`
+  como «campo o cielo, no papel». El grano de `paper.css` ES un `background-image`, así que
+  `soloGrano()` lo reconoce (SVG en data-URI y nada más). Si algún día el papel lleva otra imagen de
+  fondo, hay que enseñársela ahí o el botón dejará de asomar en móvil.
+- **El hero es papel bajo 1200 px.** Ya no hay campo verde animado en móvil ni tablet: el bloque
+  «EL HERO, EN HOJA» (`paper.css`, al final) reasigna el color de cada pieza (letra, redes, botones,
+  ficha) a tinta sobre papel, **solo cambia colores y fondos, nunca tamaños ni márgenes**, porque la
+  primera pantalla va justa en un teléfono bajo (5 px de holgura a 375×667). Desde 1200 px el hero es
+  el de siempre: columna verde a la izquierda, hoja a la derecha.
+- **El pinar que queda lleva grano** solo en las pastillas de la cabecera y los discos de las redes.
+  La columna verde del hero de escritorio y las páginas de pinar (`/meet/`, `/direct/`) siguen lisas.
+- **La cita (`Rhema.astro`) es una frase, no una ficha.** Su maqueta está en `base.css` y se pinta
+  con tres variables locales (`--rh-tinta`, `--rh-suave`, `--rh-oro`, `--rh-trazo`): papel por
+  defecto, y la columna verde de escritorio las pone en hueso. La comilla, la raya sobre la firma y
+  el aro de la cara son trazos de `sketch.css`. No hay que duplicar reglas por contexto: se cambian
+  las variables.
+- **Antes de tocar la altura de algo en la portada, mide el salto entre pantallas.** `initDiapositivas`
+  se apaga para TODA la página si una sola pantalla mide más que la ventana + 8 px. Ya están apagadas
+  por diseño —páginas más altas que el móvil— `/projects/` y las de pinar a 375×667 y 360×640, y las
+  páginas de casa (`/recvid/`…) en todos los tamaños; eso no es una rotura, es scroll normal.
+- **La niebla del páramo** (`niebla.css` + `Ligero.astro`, solo en la portada: «¿Qué significa
+  caminar ligero?»). Es un velo de nubes SVG **delante** del dibujo que lo tapa al empezar y se abre
+  mientras se baja, y unas pocas nubes más **entre** sus planos 3D. Las nubes son SVG de ruido
+  fractal (`public/assets/paramo/nubes/`, cinco formas × claro/oscuro, las genera una semilla fija).
+  Se mueven con animaciones atadas al scroll de CSS —las mismas que ya mueven el «ojo»—: sin JS.
+  **Regla: a los 70% del recorrido no queda ninguna nube delante y el dibujo se ve entero.** Sin
+  movimiento reducido o sin `animation-timeline` (Firefox) no hay velo. En móvil se ocultan las
+  nubes chicas (cada SVG con ruido se rasteriza una vez a su tamaño de pantalla). Para activarla en
+  «Sobre el camino»: `<Ligero nubes />`.
+- La 404 y el aviso de «la página llegó a medias» **no** usan estas hojas a propósito: tienen que
+  salir aunque las hojas no carguen.
+
+Para un trazo nuevo: añade **una** forma como `--tr-algo` en `sketch.css`, súmala a la lista del
+molde común y pídela con `mask-image` + `background: <token de tinta>`.
 
 ---
 
