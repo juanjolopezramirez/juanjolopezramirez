@@ -160,14 +160,17 @@ Los colores y las tipografías de la casa no cambian: cambia el soporte y el tra
   por diseño —páginas más altas que el móvil— `/projects/` y las de pinar a 375×667 y 360×640, y las
   páginas de casa (`/recvid/`…) en todos los tamaños; eso no es una rotura, es scroll normal.
 - **La niebla del páramo** (`niebla.css` + `Ligero.astro`, solo en la portada: «¿Qué significa
-  caminar ligero?»). Es un velo de nubes SVG **delante** del dibujo que lo tapa al empezar y se abre
-  mientras se baja, y unas pocas nubes más **entre** sus planos 3D. Las nubes son SVG de ruido
-  fractal (`public/assets/paramo/nubes/`, cinco formas × claro/oscuro, las genera una semilla fija).
-  Se mueven con animaciones atadas al scroll de CSS —las mismas que ya mueven el «ojo»—: sin JS.
-  **Regla: a los 70% del recorrido no queda ninguna nube delante y el dibujo se ve entero.** Sin
-  movimiento reducido o sin `animation-timeline` (Firefox) no hay velo. En móvil se ocultan las
-  nubes chicas (cada SVG con ruido se rasteriza una vez a su tamaño de pantalla). Para activarla en
-  «Sobre el camino»: `<Ligero nubes />`.
+  caminar ligero?»). Un velo de nubes SVG **delante** del dibujo que lo tapa al empezar y se abre
+  mientras se baja, y nubes **intercaladas** entre sus planos 3D: unas detrás de la figura (se
+  quedan) y otras delante (`ligero__nube--pasa`, se retiran con el scroll). Las nubes son SVG de
+  ruido fractal (`public/assets/paramo/nubes/`, cinco formas × claro/oscuro, las genera una semilla
+  fija). Se mueven con animaciones atadas al scroll de CSS —las mismas que ya mueven el «ojo»—: sin JS.
+  **Regla: el dibujo se posa a los 88% del recorrido y a partir de ahí no queda ninguna nube
+  delante.** El recorrido mide 220svh (120svh de scroll): fue de 300 y se sentía largo, con una cola
+  de 60svh en la que no pasaba nada. Sin movimiento reducido o sin `animation-timeline` (Firefox) no
+  hay velo ni nubes de delante. En móvil se ocultan las chicas y las más grandes (`*--esc`): cada SVG
+  con ruido se rasteriza una vez a su tamaño de pantalla. Para activarla en «Sobre el camino»:
+  `<Ligero nubes />`.
 - La 404 y el aviso de «la página llegó a medias» **no** usan estas hojas a propósito: tienen que
   salir aunque las hojas no carguen.
 

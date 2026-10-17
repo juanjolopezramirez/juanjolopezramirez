@@ -3933,7 +3933,12 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   /* Sin recorte: el dibujo va entero, apoyado en el pie de la pantalla. */
   --bajada: 0px;
   position: relative;
-  min-height: 300svh;
+  /* EL RECORRIDO. La seccion mide 220svh y la caja fija 100: el dibujo se
+     mueve durante 120svh de scroll. Medio 300 (200 de recorrido) y se sentia
+     largo, sobre todo al final: el dibujo se posaba a los 70% y los 60svh que
+     quedaban eran scroll sin nada que pasara. Ahora se posa a los 88%
+     (`ojo`, mas abajo) y la cola muerta es de 14svh. */
+  min-height: 220svh;
   background: var(--papel);
   color: var(--slate);
 }
@@ -6831,13 +6836,13 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
     /* EL PARAMO: SE MUEVE EL OJO. Un solo elemento animado —el mundo— y las
        capas quietas a sus distancias. Al entrar el dibujo esta abajo, casi
        fuera, y arriba la pregunta; al bajar sube y cada capa llega a su
-       ritmo —la meseta primero, el pasto el ultimo—, y a los siete decimos
+       ritmo —la meseta primero, el pasto el ultimo—, y a los 88 centesimos
        del camino se posa en su sitio y ahi se queda. Nunca sube de mas: va
        apoyado en el pie de la pantalla, y subirlo enseñaria su canto de
        abajo. */
     @keyframes ojo {
       0%   { transform: translate3d(0, 58svh, 0); }
-      70%  { transform: translate3d(0, 0, 0); }
+      88%  { transform: translate3d(0, 0, 0); }
       100% { transform: translate3d(0, 0, 0); }
     }
     .ligero__mundo {
@@ -6863,7 +6868,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
       animation-iteration-count: 1;
       animation-timeline: --capa;
       animation-range-start: contain 0%;
-      animation-range-end: contain 52%;
+      animation-range-end: contain 40%;
     }
     /* EN UN TELEFONO LA PREGUNTA SE QUEDA. Ahi el dibujo ocupa la mitad de
        abajo y arriba sobra cielo: la pregunta vive en el, sube un poco con el
@@ -6877,7 +6882,7 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
         top: 24%;
         animation-name: preguntaSube;
         animation-timing-function: linear;
-        animation-range-end: contain 70%;
+        animation-range-end: contain 88%;
       }
     }
 
