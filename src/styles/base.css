@@ -1163,9 +1163,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      · EL TRAZO ES DE sketch.css. La comilla de apertura (`rhema__marca`), la
        raya corta sobre la firma y el aro de la cara se dibujan alli; aqui
        solo se les guarda el sitio.
-     · NADA SE MUEVE. Antes respiraba doce segundos de ida y vuelta, como una
-       caja flotando. Una frase escrita a mano no flota: se escribe (el
-       reveal de abajo, en el telefono) y se queda.
+     · LA FRASE NO SE MUEVE. Antes respiraba doce segundos de ida y vuelta,
+       como una caja flotando. Una frase escrita a mano no flota: se escribe
+       (el reveal de abajo, en el telefono) y se queda. Lo unico que se mece
+       son las dos comillas, y es poco: ver `.rhema__comilla`.
      · TRES VARIABLES DE COLOR y ninguna regla duplicada. Papel por defecto;
        cada contexto cambia las variables y no la pieza. La columna verde de
        escritorio las pone en hueso (desktop.css).
@@ -1191,9 +1192,32 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-align: left;
 }
 .rhema__marca {
+  position: relative;
   display: block;
   width: 2.5rem; height: 2rem;
   margin: 0 0 .55rem;
+}
+/* LAS DOS COMILLAS SON DOS PIEZAS —la primera y la segunda del boceto, cada
+   una su fichero en assets/comillas/— y se colocan donde estaban en el dibujo
+   de las dos juntas (767 x 617): la primera a la izquierda y entera de alto, la
+   segunda a la derecha y un pelo mas baja. En porcentaje, para que valga igual
+   a 2.5rem en el telefono que a 1.5rem en la columna de escritorio. Su forma y
+   su color son de sketch.css. */
+.rhema__comilla { position: absolute; }
+.rhema__comilla:first-child { left: 0;     top: 0;    width: 45.3%; height: 100%; }
+.rhema__comilla:last-child  { left: 54.6%; top: 1.3%; width: 45.4%; height: 97%; }
+/* EL MECER. Suben y bajan un poco —9% de su propio alto: casi 3px en el
+   telefono y menos de 2 en la columna— y lo hacen EN CONTRAFASE: cuando una
+   baja la otra sube, como un balancin. Un vaiven lento (3.6 s de ida) con
+   arranque y llegada suaves, para que se note sin que se mire. Solo se mueven
+   `translate`, que no repinta nada. Sin movimiento, quietas. */
+@media (prefers-reduced-motion: no-preference) {
+  .rhema__comilla { animation: comillaVaiven 3.6s ease-in-out infinite alternate; }
+  .rhema__comilla:last-child { animation-delay: -3.6s; }
+  @keyframes comillaVaiven {
+    from { translate: 0 -9%; }
+    to   { translate: 0 9%; }
+  }
 }
 .rhema__text {
   margin: 0;

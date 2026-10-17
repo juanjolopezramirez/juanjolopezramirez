@@ -152,9 +152,16 @@ Los colores y las tipografías de la casa no cambian: cambia el soporte y el tra
   La columna verde del hero de escritorio y las páginas de pinar (`/meet/`, `/direct/`) siguen lisas.
 - **La cita (`Rhema.astro`) es una frase, no una ficha.** Su maqueta está en `base.css` y se pinta
   con tres variables locales (`--rh-tinta`, `--rh-suave`, `--rh-oro`, `--rh-trazo`): papel por
-  defecto, y la columna verde de escritorio las pone en hueso. La comilla, la raya sobre la firma y
-  el aro de la cara son trazos de `sketch.css`. No hay que duplicar reglas por contexto: se cambian
-  las variables.
+  defecto, y la columna verde de escritorio las pone en hueso. La raya sobre la firma y el aro de la
+  cara son trazos de `sketch.css`. No hay que duplicar reglas por contexto: se cambian las variables.
+- **Las comillas de la cita son dos piezas dibujadas a mano** (`public/assets/comillas/primera.svg` y
+  `segunda.svg`, trazadas de un boceto a lápiz; las dos juntas fueron la medida para colocarlas). Son
+  una máscara y el color lo pone la cita con `--rh-tinta`: tinta sobre papel, hueso sobre el pinar
+  (negro o blanco, nunca verde). **Se mecen en contrafase**: suben y bajan un 9% de su propio alto
+  (`translate`, 3,6 s de ida, arranque y llegada suaves) y cuando una baja la otra sube, como un
+  balancín; es lo único de la cita que se mueve, y con movimiento reducido se quedan quietas.
+  Para cambiar el movimiento: `comillaVaiven` en `base.css` (la amplitud es el `9%`; para que bailen
+  juntas, quitar el `animation-delay` de la segunda).
 - **Antes de tocar la altura de algo en la portada, mide el salto entre pantallas.** `initDiapositivas`
   se apaga para TODA la página si una sola pantalla mide más que la ventana + 8 px. Ya están apagadas
   por diseño —páginas más altas que el móvil— `/projects/` y las de pinar a 375×667 y 360×640, y las
