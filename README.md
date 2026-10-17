@@ -187,9 +187,17 @@ vacía y se confiaba en que todo llegara; si algo se quedaba a medias, el libro 
 Ahora **el libro no se ve hasta estar entero** y mientras llega ocupa su lugar una carga que dice qué
 pasa (`carga.css`, markup en `Panels.astro` → `#book-load`, lógica en `site.js` → «La carga»):
 
-- **La rosa** es el loader de Uiverse (Nawsome) con los colores de la casa. Tiene **una marca por
-  página**: busca (el barrido del original) y se pone dorada cuando esa página llegó y se decodificó.
-  Con movimiento reducido nada gira: el aro es una barra de progreso (`--p`), la aguja mira al norte.
+- **La rosa** es el loader de Uiverse (Nawsome), **dibujada a mano con los trazos del resto del
+  sitio**: tiza sobre el pinar. Aros de una vuelta que se pasan del punto de partida (se dibujan y
+  se borran mientras giran, `pathLength` en 100), agujas contorneadas con el norte rayado, marcas
+  que son rayas cortas cada una distinta de su vecina (el pulso sale de un número fijo por posición,
+  en `site.js`), una máscara de ruido (`--tiza`) que le quita cuerpo a las líneas, el subrayado
+  `--tr-sub-fino` bajo el título y el marco `--tr-marco` en los botones. Colores: aro verde que se
+  vuelve dorado, aguja dorada y hueso; el dorado va contra la regla «nunca oro» de `sketch.css` y es
+  una excepción a propósito (se cambia `--ring-300` por `--bone`). Tiene **una marca por página**:
+  busca (el barrido del original) y se pone dorada cuando esa página llegó y se decodificó; al
+  terminar, una marca de «listo» se dibuja encima. Con movimiento reducido nada gira: el aro es una
+  barra de progreso (`--p`), la aguja mira al norte.
 - **Los pasos** son «Abriendo el lector → Trayendo las páginas 4 de 10 → Encuadernando el libro →
   Listo», más «un libro de N páginas, se pasan con un toque o las flechas». Cinco idiomas
   (`book.load.*` en `ui.js`).

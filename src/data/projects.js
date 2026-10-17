@@ -137,7 +137,9 @@ export const PROJECTS = [
       fr: 'Bâti depuis zéro : d’abord le groupe et l’habitude de s’entraîner, ensuite le classement. Ici la parole tenue pèse plus que n’importe quelle recrue.',
       it: 'Si monta da zero: prima il gruppo e l’abitudine di allenarsi, poi la classifica. Qui la parola data pesa più di qualsiasi acquisto.'
     } },
-  { id: 'let-be',     name: 'Let Be',         src: '/assets/projects/let-be.svg',     w: 519, h: 323, scale: 1.02,
+  { id: 'let-be',     name: 'Let Be',         src: '/assets/projects/let-be.svg',     w: 537, h: 134, scale: 0.74,
+    /* Let Be Develop: el wordmark en la cinta y solo el icono en el circulo. */
+    avatar: '/assets/avatars/let-be.svg', avatarW: 112, avatarH: 134,
     tags: ['software', 'comunidad'],
     role: {
       es: 'Desarrollo y consultoría de tecnología',

@@ -22,7 +22,7 @@
    FUERA DE FLUJO. Todo son pseudo-elementos con `position: absolute` y
    `pointer-events: none`: no empujan nada, no tapan un clic y no se
    seleccionan con el texto. Al ser `content: ""` sin texto, los lectores de
-   pantalla no los anuncian. No hay animacion en ningun trazo.
+   pantalla no los anuncian. No hay animacion en ningun trazo (la rosa de la carga del libro, styles/carga.css, esta dibujada con estos mismos trazos pero ella si se mueve: es un loader).
 
    Si algo necesita un trazo nuevo, se añade aqui UNA forma y se pide por su
    variable; no se copia un SVG dentro de un componente.
@@ -66,7 +66,9 @@
 .rhema__by::before,
 .rhema__face::after,
 .site-footer::before,
-.site-nav__wide-list a::after {
+.site-nav__wide-list a::after,
+.carga__titulo::after,
+.carga__btn::after {
   content: "";
   position: absolute;
   pointer-events: none;

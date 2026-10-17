@@ -11,12 +11,27 @@
      Abriendo el lector · Trayendo las páginas 4 de 10 · Encuadernando · Listo
      «Un libro de 10 páginas. Se pasan con un toque o con las flechas.»
 
-   LA ROSA. Es el loader de Uiverse (Nawsome): dos aros con mascara, ocho
-   marcas y dos agujas que giran, con los colores de la casa —aro verde que
-   se vuelve dorado, aguja dorada y aguja hueso— y con una diferencia: hay
-   una marca por pagina, y cada una pasa de «buscando» (el barrido del
-   original) a dorada fija cuando esa pagina llega y se decodifica. Asi la
-   animacion no es adorno, es el progreso de verdad.
+   LA ROSA. Es el loader de Uiverse (Nawsome): dos aros, ocho marcas y dos
+   agujas que giran. Aqui esta DIBUJADA A MANO, con los mismos trazos que el
+   resto del sitio (sketch.css): tiza sobre el pinar. Los aros son una vuelta
+   con pulso que se pasa del punto de partida, como la cierra una mano; las
+   agujas son contornos con el norte rayado; las marcas son rayas cortas, cada
+   una un poco distinta de su vecina. Todo se dibuja con trazo y no con
+   relleno, asi que lo que se anima es el propio trazo: el aro se va dibujando
+   y borrando mientras gira (`pathLength` en 100, el mismo juego de
+   `stroke-dasharray` del original), y una mascara de ruido le quita a las
+   lineas un poco de cuerpo, como la tiza (`--tiza`).
+
+   Y hay una diferencia con el original: una marca por pagina. Cada una pasa
+   de «buscando» (el barrido) a dorada fija cuando esa pagina llega y se
+   decodifica, asi que la animacion no es adorno, es el progreso de verdad.
+   Al terminar, la rosa se apaga y una marca de «listo» se dibuja encima.
+
+   Colores: el aro verde que se vuelve dorado, la aguja dorada y la aguja
+   hueso, como el primer dia. Ojo: sketch.css dice «nunca oro», y aqui hay
+   oro en las marcas llegadas y en la aguja. Es una excepcion a proposito, de
+   un objeto que se mueve y no de texto, y se quita cambiando `--ring-300`
+   por `--bone` en `.is-lista` y en `.carga__norte`.
 
    LUGAR. `.carga` y `.flip` comparten la celda de la rejilla del marco
    (grid-area 1 / 1): el libro esta ya en su sitio, con su tamaño, pero sin
@@ -67,68 +82,120 @@
 }
 
 /* ---- La rosa ---- */
+.carga {
+  /* La tiza: ruido fractal que deja huecos sueltos en el trazo. Se pinta una
+     vez (mascara estatica) y no se recalcula mientras la rosa gira. */
+  --tiza: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='t' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3.2 0 0 0 -.62'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23t)'/%3E%3C/svg%3E");
+}
 .carga__rosa {
   display: block;
-  width: 7.5rem; height: 7.5rem;
-  margin-bottom: .35rem;
+  width: 8rem; height: 8rem;
+  margin-bottom: .5rem;
   overflow: visible;
+  -webkit-mask: var(--tiza) 0 0 / 120px 120px;
+          mask: var(--tiza) 0 0 / 120px 120px;
+}
+
+/* Todo es trazo: sin relleno y con las puntas redondas, como una tiza */
+.carga__aro, .carga__marca, .carga__rayado, .carga__listo {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.carga__norte, .carga__sur, .carga__pivote {
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .carga__giro,
 .carga__aro { transform-origin: 80px 80px; }
 .carga__giro { animation: carga-giro 2s linear infinite; }
 .carga__aro {
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
   transform: rotate(-45deg);
   animation: carga-trazo 2s linear infinite;
 }
-.carga__aro--a { stroke: var(--iris); }
-.carga__aro--b { stroke: var(--ring); }
+.carga__aro--a { stroke: var(--iris); stroke-width: 5.2; }
+.carga__aro--b { stroke: var(--ring); stroke-width: 3; }
 
+/* La aguja gira sobre su centro (el grupo ya esta en el 80, 80) */
 .carga__aguja {
   transform: rotate(45deg);
-  transform-origin: 16px 52px;
+  transform-origin: 0 0;
   animation: carga-aguja 2s linear infinite;
 }
-.carga__norte   { fill: var(--ring); }
-.carga__sur     { fill: var(--bone); }
-.carga__norte--b { fill: var(--ring-300); }
-.carga__sur--b   { fill: var(--iris-300); }
+.carga__norte  { fill: rgb(192 138 46 / .26); stroke: var(--ring-300); stroke-width: 3; }
+.carga__rayado { stroke: var(--ring-300); stroke-width: 2; opacity: .85; }
+.carga__sur    { fill: rgb(241 239 233 / .1); stroke: var(--bone); stroke-width: 3; }
+.carga__pivote { fill: var(--bone); stroke: var(--bone); stroke-width: 1.6; }
 
-/* Una marca por pagina. Buscando: el barrido del original, una tras otra.
-   Llegada: dorada y fija, con un pulso. `--i` y `--n` los pone site.js. */
+/* Una marca por pagina, cada una un poco distinta de su vecina (site.js les
+   da el pulso). Buscando: el barrido del original, una tras otra; se dibuja
+   y se borra. Llegada: dorada y fija, con un pulso. `--i` y `--n` los pone
+   site.js. */
 .carga__marca {
-  stroke: var(--bone);
+  stroke: var(--pine-200);
+  stroke-width: 3.4;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: -1;
   animation: carga-marca 2s linear infinite;
   animation-delay: calc(-2s * (var(--n) - var(--i)) / var(--n));
 }
 .carga__marca.is-lista {
   stroke: var(--ring-300);
+  stroke-width: 4.4;
   stroke-dashoffset: 0;
   animation: carga-lista .5s var(--ease) both;
 }
 
+/* «Listo»: la rosa se apaga y la marca se dibuja encima */
+.carga__listo {
+  stroke: var(--bone);
+  stroke-width: 6;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+}
+.carga.is-listo .carga__giro,
+.carga.is-listo .carga__aguja,
+.carga.is-listo .carga__marcas { opacity: .22; transition: opacity .3s var(--ease); }
+.carga.is-listo .carga__listo { animation: carga-traza .4s .05s var(--ease) both; }
+
 @keyframes carga-giro  { from { transform: rotate(0); } to { transform: rotate(720deg); } }
 @keyframes carga-aguja { from { transform: rotate(45deg); } to { transform: rotate(405deg); } }
 @keyframes carga-trazo {
-  from, to { stroke-dashoffset: 452;   transform: rotate(-45deg); }
-  50%      { stroke-dashoffset: 169.5; transform: rotate(-180deg); }
+  from, to { stroke-dashoffset: 100;  transform: rotate(-45deg); }
+  50%      { stroke-dashoffset: 37.5; transform: rotate(-180deg); }
 }
 @keyframes carga-marca {
-  from, 3%, 47%, to { stroke-dashoffset: -12; }
+  from, 3%, 47%, to { stroke-dashoffset: -1; }
   14%, 36%          { stroke-dashoffset: 0; }
 }
 @keyframes carga-lista {
-  from { stroke-width: 4; }
+  from { stroke-width: 4.4; }
   40%  { stroke-width: 8; }
-  to   { stroke-width: 4; }
+  to   { stroke-width: 4.4; }
 }
+@keyframes carga-traza { to { stroke-dashoffset: 0; } }
 
 /* ---- Lo que dice ---- */
+/* El titulo lleva su subrayado a mano, el mismo del encabezado de cada seccion
+   (--tr-sub-fino) y en el verde claro de la tiza. */
 .carga__titulo {
-  margin: 0;
+  position: relative;
+  margin: 0 0 .3rem;
   font-family: var(--serif);
   font-size: 1.3rem; font-weight: 400; line-height: 1.2;
   color: var(--bone);
+}
+.carga__titulo::after {
+  left: -.05em; right: -.05em;
+  bottom: -.3em;
+  height: .34em;
+  background: var(--pine-200);
+  opacity: .8;
+  -webkit-mask-image: var(--tr-sub-fino);
+          mask-image: var(--tr-sub-fino);
 }
 .carga__paso {
   margin: 0;
@@ -159,20 +226,36 @@
   margin-top: .5rem;
 }
 .carga__acciones[hidden] { display: none; }
+/* Los botones llevan el marco a mano de las tarjetas (--tr-marco): cuatro
+   lados con pulso y el pico que sobra en las esquinas. El principal es de
+   hueso, y su marco asoma 2px por fuera del relleno para que el borde no sea
+   una recta. */
 .carga__btn {
+  position: relative;
   min-height: 2.75rem;
-  padding: 0 1.2rem;
-  border-radius: 999px;
+  padding: 0 1.3rem;
+  border-radius: 6px;
   font: 600 .9rem/1 var(--sans);
   color: var(--bone);
   background: transparent;
-  box-shadow: inset 0 0 0 1.5px rgb(241 239 233 / .42);
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.carga__btn:hover { background: rgb(241 239 233 / .12); }
-.carga__btn--si { background: var(--bone); color: var(--night); box-shadow: none; }
+.carga__btn::after {
+  inset: 0;
+  border-radius: inherit;
+  background: var(--pine-200);
+  opacity: .85;
+  -webkit-mask-image: var(--tr-marco);
+          mask-image: var(--tr-marco);
+  transition: opacity .2s var(--ease), background-color .2s var(--ease);
+}
+.carga__btn:hover { background: rgb(241 239 233 / .1); }
+.carga__btn:hover::after, .carga__btn:focus-visible::after { background: var(--bone); opacity: 1; }
+.carga__btn--si { background: var(--bone); color: var(--night); }
+.carga__btn--si::after { inset: -2px; background: var(--bone); opacity: 1; }
 .carga__btn--si:hover { background: #fff; }
-.carga__btn:focus-visible { outline: 2px solid var(--ring-300); outline-offset: 3px; }
+.carga__btn--si:hover::after { background: #fff; }
+.carga__btn:focus-visible { outline: 2px solid var(--ring-300); outline-offset: 4px; }
 .carga__btn[hidden] { display: none; }
 
 /* ---- Si no llega: quieta y apagada ---- */
@@ -198,8 +281,9 @@
   .carga__aro {
     animation: none;
     transform: rotate(-90deg);
-    stroke-dashoffset: calc(452 * (1 - var(--p, 0)));
+    stroke-dashoffset: calc(100 * (1 - var(--p, 0)));
   }
   .carga__marca { animation: none; stroke-dashoffset: 0; opacity: .28; }
   .carga__marca.is-lista { animation: none; opacity: 1; }
+  .carga.is-listo .carga__listo { animation: none; stroke-dashoffset: 0; }
 }

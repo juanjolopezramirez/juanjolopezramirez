@@ -1370,13 +1370,23 @@ function initBook() {
     ld.t0 = performance.now();
     ld.title.textContent = t('book.load.title').replace('{w}', say(TERMS[id].title));
     ld.see.textContent = t('book.load.see').replace('{t}', n);
-    /* Una marca por pagina, repartidas en el aro desde arriba, hacia la derecha */
+    /* Una marca por pagina, repartidas en el aro desde arriba, hacia la
+       derecha. Cada una es una raya corta y un poco distinta de su vecina
+       —el angulo, donde empieza, lo larga que es y cuanto se curva—, como
+       las pone una mano. El «pulso» sale de un numero fijo por posicion, no
+       del azar: el mismo libro dibuja siempre la misma rosa. */
     ld.marks.textContent = '';
     for (let i = 0; i < n; i++) {
-      const m = d.createElementNS(SVG_NS, 'polyline');
+      const jit = (k) => { const x = Math.sin((i + 1) * 91.17 + k * 17.31) * 10000; return x - Math.floor(x) - 0.5; };
+      const y0 = 54 + jit(2) * 2.6;
+      const len = 10.5 + jit(3) * 3.2;
+      const m = d.createElementNS(SVG_NS, 'path');
       m.setAttribute('class', 'carga__marca');
-      m.setAttribute('points', '0,2 0,14');
-      m.setAttribute('transform', 'rotate(' + (180 + (360 * i) / n).toFixed(2) + ') translate(0,40)');
+      m.setAttribute('pathLength', '1');
+      m.setAttribute('d', 'M' + (jit(5) * 0.8).toFixed(1) + ',' + y0.toFixed(1)
+        + ' Q' + (jit(4) * 2.2).toFixed(1) + ',' + (y0 + len / 2).toFixed(1)
+        + ' ' + (jit(6) * 0.9).toFixed(1) + ',' + (y0 + len).toFixed(1));
+      m.setAttribute('transform', 'rotate(' + (180 + (360 * i) / n + jit(1) * 5).toFixed(1) + ')');
       m.style.setProperty('--i', String(i));
       m.style.setProperty('--n', String(n));
       ld.marks.appendChild(m);
@@ -1420,7 +1430,7 @@ function initBook() {
       put(ld.step, t('book.load.s.done'));
       ld.count.textContent = '';
       ld.root.classList.add('is-listo');
-      await nap(Math.max(0, MIN_SHOW - seen) + 350);
+      await nap(Math.max(0, MIN_SHOW - seen) + 520);
       if (!alive()) return false;
       ld.root.classList.add('is-sale');
       await nap(240);
