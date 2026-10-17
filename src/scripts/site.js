@@ -1293,6 +1293,244 @@ function initBook() {
   const LIGHT = quiet.matches ? 300 : 850;
   const HEAVY = quiet.matches ? 300 : 1300;
 
+  /* ---- La carga ----------------------------------------------
+     Un libro en PDF son diez imagenes y una libreria. Antes se abria el
+     panel con una caja vacia y se confiaba en que todo llegara: si la
+     libreria o una imagen se quedaban a medias, el libro no salia o salia
+     roto, y a nadie se le decia nada. Ahora el libro no se ve hasta estar
+     ENTERO —libreria, texto y las paginas descargadas y decodificadas— y
+     mientras tanto la rosa de styles/carga.css dice que esta pasando:
+     una marca por pagina que se enciende cuando esa pagina llega.
+
+     Si pasan SLOW ms sin terminar, ofrece abrir lo que ya haya (si la tapa
+     y el primer pliego estan) o leerlo en texto. Si algo falla de verdad,
+     reintentar o leerlo en texto. Cada paso comprueba `fbGen`: cerrar el
+     panel o abrir otro libro lo deja todo sin efecto. */
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const SHOW = 300;          // lo que tarda en aparecer la carga (animation-delay en carga.css)
+  const MIN_SHOW = 900;      // si llego a verse, que se vea lo bastante para leerse
+  const SLOW = 7000;         // desde aqui «va lento»
+  const STALL = 12000;       // una imagen sin respuesta en tanto tiempo se pide de nuevo
+  const DECODE_CAP = 1500;   // lo maximo que se espera a que una imagen termine de decodificarse
+  const RETRIES = 2;         // ...hasta dos veces
+  const AT_ONCE = 4;         // paginas que se piden a la vez
+  const FIRST_VIEW = 3;      // la tapa y el primer pliego: con eso ya se puede abrir
+  const ABORT = new Error('abort');
+  const REOPEN = 'jl-libro';  // sessionStorage: el libro a reabrir tras recargar
+  const nap = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const ld = {
+    root: el('book-load'),
+    marks: el('book-load-ticks'),
+    title: el('book-load-title'),
+    step: el('book-load-step'),
+    count: el('book-load-count'),
+    see: el('book-load-see'),
+    note: el('book-load-note'),
+    acts: el('book-load-actions'),
+    now: s.panel.querySelector('[data-book-now]'),
+    retry: s.panel.querySelector('[data-book-retry]'),
+    text: s.panel.querySelector('[data-book-text]'),
+    n: 0, ok: new Set(), t0: 0, timer: 0, late: false, skip: null,
+  };
+  let cur = null;            // el libro en PDF que se esta abriendo (para reintentar)
+  let booting = false;       // mientras llega: las flechas del teclado no pasan nada
+
+  /* Que botones y que aviso toca: «lento» o «fallo», segun el momento */
+  function ldSync() {
+    const err = ld.root.classList.contains('is-falla');
+    let first = true;
+    for (let i = 0; i < Math.min(FIRST_VIEW, ld.n); i++) if (!ld.ok.has(i)) first = false;
+    ld.now.hidden = !(ld.late && first && !err && ld.skip);
+    ld.retry.hidden = !err;
+    ld.text.hidden = !(ld.late || err);
+    ld.acts.hidden = ld.now.hidden && ld.retry.hidden && ld.text.hidden;
+    ld.note.hidden = !(ld.late || err);
+    put(ld.note, ld.note.hidden ? '' : t(err ? 'book.load.fail' : 'book.load.slow'));
+  }
+  /* Solo se escribe si cambia: la region es `role="status"`, y reescribir el
+     mismo texto en cada pagina que llega haria que el lector de pantalla lo
+     repitiera una y otra vez. */
+  const put = (node, text) => { if (node.textContent !== text) node.textContent = text; };
+  function ldStep(key) {
+    put(ld.step, t('book.load.s.' + key));
+    ld.count.textContent = '';
+  }
+  function ldPage(i) {
+    ld.ok.add(i);
+    const m = ld.marks.children[i];
+    if (m) m.classList.add('is-lista');
+    ld.count.textContent = t('book.load.count').replace('{n}', ld.ok.size).replace('{t}', ld.n);
+    ld.root.style.setProperty('--p', String(ld.ok.size / ld.n));
+    ldSync();
+  }
+  function ldBegin(id, n) {
+    clearTimeout(ld.timer);
+    ld.n = n; ld.ok = new Set(); ld.late = false; ld.skip = null;
+    ld.t0 = performance.now();
+    ld.title.textContent = t('book.load.title').replace('{w}', say(TERMS[id].title));
+    ld.see.textContent = t('book.load.see').replace('{t}', n);
+    /* Una marca por pagina, repartidas en el aro desde arriba, hacia la derecha */
+    ld.marks.textContent = '';
+    for (let i = 0; i < n; i++) {
+      const m = d.createElementNS(SVG_NS, 'polyline');
+      m.setAttribute('class', 'carga__marca');
+      m.setAttribute('points', '0,2 0,14');
+      m.setAttribute('transform', 'rotate(' + (180 + (360 * i) / n).toFixed(2) + ') translate(0,40)');
+      m.style.setProperty('--i', String(i));
+      m.style.setProperty('--n', String(n));
+      ld.marks.appendChild(m);
+    }
+    ld.root.style.setProperty('--p', '0');
+    ld.root.className = 'carga';
+    ld.root.hidden = false;
+    s.panel.setAttribute('data-carga', '');
+    flipBox.setAttribute('data-carga', '');
+    ldStep('lib');
+    ld.timer = setTimeout(() => { ld.late = true; ldSync(); }, SLOW);
+    ldSync();
+  }
+  function ldFail() {
+    clearTimeout(ld.timer);
+    ld.skip = null;
+    ld.root.classList.add('is-falla');
+    put(ld.step, '');
+    ld.count.textContent = '';
+    ldSync();
+    if (s.panel.contains(d.activeElement) || d.activeElement === d.body) {
+      ld.retry.focus({ preventScroll: true });
+    }
+  }
+  function ldStop() {
+    clearTimeout(ld.timer);
+    ld.skip = null;
+    ld.root.hidden = true;
+    s.panel.removeAttribute('data-carga');
+    flipBox.removeAttribute('data-carga');
+  }
+
+  /* El libro esta listo. Si la carga llego a verse, se queda lo justo para
+     leerse, dice «Listo» y se va; si el libro estaba en cache y llego antes
+     de que ella apareciera, no se llega a ver nada. */
+  async function reveal(book, gen) {
+    const alive = () => gen === fbGen && fb === book;
+    clearTimeout(ld.timer);
+    const seen = performance.now() - ld.t0 - SHOW;
+    if (seen > 0 && !quiet.matches) {
+      put(ld.step, t('book.load.s.done'));
+      ld.count.textContent = '';
+      ld.root.classList.add('is-listo');
+      await nap(Math.max(0, MIN_SHOW - seen) + 350);
+      if (!alive()) return false;
+      ld.root.classList.add('is-sale');
+      await nap(240);
+      if (!alive()) return false;
+    }
+    s.panel.setAttribute('data-llego', '');
+    ldStop();
+    if (!quiet.matches) {
+      flipBox.classList.add('is-llega');
+      setTimeout(() => flipBox.classList.remove('is-llega'), 600);
+    }
+    return true;
+  }
+
+  /* La libreria, con tres intentos: un hipo de red no debe dejar el libro
+     sin abrir (y un `import()` que fallaba no avisaba a nadie). */
+  let pageFlipLib = null;
+  let libDead = false;       // la libreria no llego: reintentar aqui no sirve, hay que recargar
+  async function getLib() {
+    if (pageFlipLib) return pageFlipLib;
+    let err;
+    for (let i = 0; i < 3; i++) {
+      try { return (pageFlipLib = await import('page-flip')); }
+      catch (e) { err = e; await nap(500 * (i + 1)); }
+    }
+    libDead = true;
+    throw err;
+  }
+
+  /* Lo que el PDF tiene escrito: ayuda a quien no ve la imagen, no es lo
+     que se espera, asi que no puede retener el libro. */
+  function getTexts(info) {
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 8000);
+    return fetch(info.base + 'pages.json?v=' + info.v, { signal: ctl.signal })
+      .then((r) => (r.ok ? r.json() : []))
+      .catch(() => [])
+      .finally(() => clearTimeout(to));
+  }
+
+  const pageSrc = (info, i, w, retry) =>
+    info.base + String(i + 1).padStart(2, '0') + '-' + w + '.jpg?v=' + info.v + (retry ? '&r=' + retry : '');
+  /* Con ahorro de datos o red de 3G para abajo, solo la imagen de 900 */
+  const frugal = () => {
+    const c = navigator.connection;
+    return !!c && (c.saveData || ['slow-2g', '2g', '3g'].includes(c.effectiveType));
+  };
+
+  /* Trae UNA pagina: resuelve cuando esta descargada Y decodificada (sin lo
+     segundo, el primer giro la pintaba a medias). Si falla, o no contesta
+     en STALL ms, la pide de nuevo con otra URL, para saltarse una respuesta
+     rota o una conexion colgada; a la tercera se rinde. */
+  function bring(info, img, i, gen, slim) {
+    return new Promise((resolve, reject) => {
+      let tries = 0;
+      let dog = 0;
+      const again = () => {
+        clearTimeout(dog);
+        img.onload = img.onerror = null;
+        if (gen !== fbGen) { reject(ABORT); return; }
+        if (++tries > RETRIES) { reject(new Error('page ' + (i + 1))); return; }
+        setTimeout(go, 350 * tries);
+      };
+      const go = () => {
+        if (gen !== fbGen) { reject(ABORT); return; }
+        img.onload = () => {
+          clearTimeout(dog);
+          img.onload = img.onerror = null;
+          /* Decodificada, pero sin esperarla de mas: con la pestaña oculta el
+             navegador no decodifica y `decode()` no se resuelve hasta que se
+             vuelve (probado), y el libro se quedaria esperando para siempre.
+             Si la imagen esta rota, `decode()` la rechaza y se pide de nuevo. */
+          const decoded = img.decode && !d.hidden
+            ? Promise.race([img.decode(), nap(DECODE_CAP)])
+            : Promise.resolve();
+          decoded.then(resolve, again);
+        };
+        img.onerror = again;
+        dog = setTimeout(again, STALL);
+        if (!slim) img.srcset = pageSrc(info, i, 900, tries) + ' 900w, ' + pageSrc(info, i, 1600, tries) + ' 1600w';
+        img.src = pageSrc(info, i, 900, tries);
+      };
+      go();
+    });
+  }
+
+  /* Todas, de AT_ONCE en AT_ONCE y por orden (la tapa primero): asi cada
+     una tiene el ancho de banda para si y las marcas se encienden en fila. */
+  function bringAll(info, imgs, gen, got) {
+    const slim = frugal();
+    return new Promise((resolve, reject) => {
+      let next = 0;
+      let live = 0;
+      let left = imgs.length;
+      let dead = false;
+      const pump = () => {
+        while (!dead && live < AT_ONCE && next < imgs.length) {
+          const i = next++;
+          live++;
+          bring(info, imgs[i], i, gen, slim).then(() => {
+            live--; left--;
+            got(i);
+            if (left) pump(); else resolve();
+          }, (e) => { dead = true; reject(e); });
+        }
+      };
+      pump();
+    });
+  }
+
   /* DOS MANERAS DE MIRAR EL MISMO LIBRO. En pantalla ancha se ve el
      pliego entero. En el movil el libro es el mismo —dos paginas, el
      mismo papel, la misma curva— y cada pagina ocupa la pantalla, asi
@@ -1390,6 +1628,9 @@ function initBook() {
     if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
     fb = null;
     g = null;
+    booting = false;
+    ldStop();
+    s.panel.removeAttribute('data-llego');
     dropZoom();
     zoomBtn.hidden = true;
     flipBox.textContent = '';
@@ -1419,14 +1660,76 @@ function initBook() {
     flipBox.classList.add('is-thud');
   }
 
-  async function buildFlip(id, at) {
+  /* `boot` es la primera vez (con la carga a la vista); sin el, es un
+     reencuadernado por cambio de tamaño: las imagenes ya estan en cache y
+     no hay nada que enseñar. */
+  async function buildFlip(id, at, boot) {
     const gen = ++fbGen;
     const info = fbInfo;
-    const [{ PageFlip }, texts] = await Promise.all([
-      import('page-flip'),
-      fetch(info.base + 'pages.json?v=' + info.v).then((r) => r.json()).catch(() => []),
-    ]);
+    const n = info.pages;
+    if (boot) ldStep('lib');
+    const [lib, texts] = await Promise.all([getLib(), getTexts(info)]);
     if (gen !== fbGen) return;          // se cerro o se abrio otra mientras cargaba
+    const { PageFlip } = lib;
+
+    /* LAS PAGINAS, aun sueltas: se descargan antes de tocar nada, y sin
+       `loading="lazy"`. Las que la libreria no muestra estan en
+       `display:none`, y una imagen perezosa ahi no se pide jamas: la hoja
+       se giraba en blanco y la imagen llegaba despues, o no llegaba. Tapa
+       dura: se marcan la tapa y la contratapa; la libreria pone rigida la
+       hoja entera si una de sus caras lo es, asi que la pagina 2 y la
+       penultima giran pegadas a su carton. */
+    const hint = flipSize(info.ratio).pw;
+    const hardAt = [0, n - 1];
+    const imgs = [];
+    const els = [];
+    for (let i = 0; i < n; i++) {
+      const pg = h('div', 'flip__page');
+      if (hardAt.includes(i)) pg.dataset.density = 'hard';
+      const img = h('img');
+      img.sizes = hint + 'px';
+      img.alt = '';
+      img.draggable = false;
+      img.decoding = 'async';
+      pg.appendChild(img);
+
+      /* Lo que el PDF tiene escrito, para quien no ve la imagen */
+      const txt = texts[i] && texts[i].text;
+      if (txt) pg.appendChild(h('p', 'sr-only', txt));
+
+      /* Los enlaces del PDF siguen siendo enlaces: los del indice pasan a
+         su pagina, los de fuera abren en otra pestaña. */
+      ((texts[i] && texts[i].links) || []).forEach((L) => {
+        const a = h(L.href ? 'a' : 'button', 'flip__link');
+        if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener'; }
+        else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
+        a.setAttribute('aria-label', L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
+        Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
+        pg.appendChild(a);
+      });
+      imgs.push(img);
+      els.push(pg);
+    }
+
+    if (boot) {
+      ldStep('pages');
+      /* «Abrirlo ya»: abre con lo que haya (el resto sigue bajando). Solo se
+         ofrece cuando la tapa y el primer pliego ya estan. */
+      const skip = new Promise((r) => { ld.skip = r; });
+      ldSync();
+      const all = bringAll(info, imgs, gen, (i) => { if (gen === fbGen) ldPage(i); });
+      all.catch(() => { /* abierto antes de tiempo: lo que falle despues ya no importa */ });
+      await Promise.race([all, skip]);
+      ld.skip = null;
+      if (gen !== fbGen) return;
+      ldStep('bind');
+      ldSync();
+    } else {
+      imgs.forEach((img, i) => {
+        img.srcset = pageSrc(info, i, 900) + ' 900w, ' + pageSrc(info, i, 1600) + ' 1600w';
+        img.src = pageSrc(info, i, 900);
+      });
+    }
 
     if (fb) { try { fb.destroy(); } catch (err) { /* nada */ } }
     flipBox.textContent = '';
@@ -1437,9 +1740,12 @@ function initBook() {
     /* El ancho va en la caja de fuera: la libreria le pone width:100% al
        escenario. En el movil el pliego mide dos pantallas y los margenes
        negativos lo dejan ocupar una, centrado en el lomo: la camara se
-       mueve con `translate`. */
+       mueve con `translate`. (El alto que se le dio mientras cargaba, para
+       que la carga quedara centrada sobre el libro, se suelta: ahora lo
+       pone el escenario.) */
     const stage = h('div', 'flip__stage');
     flipBox.style.width = pw * 2 + 'px';
+    flipBox.style.height = '';
     flipBox.style.marginInline = cam ? -pw / 2 + 'px' : '';
     flipBox.toggleAttribute('data-cam', cam);
 
@@ -1458,44 +1764,7 @@ function initBook() {
     if (back) flipBox.style.setProperty('--board-back', back);
     flipBox.style.setProperty('--over', Math.max(5, Math.round(pw * 0.018)) + 'px');
     flipBox.append(shelf, stage);
-
-    const n = info.pages;
-    /* Tapa dura: se marcan la tapa y la contratapa. La libreria pone
-       rigida la hoja entera si una de sus caras lo es, asi que la pagina
-       2 y la penultima giran pegadas a su carton. */
-    const hardAt = [0, n - 1];
-    const els = [];
-    for (let i = 0; i < n; i++) {
-      const pg = h('div', 'flip__page');
-      if (hardAt.includes(i)) pg.dataset.density = 'hard';
-      const src = (w) => info.base + String(i + 1).padStart(2, '0') + '-' + w + '.jpg?v=' + info.v;
-      const img = h('img');
-      img.src = src(900);
-      img.srcset = src(900) + ' 900w, ' + src(1600) + ' 1600w';
-      img.sizes = pw + 'px';
-      img.alt = '';
-      img.draggable = false;
-      img.decoding = 'async';
-      if (i > 3) img.loading = 'lazy';
-      pg.appendChild(img);
-
-      /* Lo que el PDF tiene escrito, para quien no ve la imagen */
-      const txt = texts[i] && texts[i].text;
-      if (txt) pg.appendChild(h('p', 'sr-only', txt));
-
-      /* Los enlaces del PDF siguen siendo enlaces: los del indice pasan a
-         su pagina, los de fuera abren en otra pestaña. */
-      ((texts[i] && texts[i].links) || []).forEach((L) => {
-        const a = h(L.href ? 'a' : 'button', 'flip__link');
-        if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener'; }
-        else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
-        a.setAttribute('aria-label', L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
-        Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
-        pg.appendChild(a);
-      });
-      stage.appendChild(pg);
-      els.push(pg);
-    }
+    els.forEach((pg) => stage.appendChild(pg));
 
     fb = new PageFlip(stage, {
       width: pw, height: ph,
@@ -1686,12 +1955,12 @@ function initBook() {
       if (!fb) return;
       const fit = flipSize(fbInfo.ratio);
       if (fit.cam === cam && Math.abs(fit.pw - pw) < 2) return;
-      buildFlip(fbInfo.id, fb.getCurrentPageIndex());
+      buildFlip(fbInfo.id, fb.getCurrentPageIndex()).catch(() => { /* se queda el que habia */ });
     }, 180);
   });
 
   /* Cerrar el panel suelta el libro: sin eso seguiria escuchando el raton */
-  new MutationObserver(() => { if (s.panel.hidden && fb) closeFlip(); })
+  new MutationObserver(() => { if (s.panel.hidden && (fb || booting)) closeFlip(); })
     .observe(s.panel, { attributes: true, attributeFilter: ['hidden'] });
 
   /* ---- La lupa -----------------------------------------------
@@ -1861,26 +2130,74 @@ function initBook() {
     if (!s.panel.hidden && !zoom && e.touches.length > 1) e.preventDefault();
   }, { passive: false });
 
+  /* Abre el libro en PDF con su carga: el libro se arma en su sitio pero
+     no se ve hasta estar entero (ver «La carga», arriba). La caja ya tiene
+     el tamaño que tendra, para que la carga quede centrada justo encima y,
+     al llegar, el cambio no mueva nada. */
   function openFlip(id, pdf) {
     if (soundOn) audio();              // que la grabacion ya este cargada al primer giro
+    closeFlip();                       // un libro anterior, o una carga a medias, fuera
+    cur = { id, pdf };
     const which = BOOKS[id][lang] ? lang : 'all';
     fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + which + '/' };
     el('book').hidden = true;
     flipBox.hidden = false;
+    const fit = flipSize(pdf.ratio);
+    flipBox.style.width = fit.pw * 2 + 'px';
+    flipBox.style.height = fit.ph + 'px';
+    flipBox.style.marginInline = fit.cam ? -fit.pw / 2 + 'px' : '';
     zoomBtn.hidden = false;
     folio.textContent = '';
     prevBtn.disabled = true;
     nextBtn.disabled = true;
     side = 'r';
-    buildFlip(id, 0).then((book) => {
-      if (!book || quiet.matches) return;
+    booting = true;
+    ldBegin(id, pdf.pages);
+    const building = buildFlip(id, 0, true);
+    const gen = fbGen;                 // buildFlip la acaba de subir: es la de esta apertura
+    building.then(async (book) => {
+      if (!book || gen !== fbGen) return;
+      if (!(await reveal(book, gen))) return;
+      booting = false;
+      if (quiet.matches) return;
       /* Como el de HTML: se ve la tapa y al momento se abre solo */
-      autoOpen = setTimeout(() => { if (fb === book && fb.getCurrentPageIndex() === 0) step(1); }, 1100);
+      autoOpen = setTimeout(() => { if (fb === book && fb.getCurrentPageIndex() === 0) step(1); }, 1500);
+    }).catch(() => {
+      if (gen === fbGen) ldFail();     // si ya no es esta apertura, no hay nadie a quien avisar
     });
   }
 
-  const next = () => (fb ? step(1) : set(k + 1));
-  const prev = () => (fb ? step(-1) : set(k - 1));
+  /* El libro escrito (el de HTML): lo que se abre cuando no hay PDF y,
+     desde la carga, lo que se ofrece si el PDF no llega. */
+  function readText(id, fresh) {
+    closeFlip();
+    pages = makePages(id);
+    layout(0);
+    if (fresh) s.open();
+    measure();
+    if (quiet.matches) { set(1, true); return; }
+    autoOpen = setTimeout(() => { if (k === 0 && openSheets.includes(s.panel)) set(1); }, 900);
+  }
+  ld.now.addEventListener('click', () => { if (ld.skip) ld.skip(); });
+  /* Si lo que no llego fue la libreria, el navegador se acuerda del fallo y
+     un `import()` nuevo falla igual (y si fue un despliegue nuevo mientras
+     la pagina estaba abierta, el archivo ya ni existe con ese nombre): lo
+     que lo arregla es recargar. Se deja anotado que libro era, y al volver
+     se abre solo (initGlossary). */
+  ld.retry.addEventListener('click', () => {
+    if (!cur) return;
+    if (libDead) {
+      try { sessionStorage.setItem(REOPEN, cur.id); } catch (err) { /* sin almacenamiento: se recarga igual */ }
+      location.reload();
+      return;
+    }
+    openFlip(cur.id, cur.pdf);
+  });
+  ld.text.addEventListener('click', () => { if (cur) readText(cur.id, false); });
+
+  /* Mientras el PDF llega no hay libro al que pasar hojas (ni el escrito, que esta oculto) */
+  const next = () => (fb ? step(1) : booting ? null : set(k + 1));
+  const prev = () => (fb ? step(-1) : booting ? null : set(k - 1));
 
   /* ---- Arrastrar la esquina ---- */
   const pageWidth = () => block.getBoundingClientRect().width / (spread ? 2 : 1);
@@ -1974,7 +2291,7 @@ function initBook() {
   nextBtn.addEventListener('click', () => { clearTimeout(autoOpen); next(); });
 
   d.addEventListener('keydown', (e) => {
-    if (openSheets[openSheets.length - 1] !== s.panel) return;
+    if (openSheets[openSheets.length - 1] !== s.panel || booting) return;
     const keys = { ArrowRight: next, PageDown: next, ArrowLeft: prev, PageUp: prev,
                    Home: () => (fb ? goTo(0) : set(0)),
                    End: () => (fb ? goTo(fb.getPageCount() - 1) : set(maxK())) };
@@ -1999,13 +2316,7 @@ function initBook() {
     el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
     const pdf = BOOKS[id] && (BOOKS[id][lang] || BOOKS[id].all);
     if (pdf) { s.open(); openFlip(id, pdf); return; }
-    closeFlip();
-    pages = makePages(id);
-    layout(0);
-    s.open();
-    measure();
-    if (quiet.matches) { set(1, true); return; }
-    autoOpen = setTimeout(() => { if (k === 0 && openSheets.includes(s.panel)) set(1); }, 900);
+    readText(id, true);
   };
 }
 
@@ -2015,6 +2326,15 @@ function initGlossary() {
   const el = (id) => d.getElementById(id);
   linkTerms();
   const openBook = initBook();
+  /* Tras recargar desde «Intentar otra vez» (initBook, la carga): el libro
+     que se estaba abriendo vuelve a abrirse solo. */
+  try {
+    const again = sessionStorage.getItem('jl-libro');
+    if (again) {
+      sessionStorage.removeItem('jl-libro');
+      if (openBook && CARDS[again] && DEEP[again]) openBook(again);
+    }
+  } catch (err) { /* sin almacenamiento: no hay nada que reabrir */ }
 
   d.addEventListener('click', (e) => {
     const btn = e.target.closest('.term');

@@ -86,7 +86,7 @@ juanjo-web/
     │   ├── index.astro     redirige a /es/
     │   └── [lang]/         index · work · projects · writing · about
     ├── scripts/site.js     todo el comportamiento del cliente
-    └── styles/             tokens.css · base.css · tablet.css · desktop.css · paper.css · sketch.css
+    └── styles/             tokens.css · base.css · tablet.css · desktop.css · paper.css · sketch.css · niebla.css · carga.css
 ```
 
 **Ver [TEXTOS.md](TEXTOS.md)** para cambiar cualquier palabra sin romper nada.
@@ -176,6 +176,47 @@ Los colores y las tipografías de la casa no cambian: cambia el soporte y el tra
 
 Para un trazo nuevo: añade **una** forma como `--tr-algo` en `sketch.css`, súmala a la lista del
 molde común y pídela con `mask-image` + `background: <token de tinta>`.
+
+---
+
+## El libro de una palabra: la carga
+
+Cuando una palabra tiene su libro en PDF (`tools/books.py` → `src/data/books.js`, hoy Ahavá en
+español), el libro son N imágenes y la librería `page-flip`. Antes el panel se abría con una caja
+vacía y se confiaba en que todo llegara; si algo se quedaba a medias, el libro salía roto o no salía.
+Ahora **el libro no se ve hasta estar entero** y mientras llega ocupa su lugar una carga que dice qué
+pasa (`carga.css`, markup en `Panels.astro` → `#book-load`, lógica en `site.js` → «La carga»):
+
+- **La rosa** es el loader de Uiverse (Nawsome) con los colores de la casa. Tiene **una marca por
+  página**: busca (el barrido del original) y se pone dorada cuando esa página llegó y se decodificó.
+  Con movimiento reducido nada gira: el aro es una barra de progreso (`--p`), la aguja mira al norte.
+- **Los pasos** son «Abriendo el lector → Trayendo las páginas 4 de 10 → Encuadernando el libro →
+  Listo», más «un libro de N páginas, se pasan con un toque o las flechas». Cinco idiomas
+  (`book.load.*` en `ui.js`).
+- **Si tarda** (7 s) avisa y ofrece «Leerlo en texto» y, si la tapa y el primer pliego ya llegaron,
+  «Abrirlo ya». **Si falla** (una imagen, tras 2 reintentos; o la librería, tras 3 intentos) ofrece
+  «Intentar otra vez» y «Leerlo en texto». El texto es el libro escrito de siempre (`makePages`).
+  Si lo que falló fue la librería, reintentar **recarga** la página y reabre el libro solo
+  (`sessionStorage`, `jl-libro`): un `import()` fallido el navegador lo recuerda, y tras un despliegue
+  nuevo el archivo con el nombre viejo ya no existe.
+- **Si el libro llega al instante** (cache) la carga ni se ve: aparece con 0,3 s de retraso y, si llegó
+  a verse, se queda como mínimo 0,9 s para poder leerse. Cerrar el panel o abrir otro libro lo corta
+  todo (`fbGen`).
+
+Reglas que no se rompen sin perder esto:
+
+- **Las imágenes del libro no llevan `loading="lazy"`.** Las páginas que `page-flip` no muestra están
+  en `display:none` y una imagen perezosa ahí no se pide nunca: la hoja giraba en blanco.
+- **`decode()` nunca se espera sin tope.** Con la pestaña oculta el navegador no decodifica y la
+  promesa no se resuelve hasta volver (se comprobó): por eso no se espera con la pestaña oculta ni más
+  de 1,5 s (`DECODE_CAP`).
+- **Una imagen que no contesta en 12 s** (`STALL`) se pide de nuevo con otra URL (`&r=1`); con ahorro
+  de datos o red de 3G para abajo solo se pide la de 900 px.
+- **El libro ya tiene su tamaño mientras carga** (`flipBox` con ancho y alto, `visibility:hidden`) y
+  comparte celda de la rejilla con la carga: así queda centrada justo encima y al llegar nada salta.
+
+Para ver la carga sin una conexión mala: un proxy delante del servidor de desarrollo que retrase o
+rompa `/books/…` (la 5.ª página con 500, que no conteste, etc.) enseña todos los estados.
 
 ---
 

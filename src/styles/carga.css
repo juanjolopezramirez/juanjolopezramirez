@@ -1,0 +1,205 @@
+/* =============================================================
+   LA CARGA DEL LIBRO
+
+   Un libro en PDF son diez imagenes y una libreria (page-flip). Con una
+   conexion lenta, o con una peticion que se queda a medias, el panel se
+   abria con una caja vacia y el libro aparecia roto o no aparecia. Ahora
+   el libro no se ve hasta que esta entero, y mientras llega esto ocupa su
+   lugar y cuenta que pasa:
+
+     «Preparando Ahava»
+     Abriendo el lector · Trayendo las páginas 4 de 10 · Encuadernando · Listo
+     «Un libro de 10 páginas. Se pasan con un toque o con las flechas.»
+
+   LA ROSA. Es el loader de Uiverse (Nawsome): dos aros con mascara, ocho
+   marcas y dos agujas que giran, con los colores de la casa —aro verde que
+   se vuelve dorado, aguja dorada y aguja hueso— y con una diferencia: hay
+   una marca por pagina, y cada una pasa de «buscando» (el barrido del
+   original) a dorada fija cuando esa pagina llega y se decodifica. Asi la
+   animacion no es adorno, es el progreso de verdad.
+
+   LUGAR. `.carga` y `.flip` comparten la celda de la rejilla del marco
+   (grid-area 1 / 1): el libro esta ya en su sitio, con su tamaño, pero sin
+   verse (`visibility`), y la carga queda centrada justo encima. Cuando
+   termina se cambian, sin que nada salte. La barra de abajo espera.
+
+   SIN MOVIMIENTO. Nada gira ni barre: el aro es una barra de progreso
+   (`--p`, de 0 a 1), la aguja mira al norte y las marcas se encienden.
+
+   Es siempre oscura, como el fondo del libro (el telon no cambia con el
+   tema), asi que no lleva variantes de dia y noche.
+   ============================================================= */
+
+/* ---- Donde esta ---- */
+.book-panel__frame > .flip,
+.book-panel__frame > .carga { grid-area: 1 / 1; }
+
+/* El libro en su sitio, pero sin verse, mientras llega */
+.flip[data-carga] { visibility: hidden; pointer-events: none; }
+
+/* La barra de abajo no tiene nada que hacer todavia. Al llegar el libro
+   entra poco despues (el 0.5 s de base.css era para esperar al golpe). */
+.book-panel[data-carga] .book__nav { visibility: hidden; animation: none; }
+.book-panel.is-open[data-llego] .book__nav { animation-delay: .12s; }
+
+/* ---- La caja ---- */
+.carga {
+  align-self: center; justify-self: center;
+  box-sizing: border-box;
+  width: min(21rem, calc(100vw - 2rem));
+  display: grid; justify-items: center; gap: .55rem;
+  text-align: center;
+  color: var(--bone);
+  /* Tarda en aparecer: si el libro estaba en cache y llega enseguida, ni se
+     llega a ver (site.js cuenta con este .3 s: SHOW). */
+  animation: carga-entra .45s .3s var(--ease) both;
+}
+.carga[hidden] { display: none; }
+.carga.is-sale { animation: carga-sale .26s var(--ease) both; }
+
+@keyframes carga-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes carga-sale {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(1.05); }
+}
+
+/* ---- La rosa ---- */
+.carga__rosa {
+  display: block;
+  width: 7.5rem; height: 7.5rem;
+  margin-bottom: .35rem;
+  overflow: visible;
+}
+
+.carga__giro,
+.carga__aro { transform-origin: 80px 80px; }
+.carga__giro { animation: carga-giro 2s linear infinite; }
+.carga__aro {
+  transform: rotate(-45deg);
+  animation: carga-trazo 2s linear infinite;
+}
+.carga__aro--a { stroke: var(--iris); }
+.carga__aro--b { stroke: var(--ring); }
+
+.carga__aguja {
+  transform: rotate(45deg);
+  transform-origin: 16px 52px;
+  animation: carga-aguja 2s linear infinite;
+}
+.carga__norte   { fill: var(--ring); }
+.carga__sur     { fill: var(--bone); }
+.carga__norte--b { fill: var(--ring-300); }
+.carga__sur--b   { fill: var(--iris-300); }
+
+/* Una marca por pagina. Buscando: el barrido del original, una tras otra.
+   Llegada: dorada y fija, con un pulso. `--i` y `--n` los pone site.js. */
+.carga__marca {
+  stroke: var(--bone);
+  animation: carga-marca 2s linear infinite;
+  animation-delay: calc(-2s * (var(--n) - var(--i)) / var(--n));
+}
+.carga__marca.is-lista {
+  stroke: var(--ring-300);
+  stroke-dashoffset: 0;
+  animation: carga-lista .5s var(--ease) both;
+}
+
+@keyframes carga-giro  { from { transform: rotate(0); } to { transform: rotate(720deg); } }
+@keyframes carga-aguja { from { transform: rotate(45deg); } to { transform: rotate(405deg); } }
+@keyframes carga-trazo {
+  from, to { stroke-dashoffset: 452;   transform: rotate(-45deg); }
+  50%      { stroke-dashoffset: 169.5; transform: rotate(-180deg); }
+}
+@keyframes carga-marca {
+  from, 3%, 47%, to { stroke-dashoffset: -12; }
+  14%, 36%          { stroke-dashoffset: 0; }
+}
+@keyframes carga-lista {
+  from { stroke-width: 4; }
+  40%  { stroke-width: 8; }
+  to   { stroke-width: 4; }
+}
+
+/* ---- Lo que dice ---- */
+.carga__titulo {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.3rem; font-weight: 400; line-height: 1.2;
+  color: var(--bone);
+}
+.carga__paso {
+  margin: 0;
+  font-size: .95rem; line-height: 1.4;
+  color: rgb(241 239 233 / .86);
+}
+.carga.is-listo .carga__paso { color: var(--ring-300); }
+.carga__cuenta {
+  font-variant-numeric: tabular-nums;
+  color: var(--ring-300);
+}
+.carga__vera {
+  margin: .15rem 0 0;
+  max-width: 19rem;
+  font-size: .85rem; line-height: 1.5;
+  color: rgb(241 239 233 / .7);
+}
+.carga__aviso {
+  margin: .35rem 0 0;
+  max-width: 19rem;
+  font-size: .9rem; line-height: 1.45;
+  color: var(--bone);
+}
+.carga__aviso[hidden] { display: none; }
+
+.carga__acciones {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem;
+  margin-top: .5rem;
+}
+.carga__acciones[hidden] { display: none; }
+.carga__btn {
+  min-height: 2.75rem;
+  padding: 0 1.2rem;
+  border-radius: 999px;
+  font: 600 .9rem/1 var(--sans);
+  color: var(--bone);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgb(241 239 233 / .42);
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.carga__btn:hover { background: rgb(241 239 233 / .12); }
+.carga__btn--si { background: var(--bone); color: var(--night); box-shadow: none; }
+.carga__btn--si:hover { background: #fff; }
+.carga__btn:focus-visible { outline: 2px solid var(--ring-300); outline-offset: 3px; }
+.carga__btn[hidden] { display: none; }
+
+/* ---- Si no llega: quieta y apagada ---- */
+.carga.is-falla .carga__rosa { opacity: .5; }
+.carga.is-falla .carga__giro,
+.carga.is-falla .carga__aro,
+.carga.is-falla .carga__aguja,
+.carga.is-falla .carga__marca:not(.is-lista) { animation-play-state: paused; }
+
+/* ---- El libro llega ---- */
+.flip.is-llega { animation: flip-llega .5s var(--ease) both; }
+@keyframes flip-llega {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- Sin movimiento ---- */
+@media (prefers-reduced-motion: reduce) {
+  .carga, .carga.is-sale, .flip.is-llega { animation: none; }
+  .carga__giro, .carga__aguja { animation: none; }
+  .carga__aguja { transform: rotate(0deg); }
+  /* El aro es la barra: de arriba, en el sentido del reloj, hasta `--p` */
+  .carga__aro {
+    animation: none;
+    transform: rotate(-90deg);
+    stroke-dashoffset: calc(452 * (1 - var(--p, 0)));
+  }
+  .carga__marca { animation: none; stroke-dashoffset: 0; opacity: .28; }
+  .carga__marca.is-lista { animation: none; opacity: 1; }
+}

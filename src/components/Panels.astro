@@ -200,6 +200,61 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     <!-- Si la palabra tiene su PDF (tools/books.py), el libro es este:
          las paginas del PDF, que se doblan desde la esquina como papel. -->
     <div class="flip" id="flip" hidden></div>
+    <!-- LA CARGA. Un libro en PDF son diez imagenes y una libreria; si la
+         conexion va lenta, antes se veia una caja vacia. Esto ocupa el
+         lugar del libro mientras llega y dice que esta pasando: una rosa
+         de los vientos (el loader de Uiverse, de Nawsome, con los colores
+         de la casa) con una marca por pagina que se enciende cuando esa
+         pagina llega. Las marcas, los textos y los botones los pone site.js
+         (styles/carga.css). Los ids de las mascaras llevan prefijo: otros
+         SVG de la pagina ya usan `grad`. -->
+    <div class="carga" id="book-load" role="status" aria-atomic="false" aria-relevant="additions text" hidden>
+      <svg class="carga__rosa" viewBox="0 0 160 160" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="carga-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#000" />
+            <stop offset="100%" stop-color="#fff" />
+          </linearGradient>
+          <mask id="carga-m1"><rect x="0" y="0" width="160" height="160" fill="url(#carga-grad)" /></mask>
+          <mask id="carga-m2"><rect x="28" y="28" width="104" height="104" fill="url(#carga-grad)" /></mask>
+        </defs>
+        <!-- El aro: arriba verde, abajo dorado (la mascara los mezcla) -->
+        <g class="carga__giro">
+          <circle class="carga__aro carga__aro--a" cx="80" cy="80" r="72" fill="none" stroke-width="16" stroke-dasharray="452.39 452.39" stroke-dashoffset="452" stroke-linecap="round" transform="rotate(-45,80,80)" />
+        </g>
+        <g mask="url(#carga-m1)">
+          <g class="carga__giro">
+            <circle class="carga__aro carga__aro--b" cx="80" cy="80" r="72" fill="none" stroke-width="16" stroke-dasharray="452.39 452.39" stroke-dashoffset="452" stroke-linecap="round" transform="rotate(-45,80,80)" />
+          </g>
+        </g>
+        <!-- Una marca por pagina: site.js las pone -->
+        <g class="carga__marcas" id="book-load-ticks" transform="translate(80,80)" stroke-width="4" stroke-dasharray="12 12" stroke-dashoffset="12" stroke-linecap="round"></g>
+        <!-- Las agujas -->
+        <g transform="translate(64,28)">
+          <g class="carga__aguja" transform="rotate(45,16,52)">
+            <path class="carga__norte" d="M17.998,1.506l13.892,43.594c.455,1.426-.56,2.899-1.998,2.899H2.108c-1.437,0-2.452-1.473-1.998-2.899L14.002,1.506c.64-2.008,3.356-2.008,3.996,0Z" />
+            <path class="carga__sur" d="M14.009,102.499L.109,58.889c-.453-1.421,.559-2.889,1.991-2.889H29.899c1.433,0,2.444,1.468,1.991,2.889l-13.899,43.61c-.638,2.001-3.345,2.001-3.983,0Z" />
+          </g>
+        </g>
+        <g mask="url(#carga-m2)">
+          <g transform="translate(64,28)">
+            <g class="carga__aguja" transform="rotate(45,16,52)">
+              <path class="carga__norte carga__norte--b" d="M17.998,1.506l13.892,43.594c.455,1.426-.56,2.899-1.998,2.899H2.108c-1.437,0-2.452-1.473-1.998-2.899L14.002,1.506c.64-2.008,3.356-2.008,3.996,0Z" />
+              <path class="carga__sur carga__sur--b" d="M14.009,102.499L.109,58.889c-.453-1.421,.559-2.889,1.991-2.889H29.899c1.433,0,2.444,1.468,1.991,2.889l-13.899,43.61c-.638,2.001-3.345,2.001-3.983,0Z" />
+            </g>
+          </g>
+        </g>
+      </svg>
+      <h3 class="carga__titulo" id="book-load-title"></h3>
+      <p class="carga__paso"><span id="book-load-step"></span> <span class="carga__cuenta" id="book-load-count" aria-hidden="true"></span></p>
+      <p class="carga__vera" id="book-load-see"></p>
+      <p class="carga__aviso" id="book-load-note" hidden></p>
+      <div class="carga__acciones" id="book-load-actions" hidden>
+        <button class="carga__btn carga__btn--si" type="button" data-book-now hidden>{t('book.load.now')}</button>
+        <button class="carga__btn carga__btn--si" type="button" data-book-retry hidden>{t('book.load.retry')}</button>
+        <button class="carga__btn" type="button" data-book-text hidden>{t('book.load.text')}</button>
+      </div>
+    </div>
     <nav class="book__nav">
       <!-- La lupa: la unica manera de agrandar el libro (el zoom del
            navegador esta apagado aqui dentro). Solo en los libros en PDF. -->
