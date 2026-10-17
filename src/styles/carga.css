@@ -23,15 +23,16 @@
    lineas un poco de cuerpo, como la tiza (`--tiza`).
 
    Y hay una diferencia con el original: una marca por pagina. Cada una pasa
-   de «buscando» (el barrido) a dorada fija cuando esa pagina llega y se
-   decodifica, asi que la animacion no es adorno, es el progreso de verdad.
-   Al terminar, la rosa se apaga y una marca de «listo» se dibuja encima.
+   de «buscando» (el barrido, mas tenue) a llegada (mas viva y mas gruesa) cuando
+   esa pagina llega y se decodifica, asi que la animacion no es adorno, es el
+   progreso de verdad. Al terminar, la rosa se apaga y una marca de «listo» se
+   dibuja encima.
 
-   Colores: el aro verde que se vuelve dorado, la aguja dorada y la aguja
-   hueso, como el primer dia. Ojo: sketch.css dice «nunca oro», y aqui hay
-   oro en las marcas llegadas y en la aguja. Es una excepcion a proposito, de
-   un objeto que se mueve y no de texto, y se quita cambiando `--ring-300`
-   por `--bone` en `.is-lista` y en `.carga__norte`.
+   SIN COLOR. Es blanco sobre el pinar, como una tiza o un lapiz: lo unico que
+   distingue una cosa de otra es el peso y la opacidad del trazo. Lo pidio asi
+   —«no lo quiero de colores»— y es tambien lo que manda sketch.css (tinta y
+   nada de oro). Para pasarlo a negro, bastaria con cambiar `--bone` por
+   `--ink` aqui, pero el telon del libro es siempre oscuro.
 
    LUGAR. `.carga` y `.flip` comparten la celda de la rejilla del marco
    (grid-area 1 / 1): el libro esta ya en su sitio, con su tamaño, pero sin
@@ -116,8 +117,10 @@
   transform: rotate(-45deg);
   animation: carga-trazo 2s linear infinite;
 }
-.carga__aro--a { stroke: var(--iris); stroke-width: 5.2; }
-.carga__aro--b { stroke: var(--ring); stroke-width: 3; }
+/* Dos pasadas, como un lapiz que vuelve sobre su linea: la ancha, tenue, y la
+   fina, viva, que la mascara (abajo del todo) deja ver mas hacia el pie. */
+.carga__aro--a { stroke: var(--bone); stroke-opacity: .5; stroke-width: 5.2; }
+.carga__aro--b { stroke: var(--bone); stroke-width: 3; }
 
 /* La aguja gira sobre su centro (el grupo ya esta en el 80, 80) */
 .carga__aguja {
@@ -125,26 +128,27 @@
   transform-origin: 0 0;
   animation: carga-aguja 2s linear infinite;
 }
-.carga__norte  { fill: rgb(192 138 46 / .26); stroke: var(--ring-300); stroke-width: 3; }
-.carga__rayado { stroke: var(--ring-300); stroke-width: 2; opacity: .85; }
-.carga__sur    { fill: rgb(241 239 233 / .1); stroke: var(--bone); stroke-width: 3; }
+.carga__norte  { fill: rgb(241 239 233 / .16); stroke: var(--bone); stroke-width: 3; }
+.carga__rayado { stroke: var(--bone); stroke-width: 2; opacity: .8; }
+.carga__sur    { fill: none; stroke: var(--bone); stroke-opacity: .7; stroke-width: 2.6; }
 .carga__pivote { fill: var(--bone); stroke: var(--bone); stroke-width: 1.6; }
 
 /* Una marca por pagina, cada una un poco distinta de su vecina (site.js les
    da el pulso). Buscando: el barrido del original, una tras otra; se dibuja
-   y se borra. Llegada: dorada y fija, con un pulso. `--i` y `--n` los pone
-   site.js. */
+   y se borra, tenue. Llegada: viva y fija, mas gruesa, con un pulso. `--i` y
+   `--n` los pone site.js. */
 .carga__marca {
-  stroke: var(--pine-200);
-  stroke-width: 3.4;
+  stroke: var(--bone);
+  stroke-opacity: .5;
+  stroke-width: 3.2;
   stroke-dasharray: 1 1;
   stroke-dashoffset: -1;
   animation: carga-marca 2s linear infinite;
   animation-delay: calc(-2s * (var(--n) - var(--i)) / var(--n));
 }
 .carga__marca.is-lista {
-  stroke: var(--ring-300);
-  stroke-width: 4.4;
+  stroke-opacity: 1;
+  stroke-width: 4.6;
   stroke-dashoffset: 0;
   animation: carga-lista .5s var(--ease) both;
 }
@@ -172,15 +176,15 @@
   14%, 36%          { stroke-dashoffset: 0; }
 }
 @keyframes carga-lista {
-  from { stroke-width: 4.4; }
+  from { stroke-width: 4.6; }
   40%  { stroke-width: 8; }
-  to   { stroke-width: 4.4; }
+  to   { stroke-width: 4.6; }
 }
 @keyframes carga-traza { to { stroke-dashoffset: 0; } }
 
 /* ---- Lo que dice ---- */
 /* El titulo lleva su subrayado a mano, el mismo del encabezado de cada seccion
-   (--tr-sub-fino) y en el verde claro de la tiza. */
+   (--tr-sub-fino), en blanco. */
 .carga__titulo {
   position: relative;
   margin: 0 0 .3rem;
@@ -192,8 +196,8 @@
   left: -.05em; right: -.05em;
   bottom: -.3em;
   height: .34em;
-  background: var(--pine-200);
-  opacity: .8;
+  background: var(--bone);
+  opacity: .75;
   -webkit-mask-image: var(--tr-sub-fino);
           mask-image: var(--tr-sub-fino);
 }
@@ -202,10 +206,10 @@
   font-size: .95rem; line-height: 1.4;
   color: rgb(241 239 233 / .86);
 }
-.carga.is-listo .carga__paso { color: var(--ring-300); }
 .carga__cuenta {
   font-variant-numeric: tabular-nums;
-  color: var(--ring-300);
+  font-weight: 700;
+  color: var(--bone);
 }
 .carga__vera {
   margin: .15rem 0 0;
@@ -243,8 +247,8 @@
 .carga__btn::after {
   inset: 0;
   border-radius: inherit;
-  background: var(--pine-200);
-  opacity: .85;
+  background: var(--bone);
+  opacity: .7;
   -webkit-mask-image: var(--tr-marco);
           mask-image: var(--tr-marco);
   transition: opacity .2s var(--ease), background-color .2s var(--ease);
@@ -255,7 +259,7 @@
 .carga__btn--si::after { inset: -2px; background: var(--bone); opacity: 1; }
 .carga__btn--si:hover { background: #fff; }
 .carga__btn--si:hover::after { background: #fff; }
-.carga__btn:focus-visible { outline: 2px solid var(--ring-300); outline-offset: 4px; }
+.carga__btn:focus-visible { outline: 2px solid var(--bone); outline-offset: 4px; }
 .carga__btn[hidden] { display: none; }
 
 /* ---- Si no llega: quieta y apagada ---- */

@@ -3933,11 +3933,14 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
   /* Sin recorte: el dibujo va entero, apoyado en el pie de la pantalla. */
   --bajada: 0px;
   position: relative;
-  /* EL RECORRIDO. La seccion mide 220svh y la caja fija 100: el dibujo se
-     mueve durante 120svh de scroll. Medio 300 (200 de recorrido) y se sentia
-     largo, sobre todo al final: el dibujo se posaba a los 70% y los 60svh que
-     quedaban eran scroll sin nada que pasara. Ahora se posa a los 88%
-     (`ojo`, mas abajo) y la cola muerta es de 14svh. */
+  /* EL RECORRIDO. Cuanto dura la animacion es cuanto mide la seccion menos la
+     caja fija (100svh). En una pantalla de pie —el telefono— son 220svh: 120
+     de recorrido. Medio 300 (200 de recorrido) y se sentia largo, sobre todo
+     al final: el dibujo se posaba a los 70% y los 60svh que quedaban eran
+     scroll sin nada que pasara; ahora se posa a los 88% (`ojo`, mas abajo) y
+     la cola muerta es corta. En un portatil NO: ahi 120svh se quedaron cortos
+     (el paralaje no daba tiempo a disfrutarse) y la escena es apaisada, asi
+     que la seccion mide mas (el bloque de mas abajo). */
   min-height: 220svh;
   background: var(--papel);
   color: var(--slate);
@@ -3953,6 +3956,14 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
     --yo-arriba: 11.1%;
     --bajada: 0px;
   }
+}
+/* EN UNA PANTALLA APAISADA —portatil, escritorio— el recorrido es mas largo:
+   340svh, 240 de recorrido (211 de animacion, hasta los 88%, y 29 de cola con
+   la escena ya quieta). Con 220 eran 106svh de animacion: unos mil pixeles en
+   un portatil, que pasan de un golpe de rueda y no dejan ver como las capas se
+   separan. Es UN numero: si se siente largo o corto, este. */
+@media (min-aspect-ratio: 1 / 1) {
+  .ligero { min-height: 340svh; }
 }
 /* Sin animacion, las dos pantallas de recorrido serian dos pantallas donde no
    pasa nada: la seccion se queda en una. */
@@ -6883,6 +6894,24 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
         animation-name: preguntaSube;
         animation-timing-function: linear;
         animation-range-end: contain 88%;
+      }
+    }
+
+    /* EL PIE SE DESLIZA SOBRE EL PARAMO, en pantalla apaisada y solo cuando el
+       paramo es lo ultimo de la pagina (hoy, la portada; en cuanto se le
+       ponga otra seccion debajo, esto se apaga solo). La caja fija se suelta
+       cuando acaba su seccion, y lo que mide el pie la subia: la escena
+       terminaba desplazada hacia arriba, con la cabeza de quien camina
+       cortada contra la cabecera, como a la deriva. Con el margen negativo
+       —`--pie-h` lo mide site.js— el pie pisa el final de la seccion en lugar
+       de empujarla: la escena se queda quieta, entera, hasta el ultimo pixel
+       del scroll, y el pie entra por encima. Tapa el pie del dibujo (la
+       base de la roca), que es justo donde el dibujo ya acababa en una
+       costura. En el telefono no hace falta: ahi la figura va abajo. */
+    @media (min-aspect-ratio: 1 / 1) {
+      main:has(> section.ligero:last-of-type) + .site-footer {
+        margin-top: calc(var(--pie-h, 0px) * -1);
+        z-index: 2;
       }
     }
 

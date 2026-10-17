@@ -166,9 +166,16 @@ Los colores y las tipografías de la casa no cambian: cambia el soporte y el tra
   ruido fractal (`public/assets/paramo/nubes/`, cinco formas × claro/oscuro, las genera una semilla
   fija). Se mueven con animaciones atadas al scroll de CSS —las mismas que ya mueven el «ojo»—: sin JS.
   **Regla: el dibujo se posa a los 88% del recorrido y a partir de ahí no queda ninguna nube
-  delante.** El recorrido mide 220svh (120svh de scroll): fue de 300 y se sentía largo, con una cola
-  de 60svh en la que no pasaba nada. Sin movimiento reducido o sin `animation-timeline` (Firefox) no
-  hay velo ni nubes de delante. En móvil se ocultan las chicas y las más grandes (`*--esc`): cada SVG
+  delante.** **El recorrido depende del formato de la pantalla**: en el teléfono (de pie) mide 220svh
+  (120svh de scroll; fue de 300 y se sentía largo, con una cola de 60svh sin nada que pasara) y en un
+  portátil o escritorio (apaisada) 340svh (240 de scroll, 211 de animación y 29 de cola), porque con
+  220 el paralaje pasaba de un golpe de rueda. Es un solo número por formato en `base.css`
+  (`.ligero { min-height }`). **El pie se desliza sobre el páramo** cuando este es lo último de la
+  página y la pantalla es apaisada (`main:has(> section.ligero:last-of-type) + .site-footer`, con
+  margen negativo de su propia altura, que mide `initPie()` en `site.js` y deja en `--pie-h`): sin
+  eso la escena fija se soltaba al final y subía lo que mide el pie, y el sujeto quedaba cortado
+  contra la cabecera, a la deriva. En cuanto se ponga otra sección debajo, esto se apaga solo. Sin
+  movimiento reducido o sin `animation-timeline` (Firefox) no hay velo ni nubes de delante. En móvil se ocultan las chicas y las más grandes (`*--esc`): cada SVG
   con ruido se rasteriza una vez a su tamaño de pantalla. Para activarla en «Sobre el camino»:
   `<Ligero nubes />`.
 - La 404 y el aviso de «la página llegó a medias» **no** usan estas hojas a propósito: tienen que
@@ -192,12 +199,12 @@ pasa (`carga.css`, markup en `Panels.astro` → `#book-load`, lógica en `site.j
   se borran mientras giran, `pathLength` en 100), agujas contorneadas con el norte rayado, marcas
   que son rayas cortas cada una distinta de su vecina (el pulso sale de un número fijo por posición,
   en `site.js`), una máscara de ruido (`--tiza`) que le quita cuerpo a las líneas, el subrayado
-  `--tr-sub-fino` bajo el título y el marco `--tr-marco` en los botones. Colores: aro verde que se
-  vuelve dorado, aguja dorada y hueso; el dorado va contra la regla «nunca oro» de `sketch.css` y es
-  una excepción a propósito (se cambia `--ring-300` por `--bone`). Tiene **una marca por página**:
-  busca (el barrido del original) y se pone dorada cuando esa página llegó y se decodificó; al
-  terminar, una marca de «listo» se dibuja encima. Con movimiento reducido nada gira: el aro es una
-  barra de progreso (`--p`), la aguja mira al norte.
+  `--tr-sub-fino` bajo el título y el marco `--tr-marco` en los botones. **Sin color, a propósito**
+  (se pidió «blanco o negro, como tinta o lápiz»): es blanco sobre el pinar y lo único que distingue
+  una cosa de otra es el peso y la opacidad del trazo. Tiene **una marca por página**: busca (el
+  barrido del original, tenue) y se vuelve viva y más gruesa cuando esa página llegó y se
+  decodificó; al terminar, una marca de «listo» se dibuja encima. Con movimiento reducido nada gira:
+  el aro es una barra de progreso (`--p`), la aguja mira al norte.
 - **Los pasos** son «Abriendo el lector → Trayendo las páginas 4 de 10 → Encuadernando el libro →
   Listo», más «un libro de N páginas, se pasan con un toque o las flechas». Cinco idiomas
   (`book.load.*` en `ui.js`).

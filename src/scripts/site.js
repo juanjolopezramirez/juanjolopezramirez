@@ -3565,6 +3565,26 @@ function initReveal() {
   }, 3000);
 }
 
+/* LA ALTURA DEL PIE, para que se deslice sobre el paramo.
+
+   Cuando el paramo es lo ultimo de la pagina, la escena fija se suelta al
+   llegar al final y SUBE lo que mide el pie: en una pantalla ancha eso dejaba
+   al sujeto cortado contra la cabecera y «a la deriva», justo al terminar.
+   La solucion es que el pie NO la empuje sino que se deslice por encima: se
+   le da un margen negativo de su propia altura (base.css, «EL PIE SE DESLIZA
+   SOBRE EL PARAMO») y la escena se queda quieta hasta el final. CSS no puede
+   saber cuanto mide el pie —depende del ancho y del renglon que parta—, asi
+   que se mide aqui y se deja en `--pie-h`. Sin JS, la variable no existe, el
+   margen vale 0 y todo queda como estaba. */
+function initPie() {
+  const pie = d.querySelector('.site-footer');
+  if (!pie || !d.querySelector('main > section.ligero:last-of-type')) return;
+  const put = () => d.documentElement.style.setProperty('--pie-h', pie.offsetHeight + 'px');
+  put();
+  if ('ResizeObserver' in window) new ResizeObserver(put).observe(pie);
+  else addEventListener('resize', put);
+}
+initPie();
 initHeader();
 initFieldGlow();
 initNav();
