@@ -4599,7 +4599,8 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 
 /* LLEGA LANZADO SOBRE LA MESA. Sale de cerca y de arriba, ladeado,
    cae cada vez mas deprisa, golpea (al 55%: 396 ms, cuando suena
-   sounds/slam.mp3; site.js cuenta con ese numero), se aplasta un pelo,
+   sounds/slam.mp3; site.js cuenta con ese numero —en un libro en PDF, solo
+   si llega antes de que se vea la carga; si no, suena al llegar—), se aplasta un pelo,
    rebota un poco y se asienta. La barra de abajo llega despues del
    golpe. Al cerrarse se levanta y se va. */
 .book-panel__frame {

@@ -236,9 +236,21 @@ Reglas que no se rompen sin perder esto:
   de datos o red de 3G para abajo solo se pide la de 900 px.
 - **El libro ya tiene su tamaño mientras carga** (`flipBox` con ancho y alto, `visibility:hidden`) y
   comparte celda de la rejilla con la carga: así queda centrada justo encima y al llegar nada salta.
+- **El golpe del libro suena cuando el libro se ve, no cuando se toca.** El golpe contra la mesa
+  (`slam.mp3`) iba atado al toque, y con una carga lenta se oía mientras solo se veía la carga. Ahora,
+  en un libro en PDF, `open()` solo despierta el audio (`wake()`, que necesita el toque) y es
+  `openFlip` quien llama a `slam()` cuando `reveal()` termina: si el libro llegó antes de verse la
+  carga (`'enseguida'`), cae con el cartón de `book-throw` como siempre; si la carga llegó a verse (o
+  es un reintento, o hay movimiento reducido), suena **una vez al llegar, más bajo** (`soft`, 0,38 en
+  vez de 0,6) y solo si el audio ya está despierto (si no, el golpe esperaría y sonaría en el
+  siguiente toque). Si la carga falla, no suena nada. El libro de texto no cambia: aparece al instante
+  y suena en el toque.
 
 Para ver la carga sin una conexión mala: un proxy delante del servidor de desarrollo que retrase o
-rompa `/books/…` (la 5.ª página con 500, que no conteste, etc.) enseña todos los estados.
+rompa `/books/…` (la 5.ª página con 500, que no conteste, etc.) enseña todos los estados. Para
+comprobar el sonido sin fiarse del oído, se envuelve `AudioBufferSourceNode.prototype.start` y se
+anota cuándo suena cada cosa y si `#book-load` está a la vista: ningún golpe puede caer con la carga
+visible.
 
 ---
 

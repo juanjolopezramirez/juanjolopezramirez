@@ -1107,6 +1107,7 @@ function initBook() {
   let thumpReady = null;
   const SLAM_HIT = 0.775; // en sounds/slam.mp3: el golpe (antes, casi silencio)
   const IMPACT = 396;     // cuando toca la mesa en book-throw (base.css: 55% de 720 ms)
+  const ARRIVE = 120;     // el libro en PDF que llega tras la carga: se asienta a los 120 ms de empezar flip-llega
   const HIT = 0.70;       // en la grabacion: cuando cae la hoja
   const CUT = 0.95;       // y donde se corta: despues queda un clic suelto
   const COVER_HIT = 0.27; // en la de las tapas: cuando cae el carton
@@ -1202,14 +1203,26 @@ function initBook() {
      saltandose parte del silencio de antes. Si la grabacion aun no habia
      llegado (el primer libro que se abre), suena en cuanto llega, si
      todavia esta a tiempo; si ya es tarde, mejor callar que sonar
-     despues del golpe. */
-  function slam() {
+     despues del golpe.
+
+     El golpe suena cuando el libro SE VE, no cuando se toca. En el libro
+     de texto es lo mismo: aparece al instante. En el de PDF no: mientras
+     llega solo se ve la carga, y un golpe ahi sonaba a un libro que aun no
+     estaba (openFlip lo llama al revelarse). `from`: el momento del toque,
+     para que caiga con el carton si el libro llego antes de verse la
+     carga. `soft`: el libro se ve con la carga ya vista, tras un
+     reintento o sin movimiento; se asienta con la entrada suave de
+     flip-llega y mas bajo.
+     En ambos casos el golpe llega sin un toque al lado: si el audio aun
+     esta dormido, se espera a que despierte y play() lo descarta si ya es
+     tarde (asi no suena sobre otro toque, segundos despues). */
+  function slam(from, soft) {
     if (!soundOn) return;
     const c = audio();
     if (!c) return;
-    if (c.state === 'suspended') c.resume();
-    const opened = performance.now();
-    const hit = quiet.matches ? 0 : IMPACT / 1000;
+    const later = soft || from != null;
+    const opened = from == null ? performance.now() : from;
+    const hit = quiet.matches ? 0 : (soft ? ARRIVE : IMPACT) / 1000;
     const play = () => {
       const late = (performance.now() - opened) / 1000;
       const lead = hit - late;                  // lo que falta para el golpe
@@ -1217,11 +1230,24 @@ function initBook() {
       const src = c.createBufferSource();
       src.buffer = thump;
       const g = c.createGain();
-      g.gain.value = 0.6;                       // es mucho mas fuerte que las hojas
+      g.gain.value = soft ? 0.38 : 0.6;         // es mucho mas fuerte que las hojas
       src.connect(g).connect(master);
       src.start(c.currentTime + 0.01, Math.max(0, SLAM_HIT - Math.max(0, lead)));
     };
-    if (thump) play(); else if (thumpReady) thumpReady.then(play);
+    const go = () => { if (thump) play(); else if (thumpReady) thumpReady.then(play); };
+    if (c.state === 'running') go();
+    else if (later) c.resume().then(go, () => { /* no se pudo despertar: sin golpe */ });
+    else { c.resume(); go(); }
+  }
+
+  /* Despierta el audio con el toque, que es lo unico que los navegadores
+     aceptan, sin hacer sonar nada: el golpe del libro en PDF suena
+     segundos despues, cuando ya no hay un toque. (Safari de iPhone, ademas
+     de «suspended», usa «interrupted»: por eso «no running».) */
+  function wake() {
+    if (!soundOn) return;
+    const c = audio();
+    if (c && c.state !== 'running') c.resume().catch(() => { /* sin toque: se queda dormido */ });
   }
 
   /* Cargar los sonidos al tocar una palabra: el libro se abre un momento
@@ -1421,7 +1447,10 @@ function initBook() {
 
   /* El libro esta listo. Si la carga llego a verse, se queda lo justo para
      leerse, dice «Listo» y se va; si el libro estaba en cache y llego antes
-     de que ella apareciera, no se llega a ver nada. */
+     de que ella apareciera, no se llega a ver nada.
+     Devuelve false si ya no toca (se cerro o se abrio otro), y si no, si la
+     carga llego a verse ('visto') o no ('enseguida'): de eso depende cuando
+     suena el golpe del libro (openFlip). */
   async function reveal(book, gen) {
     const alive = () => gen === fbGen && fb === book;
     clearTimeout(ld.timer);
@@ -1442,7 +1471,7 @@ function initBook() {
       flipBox.classList.add('is-llega');
       setTimeout(() => flipBox.classList.remove('is-llega'), 600);
     }
-    return true;
+    return seen > 0 ? 'visto' : 'enseguida';
   }
 
   /* La libreria, con tres intentos: un hipo de red no debe dejar el libro
@@ -2144,7 +2173,7 @@ function initBook() {
      no se ve hasta estar entero (ver «La carga», arriba). La caja ya tiene
      el tamaño que tendra, para que la carga quede centrada justo encima y,
      al llegar, el cambio no mueva nada. */
-  function openFlip(id, pdf) {
+  function openFlip(id, pdf, tapped) {
     if (soundOn) audio();              // que la grabacion ya este cargada al primer giro
     closeFlip();                       // un libro anterior, o una carga a medias, fuera
     cur = { id, pdf };
@@ -2167,8 +2196,21 @@ function initBook() {
     const gen = fbGen;                 // buildFlip la acaba de subir: es la de esta apertura
     building.then(async (book) => {
       if (!book || gen !== fbGen) return;
-      if (!(await reveal(book, gen))) return;
+      const arrived = await reveal(book, gen);
+      if (!arrived) return;
       booting = false;
+      /* El golpe del libro suena cuando el libro SE VE. Si llego antes de
+         que se viera la carga, cae con el carton de book-throw, como el de
+         texto (`tapped`: el toque que lo abrio). Si la carga llego a verse
+         —o es un reintento, que no vuelve a lanzar el libro, o no hay
+         movimiento—, suena al llegar, bajito. Si la carga fallo, nunca
+         llega un libro y no suena nada. */
+      /* Cerrando el panel hay 420 ms en que este libro aun esta «vivo»
+         pero ya se esta yendo: ahi no se golpea la mesa. */
+      if (openSheets.includes(s.panel)) {
+        if (arrived === 'enseguida' && tapped != null && !quiet.matches) slam(tapped);
+        else slam(null, true);
+      }
       if (quiet.matches) return;
       /* Como el de HTML: se ve la tapa y al momento se abre solo */
       autoOpen = setTimeout(() => { if (fb === book && fb.getCurrentPageIndex() === 0) step(1); }, 1500);
@@ -2322,10 +2364,14 @@ function initBook() {
      de mas para empezar a leer. */
   return function open(id) {
     clearTimeout(autoOpen);
-    slam();
-    el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
+    const tapped = performance.now();
     const pdf = BOOKS[id] && (BOOKS[id][lang] || BOOKS[id].all);
-    if (pdf) { s.open(); openFlip(id, pdf); return; }
+    /* El de texto aparece al instante y suena ya. El de PDF tiene que
+       llegar: el golpe espera a que se vea (openFlip) y aqui solo se
+       despierta el audio, que es lo que necesita el toque. */
+    if (pdf) wake(); else slam();
+    el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
+    if (pdf) { s.open(); openFlip(id, pdf, tapped); return; }
     readText(id, true);
   };
 }
