@@ -189,10 +189,14 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
      doble pagina y se pasa como un libro de verdad; en movil, una pagina
      cada vez. Se pasa arrastrando la esquina, tocando el borde, con las
      flechas de abajo o con las del teclado. -->
-<div class="book-panel" id="book-panel" hidden>
+<!-- El dialogo es TODO el panel y no solo el marco: la × queda fuera del marco
+     y un lector de pantalla puede esconder lo que queda fuera de un modal. Y
+     por ser el panel el modal, sheet() deja inerte el resto de la pagina
+     mientras esta abierto (site.js). -->
+<div class="book-panel" id="book-panel" role="dialog" aria-modal="true" aria-labelledby="book-title" hidden>
   <div class="book-panel__scrim" data-close-book></div>
   <button class="book-panel__close" type="button" data-close-book aria-label={t('a11y.termClose')}>&times;</button>
-  <div class="book-panel__frame" role="dialog" aria-modal="true" aria-labelledby="book-title">
+  <div class="book-panel__frame">
     <h2 class="sr-only" id="book-title"></h2>
     <div class="book" id="book">
       <div class="book__block" id="book-block"></div>

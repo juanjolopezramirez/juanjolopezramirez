@@ -1,0 +1,102 @@
+---
+import { SECCIONES, LIBROS } from '../data/biblioteca.js';
+import { TERMS } from '../i18n/terms.js';
+import { GLOSS } from '../i18n/term-cards.js';
+import { BOOKS } from '../data/books.js';
+import '../styles/biblioteca.css';
+
+/* La biblioteca de Recursos. Los datos y por que son asi, en
+   data/biblioteca.js; el comportamiento (abrir el libro, la direccion de
+   cada uno, el ultimo leido), en site.js → initBiblioteca().
+
+   SIN JAVASCRIPT sigue siendo una pagina: cada libro es un enlace de verdad
+   a su ancla (#ahava), que lleva a su portada, y todos los temas se ven. El
+   script solo añade abrirlo, filtrar y recordar.
+
+   EL FILTRO es el de las casas (initFilter): cada tema es una fila de la
+   lista con su id en `data-tags`. */
+const { lang, t } = Astro.props;
+
+const say = (o) => (o ? (o[lang] ?? o.es) : '');
+
+/* Cada tema con sus libros ya resueltos. */
+const temas = SECCIONES.map((s) => ({
+  ...s,
+  libros: LIBROS.filter((b) => b.seccion === s.id).map((b, i) => {
+    const term = TERMS[b.id];
+    /* Misma regla que el libro al abrirse (site.js, openFlip): el PDF del
+       idioma de la pagina, o el «all». La imagen es la de 900, la que el libro
+       pide en una pantalla normal (en una ancha o de mucha densidad pide la de
+       1600), asi que casi siempre ya esta en cache al abrirlo. */
+    const pdf = BOOKS[b.id] && (BOOKS[b.id][lang] || BOOKS[b.id].all);
+    const cual = BOOKS[b.id] && BOOKS[b.id][lang] ? lang : 'all';
+    return {
+      id: b.id,
+      i,
+      titulo: say(term.title),
+      glosa: say(GLOSS[b.id]),
+      guion: term.script,
+      dir: term.dir,
+      lengua: term.dir === 'rtl' ? 'he' : 'el',
+      foto: pdf ? `${import.meta.env.BASE_URL}books/${b.id}/${cual}/01-900.jpg?v=${pdf.v}` : null
+    };
+  })
+}));
+/* Primero los que tienen libros; los de «pronto» van detras, en fila. */
+const filas = [...temas.filter((e) => e.libros.length), ...temas.filter((e) => !e.libros.length)];
+---
+<section class="biblio" id="biblioteca" aria-labelledby="biblio-titulo" data-biblioteca data-filtrable data-libre>
+  <div class="biblio__shell">
+    <h2 class="biblio__title" id="biblio-titulo" data-lift>{t('lib.title')}</h2>
+    <p class="biblio__lead" data-lift>{t('lib.lead')}</p>
+
+    {/* Se pinta en el navegador, solo si hay un libro leido (initBiblioteca). */}
+    <a class="seguir" href="#biblioteca" data-seguir hidden>
+      <span class="seguir__marca">{t('lib.continue')}</span>
+      <span class="seguir__titulo" data-seguir-titulo></span>
+    </a>
+
+    <div class="cards__filter biblio__filtro" data-filter-bar>
+      <div class="faxis" role="group" aria-label={t('lib.topic')} data-axis="tema">
+        <span class="faxis__label">{t('lib.topic')}</span>
+        <span class="faxis__chips">
+          {SECCIONES.map((s) => (
+            <button class="chip" type="button" data-filter={s.id} aria-pressed="false">{say(s.nombre)}</button>
+          ))}
+        </span>
+      </div>
+      <button class="cards__clear" type="button" data-filter-clear aria-label={t('lib.clear')} hidden>{t('filter.clear')}</button>
+    </div>
+    {/* Lo que queda tras filtrar, para quien no lo ve (initBiblioteca). */}
+    <p class="sr-only" role="status" data-biblio-estado></p>
+
+    <ul class="biblio__lista" role="list" data-filtrable-lista>
+      {filas.map((e) => e.libros.length ? (
+        <li class="estante" data-tags={e.id}>
+          <h3 class="estante__nombre">{say(e.nombre)}</h3>
+          <ul class="estante__libros" role="list">
+            {e.libros.map((b) => (
+              <li class="libro-item" id={b.id} style={`--i:${b.i}`}>
+                <a class="libro" href={`#${b.id}`} data-libro={b.id} data-titulo={`${b.titulo} · ${b.glosa}`} aria-haspopup="dialog">
+                  <span class:list={['libro__tapa', { 'libro__tapa--foto': b.foto }]} aria-hidden="true">
+                    <span class="libro__guion" lang={b.lengua} dir={b.dir}>{b.guion}</span>
+                    <span class="libro__titulo">{b.titulo}</span>
+                    <span class="libro__glosa">{b.glosa}</span>
+                    {b.foto && <img class="libro__foto" src={b.foto} alt="" width="900" height="1260" loading="lazy" decoding="async" />}
+                  </span>
+                  <span class="sr-only">{t('lib.book')}: {b.titulo}. {b.glosa}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ) : (
+        <li class="estante estante--pronto" data-tags={e.id}>
+          <span class="estante__nombre">{say(e.nombre)}</span>
+          <span class="estante__badge" aria-hidden="true">{t('soon.badge')}</span>
+          <span class="sr-only">{t('a11y.soon')}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

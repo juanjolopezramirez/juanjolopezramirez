@@ -14,6 +14,7 @@ import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { CONTACT } from '../data/social.js';
+import { idDeHash, leerUltimo, guardarUltimo } from './biblioteca.js';
 
 const d = document;
 const lang = d.documentElement.lang || 'es';
@@ -170,11 +171,32 @@ function initNav() {
    tiempo. */
 const openSheets = [];
 
-function sheet(panelId, closeAttr) {
+function sheet(panelId, closeAttr, onClose) {
   const panel = d.getElementById(panelId);
   if (!panel) return null;
   const closeBtn = panel.querySelector('button[' + closeAttr + ']');
   let lastFocus = null;
+
+  /* Una hoja que es ella misma el dialogo modal (`aria-modal` en el propio
+     panel, hoy solo el libro, cuya × queda fuera del marco) deja el resto de
+     la pagina inerte mientras esta abierta: sin foco, sin clic y fuera de lo
+     que lee un lector de pantalla. Si no, Tab se salia del libro y recorria
+     la pagina de detras, y Enter sobre una portada oculta abria otro libro.
+     Se apunta solo lo que se apago aqui, para devolver lo demas como estaba;
+     y se enciende ANTES de devolver el foco, que si no no vuelve. */
+  const apagados = [];
+  const fondo = (on) => {
+    if (panel.getAttribute('aria-modal') !== 'true') return;
+    if (on) {
+      [...d.body.children].forEach((hijo) => {
+        if (hijo === panel || hijo.inert || /^(SCRIPT|STYLE|LINK)$/.test(hijo.tagName)) return;
+        hijo.inert = true;
+        apagados.push(hijo);
+      });
+    } else {
+      apagados.splice(0).forEach((hijo) => { hijo.inert = false; });
+    }
+  };
 
   const open = () => {
     if (openSheets.includes(panel)) return;
@@ -184,6 +206,7 @@ function sheet(panelId, closeAttr) {
     panel.classList.add('is-open');
     openSheets.push(panel);
     lockScroll(true);
+    fondo(true);
     if (closeBtn) closeBtn.focus();
   };
   const close = () => {
@@ -192,8 +215,10 @@ function sheet(panelId, closeAttr) {
     openSheets.splice(i, 1);
     panel.classList.remove('is-open');
     lockScroll(false);
+    fondo(false);
     setTimeout(() => { if (!panel.classList.contains('is-open')) panel.hidden = true; }, 420);
     if (lastFocus && lastFocus.focus) lastFocus.focus();
+    if (onClose) onClose();               // quien quiera enterarse de que se cerro (hoy, el libro)
   };
 
   panel.querySelectorAll('[' + closeAttr + ']').forEach((el) => el.addEventListener('click', close));
@@ -797,6 +822,10 @@ function linkTerms() {
   });
 }
 
+/* Las palabras que tienen libro: lo que se puede recordar como «ultimo
+   leido». Una lista de claves y no el objeto: «constructor» no es un libro. */
+const LEIBLES = new Set(Object.keys(DEEP).filter((k) => CARDS[k]));
+
 /* ---------- El libro de una palabra -------------------------
    Doce paginas: tapa, indice, las tres lecturas, PaRDeS en cuatro (la
    entrada, lo comprobable, la PARE con Derash, y Sod sola), fuentes, fin
@@ -814,7 +843,12 @@ function linkTerms() {
    para ver su espalda, y no hace falta. Al cruzar los 900px se vuelve a
    encuadernar sin perder la pagina en la que ibas. */
 function initBook() {
-  const s = sheet('book-panel', 'data-close-book');
+  let abiertoId = null;     // el libro que esta a la vista
+  let alCerrar = null;      // lo que quiera enterarse de que se cerro (la biblioteca, initBiblioteca)
+  const s = sheet('book-panel', 'data-close-book', () => {
+    abiertoId = null;
+    if (alCerrar) alCerrar();
+  });
   if (!s) return null;
   const el = (id) => d.getElementById(id);
   const book = el('book');
@@ -1099,6 +1133,16 @@ function initBook() {
   let soundOn = true;
   try { soundOn = localStorage.getItem('book-sound') !== 'off'; } catch (err) { /* sin almacenamiento */ }
   let ac = null;
+  /* Un libro que se abre SIN un toque —la direccion con #libro, atras,
+     adelante— no puede hacer sonar nada: sin un toque el navegador deja el
+     audio dormido, y lo que se programara esperaria y sonaria encima de otro
+     toque, segundos despues. Mientras el audio no exista, hasta el primer
+     toque o tecla no se crea (audio() devuelve null) y los sonidos se saltan
+     solos; si ya existia porque se toco antes, sigue sonando lo de siempre
+     salvo el golpe (openFlip). Va antes que los demas escuchadores de
+     pointerdown para que el primer toque ya cuente. */
+  let sinToque = false;
+  ['pointerdown', 'keydown'].forEach((ev) => d.addEventListener(ev, () => { sinToque = false; }, true));
   let grain = null;
   let master = null;
   let sample = null;
@@ -1123,6 +1167,7 @@ function initBook() {
 
   function audio() {
     if (ac) return ac;
+    if (sinToque) return null;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ac = new AC();
@@ -2173,7 +2218,7 @@ function initBook() {
      no se ve hasta estar entero (ver «La carga», arriba). La caja ya tiene
      el tamaño que tendra, para que la carga quede centrada justo encima y,
      al llegar, el cambio no mueva nada. */
-  function openFlip(id, pdf, tapped) {
+  function openFlip(id, pdf, tapped, silent) {
     if (soundOn) audio();              // que la grabacion ya este cargada al primer giro
     closeFlip();                       // un libro anterior, o una carga a medias, fuera
     cur = { id, pdf };
@@ -2204,10 +2249,11 @@ function initBook() {
          texto (`tapped`: el toque que lo abrio). Si la carga llego a verse
          —o es un reintento, que no vuelve a lanzar el libro, o no hay
          movimiento—, suena al llegar, bajito. Si la carga fallo, nunca
-         llega un libro y no suena nada. */
+         llega un libro y no suena nada. Abierto sin toque (`silent`: la
+         direccion, atras), no se golpea la mesa. */
       /* Cerrando el panel hay 420 ms en que este libro aun esta «vivo»
-         pero ya se esta yendo: ahi no se golpea la mesa. */
-      if (openSheets.includes(s.panel)) {
+         pero ya se esta yendo: ahi tampoco. */
+      if (!silent && openSheets.includes(s.panel)) {
         if (arrived === 'enseguida' && tapped != null && !quiet.matches) slam(tapped);
         else slam(null, true);
       }
@@ -2362,18 +2408,161 @@ function initBook() {
   /* Se abre cerrado, con la tapa delante, y a los pocos instantes se
      abre solo por el indice: la tapa se ve, pero no hace falta un toque
      de mas para empezar a leer. */
-  return function open(id) {
+  /* `opts.silent`: se abre sin un toque (la direccion #libro, atras o
+     adelante de la biblioteca): ni golpe ni audio hasta el primer toque. */
+  function open(id, opts) {
+    const silent = !!(opts && opts.silent);
+    /* Ya esta a la vista (recargar en #libro tras «Intentar otra vez» lo
+       abre dos veces): no se vuelve a armar. */
+    if (abiertoId === id && openSheets.includes(s.panel)) return;
     clearTimeout(autoOpen);
     const tapped = performance.now();
     const pdf = BOOKS[id] && (BOOKS[id][lang] || BOOKS[id].all);
+    if (silent) sinToque = true;
     /* El de texto aparece al instante y suena ya. El de PDF tiene que
        llegar: el golpe espera a que se vea (openFlip) y aqui solo se
        despierta el audio, que es lo que necesita el toque. */
-    if (pdf) wake(); else slam();
+    if (pdf) wake(); else if (!silent) slam();
+    abiertoId = id;
+    /* El ultimo libro que se abre, de donde sea, es el que la biblioteca
+       ofrece seguir leyendo. Sin almacenamiento, no pasa nada. */
+    try { guardarUltimo(localStorage, id, LEIBLES); } catch (err) { /* bloqueado */ }
     el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
-    if (pdf) { s.open(); openFlip(id, pdf, tapped); return; }
+    if (pdf) { s.open(); openFlip(id, pdf, tapped, silent); return; }
     readText(id, true);
+  }
+  open.close = s.close;
+  open.alCerrar = (fn) => { alCerrar = fn; };
+  return open;
+}
+
+/* ---------- La biblioteca de Recursos -----------------------
+   La estanteria (components/Biblioteca.astro) ya llega pintada; aqui solo se
+   le dan tres cosas:
+
+   · ABRIR EL LIBRO. Cada portada es un enlace a su ancla (#ahava). Un clic
+     normal abre el libro encima, con la caida sobre la mesa de siempre, y
+     deja la ancla en la direccion: /es/writing/#ahava se puede compartir y,
+     al abrirla, abre el libro. Ctrl/Cmd-clic y «abrir en otra pestaña» se
+     quedan como estan: llevan a la direccion y esa lo abre.
+   · LA DIRECCION MANDA. Se usa pushState al abrir, asi «atras» cierra el
+     libro en vez de sacar de la pagina; y al cerrar con la ×, el fondo o
+     Escape se vuelve atras en el historial (o, si el libro se abrio al
+     cargar la pagina, se quita la ancla). Una ancla que no es un libro de la
+     lista se ignora: solo se compara con ids que ya existen, nunca se usa
+     como selector ni como texto.
+   · SEGUIR LEYENDO. El ultimo libro abierto —desde donde sea— se guarda en
+     el aparato (scripts/biblioteca.js) y aqui se ofrece. Si no hay
+     almacenamiento, simplemente no se ofrece.
+   · UN AVISO PARA QUIEN NO VE. Al filtrar, seis de siete temas dejan solo una
+     pastilla «pronto»: un lector de pantalla oiria «pulsado» y nada mas. Una
+     region `role="status"` dice que queda («Teologia: 4 libros», «Musica:
+     proximamente»).
+
+   Lo que se abre por la direccion se abre «en silencio» (ver open() en
+   initBook): sin un toque no hay golpe ni sonido. */
+function initBiblioteca(openBook) {
+  const caja = d.querySelector('[data-biblioteca]');
+  if (!caja || !openBook) return;
+  const enlaces = new Map([...caja.querySelectorAll('.estante a[data-libro]')].map((a) => [a.getAttribute('data-libro'), a]));
+  const validos = new Set(enlaces.keys());
+  if (!validos.size) return;
+  const seguir = caja.querySelector('[data-seguir]');
+  const aviso = caja.querySelector('[data-biblio-estado]');
+  let abierto = null;      // el libro que la biblioteca abrio y sigue a la vista
+  /* Cada documento se marca en SUS entradas del historial. Si se recarga con
+     el libro abierto, la entrada que dejo el clic sigue ahi pero ya es de un
+     documento que no existe, y «atras» desde ella recargaria la pagina entera. */
+  const DOC = Math.random().toString(36).slice(2);
+
+  const pintarSeguir = () => {
+    if (!seguir) return;
+    let id = null;
+    try { id = leerUltimo(localStorage, validos); } catch (err) { /* sin almacenamiento */ }
+    const a = id && enlaces.get(id);
+    seguir.hidden = !a;
+    if (!a) return;
+    seguir.setAttribute('href', '#' + id);
+    seguir.setAttribute('data-libro', id);
+    seguir.setAttribute('aria-haspopup', 'dialog');
+    seguir.querySelector('[data-seguir-titulo]').textContent = a.getAttribute('data-titulo');
   };
+
+  caja.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[data-libro]');
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const id = idDeHash('#' + a.getAttribute('data-libro'), validos);
+    if (!id) return;
+    e.preventDefault();
+    history.pushState({ libro: id, doc: DOC }, '', location.pathname + location.search + '#' + id);
+    abierto = id;
+    openBook(id);
+  });
+
+  /* Atras, adelante o escribir la ancla: la direccion dice que libro toca. */
+  /* Abierto por la direccion no habia un toque que recordar: el foco se
+     quedaba en la × (que se esconde enseguida) o volvia a <body>, y se perdia
+     la posicion en la estanteria. */
+  const devolverFoco = (id) => {
+    const portada = enlaces.get(id);
+    const ahora = d.activeElement;
+    if (portada && (!ahora || ahora === d.body || ahora.closest('#book-panel'))) portada.focus({ preventScroll: true });
+  };
+
+  const alHash = () => {
+    const id = idDeHash(location.hash, validos);
+    if (id) {
+      if (abierto !== id) { abierto = id; openBook(id, { silent: true }); }
+      return;
+    }
+    if (abierto) {
+      const cerrado = abierto;
+      abierto = null;
+      openBook.close();
+      devolverFoco(cerrado);
+    }
+  };
+  addEventListener('hashchange', alHash);
+
+  /* Se cerro el libro (×, fondo o Escape): la direccion vuelve a la de la
+     biblioteca. Si el libro lo abrio un clic DE ESTE DOCUMENTO, ese clic dejo
+     una entrada en el historial y se deshace con «atras»; si lo abrio la
+     direccion al cargar (o una recarga), no hay entrada que deshacer y solo
+     se quita la ancla. */
+  openBook.alCerrar(() => {
+    const id = abierto;
+    if (id) {
+      abierto = null;
+      if (history.state && history.state.doc === DOC) history.back();
+      else history.replaceState(null, '', location.pathname + location.search);
+      devolverFoco(id);
+    }
+    pintarSeguir();
+  });
+
+  /* El filtro lo hace initFilter; aqui solo se cuenta lo que quedo, cuando
+     ya termino (de ahi el setTimeout). Sin nada marcado no se dice nada. */
+  const barra = caja.querySelector('[data-filter-bar]');
+  if (barra && aviso) {
+    barra.addEventListener('click', (e) => {
+      const limpiar = e.target.closest && e.target.closest('[data-filter-clear]');
+      setTimeout(() => {
+        /* Al limpiar, el boton se esconde con el foco dentro y el foco caeria
+           a <body>: se lleva a la primera ficha. */
+        if (limpiar) { const f = barra.querySelector('.chip'); if (f) f.focus(); }
+        const hay = barra.querySelector('[data-filter-clear]');
+        if (!hay || hay.hidden) { aviso.textContent = ''; return; }
+        aviso.textContent = [...caja.querySelectorAll('.biblio__lista > li')].filter((li) => !li.hidden).map((li) => {
+          const nombre = li.querySelector('.estante__nombre').textContent.trim();
+          const n = li.querySelectorAll('.libro-item').length;
+          return nombre + ': ' + (n === 1 ? t('lib.count.one') : n ? t('lib.count.n').replace('{n}', n) : t('a11y.soon'));
+        }).join('. ');
+      }, 0);
+    });
+  }
+
+  pintarSeguir();
+  alHash();
 }
 
 function initGlossary() {
@@ -2388,9 +2577,14 @@ function initGlossary() {
     const again = sessionStorage.getItem('jl-libro');
     if (again) {
       sessionStorage.removeItem('jl-libro');
-      if (openBook && CARDS[again] && DEEP[again]) openBook(again);
+      /* Sin un toque (es una recarga): en silencio, como la direccion. */
+      if (openBook && LEIBLES.has(again)) openBook(again, { silent: true });
     }
   } catch (err) { /* sin almacenamiento: no hay nada que reabrir */ }
+  /* Despues de lo de arriba: si el libro ya se reabrio, la biblioteca lo
+     encuentra a la vista y no lo abre otra vez. Aparte, para que un fallo
+     aqui no tumbe el resto de la pagina. */
+  try { initBiblioteca(openBook); } catch (err) { /* la estanteria se queda como enlaces */ }
 
   d.addEventListener('click', (e) => {
     const btn = e.target.closest('.term');
@@ -3212,7 +3406,7 @@ function initDiapositivas() {
 
   addEventListener('wheel', (e) => {
     if (paradas.length < 2) return;                       /* pagina normal */
-    if (d.querySelector('dialog[open]')) return;          /* un visor abierto manda */
+    if (d.querySelector('dialog[open]') || openSheets.length) return;   /* un visor o una hoja abierta mandan */
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;  /* gesto lateral, suyo es */
     if (libre(e.deltaY)) return;                          /* tramo libre: scroll normal */
     /* En la ultima parada hacia abajo —o en la primera hacia arriba— no hay
@@ -3243,7 +3437,7 @@ function initDiapositivas() {
      flechas siguen desplazando pixel a pixel, la pagina tiene dos verdades. */
   addEventListener('keydown', (e) => {
     if (paradas.length < 2 || volando) return;
-    if (d.querySelector('dialog[open]')) return;
+    if (d.querySelector('dialog[open]') || openSheets.length) return;
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -3298,7 +3492,7 @@ function initDiapositivas() {
 
   addEventListener('touchstart', (e) => {
     if (paradas.length < 2 || volando || e.touches.length !== 1) { dedoActivo = false; return; }
-    if (e.target.closest && e.target.closest('[aria-modal="true"], .video-panel')) { dedoActivo = false; return; }
+    if (openSheets.length || (e.target.closest && e.target.closest('[aria-modal="true"], .video-panel'))) { dedoActivo = false; return; }
     dedoActivo = true;
     decidido = false;
     dedoY = e.touches[0].clientY;

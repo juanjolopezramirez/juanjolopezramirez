@@ -73,6 +73,7 @@ juanjo-web/
 └── src/
     ├── data/
     │   ├── social.js       ← las 8 redes y las 4 secciones del menú
+    │   ├── biblioteca.js   ← los temas de la biblioteca y qué libro va en cuál
     │   └── icons.js        ← los SVG en línea (generado, no editar a mano)
     ├── i18n/
     │   ├── ui.js           ← TODOS LOS TEXTOS de la interfaz
@@ -81,12 +82,14 @@ juanjo-web/
     │   ├── term-book.js    ← la cuarta: PaRDeS, la PARE y las fuentes
     │   └── utils.js        helpers
     ├── layouts/Base.astro  cabeza, cabecera, pie, paneles
-    ├── components/         Header · Hero · SocialRow · Panels · LangPicker · Footer · Icon
+    ├── components/         Header · Hero · SocialRow · Panels · LangPicker · Footer · Icon · Biblioteca
     ├── pages/
     │   ├── index.astro     redirige a /es/
     │   └── [lang]/         index · work · projects · writing · about
-    ├── scripts/site.js     todo el comportamiento del cliente
-    └── styles/             tokens.css · base.css · tablet.css · desktop.css · paper.css · sketch.css · niebla.css · carga.css
+    ├── scripts/
+    │   ├── site.js         todo el comportamiento del cliente
+    │   └── biblioteca.js   piezas puras de la biblioteca (ancla, último leído), probables en Node
+    └── styles/             tokens.css · base.css · tablet.css · desktop.css · paper.css · sketch.css · niebla.css · carga.css · biblioteca.css
 ```
 
 **Ver [TEXTOS.md](TEXTOS.md)** para cambiar cualquier palabra sin romper nada.
@@ -251,6 +254,67 @@ rompa `/books/…` (la 5.ª página con 500, que no conteste, etc.) enseña todo
 comprobar el sonido sin fiarse del oído, se envuelve `AudioBufferSourceNode.prototype.start` y se
 anota cuándo suena cada cosa y si `#book-load` está a la vista: ningún golpe puede caer con la carga
 visible.
+
+---
+
+## La biblioteca de Recursos
+
+`/es/writing/` (Recursos) tiene, debajo de su cabecera, una **estantería por temas**
+(`components/Biblioteca.astro`, estilos en `styles/biblioteca.css`). Es la **Fase A**; las
+siguientes (preguntas y actividades dentro de los libros, la estantería inmersiva) están en
+`biblioteca-interactiva-recursos.md`, en la carpeta de arriba.
+
+- **Añadir un libro** es una línea en `LIBROS` de `src/data/biblioteca.js`
+  (`{ id: 'emet', seccion: 'teologia' }`). El libro es una palabra que ya existe en `terms.js`,
+  `term-cards.js` (`GLOSS` y `CARDS`) y `term-book.js` (`DEEP`): si falta alguna, **la compilación
+  se para** y dice cuál; también si le falta una lectura (`now`, `history`, `theology`) o un nivel
+  (`peshat`, `remez`, `derash`, `sod`, `sources`) que el libro necesita para armarse. Y si el id se
+  repite, se llama como una ancla de la página o no es una palabra en minúsculas sin guiones
+  (el id es la dirección: `#ahava`).
+- **Los temas sin libro** salen como pastilla «Pronto», sin bandera que cambiar: se deduce de que
+  ningún libro los nombra. El día que uno tenga su primer libro, sale solo como estante.
+- **La portada** tampoco se declara: si el libro tiene PDF en el idioma de la página
+  (`src/data/books.js`) es su primera página (la misma URL que el libro pide al abrirse, así que
+  ya está en caché); si no, se dibuja con la palabra, igual que la tapa del libro de texto.
+- **Cada libro tiene su dirección:** `/es/writing/#ahava`. Las portadas son enlaces de verdad
+  (sin JavaScript llevan a su portada). Con JavaScript, un clic abre el libro encima y deja la
+  ancla; **atrás** lo cierra; abrir la dirección lo abre al cargar. Cada documento marca sus
+  entradas del historial (`DOC`): si se recarga con el libro abierto, al cerrar solo se quita la
+  ancla, no se vuelve «atrás» a un documento que ya no existe. Una ancla que no es un libro
+  (`#foo`, `#constructor`) se ignora: solo se compara con una lista de ids (`idDeHash`), nunca se
+  usa como selector ni como texto.
+- **Lo que se abre sin un toque** (la dirección, atrás, adelante) se abre **en silencio**: el
+  navegador deja el audio dormido sin un toque, y un golpe programado sonaría encima de otro toque,
+  segundos después. `open(id, { silent })` no hace sonar nada ni crea el audio hasta el primer toque
+  o tecla (`sinToque` en `initBook`).
+- **Mientras el libro está abierto, el resto de la página es inerte** (`inert`): sin Tab, sin clic
+  y fuera de lo que lee un lector de pantalla. Lo hace `sheet()` en `site.js` para toda hoja que
+  lleve `aria-modal="true"` **en el propio panel** (hoy solo `#book-panel`; las demás hojas lo
+  llevan en su marco interior y no cambian). Se enciende de nuevo antes de devolver el foco. Por
+  eso el `role="dialog"` del libro está en `#book-panel` y no en su marco: la × queda fuera del
+  marco. El salto de pantalla en pantalla de la rueda y del teclado tampoco actúa con una hoja
+  abierta.
+- **Al filtrar** una región `role="status"` dice qué queda («Teología: 4 libros», «Música:
+  próximamente»), y «Limpiar» lleva el foco a la primera ficha en vez de perderlo.
+- **Seguir leyendo:** el último libro que se abre —desde la estantería o desde una palabra
+  subrayada de cualquier página— se guarda en el aparato (`localStorage`, clave `jlr:libro`, solo
+  su id) y la estantería lo ofrece. Sin almacenamiento no se ofrece y no pasa nada; **no viaja
+  entre aparatos**.
+- **El filtro** es el de las casas (`initFilter`): cada tema es una fila con su id en `data-tags`.
+  No hay ficha «Todos», como en el resto del sitio.
+- **La sección lleva `data-libre`:** el salto de pantalla en pantalla de la rueda (`initDiapositivas`)
+  la trata como una pantalla alta a propósito. Sin eso, el salto se encendería o apagaría según lo
+  que midiera la estantería, y el filtro cambia lo que mide.
+- **Las cadenas nuevas** son `lib.*` en `ui.js`. El español es el original; **en, pt, fr e it son
+  borradores sin revisar**. `t()` cae al inglés, no al español, cuando falta una clave.
+- **Con el fondo del papel:** el fondo de lo ancho (`.biblio`, `.estante`) es solo color y grano.
+  `initTema` (`soloGrano`) esconde el botón del tema en el teléfono si el primer elemento ancho
+  tiene otra imagen de fondo; los degradados de las portadas viven en elementos estrechos.
+
+Cómo se probó (y cómo repetirlo): `node` sobre `scripts/biblioteca.js` para las funciones puras
+(anclas inválidas, `%E0`, almacén que lanza); en el navegador, abrir cada libro por clic, por ancla
+en la carga, con atrás y adelante, con el almacenamiento forzado a fallar, en los cinco idiomas y a
+360, 375, 390 y 1280 de ancho, claro y oscuro.
 
 ---
 

@@ -1,0 +1,243 @@
+/* =============================================================
+   LA BIBLIOTECA de Recursos (components/Biblioteca.astro)
+
+   Una estanteria por tema. Los libros estan de pie, de frente, cada uno
+   sobre su tabla dibujada a mano, y la portada es la del libro de verdad:
+   pinar, un filete de hueso a un dedo del borde, la palabra en su alfabeto
+   y debajo su nombre y lo que significa. Si el libro tiene PDF, la portada
+   es la primera pagina del PDF.
+
+   Los temas que aun no tienen libro no son estantes vacios: son una pastilla
+   con «pronto», pequeña y quieta. Seis estantes en blanco habrian dicho
+   «esto esta sin hacer» a gritos; seis pastillas dicen donde van a ir.
+
+   EL SUELO. Es hueso de panel, como `.cards` (base.css): un paso mas oscuro
+   que el hueso de la hoja de arriba. El grano lo pone paper.css.
+
+   OJO CON EL FONDO. initTema (site.js, `soloGrano`) mira el primer elemento
+   ancho que hay bajo la mitad de la pantalla: si lleva una imagen de fondo
+   que no sea el grano, el boton del tema se esconde en el telefono. Lo
+   ancho —`.biblio`, `.estante`— va solo con color; los degradados viven en
+   las portadas, que son estrechas.
+   ============================================================= */
+
+.biblio {
+  padding: calc(var(--header-h) + 1.6rem) var(--gutter) 3.4rem;
+  /* `background-color` y no `background`: el shorthand borraria el grano que
+     paper.css pone como imagen de fondo (esta hoja va despues en el CSS). */
+  background-color: var(--papel-2);
+  color: var(--slate);
+  --slate-400: var(--slate-400-hundido);
+}
+.biblio__shell {
+  display: grid; justify-items: start;
+  gap: .9rem;
+  max-width: var(--shell, 84rem);
+  margin: 0 auto;
+}
+
+.biblio__title {
+  margin: 0;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--slate-400);
+}
+.biblio__lead {
+  margin: 0;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.5rem, 5.4vw, 2.3rem);
+  line-height: 1.12; letter-spacing: -.015em;
+  max-width: 20ch;
+  color: var(--slate);
+}
+
+/* ---- Seguir leyendo ---- */
+.seguir {
+  display: grid; gap: .1rem;
+  width: fit-content; max-width: 100%;
+  padding: .65rem 1rem .72rem;
+  border-radius: 10px;
+  border: 1px solid rgb(var(--slate-rgb) / .14);
+  background-color: var(--papel-alto);
+  color: var(--slate);
+  text-decoration: none;
+  transition: translate .25s var(--ease), border-color .2s var(--ease);
+}
+.seguir:hover { translate: 0 -2px; border-color: rgb(var(--slate-rgb) / .3); }
+.seguir__marca {
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--slate-400);
+}
+.seguir__titulo { font-family: var(--serif); font-size: 1.12rem; letter-spacing: -.01em; }
+
+/* ---- El filtro: las fichas son las de las casas (base.css) ---- */
+.biblio__filtro { margin-top: .15rem; }
+
+/* La ficha pulsada se distingue tambien sin color: en oscuro el pino sobre la
+   ficha apenas cambia el matiz (1.4.1). */
+.biblio .chip.is-on::before {
+  content: "✓";
+  content: "✓" / "";             /* sin texto alternativo: no entra en el nombre accesible */
+  margin-right: .35em;
+}
+
+/* El aro de foco de una ficha se recortaba arriba, abajo y a la izquierda: la
+   fila desliza (overflow) y el aro cae fuera de su caja. Se le da el sitio
+   que ocupa el aro (2px + 3px de separacion) y se resta del margen, para que
+   las fichas no se muevan. */
+.biblio .faxis__chips { padding: 5px; margin: -5px; }
+
+/* ---- La lista de temas ---- */
+.biblio__lista {
+  list-style: none; margin: .5rem 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: .55rem;
+  width: 100%;
+}
+.estante { min-width: 0; }
+.estante:not(.estante--pronto) { flex: 1 1 100%; margin-bottom: .9rem; }
+.estante__nombre {
+  margin: 0;
+  font-family: var(--serif); font-weight: 400;
+  font-size: 1.35rem; letter-spacing: -.012em;
+}
+
+/* Un tema sin libro: una pastilla de rayas, no un estante en blanco */
+.estante--pronto {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: .55rem;
+  padding: .4rem .85rem .45rem;
+  border-radius: 999px;
+  border: 1px dashed rgb(var(--slate-rgb) / .3);
+  color: var(--slate-400);
+}
+.estante--pronto .estante__nombre { font-family: inherit; font-size: .8rem; font-weight: 600; letter-spacing: 0; }
+.estante__badge {
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* ---- Los libros, de pie sobre su tabla ---- */
+.estante__libros {
+  list-style: none; margin: .85rem 0 0; padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 1.15rem;
+}
+.libro-item {
+  position: relative;
+  padding-bottom: 1.05rem;
+  /* La ancla (#ahava, o Shift+Tab) deja la portada bajo la cabecera fija */
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+/* La tabla: una raya de lado a lado del libro, que se pasa un poco por los
+   lados para que la de un libro y la de su vecino se den la mano. */
+.libro-item::after {
+  bottom: 0; left: -.55rem; right: -.55rem;
+  height: 8px;
+  background: var(--trazo-suave);
+  -webkit-mask-image: var(--tr-linea);
+          mask-image: var(--tr-linea);
+}
+
+.libro {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.libro:focus-visible { outline-offset: 6px; border-radius: 8px; }
+
+.libro__tapa {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  aspect-ratio: 5 / 7;
+  padding: .8rem .6rem;
+  /* Sin `overflow: hidden`: con la letra del sistema al doble el texto no cabe
+     en 5:7 y la caja tiene que crecer, no cortarlo. La foto y el lomo de
+     encima llevan el mismo redondeo. */
+  text-align: center;
+  border-radius: 3px 8px 8px 3px;
+  background-color: var(--pine);
+  color: var(--bone);
+  /* El lomo: la tapa se hunde un poco hacia la izquierda */
+  background-image: linear-gradient(90deg, rgb(0 0 0 / .3), transparent 9%);
+  box-shadow:
+    0 0 0 1px rgb(var(--slate-rgb) / .12),
+    0 .85rem 1.2rem -.95rem rgb(0 0 0 / .6);
+  rotate: calc((var(--i, 0) - 1.5) * .55deg);
+  transition: translate .35s var(--ease), rotate .35s var(--ease), box-shadow .35s var(--ease);
+}
+/* El filete de la tapa, a un dedo del borde (como `.page--cover::before`) */
+.libro__tapa::before {
+  content: "";
+  position: absolute; inset: .5rem;
+  border: 1px solid rgb(241 239 233 / .22);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.libro__tapa--foto::before { display: none; }
+
+.libro__guion, .libro__titulo, .libro__glosa { overflow-wrap: anywhere; }
+.libro__guion {
+  margin: 0 0 .35rem;
+  font-size: clamp(2.1rem, 9vw, 2.9rem); line-height: 1.25;
+  color: var(--iris-300);
+}
+.libro__titulo {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 4.4vw, 1.3rem); line-height: 1.1;
+  letter-spacing: -.012em;
+}
+.libro__glosa {
+  margin-top: .3rem;
+  font-size: .74rem; line-height: 1.25;
+  opacity: .85;
+}
+.libro__foto {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+/* El lomo por encima de la foto tambien */
+.libro__tapa--foto::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgb(0 0 0 / .3), transparent 9%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .libro:hover .libro__tapa {
+    translate: 0 -.5rem;
+    rotate: 0deg;
+    box-shadow:
+      0 0 0 1px rgb(var(--slate-rgb) / .2),
+      0 1.3rem 1.5rem -1rem rgb(0 0 0 / .65);
+  }
+}
+.libro:active .libro__tapa { translate: 0 -.15rem; scale: .985; }
+.libro:focus-visible .libro__tapa { translate: 0 -.4rem; rotate: 0deg; }
+
+@media (min-width: 600px) {
+  .estante__libros {
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 12rem));
+    gap: 1.75rem 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .biblio { padding-bottom: 4.6rem; }
+  .biblio__lead { max-width: 26ch; }
+  .estante__libros { grid-template-columns: repeat(auto-fill, minmax(11rem, 13.5rem)); gap: 2rem 1.9rem; }
+  .libro__guion { font-size: 3.1rem; }
+  .libro__titulo { font-size: 1.4rem; }
+  .libro__glosa { font-size: .8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro__tapa, .seguir { transition: none; }
+  .libro:hover .libro__tapa, .libro:focus-visible .libro__tapa, .libro:active .libro__tapa { translate: none; scale: none; }
+}

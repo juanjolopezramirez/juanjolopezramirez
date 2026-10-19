@@ -61,7 +61,8 @@
 .site-footer::before,
 .site-nav__wide-list a::after,
 .carga__titulo::after,
-.carga__btn::after {
+.carga__btn::after,
+.libro-item::after {
   content: "";
   position: absolute;
   pointer-events: none;
