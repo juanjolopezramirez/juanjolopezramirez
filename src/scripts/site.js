@@ -14,7 +14,8 @@ import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { CONTACT } from '../data/social.js';
-import { idDeHash, leerUltimo, guardarUltimo } from './biblioteca.js';
+import { idDeHash, leerUltimo, guardarUltimo, variante, ola } from './biblioteca.js';
+import { LIBROS, TIPOS } from '../data/biblioteca.js';
 
 const d = document;
 const lang = d.documentElement.lang || 'es';
@@ -822,9 +823,11 @@ function linkTerms() {
   });
 }
 
-/* Las palabras que tienen libro: lo que se puede recordar como «ultimo
-   leido». Una lista de claves y no el objeto: «constructor» no es un libro. */
-const LEIBLES = new Set(Object.keys(DEEP).filter((k) => CARDS[k]));
+/* Los libros de la biblioteca (data/biblioteca.js): los de una palabra y los
+   demas. Un Map y un Set de ids y no el objeto: «constructor» no es un libro.
+   LEIBLES es lo que se puede recordar como «ultimo leido» y reabrir. */
+const LIBRO = new Map(LIBROS.map((l) => [l.id, l]));
+const LEIBLES = new Set(LIBRO.keys());
 
 /* ---------- El libro de una palabra -------------------------
    Doce paginas: tapa, indice, las tres lecturas, PaRDeS en cuatro (la
@@ -1070,7 +1073,9 @@ function initBook() {
         leaf.style.zIndex = String(3 * n + order);
       }
     });
-    if (!instant && nk !== from) rustle(from === 0 || nk === 0 || (spread && (from === n || nk === n)), TURN / 1000);
+    /* La tapa de un libro de tapa dura suena a carton; la de una revista, a
+       papel como cualquier otra hoja. */
+    if (!instant && nk !== from) rustle(!blandoAhora && (from === 0 || nk === 0 || (spread && (from === n || nk === n))), TURN / 1000);
     if (instant) {
       settle();
       void block.offsetWidth;
@@ -1149,6 +1154,7 @@ function initBook() {
   let cover = null;
   let thump = null;       // el libro contra la mesa
   let thumpReady = null;
+  let blandoAhora = false; // el libro que se abre es de pasta blanda: su golpe contra la mesa es mas flojo
   const SLAM_HIT = 0.775; // en sounds/slam.mp3: el golpe (antes, casi silencio)
   const IMPACT = 396;     // cuando toca la mesa en book-throw (base.css: 55% de 720 ms)
   const ARRIVE = 120;     // el libro en PDF que llega tras la carga: se asienta a los 120 ms de empezar flip-llega
@@ -1275,7 +1281,7 @@ function initBook() {
       const src = c.createBufferSource();
       src.buffer = thump;
       const g = c.createGain();
-      g.gain.value = soft ? 0.38 : 0.6;         // es mucho mas fuerte que las hojas
+      g.gain.value = (soft ? 0.38 : 0.6) * (blandoAhora ? 0.6 : 1);   // es mucho mas fuerte que las hojas; el de una revista, menos
       src.connect(g).connect(master);
       src.start(c.currentTime + 0.01, Math.max(0, SLAM_HIT - Math.max(0, lead)));
     };
@@ -1414,7 +1420,7 @@ function initBook() {
     for (let i = 0; i < Math.min(FIRST_VIEW, ld.n); i++) if (!ld.ok.has(i)) first = false;
     ld.now.hidden = !(ld.late && first && !err && ld.skip);
     ld.retry.hidden = !err;
-    ld.text.hidden = !(ld.late || err);
+    ld.text.hidden = !((ld.late || err) && cur && cur.f.v.texto);   // un libro solo en PDF no tiene texto que ofrecer
     ld.acts.hidden = ld.now.hidden && ld.retry.hidden && ld.text.hidden;
     ld.note.hidden = !(ld.late || err);
     put(ld.note, ld.note.hidden ? '' : t(err ? 'book.load.fail' : 'book.load.slow'));
@@ -1439,7 +1445,7 @@ function initBook() {
     clearTimeout(ld.timer);
     ld.n = n; ld.ok = new Set(); ld.late = false; ld.skip = null;
     ld.t0 = performance.now();
-    ld.title.textContent = t('book.load.title').replace('{w}', say(TERMS[id].title));
+    ld.title.textContent = t('book.load.title').replace('{w}', fbInfo.titulo);
     ld.see.textContent = t('book.load.see').replace('{t}', n);
     /* Una marca por pagina, repartidas en el aro desde arriba, hacia la
        derecha. Cada una es una raya corta y un poco distinta de su vecina
@@ -1719,6 +1725,8 @@ function initBook() {
     zoomBtn.hidden = true;
     flipBox.textContent = '';
     flipBox.removeAttribute('style');
+    flipBox.removeAttribute('lang');
+    flipBox.removeAttribute('data-tipo');
     flipBox.removeAttribute('data-cam');
     flipBox.hidden = true;
     el('book').hidden = false;
@@ -1764,7 +1772,11 @@ function initBook() {
        hoja entera si una de sus caras lo es, asi que la pagina 2 y la
        penultima giran pegadas a su carton. */
     const hint = flipSize(info.ratio).pw;
-    const hardAt = [0, n - 1];
+    /* TAPA DURA o PASTA BLANDA. La dura tiene la tapa y la contratapa rigidas,
+       con cartones detras. La blanda (revista, comic) no: todas las hojas son
+       de papel y se doblan, tapa incluida, y no hay cartones. */
+    const blando = !!info.blando;
+    const hardAt = blando ? [] : [0, n - 1];
     const imgs = [];
     const els = [];
     for (let i = 0; i < n; i++) {
@@ -1847,7 +1859,8 @@ function initBook() {
     if (front) flipBox.style.setProperty('--board-front', front);
     if (back) flipBox.style.setProperty('--board-back', back);
     flipBox.style.setProperty('--over', Math.max(5, Math.round(pw * 0.018)) + 'px');
-    flipBox.append(shelf, stage);
+    if (blando) flipBox.append(stage); else flipBox.append(shelf, stage);
+    flipBox.dataset.tipo = blando ? 'blando' : 'duro';
     els.forEach((pg) => stage.appendChild(pg));
 
     fb = new PageFlip(stage, {
@@ -1868,6 +1881,10 @@ function initBook() {
       startZIndex: 1,
     });
     fb.loadFromHTML(els);
+    /* Con `showCover` la libreria pone rigida la primera pagina (y la ultima si
+       son pares) aunque no lo pidamos: en una revista se le devuelve el papel.
+       Si no se pudiera, la revista gira con la tapa rigida y sin cartones. */
+    if (blando) [0, n - 1].forEach((i) => { try { fb.getPage(i).setDensity('soft'); } catch (err) { /* se queda como esta */ } });
     fb.on('init', () => show(fb.getCurrentPageIndex(), 0));
     fb.on('flip', () => { show(fb.getCurrentPageIndex(), 250); thud(); });
 
@@ -2218,12 +2235,18 @@ function initBook() {
      no se ve hasta estar entero (ver «La carga», arriba). La caja ya tiene
      el tamaño que tendra, para que la carga quede centrada justo encima y,
      al llegar, el cambio no mueva nada. */
-  function openFlip(id, pdf, tapped, silent) {
+  function openFlip(id, f, tapped, silent) {
     if (soundOn) audio();              // que la grabacion ya este cargada al primer giro
     closeFlip();                       // un libro anterior, o una carga a medias, fuera
-    cur = { id, pdf };
-    const which = BOOKS[id][lang] ? lang : 'all';
-    fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + which + '/' };
+    const pdf = f.v.pdf;
+    cur = { id, f };
+    /* `titulo` y `blando` son de la ficha; lo demas, de tools/books.py. Si el
+       libro esta en otro idioma que la pagina, la caja entera lo declara
+       (`lang`), para que un lector de pantalla no lea un libro en ingles con
+       la voz del español. */
+    fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + f.v.cual + '/',
+               titulo: f.titulo, blando: f.blando };
+    if (f.v.lang !== lang) flipBox.setAttribute('lang', f.v.lang); else flipBox.removeAttribute('lang');
     el('book').hidden = true;
     flipBox.hidden = false;
     const fit = flipSize(pdf.ratio);
@@ -2269,6 +2292,7 @@ function initBook() {
      desde la carga, lo que se ofrece si el PDF no llega. */
   function readText(id, fresh) {
     closeFlip();
+    book.dataset.tipo = blandoDe(LIBRO.get(id)) ? 'blando' : 'duro';
     pages = makePages(id);
     layout(0);
     if (fresh) s.open();
@@ -2289,9 +2313,9 @@ function initBook() {
       location.reload();
       return;
     }
-    openFlip(cur.id, cur.pdf);
+    openFlip(cur.id, cur.f);
   });
-  ld.text.addEventListener('click', () => { if (cur) readText(cur.id, false); });
+  ld.text.addEventListener('click', () => { if (cur && cur.f.v.texto) readText(cur.id, false); });
 
   /* Mientras el PDF llega no hay libro al que pasar hojas (ni el escrito, que esta oculto) */
   const next = () => (fb ? step(1) : booting ? null : set(k + 1));
@@ -2405,19 +2429,41 @@ function initBook() {
     layout(at);
   });
 
+  /* Pasta blanda (revista, comic) o tapa dura, segun el tipo del libro */
+  const blandoDe = (libro) => !!(libro && TIPOS[libro.tipo] && TIPOS[libro.tipo].blando);
+
+  /* Lo que hace falta saber de un libro para abrirlo: su registro, la version
+     que le toca a ESTA pagina (idioma, PDF, texto), su titulo y si es de pasta
+     blanda. null si no hay con que abrirlo. Un libro de una palabra saca su
+     titulo del glosario, en el idioma de la pagina; los demas, de su registro,
+     en el idioma del libro. */
+  function ficha(id) {
+    const libro = LIBRO.get(id);
+    if (!libro) return null;
+    const v = variante(libro, lang, BOOKS);
+    if (!v) return null;
+    const blando = blandoDe(libro);
+    if (libro.glosario) return { libro, v, blando, titulo: say(TERMS[id].title), glosa: say(GLOSS[id]) };
+    return { libro, v, blando, titulo: libro.titulo[v.lang], glosa: libro.subtitulo ? libro.subtitulo[v.lang] || '' : '' };
+  }
+
   /* Se abre cerrado, con la tapa delante, y a los pocos instantes se
      abre solo por el indice: la tapa se ve, pero no hace falta un toque
-     de mas para empezar a leer. */
-  /* `opts.silent`: se abre sin un toque (la direccion #libro, atras o
+     de mas para empezar a leer.
+
+     `opts.silent`: se abre sin un toque (la direccion #libro, atras o
      adelante de la biblioteca): ni golpe ni audio hasta el primer toque. */
   function open(id, opts) {
     const silent = !!(opts && opts.silent);
+    const f = ficha(id);
+    if (!f) return;
     /* Ya esta a la vista (recargar en #libro tras «Intentar otra vez» lo
        abre dos veces): no se vuelve a armar. */
     if (abiertoId === id && openSheets.includes(s.panel)) return;
     clearTimeout(autoOpen);
     const tapped = performance.now();
-    const pdf = BOOKS[id] && (BOOKS[id][lang] || BOOKS[id].all);
+    const pdf = f.v.pdf;
+    blandoAhora = f.blando;
     if (silent) sinToque = true;
     /* El de texto aparece al instante y suena ya. El de PDF tiene que
        llegar: el golpe espera a que se vea (openFlip) y aqui solo se
@@ -2427,8 +2473,10 @@ function initBook() {
     /* El ultimo libro que se abre, de donde sea, es el que la biblioteca
        ofrece seguir leyendo. Sin almacenamiento, no pasa nada. */
     try { guardarUltimo(localStorage, id, LEIBLES); } catch (err) { /* bloqueado */ }
-    el('book-title').textContent = say(TERMS[id].title) + ' · ' + say(GLOSS[id]);
-    if (pdf) { s.open(); openFlip(id, pdf, tapped, silent); return; }
+    const titulo = el('book-title');
+    titulo.textContent = f.glosa ? f.titulo + ' · ' + f.glosa : f.titulo;
+    if (f.v.lang !== lang) titulo.setAttribute('lang', f.v.lang); else titulo.removeAttribute('lang');
+    if (pdf) { s.open(); openFlip(id, f, tapped, silent); return; }
     readText(id, true);
   }
   open.close = s.close;
@@ -2438,7 +2486,8 @@ function initBook() {
 
 /* ---------- La biblioteca de Recursos -----------------------
    La estanteria (components/Biblioteca.astro) ya llega pintada; aqui solo se
-   le dan tres cosas:
+   le da lo que necesita JavaScript (la ola, mas abajo, tiene su propio
+   comentario):
 
    · ABRIR EL LIBRO. Cada portada es un enlace a su ancla (#ahava). Un clic
      normal abre el libro encima, con la caida sobre la mesa de siempre, y
@@ -2452,12 +2501,11 @@ function initBook() {
      lista se ignora: solo se compara con ids que ya existen, nunca se usa
      como selector ni como texto.
    · SEGUIR LEYENDO. El ultimo libro abierto —desde donde sea— se guarda en
-     el aparato (scripts/biblioteca.js) y aqui se ofrece. Si no hay
-     almacenamiento, simplemente no se ofrece.
-   · UN AVISO PARA QUIEN NO VE. Al filtrar, seis de siete temas dejan solo una
-     pastilla «pronto»: un lector de pantalla oiria «pulsado» y nada mas. Una
-     region `role="status"` dice que queda («Teologia: 4 libros», «Musica:
-     proximamente»).
+     el aparato (scripts/biblioteca.js), aqui se ofrece y su lomo lleva un
+     marcapaginas. Si no hay almacenamiento, simplemente no se ofrece.
+   · UN AVISO PARA QUIEN NO VE. Al filtrar, un lector de pantalla oiria
+     «pulsado» y nada mas. Una region `role="status"` dice que queda
+     («Teologia: 4 libros») o, al limpiar, «Todos los temas: N libros».
 
    Lo que se abre por la direccion se abre «en silencio» (ver open() en
    initBook): sin un toque no hay golpe ni sonido. */
@@ -2476,9 +2524,11 @@ function initBiblioteca(openBook) {
   const DOC = Math.random().toString(36).slice(2);
 
   const pintarSeguir = () => {
-    if (!seguir) return;
     let id = null;
     try { id = leerUltimo(localStorage, validos); } catch (err) { /* sin almacenamiento */ }
+    /* El lomo del ultimo libro leido lleva un marcapaginas */
+    enlaces.forEach((lomo, k) => lomo.closest('.libro-item').classList.toggle('is-ultimo', k === id));
+    if (!seguir) return;
     const a = id && enlaces.get(id);
     seguir.hidden = !a;
     if (!a) return;
@@ -2551,15 +2601,128 @@ function initBiblioteca(openBook) {
            a <body>: se lleva a la primera ficha. */
         if (limpiar) { const f = barra.querySelector('.chip'); if (f) f.focus(); }
         const hay = barra.querySelector('[data-filter-clear]');
-        if (!hay || hay.hidden) { aviso.textContent = ''; return; }
+        const cuenta = (n) => (n === 1 ? t('lib.count.one') : t('lib.count.n').replace('{n}', n));
+        /* Sin nada marcado (se limpio, o se desmarco la ultima ficha): se dice
+           que se ve todo. Si no, lo que queda, tema por tema. */
+        if (!hay || hay.hidden) {
+          if (limpiar || aviso.textContent) aviso.textContent = t('lib.all') + ': ' + cuenta(caja.querySelectorAll('.libro-item').length);
+          return;
+        }
         aviso.textContent = [...caja.querySelectorAll('.biblio__lista > li')].filter((li) => !li.hidden).map((li) => {
           const nombre = li.querySelector('.estante__nombre').textContent.trim();
-          const n = li.querySelectorAll('.libro-item').length;
-          return nombre + ': ' + (n === 1 ? t('lib.count.one') : n ? t('lib.count.n').replace('{n}', n) : t('a11y.soon'));
+          return nombre + ': ' + cuenta(li.querySelectorAll('.libro-item').length);
         }).join('. ');
       }, 0);
     });
   }
+
+  /* LA OLA. Con el raton, cada lomo de la fila donde esta el puntero sube segun
+     lo cerca que este de el (scripts/biblioteca.js → ola()): el de debajo
+     sube del todo, y los vecinos le siguen, cada vez menos, y se inclinan un
+     poco hacia fuera, como un abanico. Sin JavaScript, el CSS (biblioteca.css)
+     hace una ola de tres lomos con :hover; con el, esto la hace de verdad y
+     .con-ola apaga la del CSS: las dos juntas se pelean (la del CSS cruzaba
+     de fila y volvia a encenderse tras apagar la de aqui al desplazar).
+
+     Un solo escuchador por mueble (pointermove, pasivo) que solo apunta donde
+     esta el puntero; en cada fotograma se hace UNA lectura (donde esta el
+     mueble) y despues solo se escribe --ola y --giro, y solo si cambian: sin
+     leer y escribir mezclados no hay recolocaciones. El movimiento es
+     `translate` y `rotate`, que no recolocan nada. La transicion de 180 ms del
+     CSS suaviza los saltos de un fotograma al siguiente (y sostiene el efecto
+     si el navegador va lento).
+
+     Solo con raton: el dedo no tiene «pasar por encima» (alli, un toque abre
+     el libro) y con movimiento reducido no hay ola (el CSS sube un poco el
+     lomo que se toca). Se apaga al salir, al desplazarse la pagina (el
+     puntero se queda quieto pero los libros ya no estan donde estaba) y al
+     perder la ventana. Y al detenerse el raton sobre un lomo se pide la portada
+     del PDF, para que el libro la encuentre ya en cache al abrirse.
+     La de 900 px o la de 1600, la que el lector pediria (su srcset elige la
+     de 1600 desde ~1.4 puntos por pixel); y con prioridad baja, y no de pasada:
+     un barrido rapido del raton por doce lomos no pide doce imagenes. */
+  const calma = matchMedia('(prefers-reduced-motion: reduce)');
+  caja.classList.add('con-ola');
+  const pedidas = new Set();
+  let espera = 0;
+  const adelantar = (lomo) => {
+    let url = lomo.getAttribute('data-portada');
+    if (!url || pedidas.has(url)) return;
+    if (navigator.connection && navigator.connection.saveData) return;   // con ahorro de datos, no se adelanta nada
+    if (devicePixelRatio > 1.4) url = url.replace('-900.jpg', '-1600.jpg');
+    pedidas.add(url);
+    const img = new Image();
+    img.fetchPriority = 'low';
+    img.src = url;
+  };
+
+  caja.querySelectorAll('.estante__libros').forEach((mueble) => {
+    const items = [...mueble.querySelectorAll(':scope > .libro-item')];
+    let medidas = null;         // [{ li, cx, fila, ola, giro }] respecto al mueble; se rehace al cambiar el tamaño
+    let alto = 0, ancho = 0;    // el alto de una fila y el ancho medio de un lomo
+    let raton = null;           // donde esta el puntero, o null
+    let cuadro = 0;
+
+    const medir = () => {
+      const base = mueble.getBoundingClientRect();
+      medidas = items.map((li) => {
+        const r = li.getBoundingClientRect();
+        alto = r.height;
+        return { li, cx: r.left - base.left + r.width / 2, fila: Math.round((r.top - base.top) / r.height), w: r.width, ola: 0, giro: 0 };
+      });
+      ancho = medidas.reduce((a, m) => a + m.w, 0) / (medidas.length || 1);
+    };
+    const escribir = (m, o, g) => {
+      if (Math.abs(m.ola - o) > 0.002) { m.ola = o; m.li.style.setProperty('--ola', o.toFixed(3)); }
+      if (Math.abs(m.giro - g) > 0.002) { m.giro = g; m.li.style.setProperty('--giro', g.toFixed(2) + 'deg'); }
+    };
+    /* Todo a cero. Se recorren los <li> y no `medidas`: al cambiar el tamaño
+       `medidas` se tira, y lo que ya se habia escrito en linea se quedaria
+       puesto (los lomos subidos) hasta salir del mueble. */
+    const apagar = () => {
+      raton = null;
+      if (cuadro) { cancelAnimationFrame(cuadro); cuadro = 0; }
+      items.forEach((li) => { li.style.removeProperty('--ola'); li.style.removeProperty('--giro'); });
+      if (medidas) medidas.forEach((m) => { m.ola = 0; m.giro = 0; });
+    };
+    const pintar = () => {
+      cuadro = 0;
+      if (!raton) return;
+      if (!medidas) medir();
+      const base = mueble.getBoundingClientRect();        // la unica lectura del fotograma
+      const x = raton.x - base.left;
+      const fila = Math.floor((raton.y - base.top) / alto);
+      const alcance = ancho * 2.4;
+      medidas.forEach((m) => {
+        if (m.fila !== fila) { escribir(m, 0, 0); return; }
+        const w = ola(x, m.cx, alcance);
+        escribir(m, w.ola, w.giro);
+      });
+    };
+
+    mueble.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || calma.matches) return;
+      raton = { x: e.clientX, y: e.clientY };
+      if (!cuadro) cuadro = requestAnimationFrame(pintar);
+    }, { passive: true });
+    mueble.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') medidas = null; });
+    mueble.addEventListener('pointerleave', apagar);
+    mueble.addEventListener('pointerover', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const lomo = e.target.closest && e.target.closest('a[data-libro]');
+      clearTimeout(espera);
+      if (lomo) espera = setTimeout(() => adelantar(lomo), 150);
+    });
+    mueble.addEventListener('pointerout', () => clearTimeout(espera));
+    mueble.addEventListener('focusin', (e) => {
+      const lomo = e.target.closest && e.target.closest('a[data-libro]');
+      if (lomo) adelantar(lomo);
+    });
+    addEventListener('resize', () => { apagar(); medidas = null; });
+    addEventListener('scroll', () => { if (raton) apagar(); }, { passive: true });
+    addEventListener('blur', apagar);
+    d.addEventListener('visibilitychange', () => { if (d.hidden) apagar(); });
+  });
 
   pintarSeguir();
   alHash();
@@ -2594,7 +2757,7 @@ function initGlossary() {
     if (!term) return;
     /* Las palabras con sus cuatro lecturas se abren como libro. Las
        demas —Timoteo— siguen en su hoja de siempre. */
-    if (openBook && CARDS[id] && DEEP[id]) { openBook(id); return; }
+    if (openBook && LEIBLES.has(id)) { openBook(id); return; }
     d.querySelector('.term-panel__sheet').setAttribute('data-term', id);
     el('term-panel-script').textContent = term.script;
     el('term-panel-script').setAttribute('dir', term.dir);

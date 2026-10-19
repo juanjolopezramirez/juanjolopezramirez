@@ -4703,6 +4703,16 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .face--back  { border-radius: 6px 0 0 6px; background-image: linear-gradient(270deg, rgb(0 0 0 / .13), transparent 7%); }
 .book[data-mode="single"] .face--front { border-radius: 4px 8px 8px 4px; }
 
+/* PASTA BLANDA (revista, comic). La tapa y la contratapa ya no son carton: son
+   papel grueso del color de la portada, asi que el pliegue del lomo es el de
+   una hoja —un hundimiento suave con un hilo de luz en la raya donde se
+   dobla— y las esquinas son las del resto de las hojas. */
+.book[data-tipo="blando"] .face--hard.face--front { background-image: linear-gradient(90deg, rgb(0 0 0 / .2), rgb(255 255 255 / .06) 3%, transparent 8%); }
+.book[data-tipo="blando"] .face--hard.face--back  { background-image: linear-gradient(270deg, rgb(0 0 0 / .2), rgb(255 255 255 / .06) 3%, transparent 8%); }
+.book[data-tipo="blando"] .face--front { border-radius: 0 3px 3px 0; }
+.book[data-tipo="blando"] .face--back  { border-radius: 3px 0 0 3px; }
+.book[data-tipo="blando"][data-mode="single"] .face--front { border-radius: 3px 5px 5px 3px; }
+
 /* La luz que cruza la hoja mientras gira: nada quieta, mas en vertical */
 .face::after {
   content: "";

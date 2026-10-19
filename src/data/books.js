@@ -1,18 +1,18 @@
 /* Generado por tools/books.py — no editar a mano.
-   Que palabras tienen su libro en PDF, en que idioma («all» vale para
-   todos), cuantas paginas, su proporcion ancho/alto y la version del
-   PDF, que va en la URL de las imagenes para que nadie vea una vieja. */
+   Que libros tienen su PDF, en que idioma («all» vale para todos, solo en
+   los de una palabra), cuantas paginas, su proporcion ancho/alto y la
+   version del PDF, que va en la URL de las imagenes para que nadie vea
+   una vieja. */
 export const BOOKS = {
   "ahava": {
     "es": {
       "board": [
-        "#a37005",
-        "#a37005"
+        "#a27005",
+        "#a37006"
       ],
-      "offset": 2,
-      "pages": 10,
-      "ratio": 0.7143,
-      "v": "8d6973ba61"
+      "pages": 11,
+      "ratio": 0.7069,
+      "v": "01f0f3f00d"
     }
   }
 };

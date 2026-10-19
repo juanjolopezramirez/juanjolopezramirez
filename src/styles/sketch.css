@@ -44,6 +44,11 @@
 
   /* Un marco dibujado a cuatro lados, cada uno con su pulso y con el pico
      que sobra en las esquinas cuando se dibuja deprisa. Para tarjetas. */
+  /* Una tabla de estante vista de frente: una franja de unos 5% del alto con el
+     canto de arriba a mano alzada, pegada al pie. Se repite en vertical, una por
+     fila de libros (biblioteca.css, `mask-size: 100% var(--fila)`). */
+  --tr-tabla: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'%3E%3Cpath d='M0 95.6C46 94.7 92 96 150 95.2S262 94.6 330 95.5 456 95 520 95.6 580 94.9 600 95.3V100H0Z' fill='%23000'/%3E%3C/svg%3E");
+
   --tr-marco: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' vector-effect='non-scaling-stroke'%3E%3Cpath d='M1.2 1.6C28 .7 66 2.3 98.8 1.1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M98.9 1C99.8 30 98.6 68 99.2 99' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M98.6 98.9C68 99.9 30 98.3 1.1 99.1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M1.1 99C.4 68 1.7 30 .9 1.2' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
 }
 
@@ -62,7 +67,8 @@
 .site-nav__wide-list a::after,
 .carga__titulo::after,
 .carga__btn::after,
-.libro-item::after {
+.estante__libros::after,
+.estante__mueble::after {
   content: "";
   position: absolute;
   pointer-events: none;

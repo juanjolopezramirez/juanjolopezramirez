@@ -73,7 +73,8 @@ juanjo-web/
 └── src/
     ├── data/
     │   ├── social.js       ← las 8 redes y las 4 secciones del menú
-    │   ├── biblioteca.js   ← los temas de la biblioteca y qué libro va en cuál
+    │   ├── biblioteca.js   ← los temas, los tipos de libro y la lista de libros (solo datos)
+    │   ├── lomos.js        ← busca los lomos diseñados a mano (solo al compilar)
     │   └── icons.js        ← los SVG en línea (generado, no editar a mano)
     ├── i18n/
     │   ├── ui.js           ← TODOS LOS TEXTOS de la interfaz
@@ -88,7 +89,7 @@ juanjo-web/
     │   └── [lang]/         index · work · projects · writing · about
     ├── scripts/
     │   ├── site.js         todo el comportamiento del cliente
-    │   └── biblioteca.js   piezas puras de la biblioteca (ancla, último leído), probables en Node
+    │   └── biblioteca.js   piezas puras: qué idioma abre cada libro, grosor, color del lomo, la ola, la comprobación
     └── styles/             tokens.css · base.css · tablet.css · desktop.css · paper.css · sketch.css · niebla.css · carga.css · biblioteca.css
 ```
 
@@ -198,7 +199,7 @@ molde común y pídela con `mask-image` + `background: <token de tinta>`.
 
 ## El libro de una palabra: la carga
 
-Cuando una palabra tiene su libro en PDF (`tools/books.py` → `src/data/books.js`, hoy Ahavá en
+Cuando un libro tiene su PDF (`tools/books.py` → `src/data/books.js`, hoy Ahavá en
 español), el libro son N imágenes y la librería `page-flip`. Antes el panel se abría con una caja
 vacía y se confiaba en que todo llegara; si algo se quedaba a medias, el libro salía roto o no salía.
 Ahora **el libro no se ve hasta estar entero** y mientras llega ocupa su lugar una carga que dice qué
@@ -218,7 +219,8 @@ pasa (`carga.css`, markup en `Panels.astro` → `#book-load`, lógica en `site.j
 - **Los pasos** son «Abriendo el lector → Trayendo las páginas 4 de 10 → Encuadernando el libro →
   Listo», más «un libro de N páginas, se pasan con un toque o las flechas». Cinco idiomas
   (`book.load.*` en `ui.js`).
-- **Si tarda** (7 s) avisa y ofrece «Leerlo en texto» y, si la tapa y el primer pliego ya llegaron,
+- **Si tarda** (7 s) avisa y ofrece «Leerlo en texto» (solo si el libro tiene versión escrita: los de
+  una palabra; un libro solo en PDF no la tiene) y, si la tapa y el primer pliego ya llegaron,
   «Abrirlo ya». **Si falla** (una imagen, tras 2 reintentos; o la librería, tras 3 intentos) ofrece
   «Intentar otra vez» y «Leerlo en texto». El texto es el libro escrito de siempre (`makePages`).
   Si lo que falló fue la librería, reintentar **recarga** la página y reabre el libro solo
@@ -259,62 +261,138 @@ visible.
 
 ## La biblioteca de Recursos
 
-`/es/writing/` (Recursos) tiene, debajo de su cabecera, una **estantería por temas**
-(`components/Biblioteca.astro`, estilos en `styles/biblioteca.css`). Es la **Fase A**; las
-siguientes (preguntas y actividades dentro de los libros, la estantería inmersiva) están en
-`biblioteca-interactiva-recursos.md`, en la carpeta de arriba.
+`/es/writing/` (Recursos) tiene, debajo de su cabecera, **estanterías**: un mueble por tema, con
+los libros de canto —se ve el lomo— sobre tablas dibujadas a mano, con sombra. Al pasar el
+ratón, el lomo sube y sus vecinos le siguen como una ola. Un toque o un clic lo abre.
+(`components/Biblioteca.astro`, estilos en `styles/biblioteca.css`.) Lo que sigue (preguntas y
+actividades dentro de los libros, la puerta del pez) está en `biblioteca-interactiva-recursos.md`,
+en la carpeta de arriba.
 
-- **Añadir un libro** es una línea en `LIBROS` de `src/data/biblioteca.js`
-  (`{ id: 'emet', seccion: 'teologia' }`). El libro es una palabra que ya existe en `terms.js`,
-  `term-cards.js` (`GLOSS` y `CARDS`) y `term-book.js` (`DEEP`): si falta alguna, **la compilación
-  se para** y dice cuál; también si le falta una lectura (`now`, `history`, `theology`) o un nivel
-  (`peshat`, `remez`, `derash`, `sod`, `sources`) que el libro necesita para armarse. Y si el id se
-  repite, se llama como una ancla de la página o no es una palabra en minúsculas sin guiones
-  (el id es la dirección: `#ahava`).
-- **Los temas sin libro** salen como pastilla «Pronto», sin bandera que cambiar: se deduce de que
-  ningún libro los nombra. El día que uno tenga su primer libro, sale solo como estante.
-- **La portada** tampoco se declara: si el libro tiene PDF en el idioma de la página
-  (`src/data/books.js`) es su primera página (la misma URL que el libro pide al abrirse, así que
-  ya está en caché); si no, se dibuja con la palabra, igual que la tapa del libro de texto.
-- **Cada libro tiene su dirección:** `/es/writing/#ahava`. Las portadas son enlaces de verdad
-  (sin JavaScript llevan a su portada). Con JavaScript, un clic abre el libro encima y deja la
-  ancla; **atrás** lo cierra; abrir la dirección lo abre al cargar. Cada documento marca sus
-  entradas del historial (`DOC`): si se recarga con el libro abierto, al cerrar solo se quita la
-  ancla, no se vuelve «atrás» a un documento que ya no existe. Una ancla que no es un libro
-  (`#foo`, `#constructor`) se ignora: solo se compara con una lista de ids (`idDeHash`), nunca se
-  usa como selector ni como texto.
-- **Lo que se abre sin un toque** (la dirección, atrás, adelante) se abre **en silencio**: el
-  navegador deja el audio dormido sin un toque, y un golpe programado sonaría encima de otro toque,
-  segundos después. `open(id, { silent })` no hace sonar nada ni crea el audio hasta el primer toque
-  o tecla (`sinToque` en `initBook`).
-- **Mientras el libro está abierto, el resto de la página es inerte** (`inert`): sin Tab, sin clic
-  y fuera de lo que lee un lector de pantalla. Lo hace `sheet()` en `site.js` para toda hoja que
-  lleve `aria-modal="true"` **en el propio panel** (hoy solo `#book-panel`; las demás hojas lo
-  llevan en su marco interior y no cambian). Se enciende de nuevo antes de devolver el foco. Por
-  eso el `role="dialog"` del libro está en `#book-panel` y no en su marco: la × queda fuera del
-  marco. El salto de pantalla en pantalla de la rueda y del teclado tampoco actúa con una hoja
-  abierta.
-- **Al filtrar** una región `role="status"` dice qué queda («Teología: 4 libros», «Música:
-  próximamente»), y «Limpiar» lleva el foco a la primera ficha en vez de perderlo.
-- **Seguir leyendo:** el último libro que se abre —desde la estantería o desde una palabra
-  subrayada de cualquier página— se guarda en el aparato (`localStorage`, clave `jlr:libro`, solo
-  su id) y la estantería lo ofrece. Sin almacenamiento no se ofrece y no pasa nada; **no viaja
-  entre aparatos**.
-- **El filtro** es el de las casas (`initFilter`): cada tema es una fila con su id en `data-tags`.
-  No hay ficha «Todos», como en el resto del sitio.
-- **La sección lleva `data-libre`:** el salto de pantalla en pantalla de la rueda (`initDiapositivas`)
-  la trata como una pantalla alta a propósito. Sin eso, el salto se encendería o apagaría según lo
-  que midiera la estantería, y el filtro cambia lo que mide.
+### Los libros: dos clases, y el idioma
+
+- **Los libros de una palabra** (Ahavá, Emet, Ágape, Rhema): su texto sale de `terms.js`,
+  `term-cards.js` y `term-book.js`, **en los cinco idiomas**, y también se abren desde las
+  palabras subrayadas de toda la web. **Son los únicos libros en cinco idiomas.** Hoy son
+  **revistas** (pasta blanda). Timoteo es una palabra del glosario, pero no tiene libro escrito:
+  en cuanto lo tenga, una línea en `LIBROS`.
+- **Los demás libros: solo en español e inglés, y no todos en los dos.** Cada uno dice en qué
+  idiomas está (`idiomas`), tiene su título en cada uno y su PDF en `books/<id>.es.pdf` y/o
+  `books/<id>.en.pdf`.
+- **Qué ve cada página** (`variante()` en `scripts/biblioteca.js`): un libro de otro idioma se ve
+  igual, con una marca **ES** o **EN** en el lomo; su nombre accesible lo dice («Libro (en
+  inglés): …») y el título lleva su `lang`. La página en español abre el español y la inglesa el
+  inglés; **portugués** prefiere español y **francés e italiano**, inglés (`ORDEN`). Un libro en los
+  dos idiomas tiene **un solo** lomo y un solo `#id`: abre el de la página.
+- **Añadir un libro:** (1) pon el PDF en `books/` (`libertad.es.pdf`, `libertad.en.pdf`), (2) corre
+  `python tools/books.py` (convierte las páginas y escribe `src/data/books.js`), (3) añade **una
+  línea** en `LIBROS` de `src/data/biblioteca.js` con su tema, tipo, idiomas y título, (4) míralo
+  con `npm run dev`. Si falta algo (su PDF convertido, un título en un idioma…) **la compilación se
+  para y dice qué**; lo que no es grave avisa (otra proporción que su tipo, un título largo para un
+  lomo automático, un PDF convertido que nadie usa). GitHub convierte los PDF solo al publicar
+  (`.github/workflows/astro.yml`): al repo solo van los PDF.
+- **El nombre del PDF** lleva letras y cifras, empieza por una letra y no lleva guiones; es también
+  su dirección (`/es/writing/#libertad`). `tools/books.py` rechaza o avisa de duplicados (`libro.es.pdf`
+  y `libro_es.pdf`), de un nombre sin idioma, de más de 300 páginas, de una errata (`emmet`), y solo
+  conserva los enlaces del PDF que son `http`, `https` o `mailto`.
+- **Un tema sin libros no se dibuja** (ni «pronto» ni su nombre): el día que llegue su primer libro,
+  su estante aparece solo, en el orden de `SECCIONES`. Con un solo tema no hay barra de filtros.
+
+### Tapa dura y pasta blanda
+
+`tipo` en `LIBROS`: `tapa-dura`, `revista` o `comic` (`TIPOS` dice cuál es blanda y qué proporción
+espera; solo avisa si el PDF se aleja).
+- **Tapa dura:** tapa y contratapa rígidas, con cartones detrás, giro lento y sonido de cartón.
+- **Pasta blanda (revista, cómic):** todas las hojas son de papel y se doblan, tapa incluida; no hay
+  cartones; suena a papel; el golpe contra la mesa es más flojo; el lomo es fino y lleva grapa.
+  En el lector de PDF, `page-flip` fuerza rígida la primera y la última página por `showCover`
+  (verificado en la versión instalada); `buildFlip` las devuelve a blandas con
+  `fb.getPage(i).setDensity('soft')`. En el de texto, `.book[data-tipo="blando"]` (`base.css`).
+
+### El lomo
+
+- **Se dibuja solo** si no hay archivo: el color del cartón del libro (`board`, lo mide
+  `tools/books.py` de su portada) o el pino, la palabra en su alfabeto y el título girado; el texto
+  siempre llega a 4,5:1 (`colorLomo()` oscurece el fondo hasta que llegue: el ámbar de Ahavá).
+- **O lo diseña quien hizo el libro:** `public/assets/lomos/<id>.<idioma>.svg` o `<id>.svg` (o `.png`),
+  un rectángulo lleno de borde a borde, sin sombra, marco ni transparencia (los pone el estante).
+  **Medidas** (a 1200 px de alto): fino 240×1200, medio 300×1200, grueso 375×1200. Se ve a 224 / 256 /
+  288 px de alto según la pantalla y de 45 a 90 px de ancho. Margen seguro: 10 % a cada lado y 72 px
+  arriba y abajo; texto de al menos 80 px; se lee de arriba abajo; el lomo es un objeto y no cambia con
+  el tema (evita fondos casi negros). Si las medidas se alejan más de un 4 %, o el SVG lleva código
+  (`<script>`, `onclick`, `foreignObject`), **no se usa** y se avisa (`src/data/lomos.js`).
+- **Grosor** por páginas (`grosorDe()`): libro de tapa dura, fino hasta 12, medio hasta 40, grueso
+  más; revista o cómic, fino hasta 40. Se puede fijar con `grosor`. Sale del primer PDF que hay (no
+  cambia con el idioma de la página).
+
+### El estante, la ola y las sombras
+
+- **La sala es de madera** (no de papel: en esta sección, el fondo es un nogal cálido de biblioteca):
+  cinco tablones verticales con su veta y su junta (una baldosa SVG de 480 px, `--m-tablones` en
+  `biblioteca.css`, hecha con dos `feTurbulence` —veta y poro— y rasterizada una sola vez, como el grano
+  del papel), una luz cálida que cae desde arriba a la izquierda y las esquinas oscurecidas. El hueco de
+  cada estante es un nogal más claro con sombra por arriba y las tablas son de roble; los colores
+  (`--m-sala`, `--m-hueco`, `--m-tabla`, `--m-linea`, `--m-luz`, `--m-rincon`, `--m-tema`) cambian con el
+  tema: de noche, más oscura. El texto es hueso (se redefine `--slate` dentro de `.biblio`) y las fichas del
+  filtro, oscuras translúcidas con texto hueso; «Seguir leyendo» es una ficha de papel crema, igual de día y
+  de noche. Contrastes medidos en el peor punto (el tablón más claro bajo el pico de la luz): texto 5,8:1,
+  etiquetas 5,4:1, fichas 9,3:1. **El generador de la baldosa** es `tools/madera.py`
+  (`python tools/madera.py` imprime el `url("data:…")` listo para pegar en `--m-tablones`): ahí están los
+  cinco tonos de base (`TONOS`) y las veta y poro.
+- **Cada fila de libros** mide lo mismo (`--fila`, en píxeles enteros) y eso permite repetir la tabla (máscara
+  `--tr-tabla` en `sketch.css`, `repeat-y`) y su sombra en vertical. **`soloGrano`** (`initTema`, `site.js`)
+  esconde el botón del tema en el teléfono si el primer elemento ancho bajo la mitad de la pantalla tiene un
+  fondo que no sea papel o grano: **la madera lo es** (un campo, como el pinar del hero: el tema no cambia nada
+  ahí), así que **en el teléfono el botón del tema se esconde mientras se ve la sala** y vuelve al salir de
+  ella; en escritorio no pasa (la regla solo vale bajo 1024 px). Dentro de la sala, `.estante`,
+  `.estante__mueble` y `.estante__libros` siguen **sin fondo propio**; las sombras, el hueco y las tablas
+  viven en pseudoelementos, y los lomos, que son estrechos, llevan lo que quieran. `.biblio` ya no está en
+  la lista de superficies de papel de `paper.css`.
+- **La ola** (`initBiblioteca`, `ola()` en `scripts/biblioteca.js`): un solo `pointermove` pasivo por
+  mueble; en cada fotograma una lectura y luego solo se escriben `--ola` y `--giro` (si cambian); el
+  movimiento es `translate` y `rotate`. Solo con ratón y sin «reducir movimiento»; se apaga al salir,
+  al desplazar y al cambiar de tamaño. Sin JavaScript, el CSS sube el lomo tocado y sus vecinos
+  (`:hover`, `:has()`); con él, `.con-ola` apaga esa versión. Con teclado, `:focus-visible` sube el
+  lomo; con movimiento reducido solo sube el tocado, un poco. El `<a>` lleva una **cola** (`.libro::after`)
+  de lo que ha subido, para que el clic en la parte baja del lomo siga abriendo el libro.
+- **Al acercarse el ratón** se pide la portada del PDF (la de 900 px o la de 1600 si la pantalla es
+  densa), con prioridad baja y una espera de 150 ms; con ahorro de datos no se pide nada.
+- **Alto contraste de Windows:** las tablas y el marco pasan al color del texto y cada lomo lleva su
+  borde (`forced-colors`); sin verificar en un Windows real.
+
+### Direcciones, historial y silencio
+
+- **Cada libro tiene su dirección:** `/es/writing/#ahava`. Las portadas son enlaces de verdad (sin
+  JavaScript llevan a su lomo). Con JavaScript, un clic abre el libro encima y deja la ancla;
+  **atrás** lo cierra; abrir la dirección lo abre al cargar. Cada documento marca sus entradas del
+  historial (`DOC`): si se recarga con el libro abierto, al cerrar solo se quita la ancla. Una
+  ancla que no es un libro (`#foo`, `#constructor`) se ignora: solo se compara con una lista de ids
+  (`idDeHash`), nunca se usa como selector ni como texto.
+- **Lo que se abre sin un toque** (la dirección, atrás, adelante, recargar tras «Intentar otra vez») se
+  abre **en silencio**: el navegador deja el audio dormido sin un toque y un golpe programado sonaría
+  encima de otro toque, segundos después. `open(id, { silent })` no crea el audio hasta el primer toque
+  o tecla (`sinToque`).
+- **Mientras el libro está abierto, el resto de la página es inerte** (`inert`, en `sheet()`) para toda
+  hoja con `aria-modal="true"` **en el propio panel** (hoy solo `#book-panel`). El salto de pantalla en
+  pantalla de la rueda y del teclado tampoco actúa con una hoja abierta.
+- **Seguir leyendo:** el último libro que se abre se guarda en el aparato (`localStorage`, `jlr:libro`, solo
+  su id), la estantería lo ofrece y su lomo lleva un marcapaginas de papel. Sin almacenamiento no se
+  ofrece y no pasa nada; **no viaja entre aparatos**.
+- **Al filtrar** una región `role="status"` dice qué queda («Teología: 4 libros») o, al limpiar, «Todos
+  los temas: N libros»; «Limpiar» lleva el foco a la primera ficha.
+- **La sección lleva `data-libre`:** el salto de pantalla en pantalla la trata como una pantalla alta a
+  propósito.
 - **Las cadenas nuevas** son `lib.*` en `ui.js`. El español es el original; **en, pt, fr e it son
   borradores sin revisar**. `t()` cae al inglés, no al español, cuando falta una clave.
-- **Con el fondo del papel:** el fondo de lo ancho (`.biblio`, `.estante`) es solo color y grano.
-  `initTema` (`soloGrano`) esconde el botón del tema en el teléfono si el primer elemento ancho
-  tiene otra imagen de fondo; los degradados de las portadas viven en elementos estrechos.
 
-Cómo se probó (y cómo repetirlo): `node` sobre `scripts/biblioteca.js` para las funciones puras
-(anclas inválidas, `%E0`, almacén que lanza); en el navegador, abrir cada libro por clic, por ancla
-en la carga, con atrás y adelante, con el almacenamiento forzado a fallar, en los cinco idiomas y a
-360, 375, 390 y 1280 de ancho, claro y oscuro.
+### Pruebas
+
+`node tools/test-biblioteca.mjs` prueba las piezas puras (`scripts/biblioteca.js`): la ancla (`%E0`,
+`#constructor`), lo guardado (almacén que lanza), qué idioma abre cada libro (5 páginas × todos los
+casos), el grosor, el color del lomo, la ola y la comprobación de la compilación (cada entrada mala
+tiene su prueba). En el navegador se probó abrir cada libro por clic, por ancla, con atrás y adelante,
+con el almacenamiento forzado a fallar, la carga lenta (proxy que retrasa `/books/…`), los cinco
+idiomas, 360/375/390/1280 de ancho, claro y oscuro. **Sin probar en un teléfono real, Safari de iPhone,
+ni con un lector de pantalla.**
 
 ---
 
