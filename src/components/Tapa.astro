@@ -1,0 +1,18 @@
+---
+/* La portada que se dibuja sola, para un libro sin PDF en este idioma: el color
+   de su lomo (su `tono`), un doble filete, la palabra en su alfabeto y el
+   titulo. La usan la cartelera y las filas de Destacados (Destacados.astro) y
+   los libros de la cabecera de Recursos (RepisaLibros.astro).
+
+   Va dentro de una caja con `container-type: inline-size` (la tarjeta): el
+   tamaño de la palabra y del titulo se mide en `cqw`, asi que escalan con ella.
+   Las clases `.covers__tapa*` estan en styles/biblioteca.css, en su propia
+   seccion («LA PORTADA QUE SE DIBUJA SOLA»). `color` es lo
+   que devuelve fichaLibro() (scripts/biblioteca.js): { fondo, tinta }, dos
+   «#rrggbb» que salen del codigo, nunca de lo que escribe un visitante. */
+const { color, guion, lengua, dir, titulo, idioma } = Astro.props;
+---
+<span class="covers__tapa" style={`--fondo:${color.fondo};--tinta:${color.tinta}`} aria-hidden="true">
+  {guion && <span class="covers__guion" lang={lengua} dir={dir}>{guion}</span>}
+  <span class="covers__nombre" lang={idioma}>{titulo}</span>
+</span>

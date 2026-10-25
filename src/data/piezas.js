@@ -126,6 +126,13 @@ export const PIEZAS = [
    PIEZAS se queda como el inventario completo de lo que he hecho. */
 export const PIEZAS_PUBLICAS = PIEZAS.filter((p) => !p.clave);
 
+/* El abanico de la cabecera de Trabajos (AbanicoTrabajos.astro): las portadas de
+   tres piezas VERTICALES, en el orden en que se abanican; la de en medio va delante
+   y mas grande. Cada una abre su video en el mismo visor de la pagina. Tienen que
+   ser ids de PIEZAS_PUBLICAS (una pieza bajo clave no sale); si no, la compilacion
+   para. Una de cada casa con material: Casa San Pedro y Bodega Inmobiliaria. */
+export const ABANICO_TRABAJOS = ['la-carta', 'el-prado-v1', 'un-dia-en-casa-san-pedro'];
+
 /* Lo que se dice encima de las piezas de una casa, si hace falta decir algo.
    Las del colegio no son encargos: sin esta linea parecerian clientes. */
 export const NOTAS = {

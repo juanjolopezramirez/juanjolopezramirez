@@ -1,10 +1,10 @@
 ---
-import { SECCIONES, LIBROS, TIPOS } from '../data/biblioteca.js';
+import { SECCIONES, LIBROS, TIPOS, PORTADAS, CARTELERA } from '../data/biblioteca.js';
 import { TERMS } from '../i18n/terms.js';
 import { GLOSS, CARDS } from '../i18n/term-cards.js';
 import { DEEP } from '../i18n/term-book.js';
 import { BOOKS } from '../data/books.js';
-import { variante, grosorDe, colorLomo, comprobar } from '../scripts/biblioteca.js';
+import { fichaLibro, comprobar } from '../scripts/biblioteca.js';
 import { lomoDe } from '../data/lomos.js';
 import '../styles/biblioteca.css';
 
@@ -17,8 +17,8 @@ import '../styles/biblioteca.css';
    CADA TEMA CON LIBROS ES UN MUEBLE. Los temas sin libros no se dibujan: ni
    «pronto» ni su nombre (data/biblioteca.js). Los libros se ven por el lomo,
    sobre su tabla; el lomo es el que dibujo a mano quien hizo el libro
-   (public/assets/lomos/) o, si no, uno que se dibuja solo con el color del
-   carton, la palabra y el titulo. Un libro de pasta blanda (revista, comic) es
+   (public/assets/lomos/) o, si no, uno que se dibuja solo con el tono del
+   libro (`tono`; o el color de su carton, o el pino), la palabra y el titulo. Un libro de pasta blanda (revista, comic) es
    mas fino y lleva grapa.
 
    SIN JAVASCRIPT sigue siendo una pagina: cada libro es un enlace de verdad a
@@ -36,42 +36,23 @@ const base = import.meta.env.BASE_URL;
 /* La comprobacion de los datos para la compilacion, una sola vez por cambio
    de datos (esta pagina se pinta cinco veces y en desarrollo cada vez que se
    recarga). Un libro mal puesto para aqui; lo que no es grave, avisa. */
-const firma = JSON.stringify([LIBROS, Object.keys(BOOKS)]);
+const firma = JSON.stringify([LIBROS, PORTADAS, CARTELERA, SECCIONES, Object.keys(BOOKS)]);
 if (globalThis.__bibliotecaFirma !== firma) {
   /* La firma se guarda DESPUES: si comprobar() lanza, la siguiente carga (en
      desarrollo) vuelve a comprobar en vez de pintar datos rotos. */
-  for (const aviso of comprobar({ SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP })) console.warn('[biblioteca] ' + aviso);
+  for (const aviso of comprobar({ SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP, PORTADAS, CARTELERA })) console.warn('[biblioteca] ' + aviso);
   globalThis.__bibliotecaFirma = firma;
 }
 
-/* Cada libro ya resuelto para ESTA pagina: el idioma que se abre, su titulo, su
-   lomo. Un libro sin version que abrir (variante() null) no sale. */
+/* Cada libro ya resuelto para ESTA pagina (fichaLibro, scripts/biblioteca.js):
+   el idioma que se abre, su titulo, su color, su portada (la primera pagina del
+   PDF, que initBiblioteca pide al acercarse el raton para que el libro la
+   encuentre ya al abrirse) y, aqui, su lomo dibujado a mano si lo hay. Un libro
+   sin version que abrir no sale. */
+const datos = { BOOKS, TIPOS, TERMS, GLOSS };
 const libros = LIBROS.map((b) => {
-  const v = variante(b, lang, BOOKS);
-  if (!v) return null;
-  const palabra = b.glosario ? TERMS[b.id] : null;
-  const grosor = grosorDe(b, BOOKS, TIPOS);
-  const titulo = palabra ? say(palabra.title) : b.titulo[v.lang];
-  const glosa = palabra ? say(GLOSS[b.id]) : (b.subtitulo ? b.subtitulo[v.lang] ?? '' : '');
-  /* El color del carton: el de la portada del PDF, si lo hay. Sin el, el pino. */
-  const carton = (v.pdf && v.pdf.board && v.pdf.board[0]) || (BOOKS[b.id] && Object.values(BOOKS[b.id])[0]?.board?.[0]) || null;
-  return {
-    id: b.id,
-    seccion: b.seccion,
-    tipo: b.tipo,
-    blando: TIPOS[b.tipo].blando,
-    grosor,
-    titulo,
-    glosa,
-    idioma: v.lang,
-    marca: v.marca,
-    lomo: lomoDe(b.id, v.lang, grosor, base),
-    color: colorLomo(carton),
-    guion: palabra ? palabra.script : null,
-    lengua: palabra ? (palabra.dir === 'rtl' ? 'he' : 'el') : null,
-    /* La primera pagina del PDF, que initBiblioteca pide al acercarse el raton para que el libro encuentre ya su portada al abrirse */
-    portada: v.pdf ? `${base}books/${b.id}/${v.cual}/01-900.jpg?v=${v.pdf.v}` : null
-  };
+  const f = fichaLibro(b, lang, datos, base);
+  return f && { ...f, lomo: lomoDe(f.id, f.idioma, f.grosor, base) };
 }).filter(Boolean);
 
 /* Los muebles: solo los temas que tienen algun libro, en el orden de SECCIONES. */
@@ -80,7 +61,7 @@ const muebles = SECCIONES.map((s) => ({ ...s, libros: libros.filter((l) => l.sec
 const conFiltro = muebles.length >= 2;
 ---
 {muebles.length > 0 && (
-<section class="biblio" id="biblioteca" aria-labelledby="biblio-titulo" data-biblioteca data-filtrable data-libre>
+<section class="biblio" id="biblioteca" aria-labelledby="biblio-titulo" data-biblioteca data-filtrable data-libre data-sigue-tema>
   <div class="biblio__shell">
     <h2 class="biblio__title" id="biblio-titulo" data-lift>{t('lib.title')}</h2>
     <p class="biblio__lead" data-lift>{t('lib.lead')}</p>

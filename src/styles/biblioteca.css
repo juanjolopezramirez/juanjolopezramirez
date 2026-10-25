@@ -1,19 +1,37 @@
 /* =============================================================
    LA BIBLIOTECA de Recursos (components/Biblioteca.astro)
 
-   Estanterias, no tarjetas: un MUEBLE por tema, con los libros de pie y de
-   canto —se ve el lomo— sobre tablas dibujadas a mano, con sombra. Solo se
+   Una sala clara con repisas, no tarjetas: un MUEBLE por tema, con los libros
+   de pie y de canto —se ve el lomo— sobre repisas vistas de frente. Solo se
    dibujan los temas que tienen libros (ni «pronto» ni nombres vacios).
+
+   LA PALETA ES LA DEL ORO Y EL HUESO DE LA CASA, nunca el verde: la pared es el
+   oro (--ring-300) muy rebajado sobre el papel, las repisas son el mismo oro
+   mas hondo y las sombras son oro hondo (--ring-700) con poca fuerza. Nada de
+   pino ni de celtic en el fondo (lo pidio el fundador); los lomos si llevan
+   sus colores (data/biblioteca.js → `tono`). De noche es la misma sala con la
+   luz baja: carbon calido, no verde.
+
+   EL VOLUMEN sale de tres cosas, todas de CSS:
+     · cada repisa tiene su CARA de arriba (clara, con luz), su CANTO de
+       frente (el oro hondo) y un filo; y bajo el canto cae una SOMBRA sobre la
+       pared;
+     · la luz entra por arriba a la derecha, asi que cada libro es mas claro por
+       la derecha y su sombra cae a la izquierda;
+     · todo el mueble proyecta su SOMBRA LARGA en la pared, abajo a la
+       izquierda (`drop-shadow` sin desenfoque: es una copia desplazada, y por
+       eso lleva la silueta de los libros y de las repisas).
 
    EL LOMO es lo que se ve. Si quien hizo el libro lo dibujo
    (public/assets/lomos/, ficha en data/lomos.js), es una imagen; si no, se
-   dibuja solo: el color del carton, la palabra en su alfabeto y el titulo
+   dibuja solo: el color del libro, la palabra en su alfabeto y el titulo
    girado. Los de pasta blanda (revista, comic) son finos y llevan grapa.
 
    LAS MEDIDAS son las de la ficha de lomos. El alto del lomo es el mismo para
    todos (224 / 256 / 288 px segun la pantalla) y el ancho, el de su grosor
-   (fino / medio / grueso). Cada fila de libros mide lo mismo (--fila) y eso
-   permite repetir la tabla y su sombra en vertical, una por fila.
+   (fino / medio / grueso). Cada fila mide lo mismo (--fila, en pixeles
+   ENTEROS: un valor fraccionario desalinearia la repisa que se repite en
+   vertical) y eso permite repetir la repisa y su sombra, una por fila.
 
    LA OLA. El libro sube por --ola (0 a 1): con el raton, site.js la calcula
    para cada lomo segun lo lejos que esta del puntero (initBiblioteca); sin
@@ -22,63 +40,109 @@
    `rotate`, que no obligan al navegador a recolocar nada. Con movimiento
    reducido no hay ola: solo sube un poco el lomo que se toca.
 
-   LA MADERA. La sala es nogal: cinco tablones verticales con su veta y su junta
-   (una baldosa SVG de 480 px que se repite, como el grano del papel), una luz
-   calida que cae desde arriba a la izquierda, y las esquinas oscurecidas,
-   como una sala de lectura de noche. El hueco de cada estante es un nogal mas
-   claro con sombra por arriba, y las tablas son de roble. Los colores de la
-   sala (--m-*) cambian un poco con el tema: de noche, mas oscura. El texto
-   es hueso sobre la madera (--slate se redefine aqui dentro).
-
-   OJO CON EL FONDO. initTema (site.js, `soloGrano`) mira el primer elemento
-   ancho que hay bajo la mitad de la pantalla: si lleva una imagen de fondo
-   que no sea el grano del papel, el boton del tema se esconde en el
-   telefono. La madera ES esa imagen: igual que el pinar del hero, es un
-   campo vivo donde el tema no cambia nada, y alli el boton se esconde (en
-   escritorio no pasa: la regla solo vale bajo 1024 px). Dentro de la sala,
-   `.estante`, `.estante__mueble` y `.estante__libros` siguen SIN fondo
-   propio; las sombras, el hueco y las tablas viven en pseudoelementos, y
-   los lomos, que son estrechos, llevan lo que quieran.
+   OJO CON EL FONDO. initTema (site.js, `fondoEn`) mira el primer elemento
+   ancho que hay bajo la mitad de la pantalla para saber si el boton del tema
+   se muestra en el telefono: si lleva una imagen de fondo que no sea el grano
+   del papel, se esconde. Esta sala SI cambia con el tema, y por eso la
+   seccion lleva `data-sigue-tema`: asi se cuenta como papel aunque su color
+   no sea el del papel. Dentro de la sala, `.estante`, `.estante__mueble` y
+   `.estante__libros` siguen SIN fondo propio; la repisa y las sombras viven
+   en pseudoelementos.
    ============================================================= */
 
-.biblio {
-  /* La paleta de la sala */
-  --m-sala: #5a3822;                       /* el tablon base */
-  --m-hueco: #7a5036;                      /* el fondo de un estante: mas claro que la sala */
-  --m-tabla: #d0a574;                      /* la tabla de un estante: roble */
-  --m-linea: rgb(20 10 4 / .62);           /* el trazo del marco del mueble */
-  --m-luz: rgb(255 208 156 / .14);         /* la luz calida de arriba: suave, para que el texto que cae debajo siga leyendose */
-  --m-rincon: rgb(0 0 0 / .42);            /* las esquinas, oscurecidas */
-  --m-tema: transparent;                   /* de noche: un velo mas oscuro sobre todo */
-  --m-tablones: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cdefs%3E%3Cfilter id='v' filterUnits='userSpaceOnUse' x='0' y='0' width='480' height='480' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.11 0.0035' numOctaves='3' seed='23' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 .07  0 0 0 0 .035  0 0 0 0 .015  1.7 0 0 0 -.72'/%3E%3C/filter%3E%3Cfilter id='p' filterUnits='userSpaceOnUse' x='0' y='0' width='480' height='480' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55 0.012' numOctaves='2' seed='41' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 .80  0 0 0 0 .58  0 0 0 0 .38  1.5 0 0 0 -.74'/%3E%3C/filter%3E%3C/defs%3E%3Crect x='0' width='96' height='480' fill='%235d3a23'/%3E%3Crect x='96' width='96' height='480' fill='%235f3d28'/%3E%3Crect x='192' width='96' height='480' fill='%23563620'/%3E%3Crect x='288' width='96' height='480' fill='%2362402a'/%3E%3Crect x='384' width='96' height='480' fill='%235b3921'/%3E%3Crect width='480' height='480' filter='url(%23v)'/%3E%3Crect width='480' height='480' filter='url(%23p)' opacity='.4'/%3E%3Crect x='0' width='3' height='480' fill='%23120804' opacity='.85'/%3E%3Crect x='3' width='1.5' height='480' fill='%23e0b283' opacity='.16'/%3E%3Crect x='96' width='3' height='480' fill='%23120804' opacity='.85'/%3E%3Crect x='99' width='1.5' height='480' fill='%23e0b283' opacity='.16'/%3E%3Crect x='192' width='3' height='480' fill='%23120804' opacity='.85'/%3E%3Crect x='195' width='1.5' height='480' fill='%23e0b283' opacity='.16'/%3E%3Crect x='288' width='3' height='480' fill='%23120804' opacity='.85'/%3E%3Crect x='291' width='1.5' height='480' fill='%23e0b283' opacity='.16'/%3E%3Crect x='384' width='3' height='480' fill='%23120804' opacity='.85'/%3E%3Crect x='387' width='1.5' height='480' fill='%23e0b283' opacity='.16'/%3E%3C/svg%3E");
+.biblio,
+.destacados,
+.hrepisa {
+  /* La paleta de la sala: oro y hueso de la casa, sin verde. Todo sale de los
+     tokens de base.css con color-mix, asi no hay un color nuevo. */
+  --r-pared: color-mix(in srgb, var(--ring-300) 30%, var(--paper));          /* la pared: oro pastel */
+  --r-luz: rgb(255 255 255 / .6);                                             /* la luz de arriba a la derecha */
+  --r-cara: color-mix(in srgb, var(--ring-300) 14%, var(--papel-copia));      /* la cara de arriba de la repisa: casi blanca */
+  --r-cara-fondo: color-mix(in srgb, var(--ring-300) 40%, var(--papel-copia)); /* y su fondo, contra la pared: un poco mas hondo */
+  --r-canto: color-mix(in srgb, var(--ring-300) 86%, var(--paper));           /* el canto de frente: el oro pastel hondo */
+  --r-canto-bajo: color-mix(in srgb, var(--ring-300) 66%, var(--ring-700));   /* ...que se oscurece hacia abajo */
+  --r-filo: color-mix(in srgb, var(--ring) 55%, var(--ring-700));             /* el filo de abajo */
+  --r-brillo: color-mix(in srgb, var(--papel-copia) 80%, transparent);        /* el hilo de luz del canto */
+  --r-sombra: color-mix(in srgb, var(--ring-700) 30%, transparent);           /* la sombra bajo la repisa */
+  --r-larga: color-mix(in srgb, var(--ring-700) 22%, transparent);            /* la sombra larga en la pared */
+  --r-libro: color-mix(in srgb, color-mix(in srgb, var(--ring-700) 60%, #000) 42%, transparent); /* la sombra de cada libro */
+  --r-aro-int: var(--papel-copia);                                            /* el aro de foco: dentro, claro */
+  --r-aro-ext: var(--slate);                                                  /* ...y fuera, oscuro */
+  /* Destacados: la pared de cada fila (un oro aun mas suave), el haz de luz que la barre, y cuanto del color del libro lleva la cartelera */
+  --d-pared: color-mix(in srgb, var(--ring-300) 27%, var(--paper));
+  --d-haz: rgb(255 255 255 / .6);
+  --d-mezcla: 46%;
 
-  padding: calc(var(--header-h) + 1.6rem) var(--gutter) 3.4rem;
-  background-color: var(--m-sala);
-  background-image:
-    radial-gradient(ellipse 70% 55% at 26% 0%, var(--m-luz), transparent 70%),
-    radial-gradient(ellipse at 50% 38%, transparent 52%, var(--m-rincon) 100%),
-    linear-gradient(var(--m-tema), var(--m-tema)),
-    var(--m-tablones);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 480px 480px;
-  /* Dentro de la sala el texto es hueso y las fichas, de hueso translucido */
-  --slate: var(--bone);
-  --slate-rgb: 241 239 233;
-  --slate-400: rgb(241 239 233 / .94);
-  color: var(--bone);
-  /* La costura con la cabecera de arriba: una sombra que cae sobre la madera */
-  box-shadow: inset 0 16px 24px -16px rgb(0 0 0 / .6);
+  /* La luz sale de arriba a la derecha, asi que las sombras caen hacia abajo
+     y a la izquierda. */
+  --r-dx: -26px;
+  --r-dy: 20px;
 }
-html[data-tema="oscuro"] .biblio {
-  --m-sala: #3a2318; --m-hueco: #5a3a28; --m-tabla: #b08657; --m-tema: rgb(0 0 0 / .3);
+.biblio {
+  padding: calc(var(--header-h) + 1.6rem) var(--gutter) 3.4rem;
+  background-color: var(--r-pared);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 82% 0%, var(--r-luz), transparent 70%),
+    var(--grano), var(--fibra);
+  background-size: 100% 100%, var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+  color: var(--slate);
+  /* El gris de segundo orden sobre la pared: el slate 400 a secas da 4.3:1;
+     el «hundido» (base.css), 5.8 de dia y 8.4 de noche */
+  --slate-400: var(--slate-400-hundido);
+  /* La sombra larga se sale un poco por la izquierda: que no cree desplazamiento lateral */
+  overflow-x: clip;
+  /* La costura con la cabecera de arriba: una sombra suave que cae sobre la pared */
+  box-shadow: inset 0 14px 18px -14px color-mix(in srgb, var(--ring-700) 40%, transparent);
+}
+/* De noche, la misma sala con la luz baja: carbon con un fondo de oro hondo,
+   nunca verde. */
+html[data-tema="oscuro"] .biblio,
+html[data-tema="oscuro"] .destacados,
+html[data-tema="oscuro"] .hrepisa {
+  --r-pared: color-mix(in srgb, var(--ring-700) 17%, var(--paper));
+  --r-luz: color-mix(in srgb, var(--ring-300) 10%, transparent);
+  --r-cara: color-mix(in srgb, var(--ring-700) 42%, var(--paper));
+  --r-cara-fondo: color-mix(in srgb, var(--ring-700) 26%, var(--paper));
+  --r-canto: color-mix(in srgb, var(--ring-700) 62%, var(--paper));
+  --r-canto-bajo: color-mix(in srgb, var(--ring-700) 46%, #000);
+  --r-filo: color-mix(in srgb, var(--ring-700) 30%, #000);
+  --r-brillo: color-mix(in srgb, var(--ring-300) 40%, transparent);
+  --r-sombra: rgb(0 0 0 / .4);
+  --r-larga: rgb(0 0 0 / .3);
+  --r-libro: rgb(0 0 0 / .5);
+  --r-aro-int: var(--paper);
+  --r-aro-ext: var(--bone);
+  --d-pared: color-mix(in srgb, var(--ring-700) 14%, var(--paper));
+  --d-haz: color-mix(in srgb, var(--ring-300) 9%, transparent);
+  --d-mezcla: 28%;
 }
 @media (prefers-color-scheme: dark) {
-  html:not([data-tema="claro"]) .biblio {
-    --m-sala: #3a2318; --m-hueco: #5a3a28; --m-tabla: #b08657; --m-tema: rgb(0 0 0 / .3);
+  html:not([data-tema="claro"]) .biblio,
+  html:not([data-tema="claro"]) .destacados,
+  html:not([data-tema="claro"]) .hrepisa {
+    --r-pared: color-mix(in srgb, var(--ring-700) 17%, var(--paper));
+    --r-luz: color-mix(in srgb, var(--ring-300) 10%, transparent);
+    --r-cara: color-mix(in srgb, var(--ring-700) 42%, var(--paper));
+    --r-cara-fondo: color-mix(in srgb, var(--ring-700) 26%, var(--paper));
+    --r-canto: color-mix(in srgb, var(--ring-700) 62%, var(--paper));
+    --r-canto-bajo: color-mix(in srgb, var(--ring-700) 46%, #000);
+    --r-filo: color-mix(in srgb, var(--ring-700) 30%, #000);
+    --r-brillo: color-mix(in srgb, var(--ring-300) 40%, transparent);
+    --r-sombra: rgb(0 0 0 / .4);
+    --r-larga: rgb(0 0 0 / .3);
+    --r-libro: rgb(0 0 0 / .5);
+    --r-aro-int: var(--paper);
+    --r-aro-ext: var(--bone);
+    --d-pared: color-mix(in srgb, var(--ring-700) 14%, var(--paper));
+    --d-haz: color-mix(in srgb, var(--ring-300) 9%, transparent);
+    --d-mezcla: 28%;
   }
 }
+
 .biblio__shell {
-  display: grid; justify-items: start;
+  display: grid; justify-items: center;
   gap: .9rem;
+  text-align: center;
   max-width: var(--shell, 84rem);
   margin: 0 auto;
 }
@@ -87,7 +151,7 @@ html[data-tema="oscuro"] .biblio {
   margin: 0;
   font-size: .68rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
-  color: var(--slate-400);
+  color: var(--slate);
 }
 .biblio__lead {
   margin: 0;
@@ -96,40 +160,37 @@ html[data-tema="oscuro"] .biblio {
   line-height: 1.12; letter-spacing: -.015em;
   max-width: 20ch;
   color: var(--slate);
+  text-wrap: balance;
 }
 
 /* ---- Seguir leyendo ---- */
-/* Una ficha de biblioteca: papel crema sobre la madera, igual de dia y de noche
-   (el papel del sitio, que cambia con el tema, no pega aqui). */
+/* Una ficha de biblioteca: la hoja que flota (--papel-alto: papel de dia, carbon
+   levantado de noche; con --slate se lee en los dos) sobre la pared, con su sombra. */
 .seguir {
   display: grid; gap: .1rem;
   width: fit-content; max-width: 100%;
   padding: .65rem 1rem .72rem;
   border-radius: 6px;
-  border: 1px solid rgb(58 38 26 / .3);
-  background-color: #efe6d3;
-  color: #3a261a;
+  border: 1px solid color-mix(in srgb, var(--ring-700) 35%, transparent);
+  background-color: var(--papel-alto);
+  color: var(--slate);
+  text-align: start;
   text-decoration: none;
-  box-shadow: 0 8px 14px -8px rgb(0 0 0 / .65);
+  box-shadow: 0 8px 14px -8px var(--r-sombra);
   transition: translate .25s var(--ease), border-color .2s var(--ease);
 }
-.seguir:hover { translate: 0 -2px; border-color: rgb(58 38 26 / .6); }
+.seguir:hover { translate: 0 -2px; border-color: color-mix(in srgb, var(--ring-700) 70%, transparent); }
 .seguir__marca {
   font-size: .62rem; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
-  color: #7a5a42;
+  color: var(--slate-400-hundido);
 }
 .seguir__titulo { font-family: var(--serif); font-size: 1.12rem; letter-spacing: -.01em; }
 
 /* ---- El filtro: las fichas son las de las casas (base.css) ---- */
-.biblio__filtro { margin-top: .15rem; }
-
-/* Las fichas, sobre la madera: oscuras translucidas con el texto en hueso (sobre
-   hueso translucido no llegaban a 4.5:1 bajo la luz); la pulsada, de hueso lleno
-   con el texto de la sala (y ademas lleva ✓, mas abajo: no solo color). */
-.biblio .chip { background: rgb(0 0 0 / .32); color: var(--bone); box-shadow: inset 0 0 0 1px rgb(241 239 233 / .22); }
-.biblio .chip:hover { background: rgb(0 0 0 / .46); color: var(--bone); box-shadow: inset 0 0 0 1px rgb(241 239 233 / .4); }
-.biblio .chip.is-on { background: var(--bone); color: #3a261a; box-shadow: none; }
+.biblio__filtro { margin-top: .15rem; justify-self: center; }
+/* La ficha pulsada: en pizarra, no en pino (el verde no entra en esta sala) */
+.biblio .chip.is-on { background: var(--slate); color: var(--papel); }
 
 /* La ficha pulsada se distingue tambien sin color (1.4.1). */
 .biblio .chip.is-on::before {
@@ -142,58 +203,61 @@ html[data-tema="oscuro"] .biblio {
    una sola (base.css las hace deslizar, y con el scroll escondido nada decia
    que habia mas: 1.4.10, reflow a 320px). Y sin `overflow`, el aro de foco ya
    no se recorta. */
-.biblio .faxis__chips { flex-wrap: wrap; overflow: visible; }
+.biblio .faxis__chips { flex-wrap: wrap; overflow: visible; justify-content: center; }
 
 
 /* ---- Las medidas ----
    --lomo-h     el alto de todos los lomos
    --w-*        el ancho segun el grosor
-   --fila       una fila entera, en pixeles ENTEROS (un valor fraccionario podria
-                desalinear la tabla que se repite en vertical en un estante de
-                varias filas): el lomo, su holgura y la tabla
-   --tabla      el 5% de la fila: el de la franja de --tr-tabla (sketch.css)
-   --holgura    el aire de arriba: lo que queda de la fila. Siempre mas que lo
-                que sube un lomo en la ola (--sube) */
+   --holgura    el aire de arriba de la fila. Siempre mas que lo que sube un
+                lomo en la ola (--sube)
+   --cara       lo que se ve de la repisa por arriba (siempre par: se parte en dos)
+   --canto-h    el canto de frente
+   --sombra     lo que cae bajo la repisa, sobre la pared
+   --pie        todo lo que va bajo el lomo: el sitio de la repisa y su sombra.
+                El libro se apoya a mitad de la cara.
+   --fila       una fila entera, en pixeles ENTEROS. Una repisa por fila. */
 .biblio {
   --lomo-h: 224px;
   --w-fino: 45px; --w-medio: 56px; --w-grueso: 70px;
-  --fila: 270px;
   --sube: 22px;
-  --holgura: calc(var(--fila) * .95 - var(--lomo-h));
-  --tabla: calc(var(--fila) * .05);
+  --holgura: 30px;
+  --cara: 8px; --canto-h: 12px; --sombra: 22px;
+  --vuelo: 14px;                                  /* lo que la repisa sobresale por cada lado */
 }
 @media (min-width: 600px) {
-  .biblio { --lomo-h: 256px; --w-fino: 51px; --w-medio: 64px; --w-grueso: 80px; --fila: 304px; --sube: 14px; }
+  .biblio { --lomo-h: 256px; --w-fino: 51px; --w-medio: 64px; --w-grueso: 80px; --sube: 14px; --holgura: 26px; --cara: 10px; --canto-h: 14px; --sombra: 24px; --vuelo: 18px; }
 }
 @media (min-width: 1024px) {
-  .biblio { --lomo-h: 288px; --w-fino: 58px; --w-medio: 72px; --w-grueso: 90px; --fila: 337px; --sube: 22px; }
+  .biblio { --lomo-h: 288px; --w-fino: 58px; --w-medio: 72px; --w-grueso: 90px; --sube: 22px; --holgura: 34px; --cara: 12px; --canto-h: 16px; --sombra: 28px; --vuelo: 22px; }
+}
+.biblio {
+  --pie: calc(var(--sombra) + var(--canto-h) + var(--cara) / 2);
+  --fila: calc(var(--holgura) + var(--lomo-h) + var(--pie));
 }
 
 /* ---- Los muebles ---- */
 .biblio__lista {
   list-style: none; margin: .7rem 0 0; padding: 0;
-  display: flex; flex-wrap: wrap; align-items: flex-start;
-  gap: 2.4rem 2.2rem;
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center;
+  gap: 1.4rem 2.2rem;
   width: 100%;
 }
 /* Un mueble mide lo que miden sus libros: cuatro libros no flotan en una
-   pared vacia. Si no caben en una fila, bajan a otra tabla. */
+   pared vacia. Si no caben en una fila, bajan a otra repisa. */
 .estante { min-width: 0; max-width: 100%; width: fit-content; }
 .estante__nombre {
-  margin: 0 0 .7rem .25rem;
+  margin: 0 0 .5rem;
   font-family: var(--serif); font-weight: 400;
   font-size: 1.3rem; letter-spacing: -.012em;
-  color: var(--bone);
-  text-shadow: 0 1px 0 rgb(0 0 0 / .45);   /* grabado en la madera */
+  color: var(--slate);
 }
 
-.estante__mueble { position: relative; }
-/* El marco del mueble: cuatro lados a mano, en tinta suave */
-.estante__mueble::after {
-  inset: -3px -4px 0;
-  background: var(--m-linea);
-  -webkit-mask-image: var(--tr-marco);
-          mask-image: var(--tr-marco);
+.estante__mueble {
+  position: relative;
+  /* LA SOMBRA LARGA: una copia de toda la silueta (libros y repisas) corrida
+     abajo a la izquierda, sin desenfoque. */
+  filter: drop-shadow(var(--r-dx) var(--r-dy) 0 var(--r-larga));
 }
 
 .estante__libros {
@@ -202,42 +266,45 @@ html[data-tema="oscuro"] .biblio {
   padding: 0 clamp(.7rem, 2.4vw, 1.3rem);
   display: flex; flex-wrap: wrap; align-items: flex-end;
 }
-/* El fondo del mueble, hundido, y la sombra que cae bajo cada tabla sobre la
-   fila de abajo (una por fila: se repite cada --fila) y bajo el techo del
-   mueble. Ademas, los dos costados se oscurecen un poco, como un hueco. */
-.biblio .estante__libros::before {
-  content: "";
-  position: absolute; inset: 0; z-index: -2;
-  pointer-events: none;
-  background-color: var(--m-hueco);
-  background-image:
-    linear-gradient(to bottom, rgb(0 0 0 / .34), transparent 34px),
-    linear-gradient(to right, rgb(0 0 0 / .26), transparent 10%, transparent 90%, rgb(0 0 0 / .26));
-  background-size: 100% var(--fila), 100% 100%;
-  background-repeat: repeat-y, no-repeat;
-}
-/* Las tablas: la franja de --tr-tabla, una por fila */
+/* LA REPISA, una por fila: se repite cada --fila hacia abajo. De arriba a
+   abajo, dentro de cada fila: nada (el aire y los libros), la cara de la
+   repisa, el hilo de luz y el canto de frente, su filo, y la sombra que cae
+   sobre la pared. Sobresale --vuelo por cada lado.
+   (La posicion de cada franja se mide desde el pie de la fila.) */
 .biblio .estante__libros::after {
-  inset: 0; z-index: -1;
-  background: var(--m-tabla);
-  -webkit-mask-image: var(--tr-tabla);
-          mask-image: var(--tr-tabla);
-  -webkit-mask-size: 100% var(--fila);
-          mask-size: 100% var(--fila);
-  -webkit-mask-repeat: repeat-y;
-          mask-repeat: repeat-y;
-  -webkit-mask-position: 0 0;
-          mask-position: 0 0;
+  --y-cara: calc(100% - var(--sombra) - var(--canto-h) - var(--cara));
+  --y-canto: calc(100% - var(--sombra) - var(--canto-h));
+  --y-pie: calc(100% - var(--sombra));
+  content: "";
+  position: absolute;
+  inset: 0 calc(var(--vuelo) * -1);
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, transparent var(--y-pie), var(--r-sombra) var(--y-pie), transparent 100%),
+    linear-gradient(180deg,
+      transparent var(--y-cara),
+      var(--r-cara-fondo) var(--y-cara),
+      var(--r-cara) var(--y-canto),
+      var(--r-brillo) var(--y-canto),
+      var(--r-brillo) calc(var(--y-canto) + 1.5px),
+      var(--r-canto) calc(var(--y-canto) + 1.5px),
+      var(--r-canto-bajo) calc(var(--y-pie) - 1.5px),
+      var(--r-filo) calc(var(--y-pie) - 1.5px),
+      var(--r-filo) var(--y-pie),
+      transparent var(--y-pie));
+  background-size: 100% var(--fila);
+  background-repeat: repeat-y;
 }
 
-/* ---- Cada libro: un hueco de una fila de alto, con su lomo en el suelo ---- */
+/* ---- Cada libro: un hueco de una fila de alto, con su lomo apoyado en la repisa ---- */
 .libro-item {
   --w: var(--w-medio);
   --ola: 0;
   position: relative; z-index: 1;
   width: var(--w); height: var(--fila);
   margin-inline: 1px;
-  padding: var(--holgura) 0 var(--tabla);
+  padding: var(--holgura) 0 var(--pie);
   box-sizing: border-box;
   /* La ancla (#ahava, o Shift+Tab) deja el libro bajo la cabecera fija */
   scroll-margin-top: calc(var(--header-h) + 1rem);
@@ -245,12 +312,23 @@ html[data-tema="oscuro"] .biblio {
 .libro-item[data-grosor="fino"]   { --w: var(--w-fino); }
 .libro-item[data-grosor="grueso"] { --w: var(--w-grueso); }
 
-/* Su sombra sobre la tabla: se achica y se aclara cuando el libro sube */
+/* NO TODOS LOS LIBROS MIDEN LO MISMO. Una fila de lomos clavados al mismo alto
+   parece una regla, no una estanteria: se dejan unos pocos puntos por debajo
+   (hasta un 7%), siempre los mismos y siempre apoyados en la repisa. Se repite
+   cada cuatro, asi vale para los libros que vengan. `--k` solo cambia el alto
+   del lomo; el hueco del <li> no se mueve (la ola lo mide). */
+.libro-item { display: flex; align-items: flex-end; }
+.libro-item:nth-child(4n + 2) { --k: .95; }
+.libro-item:nth-child(4n + 3) { --k: .98; }
+.libro-item:nth-child(4n + 4) { --k: .93; }
+
+/* Su sombra sobre la repisa: cae a la izquierda, y se achica y se aclara
+   cuando el libro sube */
 .libro-item::before {
   content: "";
-  position: absolute; left: 4%; right: 4%; bottom: calc(var(--tabla) - 3px);
+  position: absolute; left: -14%; right: 2%; bottom: calc(var(--pie) - 4px);
   height: 9px;
-  background: radial-gradient(closest-side, rgb(0 0 0 / .42), transparent);
+  background: radial-gradient(closest-side, var(--r-libro), transparent);
   opacity: calc(1 - var(--ola) * .55);
   scale: calc(1 - var(--ola) * .16) 1;
   transition: opacity .18s var(--ease), scale .18s var(--ease);
@@ -259,7 +337,7 @@ html[data-tema="oscuro"] .biblio {
 
 .libro {
   display: block;
-  width: 100%; height: var(--lomo-h);
+  width: 100%; height: calc(var(--lomo-h) * var(--k, 1));
   text-decoration: none; color: inherit;
   -webkit-tap-highlight-color: transparent;
   transform-origin: 50% 100%;
@@ -277,12 +355,11 @@ html[data-tema="oscuro"] .biblio {
   height: calc(var(--ola) * var(--sube));
 }
 
-/* El aro de foco, en DOS tonos (hueso por fuera, pino por dentro): una raya
-   de un solo color no llegaba a 3:1 sobre el fondo hundido del mueble en claro
-   ni sobre el lomo pino de al lado (1.4.11). */
+/* El aro de foco, en DOS tonos (claro por dentro, oscuro por fuera): una raya
+   de un solo color se perdia contra el lomo de al lado (1.4.11). */
 .libro:focus-visible {
-  outline: 2px solid var(--bone); outline-offset: 2px;
-  box-shadow: 0 0 0 2px var(--pine);
+  outline: 2px solid var(--r-aro-ext); outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--r-aro-int);
   border-radius: 2px;
   /* Con Shift+Tab, la cabecera flotante no tapa el lomo: el hueco de arriba */
   scroll-margin-top: calc(var(--header-h) + 1rem + var(--holgura));
@@ -298,16 +375,21 @@ html[data-tema="oscuro"] .biblio {
   border-radius: 2px 2px 1px 1px;
   background-color: var(--fondo, var(--pine));
   color: var(--tinta, var(--bone));
-  /* El volumen: una sombra a un lado y un hilo oscuro al otro */
-  box-shadow: 3px 0 7px -2px rgb(0 0 0 / .38), -1px 0 0 rgb(0 0 0 / .2);
+  /* El volumen: la sombra cae a la izquierda (la luz viene de la derecha) */
+  box-shadow: -4px 0 7px -3px var(--r-libro), 1px 0 0 rgb(0 0 0 / .14);
 }
-/* La luz sobre el lomo: un poco de brillo a la izquierda y sombra en los dos
-   cantos. Va por encima de todo, tambien de un lomo dibujado a mano. */
+/* La luz sobre el lomo: un hilo claro por arriba, y de lado mas oscuro a la
+   izquierda y mas claro a la derecha. Va por encima de todo, tambien de un
+   lomo dibujado a mano. */
 .libro__lomo::after {
   content: "";
   position: absolute; inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgb(0 0 0 / .26), rgb(255 255 255 / .07) 16%, transparent 42%, rgb(0 0 0 / .12) 86%, rgb(0 0 0 / .3));
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / .3) 0, rgb(255 255 255 / .3) 1px, transparent 3px),
+    /* El brillo de la derecha empieza pasado el titulo (que va en el 35-65% del ancho):
+       encima del texto bajaba su contraste por debajo de 4.5:1. */
+    linear-gradient(90deg, rgb(0 0 0 / .3), rgb(0 0 0 / .08) 16%, transparent 40%, transparent 72%, rgb(255 255 255 / .2) 94%, rgb(0 0 0 / .16));
 }
 .libro__lomo--hecho::after { opacity: .55; }
 .libro__foto { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: fill; }
@@ -362,8 +444,9 @@ html[data-tema="oscuro"] .biblio {
   content: "";
   position: absolute; top: -13px; left: 50%; translate: -50% 0;
   width: 11px; height: 20px;
-  background: #efe6d3;
-  box-shadow: inset 0 0 0 1.5px #3a261a;
+  background: var(--papel-copia);
+  /* La orilla, en oro hondo oscurecido: se ve igual de dia y de noche (--slate se invierte) */
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ring-700) 60%, #000);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
   pointer-events: none;
 }
@@ -404,14 +487,441 @@ html[data-tema="oscuro"] .biblio {
   .libro-item:hover { --ola: .36; }
 }
 
-/* ALTO CONTRASTE (Windows, forced-colors). Los fondos se quitan y los
-   pseudoelementos con mascara pasarian al color del lienzo y desaparecerian:
-   las tablas y el marco se pintan con el color del texto, y cada lomo lleva su
-   borde. El aro de foco no hace falta tocarlo: el outline toma el color del
-   sistema. */
+/* ALTO CONTRASTE (Windows, forced-colors). Los fondos se quitan: la repisa
+   (que es un fondo) se dibuja como una linea con el color del texto, la sombra
+   larga no se pinta y cada lomo lleva su borde. El aro de foco no hace falta
+   tocarlo: el outline toma el color del sistema. */
 @media (forced-colors: active) {
+  .estante__mueble { filter: none; }
   .libro__lomo { border: 1px solid CanvasText; }
-  .biblio .estante__libros::after,
-  .estante__mueble::after { forced-color-adjust: none; background: CanvasText; }
+  .biblio .estante__libros::after {
+    forced-color-adjust: none;
+    background-image: linear-gradient(180deg, transparent calc(var(--y-pie) - 3px), CanvasText calc(var(--y-pie) - 3px), CanvasText var(--y-pie), transparent var(--y-pie));
+  }
   .libro-item.is-ultimo .libro::before { forced-color-adjust: none; background: Canvas; box-shadow: inset 0 0 0 2px CanvasText; }
+}
+
+/* =============================================================
+   LA PORTADA QUE SE DIBUJA SOLA (components/Tapa.astro)
+
+   Un libro sin PDF en este idioma: el color de su lomo (su `tono`), un doble
+   filete, la palabra en su alfabeto y el titulo. La usan la cartelera y las
+   filas de Destacados, y los libros de la cabecera de Recursos (hero-aside.css);
+   va dentro de una caja con `container-type: inline-size`
+   y su tamaño se mide en `cqw`.
+   ============================================================= */
+.covers__tapa {
+  position: absolute; inset: 0;
+  display: grid; place-content: center; justify-items: center;
+  gap: 5cqw;
+  padding: 12cqw;
+  background: var(--fondo);
+  color: var(--tinta);
+  text-align: center;
+}
+.covers__tapa::before, .covers__tapa::after {
+  content: "";
+  position: absolute;
+  border: 1px solid currentColor;
+}
+.covers__tapa::before { inset: 7cqw;   opacity: .5;  border-radius: 2px; }
+.covers__tapa::after  { inset: 9.5cqw; opacity: .26; border-radius: 1px; }
+.covers__guion { font-size: 1.8rem; font-size: 20cqw; line-height: 1.15; }
+.covers__nombre {
+  font-family: var(--serif);
+  font-size: 1.1rem; font-size: 13cqw;
+  line-height: 1.1; letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+}
+
+/* =============================================================
+   DESTACADOS (components/Destacados.astro)
+
+   La seccion tipo Netflix, bajo la biblioteca. Papel blanco de la casa (con su
+   grano, paper.css); las repisas, las sombras y los aros son los de la sala
+   (--r-*, arriba), asi que de noche cambian con ella.
+
+   TRES COSAS, de arriba abajo:
+     · LA CARTELERA: un libro grande, con su portada de fondo (mas lenta), su
+       portada de frente (mas rapida) y su texto quieto;
+     · LAS FILAS: una por tema, con las portadas de frente sobre UNA repisa
+       seguida (un solo trazo de lado a lado, no una por libro: las uniones
+       entre libros se veian como costuras) que se desliza de lado, con flechas;
+     · la fila «Pronto», con la portada de lo que aun se escribe.
+
+   EL PARALLAX es de CSS puro (animation-timeline): cada capa se mueve a su
+   ritmo mientras la seccion cruza la pantalla. La pared de cada fila tiene
+   un haz de luz que la barre, y los libros y la repisa pasan por delante a
+   su paso: asi se nota la profundidad. Solo donde el navegador lo soporta y
+   sin «reducir movimiento»; si no, todo esta quieto y completo.
+
+   Cada tarjeta es UN enlace. Lo que se ve dentro va con aria-hidden y su
+   nombre accesible es el del <span class="sr-only">: igual que los lomos.
+   ============================================================= */
+.destacados {
+  --d-cara: 12px;          /* lo que se ve de la repisa por arriba (par: se parte en dos) */
+  --d-canto: 20px;         /* y su canto de frente */
+  --d-arriba: 1.7rem;      /* el aire sobre los libros: lo que suben al tocarlos y su sombra */
+  --w-t: 8.6rem;           /* el ancho de una portada (telefono)... */
+  --d-gap: 1rem;
+  --d-pad: 1.1rem;
+  --h-t: calc(var(--w-t) * 1.4144);   /* ...y su alto: la proporcion de un libro, 707 x 1000 */
+  position: relative;
+  padding: 3.2rem var(--gutter) 3.8rem;
+  background-color: var(--papel);
+  color: var(--slate);
+  --slate-400: var(--slate-400-hundido);        /* con el grano del papel, el slate 400 a secas se queda justo */
+  /* La costura con la sala de arriba: una sombra suave sobre el papel */
+  box-shadow: inset 0 14px 18px -14px color-mix(in srgb, var(--ring-700) 30%, transparent);
+  /* Las sombras largas y el parallax se salen un poco por los lados */
+  overflow-x: clip;
+}
+@media (min-width: 600px) {
+  .destacados { --w-t: 10rem; --d-gap: 1.4rem; --d-pad: 1.6rem; }
+}
+@media (min-width: 1024px) {
+  .destacados { --w-t: 12.4rem; --d-gap: 1.8rem; --d-pad: 2rem; }
+}
+.dest__shell {
+  display: grid; gap: 1.8rem;
+  grid-template-columns: minmax(0, 1fr);   /* sin esto, un riel ancho ensancha toda la columna */
+  max-width: var(--shell, 84rem);
+  margin: 0 auto;
+}
+.dest__cabeza {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 1rem 2rem;
+  min-height: 44px;             /* el cuadro de busqueda aparece con JavaScript: la cabecera ya guarda su alto */
+}
+.dest__title {
+  margin: 0;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.5rem, 5.4vw, 2.3rem);
+  line-height: 1.12; letter-spacing: -.015em;
+  color: var(--slate);
+}
+
+/* ---- El buscador: una pastilla, con su lupa ---- */
+.dest__buscar {
+  display: flex; align-items: center; gap: .55rem;
+  box-sizing: border-box;
+  width: min(100%, 21rem); min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  /* El borde, a 3:1 o mas contra el papel (1.4.11): da 3.3 al 55%; al 62%, con holgura para el grano */
+  border: 1px solid color-mix(in srgb, var(--slate) 62%, transparent);
+  background: var(--papel-2);
+  color: var(--slate);
+}
+.dest__buscar[hidden] { display: none; }
+.dest__buscar .icon { flex: none; width: 1.1rem; height: 1.1rem; }
+.dest__campo {
+  flex: 1; min-width: 0;
+  align-self: stretch;          /* el campo llena los 44px de la pastilla: todo el alto es suyo (2.5.8) */
+  padding: 0;
+  border: 0; background: none; outline: 0;
+  font: inherit;
+  font-size: 1rem;              /* 16px o mas: el iPhone no hace zoom al tocar */
+  color: inherit;
+}
+.dest__campo::placeholder { color: var(--slate-400-hundido); opacity: 1; }
+.dest__buscar:focus-within { outline: 2px solid var(--slate); outline-offset: 2px; }
+
+/* Con Shift+Tab hacia arriba, la cabecera flotante no tapa lo enfocado (2.4.11) */
+.dest__tarjeta, .dest__buscar, .dest__todos, .cartelera__boton, .fila__flecha { scroll-margin-top: calc(var(--header-h) + 1rem); }
+
+/* ---- La cartelera ---- */
+.cartelera {
+  --cart-fondo: color-mix(in srgb, var(--tono, var(--ring-300)) var(--d-mezcla), var(--papel));
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  gap: 1rem clamp(1rem, 4vw, 3rem);
+  min-height: clamp(18.5rem, 46vh, 27rem);
+  padding: clamp(1.3rem, 4vw, 3rem);
+  border-radius: 10px;
+  background-color: var(--cart-fondo);
+  color: var(--slate);
+  box-shadow: 0 22px 34px -26px var(--r-sombra);
+}
+/* La portada de fondo: la primera pagina del PDF, grande y apagada. Sin PDF, un
+   brillo del color del libro. Se pasa de los bordes para poder moverse sin
+   enseñar el borde. */
+.cartelera__fondo {
+  position: absolute; inset: -12% -3%; z-index: -2;
+  background: radial-gradient(ellipse 60% 70% at 78% 40%, color-mix(in srgb, var(--tono, var(--ring-300)) 55%, transparent), transparent 70%);
+}
+.cartelera__fondo img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: .3; }
+/* El velo: el color de la cartelera, lleno a la izquierda (el texto se lee) y
+   transparente a la derecha (se ve la portada) */
+.cartelera__velo {
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, var(--cart-fondo) 0, var(--cart-fondo) 36%, transparent 92%);
+}
+.cartelera__cuerpo { display: grid; justify-items: start; gap: .7rem; }
+.cartelera__tema {
+  margin: 0;
+  font-size: .76rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--slate);
+}
+.cartelera__titulo {
+  margin: 0;
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(2.1rem, 6.4vw, 3.8rem);
+  line-height: 1.02; letter-spacing: -.02em;
+  color: var(--slate);
+  text-wrap: balance;
+  overflow-wrap: anywhere; hyphens: auto;     /* a 320px la columna del texto es estrecha: una palabra larga se parte y no se recorta (1.4.10) */
+}
+.cartelera__glosa {
+  margin: 0;
+  max-width: 28ch;
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 2.6vw, 1.4rem); line-height: 1.25; letter-spacing: -.01em;
+  color: var(--slate);
+}
+.cartelera__boton {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; margin-top: .5rem; padding: 0 1.7rem;
+  border-radius: 999px;
+  background: var(--slate); color: var(--papel);
+  border: 1px solid transparent;               /* con borde, en alto contraste sigue siendo un boton */
+  font-size: .95rem; font-weight: 600; letter-spacing: .02em;
+  text-decoration: none;
+  transition: translate .2s var(--ease), box-shadow .2s var(--ease);
+}
+.cartelera__boton:hover { translate: 0 -2px; box-shadow: 0 10px 16px -10px var(--r-sombra); }
+.cartelera__boton:focus-visible { outline: 2px solid var(--r-aro-ext); outline-offset: 3px; }
+/* La portada de frente, inclinada, con la sombra larga de la sala */
+.cartelera__libro {
+  position: relative;
+  width: clamp(7.4rem, 21vw, 14.5rem);
+  aspect-ratio: 707 / 1000;
+  container-type: inline-size;
+  border-radius: 4px 10px 10px 4px;
+  rotate: 4deg;
+  filter: drop-shadow(-14px 12px 0 var(--r-larga));
+}
+.cartelera__libro img, .cartelera__libro .covers__tapa { border-radius: inherit; }
+.cartelera__libro img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cartelera__libro::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / .3) 0, rgb(255 255 255 / .14) 2.2%, rgb(0 0 0 / .12) 5%, transparent 10%),
+    linear-gradient(115deg, rgb(255 255 255 / .16), transparent 34%);
+}
+/* Mientras se busca, la cartelera se aparta: solo importan las filas */
+.destacados[data-buscando] .cartelera { display: none; }
+
+/* ---- Las filas ---- */
+.filas { display: grid; gap: 2.4rem; grid-template-columns: minmax(0, 1fr); }
+.fila { display: grid; gap: .7rem; grid-template-columns: minmax(0, 1fr); }
+.fila[hidden] { display: none; }
+.fila__titulo {
+  margin: 0;
+  font-family: var(--serif); font-weight: 400;
+  font-size: 1.35rem; letter-spacing: -.012em;
+  color: var(--slate);
+}
+.fila__escena { position: relative; isolation: isolate; }
+
+/* LA PARED de la fila: un oro todavia mas suave que el de la sala, con un haz de
+   luz que la barre (el parallax). La pared se pasa de los lados para que el haz
+   se mueva sin dejar huecos. */
+.fila__nicho {
+  position: absolute; inset: 0; z-index: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: var(--d-pared);
+}
+.fila__pared {
+  position: absolute; inset: 0 -30%;
+  background:
+    linear-gradient(104deg, transparent 22%, var(--d-haz) 38%, transparent 54%),
+    radial-gradient(ellipse 50% 90% at 82% 0, var(--r-luz), transparent 70%);
+}
+
+/* EL RIEL: se desliza de lado, sin barra (las flechas, el dedo o el teclado) */
+.fila__riel {
+  position: relative; z-index: 1;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--d-pad);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.fila__riel::-webkit-scrollbar { display: none; }
+
+/* LA PISTA y SU REPISA. La pista mide lo que miden sus libros (o la fila, si
+   no llenan); la repisa va de lado a lado de la pista, UNA, detras de los libros:
+   su cara de arriba, su canto de frente, su filo y la sombra que cae sobre la
+   pared. Los libros se apoyan a mitad de la cara. */
+.fila__pista {
+  position: relative; isolation: isolate;
+  display: flex; align-items: flex-start; gap: var(--d-gap);
+  width: max-content; min-width: 100%; box-sizing: border-box;
+  list-style: none; margin: 0;
+  padding: var(--d-arriba) var(--d-pad) 1.1rem;
+}
+.fila__pista::after {
+  content: "";
+  position: absolute; z-index: -1;
+  left: 0; right: 0;
+  top: calc(var(--d-arriba) + var(--h-t) - var(--d-cara) / 2);
+  height: calc(var(--d-cara) + var(--d-canto));
+  background-image: linear-gradient(180deg,
+    var(--r-cara-fondo) 0,
+    var(--r-cara) var(--d-cara),
+    var(--r-brillo) var(--d-cara),
+    var(--r-brillo) calc(var(--d-cara) + 1.5px),
+    var(--r-canto) calc(var(--d-cara) + 1.5px),
+    var(--r-canto-bajo) calc(100% - 1.5px),
+    var(--r-filo) calc(100% - 1.5px));
+  box-shadow: 0 10px 14px -8px var(--r-sombra);
+  pointer-events: none;
+}
+.dest__item { flex: none; width: var(--w-t); scroll-snap-align: start; }
+.dest__tarjeta {
+  display: grid; align-content: start;
+  color: inherit; text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.dest__tarjeta:focus-visible {
+  outline: 2px solid var(--r-aro-ext); outline-offset: 6px;
+  border-radius: 4px;
+}
+
+/* La portada, de pie sobre la repisa, con la sombra larga abajo a la izquierda.
+   Su margen de abajo deja pasar la repisa antes del nombre. */
+.dest__portada {
+  position: relative; display: block;
+  aspect-ratio: 707 / 1000;
+  container-type: inline-size;          /* la palabra y el titulo de la portada dibujada escalan con ella */
+  border-radius: 3px 8px 8px 3px;
+  margin-bottom: calc(var(--d-canto) + var(--d-cara) / 2 + .85rem);
+  filter: drop-shadow(-10px 8px 0 var(--r-larga));
+  transition: translate .22s var(--ease);
+}
+.dest__portada img, .dest__portada .covers__tapa { border-radius: inherit; }
+.dest__portada img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* El canto del libro y su brillo, como en la sala */
+.dest__portada::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / .3) 0, rgb(255 255 255 / .14) 2.2%, rgb(0 0 0 / .12) 5%, transparent 10%),
+    linear-gradient(115deg, rgb(255 255 255 / .16), transparent 34%);
+}
+@media (hover: hover) and (pointer: fine) {
+  a.dest__tarjeta:hover .dest__portada { translate: 0 -8px; }   /* solo las que se abren: la de «Pronto» no lleva a ningun sitio */
+}
+
+.dest__texto { display: grid; gap: .2rem; justify-items: start; }
+.dest__nombre {
+  font-family: var(--serif);
+  font-size: 1.12rem; line-height: 1.15; letter-spacing: -.01em;
+  color: var(--slate);
+}
+.dest__glosa { font-size: .88rem; line-height: 1.3; color: var(--slate-400); }
+.dest__pronto {
+  margin-top: .3rem; padding: .18rem .6rem;
+  border: 1px dashed color-mix(in srgb, var(--slate) 62%, transparent); border-radius: 999px;
+  font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--slate-400);
+}
+
+/* Las flechas de cada fila: solo con raton, y solo si la fila no cabe */
+.fila__flecha {
+  position: absolute; z-index: 3;
+  top: calc(var(--d-arriba) + var(--h-t) / 2 - 22px);
+  display: grid; place-items: center;
+  width: 44px; height: 44px; padding: 0;
+  border: 1px solid color-mix(in srgb, var(--slate) 62%, transparent); border-radius: 50%;
+  background: var(--papel-alto); color: var(--slate);
+  box-shadow: 0 8px 14px -8px var(--r-sombra);
+  cursor: pointer;
+}
+.fila__flecha[hidden] { display: none; }
+.fila__flecha svg { width: 22px; height: 22px; }
+.fila__flecha--ant { left: -22px; }
+.fila__flecha--ant svg { scale: -1 1; }
+.fila__flecha--sig { right: -22px; }
+.fila__flecha[aria-disabled="true"] { opacity: .35; cursor: default; box-shadow: none; }
+.fila__flecha:focus-visible { outline: 2px solid var(--r-aro-ext); outline-offset: 3px; }
+@media (hover: none) and (pointer: coarse) {
+  .fila__flecha { display: none; }
+}
+
+/* ---- Si no hay ninguno ---- */
+.dest__vacio {
+  display: grid; justify-items: center; gap: .8rem;
+  padding: 1.6rem 0 .6rem;
+  text-align: center;
+}
+.dest__vacio[hidden] { display: none; }
+.dest__vacio-texto { margin: 0; font-family: var(--serif); font-size: 1.3rem; letter-spacing: -.012em; }
+.dest__todos {
+  min-height: 44px; padding: 0 1.3rem;
+  border: 1px solid transparent; border-radius: 999px;      /* con borde, en alto contraste sigue siendo un boton */
+  background: var(--slate); color: var(--papel);
+  font: inherit; font-size: .9rem;
+  cursor: pointer;
+}
+.dest__todos:focus-visible { outline: 2px solid var(--slate); outline-offset: 3px; }
+
+/* En el telefono, la portada de frente es mas pequeña y baja al pie, y el cuadro de
+   busqueda ocupa todo el ancho (y baja a su propia linea: la cabecera guarda su alto) */
+@media (max-width: 519px) {
+  .dest__cabeza { min-height: calc(1.68rem + 1rem + 44px); }
+  .dest__buscar { width: 100%; }
+  .cartelera { align-items: end; min-height: 17rem; }
+  .cartelera__libro { width: 6.6rem; }
+  .cartelera__velo { background: linear-gradient(90deg, var(--cart-fondo) 0, var(--cart-fondo) 46%, transparent 100%); }
+}
+
+/* =============================================================
+   EL MOVIMIENTO. Cada capa, a su ritmo, mientras su pieza cruza la pantalla.
+   La cartelera y cada fila declaran su propia linea de tiempo (`view-timeline`)
+   y sus hijos la usan por nombre: el riel de cada fila se desliza de lado, y si
+   los libros usaran `view()` a secas medirian ESE deslizamiento y no el scroll
+   de la pagina. Todo es `translate` y `opacity`: no recoloca nada.
+   ============================================================= */
+@supports (animation-timeline: view()) {
+  @media screen and (prefers-reduced-motion: no-preference) {
+    @keyframes d-fondo  { from { translate: 0 -34px; } to { translate: 0 34px; } }
+    @keyframes d-libro  { from { translate: 0 48px; }  to { translate: 0 -48px; } }
+    @keyframes d-pared  { from { translate: -15% 0; }  to { translate: 15% 0; } }
+    @keyframes d-entra  { from { opacity: 0; translate: 0 34px; } to { opacity: 1; translate: 0 0; } }
+    @keyframes d-titulo { from { opacity: 0; translate: -26px 0; } to { opacity: 1; translate: 0 0; } }
+
+    .cartelera { view-timeline: --cartelera block; }
+    .cartelera__fondo { animation: d-fondo linear both; animation-timeline: --cartelera; animation-range: cover 0% cover 100%; }
+    .cartelera__libro { animation: d-libro linear both; animation-timeline: --cartelera; animation-range: cover 0% cover 100%; }
+
+    .fila { view-timeline: --fila block; }
+    .fila__pared { animation: d-pared linear both; animation-timeline: --fila; animation-range: cover 0% cover 100%; }
+    .fila__titulo { animation: d-titulo linear backwards; animation-timeline: --fila; animation-range: entry 0% entry 55%; }
+    /* Los libros entran de uno en uno: cada uno empieza un poco despues que el anterior */
+    .dest__item { animation: d-entra linear backwards; animation-timeline: --fila; animation-range: entry calc(min(var(--i), 5) * 6%) entry calc(58% + min(var(--i), 5) * 6%); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dest__portada, .cartelera__boton { transition: none; }
+}
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+  a.dest__tarjeta:hover .dest__portada, .cartelera__boton:hover { translate: none; }
+}
+@media (forced-colors: active) {
+  .dest__portada, .cartelera__libro { filter: none; }
+  .dest__portada img, .dest__portada .covers__tapa, .cartelera__libro img, .cartelera__libro .covers__tapa { border: 1px solid CanvasText; }
+  .dest__portada::before, .cartelera__libro::before, .cartelera__velo, .fila__pared { display: none; }
+  .fila__pista::after { forced-color-adjust: none; background: CanvasText; height: 2px; top: calc(var(--d-arriba) + var(--h-t)); box-shadow: none; }
+  .cartelera, .fila__nicho { border: 1px solid CanvasText; }
+  .dest__buscar, .fila__flecha { border-color: CanvasText; }
 }

@@ -8,13 +8,16 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cargar = (ruta) => import(pathToFileURL(path.join(raiz, ruta)).href);
 
-const { idDeHash, leerUltimo, guardarUltimo, CLAVE, variante, grosorDe, comprobar, ORDEN, colorLomo, contraste, ola, GIRO_MAX } = await cargar('src/scripts/biblioteca.js');
-const { SECCIONES, TIPOS, LIBROS } = await cargar('src/data/biblioteca.js');
+const { idDeHash, leerUltimo, guardarUltimo, CLAVE, variante, grosorDe, comprobar, ORDEN, colorLomo, contraste, ola, GIRO_MAX, TONOS, fichaLibro, normalizar, indexar, coincide, BUSCAR_MAX, rutaPortadaValida } = await cargar('src/scripts/biblioteca.js');
+const { SECCIONES, TIPOS, LIBROS, PORTADAS, CARTELERA } = await cargar('src/data/biblioteca.js');
 const { BOOKS } = await cargar('src/data/books.js');
+const { PIEZAS_PUBLICAS, ABANICO_TRABAJOS } = await cargar('src/data/piezas.js');
+const { PARTNERS } = await cargar('src/data/partners.js');
 const { TERMS } = await cargar('src/i18n/terms.js');
 const { GLOSS, CARDS } = await cargar('src/i18n/term-cards.js');
 const { DEEP } = await cargar('src/i18n/term-book.js');
@@ -24,15 +27,16 @@ let mal = 0;
 const ok = (nombre, fn) => {
   try { fn(); n++; console.log('  ok  ' + nombre); } catch (e) { mal++; console.log(' MAL  ' + nombre + '\n      ' + String(e.message).split('\n')[0]); }
 };
-const real = { SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP };
+const real = { SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP, PORTADAS, CARTELERA };
 const con = (cambios) => ({ ...real, ...cambios });
 const generico = (extra) => ({ id: 'prueba', seccion: 'teologia', tipo: 'tapa-dura', idiomas: ['es'], titulo: { es: 'Prueba', en: 'Test' }, ...extra });
 const hechos = (id, idiomas, pages = 12, ratio = 0.7143) => ({ [id]: Object.fromEntries(idiomas.map((l) => [l, { pages, ratio, v: 'abc', board: ['#000', '#000'] }])) });
 
 console.log('datos de verdad');
 ok('la comprobacion pasa con los libros de hoy', () => comprobar(real));
-ok('hay 7 temas y los 4 libros de palabra son revistas', () => {
-  assert.equal(SECCIONES.length, 7);
+ok('hay 8 temas (con «Contrabando teologico») y los 4 libros de palabra son revistas', () => {
+  assert.equal(SECCIONES.length, 8);
+  assert.deepEqual(SECCIONES.map((x) => x.id).slice(0, 3), ['tecnologia', 'teologia', 'contrabando']);
   assert.deepEqual(LIBROS.filter((l) => l.glosario).map((l) => [l.id, l.tipo]), [['ahava', 'revista'], ['emet', 'revista'], ['agape', 'revista'], ['rhema', 'revista']]);
 });
 
@@ -144,6 +148,129 @@ ok('un valor que no es un color cae al pino (sin lanzar)', () => {
   for (const base of [undefined, null, '', 'rojo', '#12', 'url(x)', '#GGGGGG', 5]) assert.equal(colorLomo(base).fondo, '#263b28');
 });
 
+console.log('TONOS y fichaLibro');
+const datos = { BOOKS, TIPOS, TERMS, GLOSS };
+const FICHA_ES = (l, pagina = 'es', b = BOOKS) => fichaLibro(l, pagina, { ...datos, BOOKS: b }, '/');
+ok('cada tono es un #rrggbb y su tinta se lee (4.5:1)', () => {
+  for (const [k, hex] of Object.entries(TONOS)) {
+    assert.match(hex, /^#[0-9a-f]{6}$/, k);
+    const c = colorLomo(hex); assert.ok(contraste(c.fondo, c.tinta) >= 4.5, k + ' -> ' + contraste(c.fondo, c.tinta));
+  }
+});
+ok('el tono de cada libro, si lo tiene, existe; los de hoy (4) son distintos entre si', () => {
+  const tonos = LIBROS.map((l) => l.tono).filter((t) => t !== undefined);
+  assert.ok(tonos.every((t) => Object.prototype.hasOwnProperty.call(TONOS, t)), tonos.join());
+  assert.equal(tonos.length, 4); assert.equal(new Set(tonos).size, 4);
+});
+ok('los tonos que son un color de la casa repiten el hex de base.css (ocre es la mezcla de ring y ring 300)', () => {
+  const css = fs.readFileSync(path.join(raiz, 'src/styles/base.css'), 'utf8').toLowerCase();
+  for (const [tono, token] of [['salvia', '--celtic-400'], ['pizarra', '--slate'], ['tierra', '--ring-700'], ['niebla', '--slate-100'], ['arena', '--ring-300']]) {
+    assert.ok(css.includes(`${token}:`) && new RegExp(`${token}:\\s*${TONOS[tono]};`).test(css), `${tono} ≠ ${token}`);
+  }
+  const m = (a, b) => '#' + [1, 3, 5].map((i) => Math.round((parseInt(a.slice(i, i + 2), 16) + parseInt(b.slice(i, i + 2), 16)) / 2).toString(16).padStart(2, '0')).join('');
+  assert.equal(TONOS.ocre, m('#c08a2e', '#e0b778'));
+});
+ok('la ficha de un libro de una palabra: titulo, glosa, alfabeto y portada', () => {
+  const f = FICHA_ES(LIBROS.find((l) => l.id === 'ahava'));
+  assert.equal(f.id, 'ahava'); assert.equal(f.titulo, TERMS.ahava.title.es); assert.equal(f.glosa, GLOSS.ahava.es);
+  assert.equal(f.guion, TERMS.ahava.script); assert.equal(f.lengua, 'he'); assert.equal(f.dir, 'rtl');
+  assert.equal(f.blando, true); assert.equal(f.grosor, 'fino'); assert.equal(f.marca, null);
+  assert.equal(f.portada, `/books/ahava/es/01-900.jpg?v=${BOOKS.ahava.es.v}`);
+});
+ok('sin PDF en ese idioma no hay portada, pero hay ficha (se dibuja)', () => {
+  const f = FICHA_ES(LIBROS.find((l) => l.id === 'emet'));
+  assert.equal(f.portada, null); assert.equal(f.titulo, TERMS.emet.title.es);
+});
+ok('el tono manda sobre el carton del PDF (el de Ahava era el ambar #a27005)', () => {
+  const sin = FICHA_ES({ ...LIBROS.find((l) => l.id === 'ahava'), tono: undefined });
+  const con = FICHA_ES(LIBROS.find((l) => l.id === 'ahava'));
+  assert.notEqual(sin.color.fondo, con.color.fondo);
+  assert.equal(con.color.fondo, TONOS.ocre);
+});
+ok('sin tono ni PDF cae al pino; un tono que no existe tambien (no lanza)', () => {
+  assert.equal(FICHA_ES({ ...LIBROS.find((l) => l.id === 'emet'), tono: undefined }).color.fondo, '#263b28');
+  assert.equal(FICHA_ES({ ...LIBROS.find((l) => l.id === 'emet'), tono: 'constructor' }).color.fondo, '#263b28');
+});
+ok('un libro de otro idioma: titulo del idioma que se abre y marca', () => {
+  const l = generico({ idiomas: ['en'], titulo: { es: 'Prueba', en: 'Test' }, subtitulo: { en: 'A sub' } });
+  const f = FICHA_ES(l, 'es', hechos('prueba', ['en']));
+  assert.equal(f.titulo, 'Test'); assert.equal(f.glosa, 'A sub'); assert.equal(f.marca, 'EN'); assert.equal(f.idioma, 'en'); assert.equal(f.glosario, undefined);
+  assert.equal(f.guion, null); assert.equal(f.dir, null);
+});
+ok('un libro que no se puede abrir no tiene ficha (null)', () => assert.equal(FICHA_ES(generico({ idiomas: ['es'] }), 'es', {}), null));
+ok('es la misma ficha en las cinco paginas para los libros de hoy (mismo id, grosor y color)', () => {
+  for (const l of LIBROS) {
+    const fs = ['es', 'en', 'pt', 'fr', 'it'].map((p) => FICHA_ES(l, p));
+    assert.ok(fs.every(Boolean), l.id);
+    assert.equal(new Set(fs.map((f) => f.grosor)).size, 1, l.id + ' grosor'); assert.equal(new Set(fs.map((f) => f.color.fondo)).size, 1, l.id + ' color');
+  }
+});
+console.log('buscar: normalizar, indexar, coincide');
+const indiceDe = (id) => { const l = LIBROS.find((x) => x.id === id); const f = FICHA_ES(l); return indexar([f.titulo, f.glosa, f.guion, id, f.seccion]); };
+ok('normalizar quita acentos, mayusculas y espacios de mas', () => {
+  assert.equal(normalizar('  ÁGAPE   Amor '), 'agape amor');
+  assert.equal(normalizar('Ahavá'), 'ahava');
+});
+ok('normalizar quita los puntos del hebreo y los tonos del griego', () => {
+  assert.equal(normalizar('אֱמֶת'), 'אמת');
+  assert.equal(normalizar('ἀγάπη'), 'αγαπη');
+});
+ok('normalizar corta lo largo y lo que no es texto da vacio', () => {
+  assert.equal(normalizar('x'.repeat(10000)).length, BUSCAR_MAX);
+  for (const v of [null, undefined, 5, {}, [], () => 1, Symbol.iterator]) assert.equal(normalizar(v), '');
+});
+ok('indexar junta las partes, ignora lo que no es texto y no se corta a 60', () => {
+  assert.equal(indexar(['Ahavá', null, 'אַהֲבָה', '', 5]), 'ahava אהבה');
+  assert.ok(indexar(['a'.repeat(300)]).length === 300);
+  assert.equal(indexar('no es lista'), '');
+});
+ok('coincide: sin acentos ni mayusculas, y todas las palabras', () => {
+  assert.equal(coincide('agape', indiceDe('agape')), true);
+  assert.equal(coincide('ÁGAPE', indiceDe('agape')), true);
+  assert.equal(coincide('אהבה', indiceDe('ahava')), true);
+  assert.equal(coincide('αγαπη', indiceDe('agape')), true);
+  assert.equal(coincide('teologia', indiceDe('rhema')), true);
+  assert.equal(coincide('agape rhema', indiceDe('agape')), false);
+  assert.equal(coincide('xyz', indiceDe('agape')), false);
+});
+ok('coincide: vacio o solo espacios encaja con todo', () => {
+  for (const q of ['', '   ', '\n\t', null, undefined, 5]) assert.equal(coincide(q, indiceDe('emet')), true, JSON.stringify(q));
+});
+ok('coincide: nada de lo escrito se toma por una expresion, un selector o un objeto', () => {
+  for (const q of ['.*', '(', '[', '\\', '^$', '<img src=x onerror=1>', 'constructor', '__proto__', 'toString']) {
+    assert.doesNotThrow(() => coincide(q, indiceDe('emet')), q);
+  }
+  assert.equal(coincide('.*', indiceDe('emet')), false);
+  assert.equal(coincide('constructor', indiceDe('emet')), false);
+  assert.equal(coincide('x', null), false);
+  assert.equal(coincide('x', {}), false);
+});
+ok('normalizar quita los invisibles de un copiar y pegar (ancho cero, guion blando, direccion)', () => {
+  assert.equal(normalizar('a​ga­pe‏'), 'agape');
+  assert.equal(normalizar('‮agape⁠﻿'), 'agape');
+  assert.equal(coincide('a​gape', indiceDe('agape')), true);
+});
+ok('coincide con diez mil letras no se cuelga ni encaja con todo', () => {
+  const t0 = Date.now(); assert.equal(coincide('zq '.repeat(5000), indiceDe('emet')), false); assert.ok(Date.now() - t0 < 200);
+});
+
+console.log('abanico de la cabecera de Trabajos');
+ok('ABANICO_TRABAJOS: tres piezas publicas y verticales, sin repetir, con su portada en disco', () => {
+  assert.equal(ABANICO_TRABAJOS.length, 3); assert.equal(new Set(ABANICO_TRABAJOS).size, 3);
+  for (const id of ABANICO_TRABAJOS) {
+    const p = PIEZAS_PUBLICAS.find((x) => x.id === id);
+    assert.ok(p, id + ' no esta en PIEZAS_PUBLICAS'); assert.equal(p.orientacion, 'vertical', id);
+    assert.ok(PARTNERS.some((x) => x.id === p.casa), `${id}: su casa «${p.casa}» no esta en PARTNERS, asi que no hay tarjeta que abrir`);
+    for (const ext of ['jpg', 'webp']) assert.ok(fs.existsSync(path.join(raiz, 'public/assets/videos/piezas', `${p.archivo}.${ext}`)), `${p.archivo}.${ext}`);
+  }
+});
+
+console.log('rutas de portada');
+ok('rutaPortadaValida: solo assets/portadas/nombre.jpg|png|webp', () => {
+  for (const r of ['assets/portadas/nada-que-demostrar.jpg', 'assets/portadas/a1.png', 'assets/portadas/x.webp']) assert.equal(rutaPortadaValida(r), true, r);
+  for (const r of ['../secreto.jpg', 'assets/portadas/../x.jpg', 'assets/portadas/a/b.jpg', '/assets/portadas/a.jpg', 'assets/portadas/A.jpg', 'assets/portadas/a.svg', 'assets/portadas/a.jpg\n', '', null, undefined, 5, {}]) assert.equal(rutaPortadaValida(r), false, String(r));
+});
+
 console.log('ola');
 ok('justo debajo del puntero sube del todo y no se inclina', () => { const o = ola(100, 100, 170); assert.equal(o.ola, 1); assert.equal(o.giro, 0); });
 ok('a distancia R o mas, ni sube ni se inclina', () => {
@@ -177,6 +304,7 @@ para('palabra que no existe', { LIBROS: [{ ...LIBROS[0], id: 'nada' }] }, /palab
 para('id con guion', { LIBROS: [generico({ id: 'a-b' })] }, /minusculas sin guiones/);
 para('id con mayusculas', { LIBROS: [generico({ id: 'Libertad' })] }, /minusculas sin guiones/);
 para('id como ancla', { LIBROS: [generico({ id: 'main' })], BOOKS: hechos('main', ['es']) }, /ancla/);
+para('id como la ancla de Destacados', { LIBROS: [generico({ id: 'destacados' })], BOOKS: hechos('destacados', ['es']) }, /ancla/);
 para('tipo que no existe', { LIBROS: [generico({ tipo: 'enciclopedia' })], BOOKS: B('es') }, /tipo/);
 para('grosor que no existe', { LIBROS: [generico({ grosor: 'gordo' })], BOOKS: B('es') }, /grosor/);
 para('un libro que no es de palabra sin idiomas', { LIBROS: [generico({ idiomas: undefined })], BOOKS: B('es') }, /idiomas/);
@@ -188,11 +316,31 @@ para('un subtitulo en un idioma que el libro no tiene', { LIBROS: [generico({ su
 para('palabra sin titulo en TERMS', { TERMS: { ...TERMS, ahava: { ...TERMS.ahava, title: undefined } } }, /titulo, escritura/);
 para('palabra sin glosa', { GLOSS: { ...GLOSS, ahava: undefined } }, /glosa/);
 para('tema repetido', { SECCIONES: [...SECCIONES, SECCIONES[0]] }, /repetida/);
+ok('la cartelera de hoy es un libro de LIBROS', () => assert.ok(LIBROS.some((l) => l.id === CARTELERA), String(CARTELERA)));
+para('cartelera: un libro que no esta en LIBROS', { CARTELERA: 'nada' }, /cartelera/);
+para('cartelera: algo que no es un id (null, numero, objeto)', { CARTELERA: null }, /cartelera/);
+para('cartelera: un id hostil (constructor)', { CARTELERA: 'constructor' }, /cartelera/);
+ok('sin cartelera (undefined) la comprobacion pasa: sale el primero que se abra', () => bien({ CARTELERA: undefined }));
+para('un tono que no existe', { LIBROS: [{ ...LIBROS[0], tono: 'fucsia' }] }, /tono «fucsia»/);
+para('un tono hostil (constructor)', { LIBROS: [{ ...LIBROS[0], tono: 'constructor' }] }, /tono/);
 ok('un titulo muy largo AVISA, no para', () => {
   const largo = 'x'.repeat(60);
   const avisos = bien({ LIBROS: [...LIBROS, generico({ titulo: { es: largo, en: 'T' } })], BOOKS: { ...BOOKS, ...hechos('prueba', ['es']) } });
   assert.ok(avisos.some((a) => /60 letras/.test(a)));
 });
+ok('portadas: una lista vacia o con mas de tres pasa (la fila «Pronto» no tiene limite)', () => {
+  bien({ PORTADAS: [] });
+  bien({ PORTADAS: Array.from({ length: 5 }, (_, i) => ({ imagen: `assets/portadas/a${i}.jpg`, ancho: 840, alto: 1189, titulo: 'x' })) });
+});
+para('portadas: algo que no es una lista', { PORTADAS: 'nada' }, /tiene que ser una lista/);
+para('un tema con un id raro (mayusculas, guion, espacio)', { SECCIONES: [{ id: 'Mi-tema', nombre: SECCIONES[0].nombre }] }, /id que no es una palabra/);
+para('un tema que se llama «pronto» (es la fila de Destacados)', { SECCIONES: [{ id: 'pronto', nombre: SECCIONES[0].nombre }] }, /pronto/);
+para('portadas: un libro que no esta en LIBROS', { PORTADAS: [{ id: 'nada' }] }, /no esta en LIBROS/);
+para('portadas: una imagen fuera de assets/portadas', { PORTADAS: [{ imagen: '../secreto.jpg', ancho: 1, alto: 1, titulo: 'x' }] }, /assets\/portadas/);
+para('portadas: una imagen con una ruta rara', { PORTADAS: [{ imagen: 'assets/portadas/a/b.jpg', ancho: 1, alto: 1, titulo: 'x' }] }, /assets\/portadas/);
+para('portadas: sin medidas', { PORTADAS: [{ imagen: 'assets/portadas/a.jpg', titulo: 'x' }] }, /ancho y el alto/);
+para('portadas: sin titulo', { PORTADAS: [{ imagen: 'assets/portadas/a.jpg', ancho: 1, alto: 1 }] }, /titulo/);
+ok('portadas: una suelta y un libro, bien', () => bien({ PORTADAS: [{ id: 'emet' }, { imagen: 'assets/portadas/a.jpg', ancho: 840, alto: 1189, titulo: 'x' }] }));
 para('lectura que falta en CARDS', { CARDS: { ...CARDS, ahava: { ...CARDS.ahava, now: undefined } } }, /lectura «now»/);
 para('nivel que falta en DEEP', { DEEP: { ...DEEP, ahava: { ...DEEP.ahava, sod: undefined } } }, /«sod»/);
 para('«sources» que no es una lista', { DEEP: { ...DEEP, ahava: { ...DEEP.ahava, sources: 'x' } } }, /no es una lista/);

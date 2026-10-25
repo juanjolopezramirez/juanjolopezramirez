@@ -14,7 +14,7 @@ import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { CONTACT } from '../data/social.js';
-import { idDeHash, leerUltimo, guardarUltimo, variante, ola } from './biblioteca.js';
+import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar } from './biblioteca.js';
 import { LIBROS, TIPOS } from '../data/biblioteca.js';
 
 const d = document;
@@ -671,10 +671,17 @@ function initTema() {
      buscar `url(` suelto, porque el propio SVG lleva dentro un `url(#filtro)`. */
   const soloGrano = (bi) => bi.replace(/url\("data:image\/svg\+xml[^"]*"\)/g, '').replace(/[\s,]/g, '') === '';
 
+  /* UNA SALA QUE SIGUE EL TEMA cuenta como papel aunque su color no sea el del
+     papel (la biblioteca: pared de oro pastel de dia, carbon calido de noche; y
+     Destacados, con su cartelera y las paredes de sus filas: todo lo que hay dentro
+     de una seccion con `data-sigue-tema`). Se mira ANTES que el fondo: esas capas
+     llevan degradados de luz y sin esto se leerian como «un campo». */
+  const SIGUE = 'sigue-tema';
   const fondoEn = (x, y) => {
     for (const el of d.elementsFromPoint(x, y)) {
       if (el === root || el.closest('.site-header, .lang__list, .lang__scrim, [aria-modal="true"]')) continue;
       if (el.getBoundingClientRect().width < innerWidth * 0.6) continue;
+      if (el.closest('[data-sigue-tema]')) return SIGUE;
       const s = getComputedStyle(el);
       if (s.backgroundImage !== 'none' && !soloGrano(s.backgroundImage)) return null;
       if (!transparente(s.backgroundColor)) return s.backgroundColor;
@@ -685,7 +692,7 @@ function initTema() {
     const cs = getComputedStyle(html);
     const papeles = new Set(['--papel', '--papel-2', '--papel-alto'].map((v) => aRgb(cs.getPropertyValue(v).trim())));
     const x = innerWidth / 2;
-    return [0.38, 0.62, 0.86].filter((f) => papeles.has(fondoEn(x, innerHeight * f))).length >= 2;
+    return [0.38, 0.62, 0.86].filter((f) => { const c = fondoEn(x, innerHeight * f); return c === SIGUE || papeles.has(c); }).length >= 2;
   };
 
   let dentro = null;
@@ -2518,6 +2525,7 @@ function initBiblioteca(openBook) {
   const seguir = caja.querySelector('[data-seguir]');
   const aviso = caja.querySelector('[data-biblio-estado]');
   let abierto = null;      // el libro que la biblioteca abrio y sigue a la vista
+  let origen = null;       // el enlace que lo abrio (una portada de la cabecera o de Destacados, el lomo, «seguir leyendo»)
   /* Cada documento se marca en SUS entradas del historial. Si se recarga con
      el libro abierto, la entrada que dejo el clic sigue ahi pero ya es de un
      documento que no existe, y «atras» desde ella recargaria la pagina entera. */
@@ -2530,7 +2538,11 @@ function initBiblioteca(openBook) {
     enlaces.forEach((lomo, k) => lomo.closest('.libro-item').classList.toggle('is-ultimo', k === id));
     if (!seguir) return;
     const a = id && enlaces.get(id);
+    const estaba = seguir.hidden;
     seguir.hidden = !a;
+    /* La ficha mide ~84px: al aparecer (o irse) la biblioteca cambia de alto y los
+       saltos entre pantallas (initDiapositivas) tienen que volver a medir. */
+    if (estaba !== seguir.hidden) dispatchEvent(new Event('jl:medir'));
     if (!a) return;
     seguir.setAttribute('href', '#' + id);
     seguir.setAttribute('data-libro', id);
@@ -2538,7 +2550,9 @@ function initBiblioteca(openBook) {
     seguir.querySelector('[data-seguir-titulo]').textContent = a.getAttribute('data-titulo');
   };
 
-  caja.addEventListener('click', (e) => {
+  /* Los enlaces de libro son los de la estanteria y tambien los de Destacados (la
+     cartelera y las filas): se atiende toda la pagina. */
+  (d.querySelector('main') || caja).addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[data-libro]');
     if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const id = idDeHash('#' + a.getAttribute('data-libro'), validos);
@@ -2546,6 +2560,7 @@ function initBiblioteca(openBook) {
     e.preventDefault();
     history.pushState({ libro: id, doc: DOC }, '', location.pathname + location.search + '#' + id);
     abierto = id;
+    origen = a;
     openBook(id);
   });
 
@@ -2554,7 +2569,9 @@ function initBiblioteca(openBook) {
      quedaba en la × (que se esconde enseguida) o volvia a <body>, y se perdia
      la posicion en la estanteria. */
   const devolverFoco = (id) => {
-    const portada = enlaces.get(id);
+    /* El foco vuelve al enlace que lo abrio; si no lo hubo (se abrio por la direccion), al lomo. */
+    const portada = origen && origen.isConnected && !origen.hidden && origen.getAttribute('data-libro') === id ? origen : enlaces.get(id);
+    origen = null;
     const ahora = d.activeElement;
     if (portada && (!ahora || ahora === d.body || ahora.closest('#book-panel'))) portada.focus({ preventScroll: true });
   };
@@ -2597,6 +2614,7 @@ function initBiblioteca(openBook) {
     barra.addEventListener('click', (e) => {
       const limpiar = e.target.closest && e.target.closest('[data-filter-clear]');
       setTimeout(() => {
+        dispatchEvent(new Event('jl:medir'));   // al filtrar cambia el alto: los saltos de pantalla vuelven a medir
         /* Al limpiar, el boton se esconde con el foco dentro y el foco caeria
            a <body>: se lleva a la primera ficha. */
         if (limpiar) { const f = barra.querySelector('.chip'); if (f) f.focus(); }
@@ -2726,6 +2744,111 @@ function initBiblioteca(openBook) {
 
   pintarSeguir();
   alHash();
+}
+
+/* ---------- Destacados: el buscador y las flechas ----------------------------
+   La seccion tipo Netflix bajo la biblioteca (components/Destacados.astro): una
+   cartelera y filas de portadas. Sin JavaScript no hay cuadro ni flechas y se
+   ven todas las tarjetas; con el, se enseñan y filtran: cada tarjeta lleva su
+   indice en `data-buscar` (armado al compilar, sin acentos ni mayusculas) y
+   aqui solo se compara con lo escrito (scripts/biblioteca.js → coincide).
+
+   LO ESCRITO ES TEXTO Y NADA MAS. Se lee de `input.value`, se compara con
+   `includes` y se tira: no se usa en `innerHTML`, ni en una expresion regular,
+   ni en un selector, ni en la direccion, ni se guarda. El aviso de «no hay» no
+   repite lo escrito. Los libros se esconden con `hidden`, y una fila sin libros
+   a la vista tambien; mientras se busca, la cartelera se aparta
+   (`data-buscando`, y lo demas lo hace el CSS). Abrir los libros lo hace
+   initBiblioteca, que atiende todo `a[data-libro]` de la pagina.
+
+   LAS FLECHAS de cada fila mueven su riel de lado (un 80% de lo que se ve) y
+   solo se enseñan si la fila no cabe. Nunca se esconden con el foco encima: al
+   llegar al final se quedan quietas (`aria-disabled`). El dedo no las necesita
+   (el CSS las quita en tactil) y con movimiento reducido el riel salta sin
+   deslizarse.
+
+   UN AVISO PARA QUIEN NO VE. Una region `role="status"` dice cuantos libros
+   quedan, o que no hay; con medio segundo de calma, para no hablar en cada
+   letra. Escape vacia el cuadro; «Ver todos» lo vacia y lleva el foco a el.
+
+   Al filtrar cambia el alto de la pantalla, y los saltos entre pantallas
+   (initDiapositivas) midieron con el de antes: se les avisa para que midan. */
+function initDestacados() {
+  const caja = d.querySelector('[data-destacados]');
+  if (!caja) return;
+  const buscador = caja.querySelector('[data-dest-buscar]');
+  const campo = caja.querySelector('[data-dest-campo]');
+  const vacio = caja.querySelector('[data-dest-vacio]');
+  const estado = caja.querySelector('[data-dest-estado]');
+  const todos = caja.querySelector('[data-dest-todos]');
+  const items = [...caja.querySelectorAll('.dest__item')];
+  const filas = [...caja.querySelectorAll('[data-fila]')];
+
+  /* LAS FLECHAS */
+  const calma = matchMedia('(prefers-reduced-motion: reduce)');
+  const rieles = filas.map((fila) => {
+    const riel = fila.querySelector('[data-riel]');
+    const ant = fila.querySelector('[data-flecha="-1"]');
+    const sig = fila.querySelector('[data-flecha="1"]');
+    if (!riel || !ant || !sig) return null;
+    const medir = () => {
+      const max = riel.scrollWidth - riel.clientWidth;
+      const cabe = max <= 4 || fila.hidden;
+      /* Una flecha con el foco encima no se esconde (el foco caeria a <body>): se queda quieta */
+      const foco = d.activeElement === ant || d.activeElement === sig;
+      if (!(cabe && foco)) { ant.hidden = cabe; sig.hidden = cabe; }
+      if (cabe) { ant.setAttribute('aria-disabled', 'true'); sig.setAttribute('aria-disabled', 'true'); return; }
+      ant.setAttribute('aria-disabled', String(riel.scrollLeft <= 2));
+      sig.setAttribute('aria-disabled', String(riel.scrollLeft >= max - 2));
+    };
+    const mover = (dir) => () => {
+      if ((dir < 0 ? ant : sig).getAttribute('aria-disabled') === 'true') return;
+      riel.scrollBy({ left: dir * riel.clientWidth * 0.8, behavior: calma.matches ? 'auto' : 'smooth' });
+    };
+    ant.addEventListener('click', mover(-1));
+    sig.addEventListener('click', mover(1));
+    riel.addEventListener('scroll', medir, { passive: true });
+    return medir;
+  }).filter(Boolean);
+  const medirTodos = () => rieles.forEach((m) => m());
+  medirTodos();
+  addEventListener('resize', medirTodos);
+  addEventListener('load', medirTodos);
+
+  /* EL BUSCADOR */
+  if (!buscador || !campo || !items.length) return;
+  buscador.hidden = false;
+  let aviso = 0;
+  let hablo = false;      // si ya se dijo algo: al volver a ver todos, se dice tambien
+  const cuenta = (n) => (n === 1 ? t('lib.count.one') : t('lib.count.n').replace('{n}', n));
+
+  const filtrar = () => {
+    const q = campo.value;
+    let quedan = 0;
+    items.forEach((li) => {
+      const si = coincide(q, li.getAttribute('data-buscar'));
+      li.hidden = !si;
+      if (si) quedan++;
+    });
+    filas.forEach((fila) => { fila.hidden = !fila.querySelector('.dest__item:not([hidden])'); });
+    caja.toggleAttribute('data-buscando', !!normalizar(q));
+    if (vacio) vacio.hidden = quedan > 0;
+    medirTodos();
+    clearTimeout(aviso);
+    aviso = setTimeout(() => {
+      if (!estado) return;
+      if (!normalizar(q)) { estado.textContent = hablo ? cuenta(items.length) : ''; hablo = false; return; }
+      estado.textContent = quedan ? cuenta(quedan) : t('lib.search.none');
+      hablo = true;
+    }, 500);
+    dispatchEvent(new Event('jl:medir'));
+  };
+
+  campo.addEventListener('input', filtrar);
+  campo.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && campo.value) { e.preventDefault(); campo.value = ''; filtrar(); }
+  });
+  if (todos) todos.addEventListener('click', () => { campo.value = ''; filtrar(); campo.focus(); });
 }
 
 function initGlossary() {
@@ -3603,6 +3726,8 @@ function initDiapositivas() {
     if (d.querySelector('dialog[open]') || openSheets.length) return;
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    /* Espacio sobre un boton lo pulsa («Ver todos», las fichas): no se roba para saltar de pantalla */
+    if (e.key === ' ' && t && /^(BUTTON|SUMMARY)$/.test(t.tagName)) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     let hecho = false;
     const abajo = e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ';
@@ -3668,7 +3793,7 @@ function initDiapositivas() {
     if (!decidido) {
       const dx = Math.abs(e.touches[0].clientX - dedoX);
       const dy = Math.abs(e.touches[0].clientY - dedoY);
-      const enFila = e.target.closest && e.target.closest('[data-carril], .faxis__chips');
+      const enFila = e.target.closest && e.target.closest('[data-carril], [data-riel], .faxis__chips');
       if (dx > dy || (enFila && dx * 1.5 >= dy && dx > 0)) { dedoActivo = false; return; }
       /* El dedo baja cuando la pagina sube: el signo se mira al reves. */
       if (libre(dedoY - e.touches[0].clientY)) { dedoActivo = false; return; }
@@ -3690,10 +3815,14 @@ function initDiapositivas() {
   }, { passive: true });
 
   let relojMedida = 0;
-  addEventListener('resize', () => {
+  /* Al cambiar el tamaño, o cuando una pantalla avisa de que cambio de alto
+     (`jl:medir`: el buscador de Destacados al filtrar). */
+  const remedir = () => {
     clearTimeout(relojMedida);
     relojMedida = setTimeout(() => { cede(0); armar(); }, 200);
-  });
+  };
+  addEventListener('resize', remedir);
+  addEventListener('jl:medir', remedir);
 
   /* Se mide despues de que las entradas hayan colocado todo: medir antes es
      medir una pagina que todavia no existe. */
@@ -3776,6 +3905,18 @@ function initPiezas() {
   tarjetas.forEach((t) => t.addEventListener('click', () => {
     lista = tarjetas.filter((x) => !x.closest('[hidden]'));
     abrir(Math.max(0, lista.indexOf(t)));
+  }));
+  /* Las portadas de la cabecera de Trabajos (AbanicoTrabajos.astro) abren la pieza
+     cuyo id dicen en `data-abre-pieza`. Se compara con el `data-pieza-id` de cada
+     tarjeta (texto contra texto: nunca como selector). Si el filtro la
+     esconde, se abre sobre la lista entera. No son tarjetas del carril, asi que no
+     cuentan para siguiente / anterior. */
+  d.querySelectorAll('[data-abre-pieza]').forEach((b) => b.addEventListener('click', () => {
+    const t = tarjetas.find((x) => x.dataset.piezaId === b.getAttribute('data-abre-pieza'));
+    if (!t) return;
+    lista = tarjetas.filter((x) => !x.closest('[hidden]'));
+    if (!lista.includes(t)) lista = tarjetas;
+    abrir(lista.indexOf(t));
   }));
   visor.querySelector('[data-visor-cerrar]').addEventListener('click', () => visor.close());
   antes.addEventListener('click', () => poner(actual - 1));
@@ -4011,6 +4152,7 @@ initPiezas();
 initTachones();
 initCamino();
 initReveal();
+try { initDestacados(); } catch (err) { /* sin buscador, las tarjetas siguen siendo enlaces */ }
 initDiapositivas();
 /* Safari en iOS no aplica `:active` a nada si la pagina no escucha el
    tacto en ningun sitio: sin esto, la ficha se enciende al pulsarla en

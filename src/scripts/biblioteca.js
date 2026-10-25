@@ -134,8 +134,8 @@ export function ola(x, cx, R) {
 
 /* ---- El color de un lomo dibujado a mano alzada por el sitio -------------
 
-   Un lomo sin archivo se dibuja solo: de fondo, el color del carton del libro
-   (tools/books.py lo mide de su portada) o el pino; encima, la palabra y el
+   Un lomo sin archivo se dibuja solo: de fondo, el tono del libro (TONOS), o
+   el color de su carton (tools/books.py lo mide de su portada), o el pino; encima, la palabra y el
    titulo en hueso o en pino, el que mas contraste le saque. Si ni el mejor
    llega a 4.5:1 —el ambar de Ahava, 3.6:1 con hueso—, se oscurece el fondo
    poco a poco hasta que si llegue: el color sigue siendo el del libro, pero
@@ -168,18 +168,127 @@ export function colorLomo(base) {
   return { fondo, tinta: mejor(fondo) };
 }
 
+/* ---- Los tonos de un libro -------------------------------------------------
+
+   Un libro puede decir su tono (`tono: 'ocre'` en LIBROS) y asi su lomo en el
+   estante y su portada dibujada en el inicio son del mismo color, sin depender
+   de lo que mida el carton de un PDF (que Emet, Agape y Rhema no tienen: sin
+   esto, los tres salian pino). Son colores de la casa (los hex repiten los de
+   base.css: si alli cambian, aqui tambien; tools/test-biblioteca.mjs lo
+   comprueba):
+     ocre     ring y ring 300 a partes iguales: el oro del ambar del carton de Ahava
+     salvia   celtic 400
+     pizarra  slate
+     tierra   ring 700, el oro hondo
+     niebla   slate 100
+     arena    ring 300
+   colorLomo() se encarga de que la tinta se lea (4.5:1) sobre cada uno. */
+export const TONOS = {
+  ocre: '#d0a153',
+  salvia: '#7aae7d',
+  pizarra: '#2b3a43',
+  tierra: '#9a6a1f',
+  niebla: '#d6dde1',
+  arena: '#e0b778'
+};
+
+/* ---- La ficha de un libro, resuelta para una pagina -----------------------
+
+   Lo que necesitan la estanteria (Biblioteca.astro), los libros de la cabecera
+   (RepisaLibros.astro) y los destacados (Destacados.astro: la cartelera y las
+   filas): el mismo libro visto desde una pagina en un idioma. Vivia repetido; aqui
+   se calcula una sola vez y es puro, asi que se prueba en Node.
+
+   `datos` trae { BOOKS, TIPOS, TERMS, GLOSS } y `base` es el BASE_URL de la
+   web. Devuelve null si el libro no se puede abrir en ningun idioma
+   (variante() null); si no:
+     id, seccion, tipo, blando, grosor, titulo, glosa
+     idioma  el idioma en que esta lo que se abre; marca «ES»/«EN» o null
+     color   { fondo, tinta } del lomo y de la portada dibujada
+     guion, lengua, dir   la palabra en su alfabeto (solo los de una palabra)
+     portada la primera pagina del PDF (900 px), o null si no hay */
+export function fichaLibro(libro, pagina, datos, base) {
+  const { BOOKS, TIPOS, TERMS, GLOSS } = datos;
+  const v = variante(libro, pagina, BOOKS);
+  if (!v) return null;
+  const di = (o) => (o ? (o[pagina] ?? o.es) : '');
+  const palabra = libro.glosario && tiene(TERMS, libro.id) ? TERMS[libro.id] : null;
+  const hechos = tiene(BOOKS, libro.id) ? BOOKS[libro.id] : {};
+  /* El tono manda; si no lo hay, el carton del PDF de la pagina o el de cualquier otro idioma */
+  const carton = (v.pdf && v.pdf.board && v.pdf.board[0]) || (Object.values(hechos)[0]?.board?.[0]) || null;
+  const tono = libro.tono !== undefined && tiene(TONOS, libro.tono) ? TONOS[libro.tono] : null;
+  return {
+    id: libro.id,
+    seccion: libro.seccion,
+    tipo: libro.tipo,
+    blando: !!(TIPOS[libro.tipo] && TIPOS[libro.tipo].blando),
+    grosor: grosorDe(libro, BOOKS, TIPOS),
+    titulo: palabra ? di(palabra.title) : libro.titulo[v.lang],
+    glosa: palabra ? di(GLOSS[libro.id]) : (libro.subtitulo ? libro.subtitulo[v.lang] ?? '' : ''),
+    idioma: v.lang,
+    marca: v.marca,
+    color: colorLomo(tono || carton),
+    guion: palabra ? palabra.script : null,
+    lengua: palabra ? (palabra.dir === 'rtl' ? 'he' : 'el') : null,
+    dir: palabra ? palabra.dir ?? 'ltr' : null,
+    portada: v.pdf ? `${base}books/${libro.id}/${v.cual}/01-900.jpg?v=${v.pdf.v}` : null
+  };
+}
+
+/* ---- Las portadas sueltas ---------------------------------------------------
+
+   Una portada suelta (la de un libro que aun se escribe) es una imagen de
+   public/assets/portadas/: nombre en minusculas, cifras o guiones, y jpg, png o
+   webp. Sin «..», sin barras de mas. La mira comprobar() y tambien
+   Destacados.astro y RepisaLibros.astro justo antes de tocar el disco. */
+export const rutaPortadaValida = (ruta) => typeof ruta === 'string' && /^assets\/portadas\/[a-z0-9-]+\.(jpg|png|webp)$/.test(ruta);
+
+/* ---- Buscar un libro --------------------------------------------------------
+
+   El buscador de Destacados. Lo que escribe quien busca es TEXTO: se limpia, se
+   compara con `includes` contra un indice que se arma al compilar, y nada
+   mas. Nunca llega a una expresion regular, a un selector, a `innerHTML`, a la
+   direccion ni al almacenamiento.
+
+   normalizar(): sin acentos ni mayusculas, con una sola separacion entre
+   palabras y como mucho BUSCAR_MAX letras (quien pega un libro entero no
+   bloquea nada). Quita tambien los puntos del hebreo (אֱמֶת = אמת) y los tonos
+   del griego (ἀγάπη = αγαπη), que NFD separa, y los caracteres invisibles que
+   un copiar y pegar se trae (ancho cero, guion blando, marcas de direccion):
+   solo se comparan, nunca se muestran, pero hacian que «agape» no encontrara
+   «agape» pegado. Lo que no es texto da ''.
+   indexar(): lo mismo para cada libro, sin el tope, juntando sus partes. */
+export const BUSCAR_MAX = 60;
+const MARCAS = /[̀-֑ͯ-ׇ­​-‏‪-‮⁠﻿]/g;
+
+function limpiar(texto, max) {
+  if (typeof texto !== 'string') return '';
+  return texto.slice(0, 2000).normalize('NFD').replace(MARCAS, '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, max);
+}
+export const normalizar = (texto) => limpiar(texto, BUSCAR_MAX);
+export const indexar = (partes) => (Array.isArray(partes) ? partes.map((p) => limpiar(p, 400)).filter(Boolean).join(' ') : '');
+
+/* ¿Encaja `consulta` con `indice`? Todas sus palabras tienen que estar. Una
+   consulta vacia encaja con todo (se ven todos los libros). */
+export function coincide(consulta, indice) {
+  const q = normalizar(consulta);
+  if (!q) return true;
+  const i = typeof indice === 'string' ? indice : '';
+  return q.split(' ').every((p) => i.includes(p));
+}
+
 /* ---- La comprobacion de la compilacion -----------------------------------
 
    Un libro mal puesto no llega a publicarse: lanza un Error que dice cual y
    que le falta. Lo que no es grave (un PDF con otra proporcion que su tipo)
    no lanza: se devuelve en la lista de avisos. `datos` trae todo lo que se
    comprueba, para poder probarla con datos de mentira:
-     { SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP }
+     { SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP, PORTADAS, CARTELERA }
    Ids de una sola palabra que la pagina ya usa: un libro con ese id taparia la
    ancla. Los demas ids de la pagina llevan guion (`book-panel`,
    `biblio-titulo`) y no pueden chocar porque el id de un libro no puede
    llevarlo. */
-const RESERVADOS = new Set(['top', 'main', 'biblioteca', 'book', 'flip', 'arrow', 'info', 'mark', 'corner', 'toast',
+const RESERVADOS = new Set(['top', 'main', 'biblioteca', 'destacados', 'book', 'flip', 'arrow', 'info', 'mark', 'corner', 'toast',
   'curtain', 'globe', 'lockup', 'links', 'mas']);
 /* Lo que makePages (site.js) necesita para armar un libro de una palabra: si
    falta una de estas, el libro se abriria en blanco o rompiendo. */
@@ -192,7 +301,7 @@ const IDIOMAS_WEB = ['es', 'en', 'pt', 'fr', 'it'];
 const TITULO_LARGO = 44;
 
 export function comprobar(datos) {
-  const { SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP } = datos;
+  const { SECCIONES, TIPOS, LIBROS, BOOKS, TERMS, GLOSS, CARDS, DEEP, PORTADAS, CARTELERA } = datos;
   const avisos = [];
   const secciones = new Set(SECCIONES.map((s) => s.id));
   const vistos = new Set();
@@ -201,6 +310,10 @@ export function comprobar(datos) {
   for (const s of SECCIONES) {
     if (temas.has(s.id)) throw new Error(`biblioteca.js: la seccion «${s.id}» esta repetida.`);
     temas.add(s.id);
+    /* El id de un tema va a una ancla de Destacados (`fila-<id>`): una palabra, y no la de la fila «Pronto» */
+    if (typeof s.id !== 'string' || !/^[a-z][a-z0-9]*$/.test(s.id) || s.id === 'pronto') {
+      throw new Error(`biblioteca.js: la seccion «${String(s.id)}» tiene un id que no es una palabra en minusculas sin guiones (y «pronto» es de Destacados).`);
+    }
     for (const l of IDIOMAS_WEB) {
       if (!s.nombre || !s.nombre[l]) throw new Error(`biblioteca.js: la seccion «${s.id}» no tiene nombre en «${l}».`);
     }
@@ -214,6 +327,7 @@ export function comprobar(datos) {
     if (!secciones.has(b.seccion)) throw new Error(`${donde} esta en la seccion «${b.seccion}», que no existe.`);
     if (!tiene(TIPOS, b.tipo)) throw new Error(`${donde} tiene el tipo «${b.tipo}», que no existe (${Object.keys(TIPOS).join(', ')}).`);
     if (b.grosor !== undefined && !GROSORES.includes(b.grosor)) throw new Error(`${donde} tiene el grosor «${b.grosor}» (usa ${GROSORES.join(', ')}).`);
+    if (b.tono !== undefined && !tiene(TONOS, b.tono)) throw new Error(`${donde} tiene el tono «${b.tono}», que no existe (${Object.keys(TONOS).join(', ')}).`);
 
     if (b.glosario) {
       if (!tiene(TERMS, b.id) || !tiene(GLOSS, b.id) || !tiene(CARDS, b.id) || !tiene(DEEP, b.id)) {
@@ -253,6 +367,30 @@ export function comprobar(datos) {
         avisos.push(`el libro «${b.id}» (${l}) tiene proporcion ${pdf.ratio} y su tipo «${b.tipo}» espera ${esperado}: se arma con la del PDF.`);
       }
     }
+  }
+
+  /* Las portadas (data/biblioteca.js → PORTADAS): una lista, vacia o no; cada una,
+     un libro de LIBROS o una portada suelta con su imagen (en public/assets/portadas/),
+     medidas y titulo. Las sueltas son las de la fila «Pronto» de Destacados. */
+  if (PORTADAS !== undefined) {
+    if (!Array.isArray(PORTADAS)) throw new Error('biblioteca.js: PORTADAS tiene que ser una lista.');
+    PORTADAS.forEach((p, i) => {
+      const donde = `biblioteca.js: la portada ${i + 1} de PORTADAS`;
+      if (p.id !== undefined) {
+        if (!vistos.has(p.id)) throw new Error(`${donde} nombra «${p.id}», que no esta en LIBROS.`);
+      } else {
+        if (!rutaPortadaValida(p.imagen)) {
+          throw new Error(`${donde} necesita un id de LIBROS o una imagen del tipo assets/portadas/nombre.jpg.`);
+        }
+        if (!(p.ancho > 0) || !(p.alto > 0)) throw new Error(`${donde} no dice el ancho y el alto de su imagen.`);
+        if (!p.titulo) throw new Error(`${donde} no tiene titulo.`);
+      }
+    });
+  }
+
+  /* La cartelera de Destacados: un libro que existe. */
+  if (CARTELERA !== undefined && !(typeof CARTELERA === 'string' && vistos.has(CARTELERA))) {
+    throw new Error(`biblioteca.js: la cartelera de Destacados nombra «${String(CARTELERA)}», que no esta en LIBROS.`);
   }
 
   /* Un PDF convertido que ningun libro usa: casi seguro se olvido su linea. */

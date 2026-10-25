@@ -3,6 +3,8 @@ import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import Biblioteca from '../../components/Biblioteca.astro';
+import Destacados from '../../components/Destacados.astro';
+import RepisaLibros from '../../components/RepisaLibros.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -12,6 +14,12 @@ const t = useT(lang);
 const title = t('page.writing.title');
 ---
 <Base lang={lang} path="writing" active="writing" title={`${title} — Juan José López Ramírez`}>
-  <PageHero lang={lang} t={t} slug="writing" />
+  {/* En el lado de la cabecera, tres libros de frente sobre su repisa, como en Destacados
+      (data/biblioteca.js → PORTADAS); tocar uno lo abre. Sin el sello ni los enlaces
+      «por donde seguir» a las otras pestañas. */}
+  <PageHero lang={lang} t={t} slug="writing">
+    <RepisaLibros slot="aside" lang={lang} t={t} />
+  </PageHero>
   <Biblioteca lang={lang} t={t} />
+  <Destacados lang={lang} t={t} />
 </Base>

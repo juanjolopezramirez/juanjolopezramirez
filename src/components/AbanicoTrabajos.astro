@@ -1,0 +1,53 @@
+---
+import { PIEZAS_PUBLICAS, ABANICO_TRABAJOS } from '../data/piezas.js';
+import { ENTITY, nombreDe } from '../data/entities.js';
+import '../styles/hero-aside.css';
+
+/* El abanico de la cabecera de Trabajos: tres portadas de video en abanico, como
+   las de Proyectos (Covers.astro; mismas clases `.covers*`, de base.css).
+
+   Cada portada es un boton que abre SU video en el visor que ya hay mas abajo en
+   la pagina (Piezas.astro): `data-abre-pieza` lleva el id de la pieza y
+   site.js → initPiezas busca la tarjeta que tiene el mismo `data-pieza-id` y la
+   abre, asi el visor, el foco que vuelve y las flechas de siguiente / anterior
+   son los de siempre. No lleva ningun enlace a otras paginas: esos «por donde
+   seguir» se quitaron de la cabecera.
+
+   QUE PIEZAS: ABANICO_TRABAJOS en data/piezas.js: TRES ids de PIEZAS_PUBLICAS,
+   verticales, y que estan en el carril de la pagina (`disponibles`: solo hay
+   tarjeta si su casa esta en PARTNERS). Si no son tres, o una no existe, esta
+   bajo clave o no tiene tarjeta abajo, la compilacion para: su boton no
+   abriria nada. Sin texto
+   encima: la portada ya cuenta de que va, y el nombre y la marca van en el
+   nombre accesible del boton. */
+const { lang, t, disponibles = [] } = Astro.props;
+
+const say = (o) => (o ? (o[lang] ?? o.es) : '');
+const base = '/assets/videos/piezas/';
+if (ABANICO_TRABAJOS.length !== 3) throw new Error(`AbanicoTrabajos.astro: ABANICO_TRABAJOS tiene ${ABANICO_TRABAJOS.length} piezas y el abanico es de tres.`);
+const piezas = ABANICO_TRABAJOS.map((id) => {
+  const p = PIEZAS_PUBLICAS.find((x) => x.id === id);
+  if (!p) throw new Error(`AbanicoTrabajos.astro: la pieza «${id}» de ABANICO_TRABAJOS no esta en PIEZAS_PUBLICAS (¿bajo clave, o mal escrita?).`);
+  if (!disponibles.some((x) => x.id === id)) throw new Error(`AbanicoTrabajos.astro: la pieza «${id}» no esta en el carril de videos de la pagina (¿su casa salio de PARTNERS?): su boton no abriria nada.`);
+  if (p.orientacion !== 'vertical') throw new Error(`AbanicoTrabajos.astro: la pieza «${id}» no es vertical: el abanico es de portadas verticales.`);
+  return p;
+});
+const marca = (p) => nombreDe(ENTITY[p.casa], lang) || p.casa;
+---
+{piezas.length > 0 && (
+<div class="covers covers--trabajos">
+  <div class="covers__fan" role="group" aria-label={t('piezas.title')}>
+    {piezas.map((p) => (
+      <button class="covers__item" type="button" data-abre-pieza={p.id} aria-haspopup="dialog"
+              aria-label={`${t('pieza.play')}: ${say(p.title)} (${marca(p)})`}>
+        <span class="covers__card">
+          <picture>
+            <source srcset={`${base}${p.archivo}.webp`} type="image/webp" />
+            <img src={`${base}${p.archivo}.jpg`} alt="" width="540" height="960" decoding="async" />
+          </picture>
+        </span>
+      </button>
+    ))}
+  </div>
+</div>
+)}

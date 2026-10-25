@@ -1,0 +1,158 @@
+/* =============================================================
+   LO QUE VA EN EL LADO DE LA CABECERA (PageHero → slot «aside»)
+
+   Dos piezas, una por pagina, que sustituyen al sello y a las puertas de
+   «por donde seguir» (los enlaces a las otras pestañas ya no van en la
+   cabecera):
+
+     · LOS LIBROS DE RECURSOS (components/RepisaLibros.astro): tres portadas
+       de frente, de pie sobre UNA repisa, con su sombra larga: lo mismo que se
+       ve en Destacados (biblioteca.css), a la medida de la cabecera. Los
+       colores de la repisa y las sombras son los de la sala (`--r-*`), que
+       biblioteca.css reparte tambien a `.hrepisa`.
+     · EL ABANICO DE TRABAJOS (components/AbanicoTrabajos.astro): las portadas
+       de tres piezas en abanico, como las de Proyectos (mismas clases
+       `.covers*`, de base.css), pero cada una abre SU video.
+   ============================================================= */
+
+/* ---- Los libros sobre su repisa ---- */
+.hrepisa {
+  --h-gap: .9rem;
+  /* el ancho de un libro (telefono): 5.8rem, o menos si no caben tres con su hueco en
+     la pantalla (a 320px, o con el texto al 150%, 3 x 5.8rem se saldria: 1.4.10) */
+  --h-w: min(5.8rem, calc((100vw - 2 * var(--gutter) - 2 * var(--h-gap)) / 3));
+  --h-cara: 10px;          /* lo que se ve de la repisa por arriba (par: se parte en dos) */
+  --h-canto: 16px;         /* y su canto de frente */
+  --h-arriba: 1.3rem;      /* el aire sobre los libros: lo que suben al tocarlos y su sombra */
+  --h-h: calc(var(--h-w) * 1.4144);   /* ...y su alto: la proporcion de un libro, 707 x 1000 */
+}
+/* La repisa es una pieza, no una pared: no se estira por toda la pantalla. Con `.phero__aside >`
+   (0,2,0) gana al «ancho de 22rem para cada hijo» de desktop.css sin depender del orden de las hojas. */
+.phero__aside > .hrepisa { width: 100%; max-width: 30rem; margin-inline: auto; }
+@media (min-width: 600px) {
+  .hrepisa { --h-w: 8rem; --h-gap: 1.6rem; }
+}
+/* Desde 1200px el lado de la cabecera es el pinar, de dia y de noche: la sombra
+   larga se hace negra (la dorada no se veria) y el aro de foco, claro. */
+@media (min-width: 1200px) {
+  .hrepisa { --h-w: 8.4rem; --h-gap: 1.7rem; }
+  /* (0,2,0): gana a los `--r-*` de la sala de biblioteca.css, que son de un solo `.hrepisa` */
+  .phero .hrepisa { --r-larga: rgb(0 0 0 / .34); --r-aro-ext: var(--bone); --r-aro-int: var(--pine-900); }
+}
+.hrepisa__pista {
+  position: relative; isolation: isolate;
+  display: flex; justify-content: center; align-items: flex-start; gap: var(--h-gap);
+  list-style: none; margin: 0;
+  padding: var(--h-arriba) 0 calc(var(--h-canto) + var(--h-cara) / 2 + 1.1rem);
+}
+/* LA REPISA: una, de lado a lado, detras de los libros; su cara de arriba, su
+   canto de frente, su filo y la sombra que cae sobre la pared. Los libros se
+   apoyan a mitad de la cara. */
+.hrepisa__pista::after {
+  content: "";
+  position: absolute; z-index: -1;
+  left: 0; right: 0;
+  top: calc(var(--h-arriba) + var(--h-h) - var(--h-cara) / 2);
+  height: calc(var(--h-cara) + var(--h-canto));
+  background-image: linear-gradient(180deg,
+    var(--r-cara-fondo) 0,
+    var(--r-cara) var(--h-cara),
+    var(--r-brillo) var(--h-cara),
+    var(--r-brillo) calc(var(--h-cara) + 1.5px),
+    var(--r-canto) calc(var(--h-cara) + 1.5px),
+    var(--r-canto-bajo) calc(100% - 1.5px),
+    var(--r-filo) calc(100% - 1.5px));
+  box-shadow: 0 10px 14px -8px var(--r-sombra);
+  pointer-events: none;
+}
+.hrepisa__item { flex: none; width: var(--h-w); }
+.hrepisa__tarjeta {
+  display: block;
+  color: inherit; text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* El aro de foco, en DOS tonos (como en la sala): el de dentro pegado al libro y el de fuera
+   a 2px. Sobre la repisa clara un aro de un solo color se perdia; asi, uno u otro se ve. */
+a.hrepisa__tarjeta:focus-visible {
+  outline: 2px solid var(--r-aro-ext); outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--r-aro-int);
+  border-radius: 3px 8px 8px 3px;
+  /* Con Shift+Tab hacia arriba, la cabecera flotante no tapa lo enfocado (2.4.11) */
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+.hrepisa__portada {
+  position: relative; display: block;
+  aspect-ratio: 707 / 1000;
+  container-type: inline-size;          /* la palabra y el titulo de la portada dibujada escalan con ella */
+  border-radius: 3px 8px 8px 3px;
+  filter: drop-shadow(-9px 7px 0 var(--r-larga));
+  transition: translate .22s var(--ease);
+}
+.hrepisa__portada img, .hrepisa__portada .covers__tapa { border-radius: inherit; }
+.hrepisa__portada img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* El canto del libro y su brillo, como en la sala */
+.hrepisa__portada::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / .3) 0, rgb(255 255 255 / .14) 2.2%, rgb(0 0 0 / .12) 5%, transparent 10%),
+    linear-gradient(115deg, rgb(255 255 255 / .16), transparent 34%);
+}
+@media (hover: hover) and (pointer: fine) {
+  a.hrepisa__tarjeta:hover .hrepisa__portada { translate: 0 -8px; }   /* solo los que se abren */
+}
+@media (prefers-reduced-motion: reduce) {
+  .hrepisa__portada { transition: none; }
+}
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+  a.hrepisa__tarjeta:hover .hrepisa__portada { translate: none; }
+}
+@media (forced-colors: active) {
+  .hrepisa__portada { filter: none; }
+  .hrepisa__portada img, .hrepisa__portada .covers__tapa { border: 1px solid CanvasText; }
+  .hrepisa__portada::before { display: none; }
+  .hrepisa__pista::after { forced-color-adjust: none; background: CanvasText; height: 2px; top: calc(var(--h-arriba) + var(--h-h)); box-shadow: none; }
+}
+
+/* ---- El abanico de trabajos ---- */
+/* Las portadas de Proyectos (base.css) son UN boton que abre la galeria; aqui cada
+   portada es un boton y abre su video. Se levanta una sola vez (no sin parar: un
+   movimiento que empieza solo y no acaba no lo puede parar quien lo necesita,
+   WCAG 2.2.2): primero la del medio y despues las dos de los lados juntas. */
+.covers--trabajos { padding-block: 1.4rem; }
+/* El ancho de una portada: el de Proyectos (base.css) lleva un minimo en rem que, con el texto
+   al 150%, hacia el abanico mas ancho que la pantalla; aqui el limite es la pantalla (1.4.10).
+   Desde 1200px manda el tamaño de escritorio de desktop.css. */
+@media (max-width: 1199px) {
+  .covers.covers--trabajos { --card: min(26vw, 8.5rem); }
+}
+.covers--trabajos .covers__item {
+  border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+.covers--trabajos .covers__card { animation-iteration-count: 1; }
+.covers--trabajos .covers__item:nth-child(2) .covers__card { animation-delay: 0s; }
+.covers--trabajos .covers__item:not(:nth-child(2)) .covers__card { animation-delay: 1.2s; }
+/* Con el teclado, el abanico se abre igual que con el raton */
+.covers--trabajos .covers__fan:has(:focus-visible) .covers__item:first-child { rotate: -13deg; }
+.covers--trabajos .covers__fan:has(:focus-visible) .covers__item:last-child  { rotate:  13deg; }
+/* El aro de foco va en el boton (la tarjeta se levanta con una animacion que escribe box-shadow),
+   en DOS tonos: el de dentro oscuro y el de fuera hueso. Sobre el pinar (desde 1200px) el aro
+   global se quedaba en 1 a 2:1, y las portadas son claras (mantel blanco, pared blanca): con
+   los dos tonos, uno u otro se ve contra lo que toque. */
+.covers--trabajos .covers__item:focus-visible {
+  outline: 2px solid var(--bone); outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--pine-900);
+  z-index: 20;
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+.covers--trabajos .covers__item:focus-visible .covers__card { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .covers--trabajos .covers__fan:has(:focus-visible) .covers__item:first-child { rotate: -7deg; }
+  .covers--trabajos .covers__fan:has(:focus-visible) .covers__item:last-child  { rotate:  7deg; }
+}
+@media (forced-colors: active) {
+  .covers--trabajos .covers__card { border: 1px solid CanvasText; }
+}

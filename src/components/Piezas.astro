@@ -90,6 +90,7 @@ if (formas.length > 1) {
                     data-pieza={pendiente ? undefined : ''}
                     data-video={!pendiente && !p.youtube ? `${base}${p.archivo}.mp4` : undefined}
                     data-youtube={p.youtube || undefined}
+                    data-pieza-id={p.id}
                     data-poster={`${base}${p.archivo}.jpg`}
                     data-titulo={titulo}
                     data-marca={marcas ? nombre(p.casa) : undefined}

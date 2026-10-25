@@ -1,0 +1,69 @@
+---
+import { PORTADAS, LIBROS, TIPOS } from '../data/biblioteca.js';
+import { TERMS } from '../i18n/terms.js';
+import { GLOSS } from '../i18n/term-cards.js';
+import { BOOKS } from '../data/books.js';
+import { fichaLibro, rutaPortadaValida } from '../scripts/biblioteca.js';
+import Tapa from './Tapa.astro';
+import fs from 'node:fs';
+import path from 'node:path';
+import '../styles/biblioteca.css';
+import '../styles/hero-aside.css';
+
+/* Los libros de la cabecera de Recursos: tres portadas de frente, de pie sobre
+   UNA repisa, con su sombra larga: como aparecen en Destacados (Destacados.astro),
+   a la medida de la cabecera. Sin enlaces a otras paginas.
+
+   Cuales son: las tres primeras de PORTADAS (data/biblioteca.js). Cada una es un
+   libro de LIBROS —se ve su portada (la primera pagina del PDF o, sin PDF en ese
+   idioma, la que se dibuja sola con su `tono`) y, al tocarla, se abre igual que
+   desde su lomo: es un enlace a su ancla (#ahava) que initBiblioteca atiende—, o
+   la portada SUELTA de un libro que aun se escribe: solo se ve. */
+const { lang, t } = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const datos = { BOOKS, TIPOS, TERMS, GLOSS };
+
+const piezas = PORTADAS.slice(0, 3).map((p) => {
+  if (p.id === undefined) {
+    if (!rutaPortadaValida(p.imagen)) throw new Error(`RepisaLibros.astro: la portada suelta «${p.titulo}» tiene una direccion de imagen que no vale (${String(p.imagen)}).`);
+    if (!fs.existsSync(path.join(process.cwd(), 'public', p.imagen))) {
+      throw new Error(`RepisaLibros.astro: la portada suelta «${p.titulo}» apunta a public/${p.imagen}, que no existe.`);
+    }
+    return { suelta: true, imagen: `${base}${p.imagen}`, ancho: p.ancho, alto: p.alto, titulo: p.titulo, glosa: p.subtitulo ?? '' };
+  }
+  const libro = LIBROS.find((b) => b.id === p.id);
+  return libro && fichaLibro(libro, lang, datos, base);
+}).filter(Boolean);
+---
+{piezas.length > 0 && (
+<div class="hrepisa" role="group" aria-label={t('lib.title')}>
+  <ul class="hrepisa__pista" role="list">
+    {piezas.map((p) => (
+      <li class="hrepisa__item">
+        {p.suelta ? (
+          /* Un libro que aun se escribe: solo se ve. El nombre va en la imagen. */
+          <div class="hrepisa__tarjeta" lang="es">
+            <span class="hrepisa__portada">
+              <img src={p.imagen} alt={`${p.titulo}. ${p.glosa}`} width={p.ancho} height={p.alto} decoding="async" />
+            </span>
+            <span class="sr-only" lang={lang}>{t('soon.badge')}</span>
+          </div>
+        ) : (
+          <a class="hrepisa__tarjeta" href={`#${p.id}`} data-libro={p.id} aria-haspopup="dialog">
+            <span class="hrepisa__portada" aria-hidden="true">
+              {p.portada ? (
+                <img src={p.portada} alt="" width="900" height="1273" decoding="async" />
+              ) : (
+                <Tapa color={p.color} guion={p.guion} lengua={p.lengua} dir={p.dir} titulo={p.titulo} idioma={p.idioma} />
+              )}
+            </span>
+            {/* «Libro (en ingles):» va en el idioma de la PAGINA; solo el titulo y el subtitulo, en el del libro (y solo si es otro) */}
+            <span class="sr-only">{t('lib.book')}{p.marca ? ` (${t('lib.in.' + p.idioma)})` : ''}: <span lang={p.marca ? p.idioma : undefined}>{p.titulo}.{p.glosa ? ` ${p.glosa}` : ''}</span></span>
+          </a>
+        )}
+      </li>
+    ))}
+  </ul>
+</div>
+)}

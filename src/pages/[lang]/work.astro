@@ -3,6 +3,7 @@ import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import Partners from '../../components/Partners.astro';
+import AbanicoTrabajos from '../../components/AbanicoTrabajos.astro';
 import { PARTNERS } from '../../data/partners.js';
 import Cards from '../../components/Cards.astro';
 import Piezas from '../../components/Piezas.astro';
@@ -21,6 +22,9 @@ const enVideo = PIEZAS_PUBLICAS.filter((p) => casas.has(p.casa));
 ---
 <Base lang={lang} path="work" active="work" title={`${title} — Juan José López Ramírez`}>
   <PageHero lang={lang} t={t} slug="work">
+    {/* Tres portadas de video en abanico, como las de Proyectos; cada una abre su video.
+        Sin el sello ni los enlaces «por donde seguir» a las otras pestañas. */}
+    <AbanicoTrabajos slot="aside" lang={lang} t={t} disponibles={enVideo} />
     <Partners slot="foot" lang={lang} items={PARTNERS} title={t('door.work')} />
   </PageHero>
 

@@ -40,12 +40,20 @@
      idiomas   ['es'] | ['en'] | ['es', 'en']       (no en los de una palabra)
      titulo    { es: '…', en: '…' } y, si quiere, subtitulo { … } (no en los de una palabra)
      grosor    'fino' | 'medio' | 'grueso'  (opcional: si no, sale de las paginas)
+     tono      'ocre' | 'salvia' | 'pizarra' | 'tierra' | 'niebla' | 'arena'
+               (opcional: el color de su lomo y de su portada dibujada; si no,
+               el del carton de su PDF, o pino)
 */
 
-/* El orden es el de la lista que pidio el fundador. */
+/* El orden es el de la lista que pidio el fundador.
+
+   «Teologia» es la de los libros de una palabra (Ahava, Emet, Agape, Rhema…).
+   «Contrabando teologico» es la de sus libros propios —«Nada que demostrar» y
+   los que vengan—: lo que se cuela de contrabando en la teologia. */
 export const SECCIONES = [
   { id: 'tecnologia',   nombre: { es: 'Tecnología',   en: 'Technology',  pt: 'Tecnologia',  fr: 'Technologie', it: 'Tecnologia' } },
   { id: 'teologia',     nombre: { es: 'Teología',     en: 'Theology',    pt: 'Teologia',    fr: 'Théologie',   it: 'Teologia' } },
+  { id: 'contrabando',  nombre: { es: 'Contrabando teológico', en: 'Theological contraband', pt: 'Contrabando teológico', fr: 'Contrebande théologique', it: 'Contrabbando teologico' } },
   { id: 'diseno',       nombre: { es: 'Diseño',       en: 'Design',      pt: 'Design',      fr: 'Design',      it: 'Design' } },
   { id: 'musica',       nombre: { es: 'Música',       en: 'Music',       pt: 'Música',      fr: 'Musique',     it: 'Musica' } },
   { id: 'prompts',      nombre: { es: 'Prompts',      en: 'Prompts',     pt: 'Prompts',     fr: 'Prompts',     it: 'Prompt' } },
@@ -65,9 +73,36 @@ export const TIPOS = {
   'comic':     { blando: true,  ratio: 0.65 }
 };
 
+/* LA CARTELERA de Destacados: el libro grande que abre la seccion, como el
+   estreno de Netflix (Destacados.astro). Es el id de un libro de LIBROS: si no
+   esta en la lista, la compilacion se para y lo dice; si esta pero no se puede
+   abrir en el idioma de una pagina (sin version que abrir), en esa pagina sale el
+   primero que si. Lo ideal es uno con portada de verdad (con PDF): su primera
+   pagina hace de fondo y se mueve con el scroll. */
+export const CARTELERA = 'ahava';
+
+/* LAS PORTADAS de Recursos. Las TRES PRIMERAS salen en la cabecera, de frente sobre
+   una repisa (RepisaLibros.astro), y las SUELTAS (la de un libro que aun se
+   escribe) salen ademas en la fila «Pronto» de Destacados. Cada una es:
+     { id }       un libro de LIBROS: se ve su portada y, al tocarla, se abre
+     { imagen, ancho, alto, titulo, subtitulo }
+                  la portada SUELTA de un libro que aun se esta escribiendo: solo
+                  se ve (no hay a donde llevar). La imagen va en
+                  public/assets/portadas/. El dia que tenga su PDF, se pasa a LIBROS
+                  y aqui se quita la suelta.
+   Pueden ser las que sean (o ninguna); la cabecera enseña las tres primeras. */
+export const PORTADAS = [
+  { id: 'ahava' },
+  { imagen: 'assets/portadas/nada-que-demostrar.jpg', ancho: 840, alto: 1189, titulo: 'Nada que demostrar', subtitulo: 'El juego que el Amor ya ganó' },
+  { id: 'emet' }
+];
+
+/* `tono` es el color del libro, de los de TONOS (scripts/biblioteca.js): lo usan
+   su lomo y su portada dibujada. Cada uno el suyo, y alternados: oro claro,
+   salvia, pizarra y oro hondo; asi la estanteria no es una fila del mismo pino. */
 export const LIBROS = [
-  { id: 'ahava', seccion: 'teologia', tipo: 'revista', glosario: true },
-  { id: 'emet',  seccion: 'teologia', tipo: 'revista', glosario: true },
-  { id: 'agape', seccion: 'teologia', tipo: 'revista', glosario: true },
-  { id: 'rhema', seccion: 'teologia', tipo: 'revista', glosario: true }
+  { id: 'ahava', seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'ocre' },
+  { id: 'emet',  seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'salvia' },
+  { id: 'agape', seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'pizarra' },
+  { id: 'rhema', seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'tierra' }
 ];

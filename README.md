@@ -261,12 +261,52 @@ visible.
 
 ## La biblioteca de Recursos
 
-`/es/writing/` (Recursos) tiene, debajo de su cabecera, **estanterías**: un mueble por tema, con
-los libros de canto —se ve el lomo— sobre tablas dibujadas a mano, con sombra. Al pasar el
+`/es/writing/` (Recursos) va en este orden: **cabecera** (tres libros sobre su repisa) → **estanterías** →
+**Destacados** (una sección tipo Netflix: cartelera, filas de portadas y un buscador, con parallax). Las
+estanterías son un mueble por tema, con los libros de canto —se ve el lomo— sobre repisas en 3D, en una
+sala clara de oro pastel. Al pasar el
 ratón, el lomo sube y sus vecinos le siguen como una ola. Un toque o un clic lo abre.
 (`components/Biblioteca.astro`, estilos en `styles/biblioteca.css`.) Lo que sigue (preguntas y
 actividades dentro de los libros, la puerta del pez) está en `biblioteca-interactiva-recursos.md`,
 en la carpeta de arriba.
+
+### La cabecera (y la de Trabajos)
+
+**Ya no hay «por dónde seguir» en ninguna cabecera de sección (`PageHero`):** los enlaces a las otras pestañas (el sello y las
+puertas de `PageHero`) se quitaron de Recursos y de Trabajos, y en su lugar va algo de la propia página
+(`PageHero`, slot `aside`; estilos en `styles/hero-aside.css`). El contenido por defecto del slot
+(sello + puertas) sigue en `PageHero.astro` pero **ninguna página lo usa ya**.
+
+- **Recursos:** `components/RepisaLibros.astro`: las tres primeras de `PORTADAS` de frente sobre UNA repisa,
+  con su sombra larga, como aparecen en Destacados (tocar un libro lo abre; el de una portada suelta solo
+  se ve). Colores y sombras: los de la sala (`--r-*`, repartidos también a `.hrepisa` en `biblioteca.css`).
+  Desde 1200 px el lado de la cabecera es el pinar (de día y de noche): la sombra larga se hace negra y el
+  aro de foco, claro. El abanico de tres libros inclinados que estuvo aquí del 2026-10-19 al 2026-10-25 se
+  quitó (no gustó): ya no existe en el código.
+- **Trabajos:** `components/AbanicoTrabajos.astro`: tres portadas de video **en abanico, como las de
+  Proyectos** (mismas clases `.covers*` de `base.css`). Las piezas salen de `ABANICO_TRABAJOS` en
+  `src/data/piezas.js`: **tres** ids de `PIEZAS_PUBLICAS`, verticales y con tarjeta en el carril de la
+  página (solo la hay si su casa está en `PARTNERS`); si no, la compilación para. Cada portada es un botón que abre **su video** en el visor de la página: lleva
+  `data-abre-pieza` con el id de la pieza y `initPiezas` (`site.js`) abre la tarjeta del carril que tiene el
+  mismo `data-pieza-id`; así el visor, el foco que vuelve y siguiente / anterior son los de siempre y
+  las portadas de la cabecera no cuentan en la lista. Se levanta una sola vez (WCAG 2.2.2), primero la del
+  medio. Sin texto encima.
+- **Quedó la sección «LA PORTADA QUE SE DIBUJA SOLA»** (`.covers__tapa*`, de `Tapa.astro`) en
+  `biblioteca.css`: la usan los libros de la cabecera, la cartelera y las filas. **NO se borra.**
+- **`PORTADAS` sigue vivo** en `src/data/biblioteca.js`: las portadas **sueltas** (`{ imagen, ancho, alto,
+  titulo, subtitulo }`, la de un libro que aún se escribe) salen en la fila **«Pronto»** de Destacados y, si están entre las tres primeras, en la cabecera.
+  Hoy: *Nada que demostrar* (`public/assets/portadas/nada-que-demostrar.jpg`). **Cuando tenga su PDF:**
+  ponlo en `books/` (`nadaquedemostrar.es.pdf`), corre `python tools/books.py`, añade su línea a `LIBROS`
+  con `seccion: 'contrabando'` y en `PORTADAS` cambia la portada suelta por `{ id: 'nadaquedemostrar' }`
+  (las entradas con `id` son libros de la cabecera: se ve su portada y se abren). `comprobar()` para la compilación si una portada suelta tiene una imagen fuera de
+  `assets/portadas/`.
+- **Los temas:** «Teología» es para los libros de una palabra (Ahavá, Emet, Ágape, Rhema…);
+  **«Contrabando teológico»** (`contrabando`) es para sus libros propios, como *Nada que demostrar*.
+  Sigue la regla de siempre: **un tema sin libros no se dibuja**, así que «Contrabando teológico»
+  aparecerá solo con su primer libro.
+- La palabra de la sección sobre los estantes es **«Libros»** (`lib.title`), no «Biblioteca»: la página se
+  llama Recursos porque ahí vivirán también **los videos** (ver «Lo que falta»); las filas de Destacados
+  son el sitio natural para ellos.
 
 ### Los libros: dos clases, y el idioma
 
@@ -310,9 +350,13 @@ espera; solo avisa si el PDF se aleja).
 
 ### El lomo
 
-- **Se dibuja solo** si no hay archivo: el color del cartón del libro (`board`, lo mide
-  `tools/books.py` de su portada) o el pino, la palabra en su alfabeto y el título girado; el texto
-  siempre llega a 4,5:1 (`colorLomo()` oscurece el fondo hasta que llegue: el ámbar de Ahavá).
+- **Se dibuja solo** si no hay archivo: el **tono** del libro (`tono` en `LIBROS`: `ocre`, `salvia`,
+  `pizarra`, `tierra`, `niebla` o `arena`, los de `TONOS` en `scripts/biblioteca.js`, todos colores de la
+  casa), o si no lo tiene el color del cartón de su PDF (`board`, lo mide `tools/books.py`), o el pino;
+  la palabra en su alfabeto y el título girado; el texto siempre llega a 4,5:1 (`colorLomo()` oscurece
+  el fondo hasta que llegue). El mismo tono pinta su portada dibujada en la cabecera y en Destacados (la cartelera y las filas).
+  **La ficha de cada libro** (título, glosa, color, portada, grosor…) sale de **una sola función pura**,
+  `fichaLibro()`, que usan la estantería, los libros de la cabecera y Destacados.
 - **O lo diseña quien hizo el libro:** `public/assets/lomos/<id>.<idioma>.svg` o `<id>.svg` (o `.png`),
   un rectángulo lleno de borde a borde, sin sombra, marco ni transparencia (los pone el estante).
   **Medidas** (a 1200 px de alto): fino 240×1200, medio 300×1200, grueso 375×1200. Se ve a 224 / 256 /
@@ -326,27 +370,30 @@ espera; solo avisa si el PDF se aleja).
 
 ### El estante, la ola y las sombras
 
-- **La sala es de madera** (no de papel: en esta sección, el fondo es un nogal cálido de biblioteca):
-  cinco tablones verticales con su veta y su junta (una baldosa SVG de 480 px, `--m-tablones` en
-  `biblioteca.css`, hecha con dos `feTurbulence` —veta y poro— y rasterizada una sola vez, como el grano
-  del papel), una luz cálida que cae desde arriba a la izquierda y las esquinas oscurecidas. El hueco de
-  cada estante es un nogal más claro con sombra por arriba y las tablas son de roble; los colores
-  (`--m-sala`, `--m-hueco`, `--m-tabla`, `--m-linea`, `--m-luz`, `--m-rincon`, `--m-tema`) cambian con el
-  tema: de noche, más oscura. El texto es hueso (se redefine `--slate` dentro de `.biblio`) y las fichas del
-  filtro, oscuras translúcidas con texto hueso; «Seguir leyendo» es una ficha de papel crema, igual de día y
-  de noche. Contrastes medidos en el peor punto (el tablón más claro bajo el pico de la luz): texto 5,8:1,
-  etiquetas 5,4:1, fichas 9,3:1. **El generador de la baldosa** es `tools/madera.py`
-  (`python tools/madera.py` imprime el `url("data:…")` listo para pegar en `--m-tablones`): ahí están los
-  cinco tonos de base (`TONOS`) y las veta y poro.
-- **Cada fila de libros** mide lo mismo (`--fila`, en píxeles enteros) y eso permite repetir la tabla (máscara
-  `--tr-tabla` en `sketch.css`, `repeat-y`) y su sombra en vertical. **`soloGrano`** (`initTema`, `site.js`)
-  esconde el botón del tema en el teléfono si el primer elemento ancho bajo la mitad de la pantalla tiene un
-  fondo que no sea papel o grano: **la madera lo es** (un campo, como el pinar del hero: el tema no cambia nada
-  ahí), así que **en el teléfono el botón del tema se esconde mientras se ve la sala** y vuelve al salir de
-  ella; en escritorio no pasa (la regla solo vale bajo 1024 px). Dentro de la sala, `.estante`,
-  `.estante__mueble` y `.estante__libros` siguen **sin fondo propio**; las sombras, el hueco y las tablas
-  viven en pseudoelementos, y los lomos, que son estrechos, llevan lo que quieran. `.biblio` ya no está en
-  la lista de superficies de papel de `paper.css`.
+- **La sala es clara y de oro, nunca verde** (lo pidió el fundador: «o el amarillo o el blanco de mi
+  marca, y sus sombras o paleta, deben predominar»). La pared es el oro de la casa muy rebajado sobre el
+  papel (`--r-pared` = `--ring-300` al 30% sobre `--paper`) con el grano del papel y una luz blanca que
+  entra por arriba a la derecha; las repisas son el mismo oro más hondo y las sombras son oro hondo
+  (`--ring-700`) con poca fuerza. **Todo sale de tokens de `base.css` con `color-mix`: no hay un color
+  nuevo.** De noche es la misma sala con la luz baja: carbón con un fondo de oro hondo, nunca verde. El
+  texto es `--slate` (no se redefine nada dentro de `.biblio`); la ficha pulsada del filtro es pizarra, no
+  pino; «Seguir leyendo» es una ficha de papel (`--papel-alto`: papel de día, carbón levantado de noche). Para cambiar la pared a blanco hueso, basta
+  cambiar `--r-pared` (y `--r-luz`) en `.biblio`.
+- **El 3D es solo CSS:** cada repisa tiene su **cara** de arriba (clara, con luz), su **canto** de frente
+  (el oro hondo, que se oscurece hacia abajo) y su **filo**, y bajo el canto cae una **sombra** sobre la
+  pared; todo es un `background-image` de degradados duros que se repite cada `--fila` (una repisa por
+  fila, `.estante__libros::after`). Los libros se apoyan a mitad de la cara; la luz viene de arriba a la
+  derecha, así que cada lomo es más claro por la derecha y su sombra cae a la izquierda. Y **todo el mueble
+  proyecta una sombra larga** abajo a la izquierda: `filter: drop-shadow(var(--r-dx) var(--r-dy) 0 …)` en
+  `.estante__mueble` (sin desenfoque: una copia desplazada con la silueta de libros y repisas). Los libros
+  no miden todos lo mismo: `--k` (de .93 a 1) rebaja el alto del lomo, siempre apoyado en la repisa.
+- **Cada fila de libros** mide lo mismo (`--fila` = `--holgura` + `--lomo-h` + `--pie`, todo en píxeles
+  enteros: un valor fraccionario desalinearía la repisa que se repite en vertical). **`data-sigue-tema`**
+  (en la sección) hace que `initTema` (`site.js`, `fondoEn`) la cuente como papel aunque su color no sea
+  el del papel y lleve un degradado: así **el botón del tema se ve en el teléfono sobre la sala**, porque
+  la sala sí cambia con el tema. Sin esa marca, la pared se leería como «un campo» y lo escondería.
+  Dentro de la sala, `.estante`, `.estante__mueble` y `.estante__libros` siguen **sin fondo propio**; la
+  repisa y las sombras viven en pseudoelementos.
 - **La ola** (`initBiblioteca`, `ola()` en `scripts/biblioteca.js`): un solo `pointermove` pasivo por
   mueble; en cada fotograma una lectura y luego solo se escriben `--ola` y `--giro` (si cambian); el
   movimiento es `translate` y `rotate`. Solo con ratón y sin «reducir movimiento»; se apaga al salir,
@@ -356,8 +403,72 @@ espera; solo avisa si el PDF se aleja).
   de lo que ha subido, para que el clic en la parte baja del lomo siga abriendo el libro.
 - **Al acercarse el ratón** se pide la portada del PDF (la de 900 px o la de 1600 si la pantalla es
   densa), con prioridad baja y una espera de 150 ms; con ahorro de datos no se pide nada.
-- **Alto contraste de Windows:** las tablas y el marco pasan al color del texto y cada lomo lleva su
-  borde (`forced-colors`); sin verificar en un Windows real.
+- **Alto contraste de Windows:** la repisa pasa a una línea del color del texto, la sombra larga no se
+  pinta y cada lomo lleva su borde (`forced-colors`); sin verificar en un Windows real.
+
+### Destacados: la sección tipo Netflix
+
+Debajo de las estanterías (`components/Destacados.astro`, estilos al final de `biblioteca.css`,
+`initDestacados` en `site.js`). Papel blanco de la casa con su grano; las repisas, sombras y aros son los de
+la sala (`--r-*`), así que de noche cambian con ella. De arriba abajo:
+
+- **La cartelera** (`CARTELERA` en `src/data/biblioteca.js`: el id de un libro; hoy `ahava`): el libro
+  grande, con su **portada de fondo** (la primera página del PDF, apagada y más grande), su **portada de
+  frente** inclinada con la sombra larga, el tema, el título, la línea y un botón «Abrir». Sin PDF, el fondo
+  es un brillo del color del libro y la portada de frente se dibuja (`Tapa.astro`). `comprobar()` para la
+  compilación si `CARTELERA` no es un libro de `LIBROS`.
+- **Las filas** (una por tema con libros, en el orden de `SECCIONES`, y al final «Pronto»): las portadas de
+  frente (cada una **un solo enlace** a `#id` que abre el mismo lector que el lomo; el foco vuelve a la
+  tarjeta) sobre **una repisa seguida** de lado a lado de la fila (antes había una repisa por libro y las
+  uniones se veían como costuras), con su cara, canto, filo y sombra, y la sombra larga de cada portada. Cada
+  fila es un **riel** que se desliza de lado (scroll-snap, sin barra) con **flechas** que solo salen si la
+  fila no cabe, y solo con ratón. Con dedo, se arrastra.
+- **El parallax** es CSS puro (`animation-timeline`, dentro de `@supports (animation-timeline: view())` y
+  `prefers-reduced-motion: no-preference`; sin soporte o con movimiento reducido todo está quieto y
+  completo): en la cartelera, el fondo se mueve ±34 px y la portada de frente ±48 px **en sentidos
+  contrarios** mientras la cruza; en cada fila, un **haz de luz barre la pared** (`.fila__pared`, ±15%) más
+  despacio que los libros y la repisa, el título entra de lado y **los libros entran de uno en uno**
+  (`--i` retrasa cada uno un 6%). La cartelera y cada fila declaran su propia línea de tiempo
+  (`view-timeline: --cartelera` / `--fila`) y sus hijos la usan **por nombre**: si los libros usaran
+  `view()` a secas medirían el deslizamiento de su riel y no el scroll de la página. Todo es `translate` y
+  `opacity`. **Para verificarlo en el panel del navegador de la app:** las líneas de tiempo sí corren ahí;
+  espera ~1,5 s tras cada scroll antes de leer `getComputedStyle`.
+- **Solo `es` tiene foto de fondo:** `ahava` solo tiene PDF en español (`src/data/books.js`), así que en
+  en/pt/fr/it la cartelera lleva un brillo del color del libro y la portada de frente **dibujada** (`Tapa`);
+  el parallax del fondo es entonces un degradado que se mueve. Con más PDF, esas páginas ganan la foto sin
+  tocar nada.
+- **El texto de la cartelera tiene que leerse:** es `--slate` sobre el tono del libro mezclado con el papel
+  (`--d-mezcla`, 46% de día y 28% de noche). `Destacados.astro` **para la compilación** si un tono no llega a
+  4,5:1 (por ejemplo `pizarra` como cartelera): pon en `CARTELERA` un libro de un tono más claro.
+- **El botón del tema en el teléfono:** la sección lleva `data-sigue-tema` y `fondoEn` (`site.js`) cuenta
+  como papel todo lo que haya dentro (la cartelera y las paredes de las filas llevan degradados); sin eso el
+  botón se escondía sobre Destacados.
+- **Flechas:** medio cuerpo fuera del riel, en el margen de la sección, para no tapar el aro de foco de la
+  primera tarjeta. **En táctil no hay flechas** (el dedo arrastra el riel; es una decisión, no un olvido).
+- **El movimiento solo es de pantalla** (`@media screen and (prefers-reduced-motion: no-preference)`): al
+  imprimir todo se ve. Los libros usan `backwards` para soltar su capa al acabar su entrada.
+- **El buscador** (solo con JavaScript): una pastilla arriba a la derecha. Cada tarjeta lleva su índice en
+  `data-buscar`, armado al compilar con `indexar()` (título, línea, palabra en su alfabeto, id y tema, sin
+  acentos, mayúsculas, puntos del hebreo ni tonos del griego). `coincide()` pide todas las palabras; vacío =
+  todos. Esconde las tarjetas con `hidden`, **las filas que se quedan sin libros** y, mientras se busca, la
+  cartelera (`data-buscando`). Sin resultados: «No encontré ese libro.» y «Ver todos».
+- **Lo escrito es texto y nada más:** se lee de `input.value`, se recorta a 60 letras (`BUSCAR_MAX`) y se
+  compara con `includes`. **Nunca** va a `innerHTML`, a una expresión regular, a un selector, a la dirección
+  ni al almacenamiento, y el aviso de «no hay» no lo repite.
+- **Para quien no ve:** una región `role="status"` dice cuántos libros quedan o que no hay (con medio
+  segundo de calma). Escape vacía el cuadro; «Ver todos» lo vacía y lleva el foco a él. Las flechas no se
+  esconden con el foco encima (`aria-disabled` al llegar al final).
+- **Al filtrar cambia el alto de la pantalla:** `initDestacados` lanza el evento `jl:medir` y
+  `initDiapositivas` vuelve a medir. La sección lleva `data-libre`.
+- **Un truco de CSS que costó un bug:** `.dest__shell`, `.filas` y `.fila` llevan
+  `grid-template-columns: minmax(0, 1fr)`. Sin eso, el riel (`width: max-content`) ensanchaba la columna
+  entera y nunca se deslizaba.
+- **No se inventa nada:** solo salen libros que existen y la portada suelta de lo que se escribe. De la
+  referencia (Netflix y la tienda de libros) no se toman estrellas, «Comprar» ni «autor de la semana».
+- **Cadenas nuevas** (`lib.featured`, `lib.search`, `lib.search.hint`, `lib.search.none`,
+  `lib.search.all`, `lib.open`; las flechas usan `carousel.prev` / `carousel.next` con el nombre de la fila): el español es el original; **en, pt, fr e it son
+  borradores sin revisar** (como el resto de `lib.*`). `t()` cae al inglés, no al español, cuando falta una
+  clave.
 
 ### Direcciones, historial y silencio
 
@@ -388,8 +499,9 @@ espera; solo avisa si el PDF se aleja).
 
 `node tools/test-biblioteca.mjs` prueba las piezas puras (`scripts/biblioteca.js`): la ancla (`%E0`,
 `#constructor`), lo guardado (almacén que lanza), qué idioma abre cada libro (5 páginas × todos los
-casos), el grosor, el color del lomo, la ola y la comprobación de la compilación (cada entrada mala
-tiene su prueba). En el navegador se probó abrir cada libro por clic, por ancla, con atrás y adelante,
+casos), el grosor, el color del lomo, los tonos, la ficha de cada libro (igual en las 5 páginas), el
+buscador (acentos, hebreo, griego, `.*`, `<img onerror>`, `__proto__`, diez mil letras), la ola y la
+comprobación de la compilación (cada entrada mala tiene su prueba). En el navegador se probó abrir cada libro por clic, por ancla, con atrás y adelante,
 con el almacenamiento forzado a fallar, la carga lenta (proxy que retrasa `/books/…`), los cinco
 idiomas, 360/375/390/1280 de ancho, claro y oscuro. **Sin probar en un teléfono real, Safari de iPhone,
 ni con un lector de pantalla.**
@@ -495,6 +607,11 @@ Enlaces de redes y citas APA: **confirmados por ti**. Queda:
 1. Contenido real de las cuatro secciones nuevas (hoy dicen «En construcción»).
 2. `og:image` y meta de redes, si vas a compartir enlaces por WhatsApp o LinkedIn.
 3. Decidir si `Escritos` lee archivos Markdown directamente — es donde más rinde tu material.
+4. **Recursos, la segunda parte (idea tuya, aún sin construir):** un **scroll con efecto parallax** y, debajo
+   de los libros, una sección **estilo panel de Netflix para los videos** (series, tutoriales…) que vayas
+   poniendo en la plataforma, organizados de forma muy dinámica. Por eso la página es «Recursos» y los
+   libros son solo la primera sala. Cuando llegue, conviene un registro de datos como el de los libros
+   (una lista de series, cada una con sus videos) y probar el movimiento con «reducir movimiento».
 
 ---
 
