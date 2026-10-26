@@ -34,8 +34,9 @@ export const PORTAL_TEXTOS = {
       quien: 'mirando quién eres',
       acceso: 'revisando tu acceso'
     },
-    /* El enlace de la barra que vuelve a la portada (BarraTerminal.astro). No cierra nada. */
-    inicio: { texto: 'Inicio', nombre: 'Volver al inicio' },
+    /* El enlace de la barra que vuelve a la portada (BarraTerminal.astro). No cierra nada.
+       La frase entera a la vista (lo pidio el fundador: «Inicio» solo no se entendia). */
+    inicio: { texto: 'Volver al inicio', nombre: 'Volver al inicio' },
 
     entrar: {
       titulo: 'Entrar',
@@ -133,6 +134,7 @@ export const PORTAL_TEXTOS = {
         trabajos: { titulo: 'Trabajos', linea: 'Las tarjetas de Trabajos.' },
         videos: { titulo: 'Videos', linea: 'Los videos, públicos o solo para miembros.' },
         accesos: { titulo: 'Quién entra', linea: 'Tú decides quién pasa.' },
+        seguridad: { titulo: 'Seguridad', linea: 'Un código de tu celular para entrar como admin.' },
         diario: { titulo: 'Diario', linea: 'Lo que escribo para mí.' },
         habitos: { titulo: 'Hábitos', linea: 'Lo que repito para crecer.' },
         crecimiento: { titulo: 'Crecimiento', linea: 'A dónde voy y cómo voy.' }
@@ -140,6 +142,37 @@ export const PORTAL_TEXTOS = {
       pronto: 'Pronto. Esta sección ya existe y está lista para llenarse.',
       prontoCorto: 'pronto',
       privado: 'Nadie más lo ve: solo se abre con tu cuenta.',
+      /* La pantalla que pide el codigo de la app antes de abrir el panel del admin */
+      codigo: {
+        titulo: 'Escribe tu código',
+        linea: 'Abre tu app de códigos y escribe los 6 números de The Alef Code.',
+        campo: 'Código',
+        boton: 'Entrar',
+        salir: 'Salir'
+      },
+      /* La seccion «Seguridad» (solo el admin) */
+      seguridad: {
+        activo: 'Tu cuenta pide el código al entrar.',
+        inactivo: 'Tu cuenta todavía no pide código. Añade tu celular y, mejor, un segundo dispositivo de respaldo.',
+        dispositivos: 'Dispositivos',
+        agregado: 'Añadido el',
+        unico: 'Es tu único dispositivo: para quitarlo, primero añade otro.',
+        quitar: 'Quitar',
+        agregar: 'Añadir un dispositivo',
+        pasoQr: 'Escanea este código con tu app (Google Authenticator, Authy o la de tu gestor de contraseñas).',
+        pasoClave: 'Si no puedes escanear, escribe esta clave en la app:',
+        copiar: 'Copiar la clave',
+        copiada: 'Clave copiada.',
+        qr: 'Código QR para tu app',
+        campo: 'Los 6 números que muestra la app',
+        confirmar: 'Confirmar',
+        cancelar: 'Cancelar',
+        listo: 'Listo. Este dispositivo ya sirve para entrar.',
+        quitado: 'Quitado.',
+        sesiones: 'Si tu cuenta quedó abierta en otro navegador, ciérrala desde aquí.',
+        cerrarOtras: 'Cerrar mis otras sesiones',
+        otrasCerradas: 'Listo. Solo queda abierta esta.'
+      },
       inicio: {
         primerPaso: { titulo: 'Dar el primer paso', linea: 'Cuéntame dónde estás.' },
         cuadremos: { titulo: 'Cuadremos un rato', linea: 'Una conversación, sin afán.' }
@@ -190,6 +223,10 @@ export const PORTAL_TEXTOS = {
       sinConfirmar: 'Si tu correo ya está aquí, revisa si te llegó el enlace para confirmarlo.',
       google: 'No pude entrar con Google. Intenta otra vez.',
       enlaceCaducado: 'Ese enlace no sirve aquí. Pide uno nuevo y ábrelo en este mismo navegador.',
+      codigoMalo: 'Ese código no es. Escribe el que muestra ahora tu app.',
+      codigoCaducado: 'Ese código ya cambió. Escribe el nuevo.',
+      redCambio: 'Cambiaste de red a mitad. Empieza otra vez desde la misma conexión.',
+      faltaCodigo: 'Para esto hace falta el código de tu app. Sal y vuelve a entrar.',
       generico: 'Algo no salió bien. Intenta otra vez.'
     }
   }

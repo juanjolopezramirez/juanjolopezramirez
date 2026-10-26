@@ -1,4 +1,5 @@
 ---
+import Rosa from './Rosa.astro';
 import { SOCIAL } from '../data/social.js';
 import { META } from '../i18n/utils.js';
 import { VIDEOS } from '../data/videos.js';
@@ -149,39 +150,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
          (styles/carga.css). Los ids de la mascara llevan prefijo: otros SVG
          de la pagina ya usan `grad`. -->
     <div class="carga" id="book-load" role="status" aria-atomic="false" aria-relevant="additions text" hidden>
-      <svg class="carga__rosa" viewBox="0 0 160 160" aria-hidden="true" focusable="false">
-        <defs>
-          <linearGradient id="carga-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#000" />
-            <stop offset="100%" stop-color="#fff" />
-          </linearGradient>
-          <mask id="carga-m1"><rect x="0" y="0" width="160" height="160" fill="url(#carga-grad)" /></mask>
-        </defs>
-        <!-- Los aros: una vuelta que se pasa del punto de partida, como la
-             cierra una mano. `pathLength` en 100 para dibujarlos por
-             porcentaje. El de abajo, dorado, solo asoma hacia el pie. -->
-        <g class="carga__giro">
-          <path class="carga__aro carga__aro--a" pathLength="100" d="M150.5 80.0C150.1 82.5 149.4 90.1 148.1 95.0C146.9 99.8 145.2 104.6 143.0 109.1C140.9 113.6 138.2 118.0 135.2 121.9C132.1 125.8 128.5 129.4 124.7 132.5C120.9 135.6 116.6 138.3 112.2 140.6C107.8 142.8 103.1 144.6 98.4 145.9C93.7 147.2 88.8 148.2 83.8 148.6C78.9 149.0 73.8 149.1 68.9 148.4C64.0 147.8 59.0 146.6 54.3 144.8C49.7 143.0 45.2 140.5 41.1 137.7C37.0 134.8 33.3 131.3 30.0 127.7C26.6 124.0 23.6 119.9 21.0 115.7C18.4 111.5 16.1 107.0 14.2 102.4C12.4 97.7 10.9 92.8 10.1 87.8C9.2 82.9 8.9 77.6 9.3 72.6C9.7 67.5 10.8 62.3 12.5 57.6C14.2 52.8 16.7 48.1 19.5 43.9C22.2 39.7 25.6 35.8 29.2 32.3C32.8 28.8 36.8 25.6 41.0 23.0C45.1 20.3 49.7 18.0 54.3 16.3C58.9 14.6 63.8 13.4 68.6 12.7C73.5 12.1 78.5 12.0 83.3 12.3C88.2 12.7 93.0 13.6 97.7 14.7C102.4 15.9 107.1 17.5 111.6 19.5C116.1 21.5 120.6 23.8 124.7 26.7C128.8 29.6 132.8 32.9 136.2 36.7C139.5 40.5 142.5 45.0 144.8 49.5C147.0 54.1 148.8 59.1 149.9 64.1C151.1 69.1 151.6 74.4 151.6 79.5C151.7 84.6 150.4 92.4 150.2 94.9" />
-        </g>
-        <g mask="url(#carga-m1)">
-          <g class="carga__giro">
-            <path class="carga__aro carga__aro--b" pathLength="100" d="M146.3 80.0C146.0 82.3 145.5 89.5 144.5 94.0C143.5 98.6 142.0 103.1 140.1 107.4C138.2 111.7 135.9 116.0 133.2 119.8C130.4 123.6 127.2 127.3 123.7 130.4C120.1 133.5 116.1 136.2 111.9 138.4C107.8 140.6 103.2 142.3 98.7 143.6C94.2 144.8 89.5 145.6 84.8 146.1C80.1 146.5 75.3 146.6 70.5 146.2C65.8 145.8 60.9 145.1 56.3 143.7C51.7 142.3 47.0 140.4 42.9 137.8C38.8 135.3 34.8 132.1 31.5 128.6C28.2 125.1 25.3 121.0 22.9 116.8C20.6 112.6 18.8 108.0 17.4 103.4C16.1 98.9 15.2 94.2 14.7 89.5C14.2 84.8 14.1 80.1 14.6 75.4C15.0 70.8 15.9 66.1 17.2 61.7C18.6 57.3 20.5 52.9 22.7 48.9C25.0 44.8 27.7 41.0 30.6 37.4C33.6 33.8 36.9 30.4 40.5 27.4C44.0 24.4 47.9 21.5 52.1 19.2C56.2 16.8 60.7 14.8 65.4 13.4C70.0 12.1 75.0 11.3 79.8 11.2C84.7 11.1 89.7 11.8 94.4 13.0C99.1 14.2 103.7 16.2 107.9 18.4C112.2 20.6 116.2 23.4 119.9 26.4C123.6 29.4 127.1 32.7 130.2 36.3C133.2 39.9 136.1 43.8 138.4 47.9C140.6 52.0 142.4 56.6 143.6 61.1C144.7 65.7 145.3 70.5 145.3 75.1C145.4 79.8 144.1 86.7 143.9 89.0" />
-          </g>
-        </g>
-        <!-- Una marca por pagina: site.js las pone -->
-        <g class="carga__marcas" id="book-load-ticks" transform="translate(80,80)"></g>
-        <!-- La aguja: contorno a mano, y el norte con rayado -->
-        <g transform="translate(80,80)">
-          <g class="carga__aguja">
-            <path class="carga__norte" d="M0.4 -50.5C4.6 -39 10.8 -22.6 15.4 -8.2C16.2 -4.8 13.8 -3.2 10.6 -3.6C4.2 -3 -5.4 -3.8 -11.6 -3.4C-14.8 -3.3 -16.3 -5.4 -15.2 -8.4C-10.4 -22.8 -5.2 -37.6 -0.6 -50.2" />
-            <path class="carga__rayado" d="M-7.4 -9.4L-1.2 -24.2M-2 -8.6L5.8 -26.4M4.4 -8.4L9.6 -19.6" />
-            <path class="carga__sur" d="M-0.5 50.8C-4.8 39.4 -11 23.4 -15.1 8.6C-16.1 5.2 -13.6 3.5 -10.4 3.8C-4.2 3.1 5.6 4 11.8 3.6C15 3.5 16.4 5.6 15.3 8.6C10.6 22.6 5.2 37.2 0.8 50.4" />
-            <path class="carga__pivote" d="M3.2 -0.4C3.3 2.2 1.3 3.5 -0.6 3.2C-2.9 3 -3.6 0.8 -3.1 -0.9C-2.4 -3 0.6 -3.6 2.1 -2.4C2.9 -1.8 3.3 -1 3.4 0.2" />
-          </g>
-        </g>
-        <!-- «Listo»: la marca se dibuja sobre la rosa -->
-        <path class="carga__listo" pathLength="1" d="M48 84C55 91 63 100 69 110C81 88 98 66 118 48" />
-      </svg>
+      <Rosa prefijo="carga" idMarcas="book-load-ticks" />
       <h3 class="carga__titulo" id="book-load-title"></h3>
       <p class="carga__paso"><span id="book-load-step"></span> <span class="carga__cuenta" id="book-load-count" aria-hidden="true"></span></p>
       <p class="carga__vera" id="book-load-see"></p>

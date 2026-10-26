@@ -17,3 +17,6 @@ __pycache__/
 .claude/
 _respaldos/
 /_*.mjs
+
+# Cache de la herramienta de diseno (impeccable): no es la web
+.impeccable/

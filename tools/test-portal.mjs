@@ -344,6 +344,29 @@ ok('«Inicio»: la barra enlaza a la portada del idioma, en el portal y en el pa
     assert.match(leer(f), /<BarraTerminal\b[^>]*\blang=\{lang\}[^>]*\binicio=\{x\.inicio\}/, f);
   }
   assert.ok(es.inicio.nombre.toLowerCase().includes(es.inicio.texto.toLowerCase()), 'el nombre contiene lo que se ve (WCAG 2.5.3)');
+  assert.match(es.inicio.texto, /volver/i, 'la frase entera a la vista, no solo «Inicio»');
+});
+ok('el salto al hiperespacio: sin telon verde de noche, y no hace esperar', () => {
+  const b = leer('src/layouts/Base.astro');
+  assert.match(b, /\{!noche && <Curtain \/>\}/, 'el portal no lleva el telon verde');
+  assert.match(b, /curtain-noche/);
+  assert.match(b, /js-llegada/);
+  assert.match(b, /prefers-reduced-motion: reduce\)'\)\.matches\) h\.classList\.add\('js-llegada'\)/, 'con quietud no hay llegada');
+  const s = leer('src/scripts/portal/salto.js');
+  const ms = (n) => Number((s.match(new RegExp(`export const ${n} = (\\d+);`)) || [])[1]);
+  assert.ok(ms('SALTO_MS') > 0 && ms('SALTO_MS') <= 450, 'SALTO_MS');
+  assert.ok(ms('LLEGADA_MS') > 0 && ms('LLEGADA_MS') <= 700, 'LLEGADA_MS');
+  assert.ok(!/ܐ/.test(s), 'sin arameo fuera del portal (no hay letra para el)');
+  const site = leer('src/scripts/site.js');
+  assert.match(site, /setTimeout\(\(\) => \{ location\.href = url\.href; \}, 420\)/, 'se navega a los 420 ms de siempre');
+  assert.match(site, /if \(!e\.persisted\) return;\s*leaving = false;/, '«atrás» suelta los enlaces');
+});
+ok('la brujula: una sola pieza (Rosa) en el libro, el telon y la espera de la guardia', () => {
+  assert.match(leer('src/components/Panels.astro'), /<Rosa prefijo="carga" idMarcas="book-load-ticks" \/>/);
+  assert.match(leer('src/components/Curtain.astro'), /<Rosa prefijo="telon"/);
+  assert.ok(!/curtain__mark|mark-bone/.test(leer('src/components/Curtain.astro')), 'la marca no va en el telon (no se rota ni se encierra)');
+  for (const p of ['src/pages/[lang]/contact.astro', 'src/pages/[lang]/meet.astro']) assert.match(leer(p), /<EsperaRosa lang=\{lang\} \/>/, p);
+  assert.match(leer('src/scripts/portal/guardia.js'), /\[data-guardia-espera\][\s\S]*?remove\(\)/);
 });
 ok('«atrás» no enseña una pagina vieja: el portal y el panel se recargan al volver de la memoria', () => {
   for (const f of ['src/scripts/portal/entrar.js', 'src/scripts/portal/panel.js']) {
@@ -398,6 +421,37 @@ ok('lo privado (003) solo se abre con «la fila es tuya Y eres el admin» (ni mi
   assert.equal((t.match(regla) || []).length, 2, 'using y with check');
   assert.ok(!/esta_aprobado\(\)/.test(t), 'un miembro aprobado no escribe en lo privado');
   assert.ok(!/using \(\(select public\.es_admin\(\)\)\)/.test(t), 'ser admin, solo, no abre las filas de otros');
+});
+ok('006: ser admin pide el codigo (aal2), con el seguro contra quedarse fuera y la receta de deshacer', () => {
+  const t = sql['006_admin_aal2.sql'];
+  assert.ok(t, 'falta 006_admin_aal2.sql');
+  const vivo = sinComentarioSql(t);
+  assert.match(vivo, /create or replace function public\.es_admin\(\)[\s\S]*?security definer\s+set search_path = ''/);
+  assert.match(vivo, /coalesce\(\(select auth\.jwt\(\)->>'aal'\), 'aal1'\) in \('aal2', 'aal3'\)\s+and exists \(\s*select 1 from public\.admins a where a\.user_id = \(select auth\.uid\(\)\)/);
+  /* El seguro va ANTES de crear la funcion y en el mismo bloque: no se puede aplicar sin el. */
+  const seguro = vivo.search(/raise exception/), crea = vivo.search(/create or replace function public\.es_admin/);
+  assert.ok(seguro > 0 && crea > seguro, 'el seguro antes de crear');
+  assert.match(vivo, /where not exists \(\s*select 1 from auth\.mfa_factors f\s+where f\.user_id = a\.user_id and f\.status = 'verified'/, 'todo admin con dispositivo');
+  assert.match(vivo, /execute \$f\$/);
+  assert.ok(!/esta_aprobado/.test(vivo));
+  const deshacer = sinComentarioSql(sql['910_deshacer_006.sql'] || '');
+  assert.match(deshacer, /create or replace function public\.es_admin\(\)/);
+  assert.match(deshacer, /confirmo constant text := 'NO';/, 'el 910 viene apagado');
+  assert.ok(deshacer.search(/raise exception/) < deshacer.search(/create or replace function/), 'el 910 se para antes de tocar nada');
+  assert.match(deshacer, /delete from auth\.mfa_factors where user_id in \(select user_id from public\.admins\)/, 'deshacer borra los dispositivos');
+  assert.match(sql['990_comprobar_rls.sql'], /es_admin_pide_codigo/);
+});
+ok('el codigo de la app: seis numeros, y cada error de Supabase tiene su texto', () => {
+  for (const b of ['123456', '123 456', ' 000000 ']) assert.ok(E.codigoValido(b), b);
+  for (const m of ['12345', '1234567', 'abcdef', '12345a', '', null, undefined, 123456]) assert.ok(!E.codigoValido(m), String(m));
+  for (const c of ['mfa_verification_failed', 'mfa_challenge_expired', 'mfa_ip_address_mismatch', 'insufficient_aal']) {
+    const clave = E.claveDeError({ code: c });
+    assert.ok(clave !== 'generico' && typeof es.errores[clave] === 'string', c);
+  }
+});
+ok('el QR entra como imagen (img.src), nunca como HTML, y solo si es un SVG en data:', () => {
+  assert.match(leer('src/scripts/portal/real.js'), /\/\^data:image\\\/svg\\\+xml\[;,\]\/\.test\(qr\)/);
+  assert.match(leer('src/scripts/portal/panel.js'), /img\.src = r\.qr;/);
 });
 ok('la semilla es un ejemplo sin correo real, y las copias con correo no se suben', () => {
   assert.match(sql['900_semilla_admin.ejemplo.sql'], /TU_CORREO_AQUI/);

@@ -1,7 +1,7 @@
 -- ÁLEF · 990 · Comprobar que las reglas están puestas
 --
 -- Solo LEE: no cambia nada. Pégalo en Supabase → SQL Editor → Run después de
--- 001..004 (y de la semilla). El editor enseña el resultado de la ÚLTIMA
+-- 001..006 (y de la semilla). El editor enseña el resultado de la ÚLTIMA
 -- consulta; si quieres ver las otras, córrelas una a una (selecciona y Run).
 --
 -- Cómo leerlo:
@@ -15,6 +15,9 @@
 --   8. «storage.objects»           deben estar las cuatro reglas alef_admin_*.
 --   9. «puede_cambiarse_el_estado» DEBE decir false.
 --  10. «Admins»                    DEBE decir 1 (tú) una vez hecha la semilla.
+--  11. «es_admin_pide_codigo»      true una vez aplicado 006 (antes, false).
+--  12. «Admins sin dispositivo»    DEBE salir vacía una vez aplicado 006.
+--  13. «Reglas que leen admins»    DEBE salir vacía: todo pasa por es_admin().
 --  Los Advisors de Supabase (Security) avisarán, y está bien, de las 4 funciones
 --  «security definer» que un usuario con sesión puede ejecutar (es_admin,
 --  esta_aprobado, decidir_acceso, reclamar_invitacion): es a propósito y cada una
@@ -88,3 +91,17 @@ select has_column_privilege('authenticated', 'public.perfiles', 'estado', 'updat
 
 -- 10. Admins (debe ser 1 tras la semilla)
 select count(*) as admins from public.admins;
+
+-- 11. ¿Ser admin pide el código de la app? (true tras 006)
+select pg_get_functiondef('public.es_admin()'::regprocedure) like '%aal2%' as es_admin_pide_codigo;
+
+-- 12. Admins sin un dispositivo confirmado (DEBE salir vacía tras 006: si no, ese admin no entra)
+select a.user_id as admin_sin_dispositivo
+  from public.admins a
+ where not exists (select 1 from auth.mfa_factors f where f.user_id = a.user_id and f.status = 'verified');
+
+-- 13. Reglas que leen la tabla admins por su cuenta (DEBE salir vacía: todas pasan por es_admin())
+select schemaname, tablename, policyname
+  from pg_policies
+ where coalesce(qual, '') || coalesce(with_check, '') ~ 'admins'
+   and not (schemaname = 'public' and tablename = 'admins');

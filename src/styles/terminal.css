@@ -83,6 +83,56 @@
     radial-gradient(ellipse 70% 60% at 50% 50%, transparent 0, rgb(5 8 6 / .35) 60%, rgb(5 8 6 / .82) 100%);
 }
 
+/* ---- La pantalla de tubo: encender y apagar las ventanas ----
+   Una raya de luz que se abre (encender) o que se cierra (apagar). La usan la
+   entrada al panel (portal.css, panel.css) y el SALTO al hiperespacio:
+     js-llegada   vienes del sitio: la ventana se enciende cuando las letras del
+                  salto ya frenaron detras (fondo.js). Es CSS: sale aunque el guion tarde.
+     is-saliendo  vuelves al sitio: la ventana se apaga mientras las letras se
+                  recogen (site.js). */
+@keyframes tubo-encender {
+  0%   { clip-path: inset(50% 50% 50% 50%); filter: brightness(2.6); }
+  30%  { clip-path: inset(calc(50% - 1px) 0 calc(50% - 1px) 0); filter: brightness(2.6); }
+  100% { clip-path: inset(0); filter: none; }
+}
+@keyframes tubo-apagar {
+  0%   { transform: none; filter: none; opacity: 1; }
+  55%  { transform: scale(1, .006); filter: brightness(3); opacity: 1; }
+  100% { transform: scale(0, .006); filter: brightness(3); opacity: 0; }
+}
+/* EL PUENTE del salto: entre que se va la pagina del sitio y arranca el guion del
+   portal hay un instante sin letras (el lienzo aun no existe), y el salto «se
+   cortaba». Estas estelas son solo CSS: estan en el PRIMER cuadro de la pagina,
+   salen del centro y se desvanecen mientras las letras del lienzo toman el relevo. */
+.js-llegada .fondo::after {
+  content: ""; position: absolute; inset: -25%;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 7deg at 50% 50%,
+    transparent 0 2.6deg, rgb(0 255 102 / .5) 2.6deg 2.9deg,
+    transparent 2.9deg 6.1deg, rgb(169 196 127 / .32) 6.1deg 6.3deg,
+    transparent 6.3deg 9.4deg, rgb(255 255 255 / .28) 9.4deg 9.55deg,
+    transparent 9.55deg 13deg);
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent 0 6%, #000 30%, #000 48%, transparent 70%);
+          mask: radial-gradient(circle at 50% 50%, transparent 0 6%, #000 30%, #000 48%, transparent 70%);
+  animation: llegada-estelas .8s cubic-bezier(.2, .7, .3, 1) both;
+}
+@keyframes llegada-estelas {
+  from { transform: scale(.55); opacity: 1; }
+  60%  { opacity: .55; }
+  to   { transform: scale(1.6); opacity: 0; }
+}
+
+.js-llegada .portal__ventana,
+.js-llegada .panel__marco { animation: tubo-encender .55s cubic-bezier(.16, 1, .3, 1) .34s backwards; }   /* backwards: al terminar no deja el recorte (cortaria la sombra) */
+.is-saliendo .portal__ventana,
+.is-saliendo .panel__marco { animation: tubo-apagar .32s cubic-bezier(.7, 0, .84, 0) both; }
+.is-saliendo .portal__halo { opacity: 0; transition: opacity .25s var(--ease); }
+@media (prefers-reduced-motion: reduce) {
+  .js-llegada .fondo::after { display: none; }
+  .js-llegada .portal__ventana, .js-llegada .panel__marco,
+  .is-saliendo .portal__ventana, .is-saliendo .panel__marco { animation: none; }
+}
+
 /* ---- Los iconos de 8 bits y sus tonos (AlefIcono.astro) ---- */
 .alef-icono { display: block; flex: none; width: auto; height: 1em; }
 .tono--verde  { color: var(--alef-verde); }
@@ -96,7 +146,8 @@
   padding: .6rem .7rem .6rem 1.2rem;
   border-bottom: 1px solid var(--raya);
 }
-.terminal-barra__marca { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+/* La marca no se encoge; lo que cede cuando falta sitio es la ruta (se corta con «…»). */
+.terminal-barra__marca { display: flex; align-items: center; gap: .6rem; flex: none; }
 /* «‹ Inicio»: vuelve a la portada del sitio. Un enlace de verdad (lleva a otra
    pagina), de 44px de alto, con la flecha de 8 bits y una raya que lo separa del logo. */
 .terminal-barra__inicio {
@@ -118,11 +169,24 @@
   color: var(--tiza);
   white-space: nowrap;
 }
-.terminal-barra__lado { display: flex; align-items: center; gap: .35rem; min-width: 0; }
+.terminal-barra__lado { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; flex: 1 1 0; min-width: 0; }
 .terminal-barra__ruta { margin: 0; font-size: .8rem; color: var(--tiza-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* En el telefono estrecho no caben «Inicio», el nombre y la ruta: la ruta es adorno
-   (`aria-hidden`), asi que se va ella. */
-@media (max-width: 439px) { .terminal-barra__ruta { display: none; } }
+/* En el telefono estrecho no caben «Volver al inicio», el nombre y la ruta: la ruta
+   es adorno (`aria-hidden`) y se va; el nombre se queda para el lector de pantalla
+   (es el <h1>) y a la vista queda el logo. */
+@media (max-width: 519px) {
+  .terminal-barra__ruta { display: none; }
+  .terminal-barra__nombre {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+}
+/* Y en los mas estrechos (320 px), un poco menos de aire para que la pausa no roce el logo. */
+@media (max-width: 359px) {
+  .terminal-barra { gap: .5rem; padding-left: .95rem; }
+  .terminal-barra__inicio { gap: .35rem; font-size: .76rem; }
+  .terminal-barra__inicio::after { margin-left: .4rem; }
+}
 
 /* El boton para quietar el fondo (WCAG 2.2.2): pausa mientras se mueve, play
    cuando esta quieto (fondo.js pone `is-quieto` y `fondo-quieto` en <html>). */

@@ -13,7 +13,7 @@
 -- diario en el navegador con una frase tuya. Se deja para después.)
 --
 -- Son ESQUELETOS: cuando me expliques la estructura, se añaden campos con un
--- archivo nuevo (006_...). Requiere 001 y 002 (usa es_admin() y tocar_editado()).
+-- archivo nuevo (007_...). Requiere 001 y 002 (usa es_admin() y tocar_editado()).
 -- Se puede volver a pegar sin romper nada.
 
 -- ------------------------------------------------------------------- diario

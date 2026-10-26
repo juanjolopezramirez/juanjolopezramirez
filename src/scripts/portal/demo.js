@@ -8,7 +8,8 @@
      ?demo=pendiente   ya entraste, falta mi aprobacion
      ?demo=rechazado   ya entraste y te dije que no
      ?demo=miembro     aprobado, sin ser admin
-     ?demo=admin       aprobado y admin (ve la seccion «Accesos»)
+     ?demo=admin       aprobado y admin (ve la seccion «Accesos»), aun sin codigo de app
+     ?demo=admin2fa    admin con codigo de app: el panel pide el codigo (es 123456)
 
    Y al escribir en el formulario de entrar, el correo decide quien eres:
      admin@…      entras como admin          miembro@…     como miembro
@@ -17,9 +18,12 @@
    «Continuar con Google» entra como pendiente.
 
    El formulario de «Pedir acceso» siempre contesta «revisa tu correo». */
-import { correoValido, errorDeClave, limpiar } from './estado.js';
+import { codigoValido, correoValido, errorDeClave, limpiar, soloNumeros } from './estado.js';
 
-const PRESETS = ['entrar', 'pendiente', 'rechazado', 'miembro', 'admin'];
+const PRESETS = ['entrar', 'pendiente', 'rechazado', 'miembro', 'admin', 'admin2fa'];
+const CODIGO_DEMO = '123456';
+/* Un QR de mentira (un cuadro con una א): en la demo no hay app que lo lea. */
+const QR_DEMO = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21"><rect width="21" height="21" fill="#fff"/><path d="M1 1h7v7H1zM13 1h7v7h-7zM1 13h7v7H1z" fill="none" stroke="#000" stroke-width="1.2"/><text x="14" y="18" font-size="7">א</text></svg>');
 const RETRASO = 450;                      // para que se vea el «un momento»
 const espera = (ms = RETRASO) => new Promise((r) => setTimeout(r, ms));
 
@@ -44,7 +48,12 @@ export function abrirDemo() {
   };
   const avisar = (evento) => oyentes.forEach((cb) => setTimeout(() => cb(evento, sesion), 0));
 
-  if (preset !== 'entrar') poner(personas[preset]);
+  if (preset !== 'entrar') poner(personas[preset === 'admin2fa' ? 'admin' : preset]);
+
+  /* El codigo de la app: los dispositivos confirmados y el nivel de esta sesion. */
+  const factores = preset === 'admin2fa' ? [{ id: 'f-demo', nombre: 'The Alef Code · teléfono', creado: '2026-10-26T21:00:00Z' }] : [];
+  let nivelActual = 'aal1';
+  let pendienteId = null;
 
   /* Gente que pide entrar, para el panel «Accesos» */
   const gente = [
@@ -126,6 +135,38 @@ export function abrirDemo() {
     alCambiar(cb) {
       oyentes.add(cb);
       return () => oyentes.delete(cb);
+    },
+
+    mfa: {
+      async nivel() { await espera(80); return { actual: nivelActual, siguiente: factores.length ? 'aal2' : 'aal1' }; },
+      async factores() { await espera(150); return { ok: true, lista: factores.map((f) => ({ ...f })) }; },
+      async inscribir() {
+        await espera();
+        pendienteId = `f-${Date.now()}`;
+        return { ok: true, id: pendienteId, qr: QR_DEMO, secreto: 'DEMODEMODEMODEMO' };
+      },
+      async confirmar(id, codigo) {
+        await espera();
+        if (!codigoValido(codigo) || soloNumeros(codigo) !== CODIGO_DEMO) return { error: 'codigoMalo' };
+        if (id !== pendienteId) return { error: 'generico' };
+        factores.push({ id, nombre: `The Alef Code · ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`, creado: new Date().toISOString() });
+        pendienteId = null;
+        nivelActual = 'aal2';
+        return { ok: true };
+      },
+      async verificar(codigo) {
+        await espera();
+        if (!codigoValido(codigo) || soloNumeros(codigo) !== CODIGO_DEMO) return { error: 'codigoMalo' };
+        nivelActual = 'aal2';
+        return { ok: true };
+      },
+      async quitar(id) {
+        await espera(200);
+        const i = factores.findIndex((f) => f.id === id);
+        if (i >= 0) factores.splice(i, 1);
+        return { ok: true };
+      },
+      async cerrarOtras() { await espera(200); return { ok: true }; }
     },
 
     accesos: {

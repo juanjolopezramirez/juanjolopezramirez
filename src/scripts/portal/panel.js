@@ -14,7 +14,7 @@
    Todo texto de otra persona (nombre, correo, motivo) entra con `textContent`. */
 import { abrirBackend } from './backend.js';
 import { bitacora, fondoQuieto, modoFondo } from './carga.js';
-import { anclaValida, correoValido, idiomaDe, rutaPortal } from './estado.js';
+import { anclaValida, codigoValido, correoValido, idiomaDe, rutaPortal } from './estado.js';
 import { idsPara } from '../../data/portal/secciones.js';
 
 const TARDO = Symbol('tardo');
@@ -43,6 +43,7 @@ function iniciar(raiz) {
   const elCargando = raiz.querySelector('[data-cargando]');
   const elProblema = raiz.querySelector('[data-problema]');
   const elMarco = raiz.querySelector('[data-marco]');
+  const elCodigo = raiz.querySelector('[data-codigo]');
   const log = bitacora(raiz.querySelector('[data-bitacora]'), tx.bitacora);
   /* Si se llega desde el portal (acabas de entrar), la א que alli se descifro empieza
      entera y se deshace en la lluvia. Lo dice la pagina de la que vienes: nada guardado. */
@@ -64,7 +65,10 @@ function iniciar(raiz) {
   let yo = null;
   let accesosPintados = false;
   let ocupado = false;
+  let escuchando = false;
 
+  /* Una peticion colgada no congela el panel: a los 15 s cuenta como «sin red». */
+  const aTiempo = async (promesa) => { const r = await limite(promesa); return r === TARDO ? { error: 'red' } : r; };
   const textoDe = (clave) => (hay(errores, clave) ? errores[clave] : (errores.generico || 'Algo no salió bien.'));
   const fecha = (iso) => {
     const d = new Date(iso);
@@ -111,8 +115,70 @@ function iniciar(raiz) {
     if (perfil === TARDO || perfil === undefined) { problema(); return; }
     if (!perfil || perfil.estado !== 'aprobado') { alPortal(); return; }
 
-    be.alCambiar((evento) => { if (evento === 'SIGNED_OUT') { olvidar(); alPortal(true); } });
+    if (!escuchando) {
+      escuchando = true;
+      be.alCambiar((evento) => { if (evento === 'SIGNED_OUT') { olvidar(); alPortal(true); } });
+    }
+    /* El admin con codigo de app (seccion «Seguridad») lo escribe antes de ver nada. */
+    if (perfil.esAdmin && be.mfa) {
+      const n = await limite(be.mfa.nivel());
+      if (n === TARDO || n === undefined) { problema(); return; }
+      if (n.siguiente === 'aal2' && n.actual !== 'aal2') { pedirCodigo(ses, perfil); return; }
+    }
     abrir(ses, perfil);
+  }
+
+  /* ---- El codigo de la app (solo el admin que lo puso) ------------------------------ */
+  /* Marca un campo con su error y lo anuncia (el texto entra un instante despues). */
+  function errorEnForm(form, campo, clave) {
+    const err = form.querySelector('[data-error]');
+    if (campo) {
+      campo.setAttribute('aria-invalid', 'true');
+      if (err && !err.id) err.id = `panel-error-${form.dataset.form}`;
+      /* El aviso se SUMA a la ayuda del campo (la instruccion), no la reemplaza. */
+      if (!campo.hasAttribute('data-desc-base')) campo.setAttribute('data-desc-base', campo.getAttribute('aria-describedby') || '');
+      if (err) campo.setAttribute('aria-describedby', `${campo.getAttribute('data-desc-base')} ${err.id}`.trim());
+      campo.focus();
+    }
+    if (!err) return;
+    err.textContent = '';
+    err.hidden = false;
+    setTimeout(() => { err.textContent = textoDe(clave); }, 30);
+  }
+  function limpiarForm(form) {
+    const err = form.querySelector('[data-error]');
+    if (err) { err.hidden = true; err.textContent = ''; }
+    form.querySelectorAll('[aria-invalid]').forEach((c) => {
+      c.removeAttribute('aria-invalid');
+      const base = c.getAttribute('data-desc-base');
+      if (base) c.setAttribute('aria-describedby', base); else c.removeAttribute('aria-describedby');
+      c.removeAttribute('data-desc-base');
+    });
+  }
+
+  function pedirCodigo(ses, perfil) {
+    modoFondo('reposo');
+    elCargando.hidden = true;
+    elProblema.hidden = true;
+    elMarco.hidden = true;
+    elCodigo.hidden = false;
+    const ruta = raiz.querySelector('[data-ruta-actual]');
+    if (ruta) ruta.textContent = '~/panel/codigo';
+    const form = elCodigo.querySelector('form');
+    const campo = form.elements.codigo;
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      limpiarForm(form);
+      if (!codigoValido(campo.value)) { errorEnForm(form, campo, 'codigoMalo'); return; }
+      conOcupado(form.querySelector('button[type="submit"]'), async () => {
+        const r = await aTiempo(be.mfa.verificar(campo.value));
+        if (r.error) { errorEnForm(form, campo, r.error); return; }
+        campo.value = '';
+        elCodigo.hidden = true;
+        abrir(ses, perfil);
+      }, () => errorEnForm(form, campo, 'generico'));
+    };
+    campo.focus();
   }
 
   /* ---- Abrir el panel ------------------------------------------------------------ */
@@ -149,7 +215,9 @@ function iniciar(raiz) {
 
     /* Si nadie tenia el foco en otra parte (la pausa del fondo, «Inicio»), va al titulo
        de la seccion: asi el lector de pantalla dice que el panel ya esta abierto. */
-    const libre = !document.activeElement || document.activeElement === document.body;
+    const activo = document.activeElement;
+    /* (el boton de la pantalla del codigo, recien escondida, cuenta como «libre») */
+    const libre = !activo || activo === document.body || (elCodigo && elCodigo.contains(activo));
     irA(anclaValida(window.location.hash, ids) || 'inicio', libre);
     window.addEventListener('hashchange', () => irA(anclaValida(window.location.hash, ids) || 'inicio', true));
   }
@@ -169,6 +237,7 @@ function iniciar(raiz) {
       const t = raiz.querySelector(`[data-titulo="${id}"]`);
       if (t) t.focus();
     }
+    if (id === 'seguridad' && esAdmin) pintarSeguridad();
     if (id === 'accesos' && esAdmin && !accesosPintados) {
       accesosPintados = true;                                                 // no lanzarla dos veces a la vez
       recargarAccesos().then((bien) => { if (!bien) accesosPintados = false; });   // si falla, se reintenta al volver a la seccion
@@ -269,12 +338,13 @@ function iniciar(raiz) {
     return true;
   }
 
-  /* Una accion a la vez: mientras una corre, las demas esperan. */
-  async function conOcupado(boton, tarea) {
+  /* Una accion a la vez: mientras una corre, las demas esperan. Si algo se rompe, el
+     aviso sale donde esta la persona (`alFallar`), no en una seccion escondida. */
+  async function conOcupado(boton, tarea, alFallar = () => errorAcc('generico')) {
     if (ocupado) return;
     ocupado = true;
     if (boton) boton.setAttribute('aria-busy', 'true');
-    try { await tarea(); } catch (e) { errorAcc('generico'); } finally {
+    try { await tarea(); } catch (e) { alFallar(); } finally {
       ocupado = false;
       if (boton) boton.removeAttribute('aria-busy');
     }
@@ -340,6 +410,135 @@ function iniciar(raiz) {
     });
   }
 
+  /* ---- «Seguridad» (solo admin): el codigo de 6 numeros de una app ------------------
+     La lista de dispositivos, añadir uno (QR + clave + su primer codigo) y quitar uno
+     (nunca el ultimo desde aqui: para eso esta la receta de PORTAL.md). El QR es una
+     imagen `data:image/svg+xml` que da Supabase: entra por `img.src`, nunca como HTML. */
+  const seg = raiz.querySelector('[data-seguridad]');
+  const ps = p.seguridad || {};
+  let altaId = null;
+  let secreto = '';            // la clave del dispositivo a medias, tal cual (para «Copiar»); se borra al cerrar
+
+  function avisarSeg(texto) {
+    const el = seg && seg.querySelector(':scope > [data-aviso]');
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = texto || '';
+    el.focus();
+  }
+  function errorSeg(clave) {
+    const el = seg && seg.querySelector(':scope > [data-error]');
+    if (!el) return;
+    el.textContent = '';
+    el.hidden = false;
+    setTimeout(() => { el.textContent = textoDe(clave); }, 30);
+  }
+  function limpiarSeg() {
+    if (!seg) return;
+    seg.querySelectorAll(':scope > [data-aviso], :scope > [data-error]').forEach((el) => { el.hidden = true; el.textContent = ''; });
+  }
+  function cerrarAlta() {
+    if (!seg) return;
+    const alta = seg.querySelector('[data-alta]');
+    alta.hidden = true;
+    seg.querySelector('[data-qr]').replaceChildren();
+    seg.querySelector('[data-secreto]').textContent = '';
+    secreto = '';
+    const form = alta.querySelector('form');
+    form.elements.codigo.value = '';
+    limpiarForm(form);
+    seg.querySelector('[data-agregar]').hidden = false;
+    altaId = null;
+  }
+
+  /* Devuelve si pudo pintar: «Listo» solo se dice si la lista de verdad se puso al dia. */
+  async function pintarSeguridad() {
+    if (!seg || !be || !be.mfa) return false;
+    const r = await aTiempo(be.mfa.factores());
+    if (r.error) { errorSeg(r.error); return false; }
+    const lista = seg.querySelector('[data-lista="dispositivos"]');
+    const base = plantilla('dispositivo');
+    lista.replaceChildren();
+    r.lista.forEach((f) => {
+      if (!base) return;
+      const li = base.cloneNode(true).firstElementChild;
+      poner(li, 'nombre', f.nombre);
+      poner(li, 'fecha', `${ps.agregado || ''} ${fecha(f.creado)}`.trim());
+      const b = li.querySelector('[data-quitar]');
+      if (r.lista.length < 2) b.remove();
+      else {
+        b.setAttribute('aria-label', `${b.textContent} (${f.nombre})`);
+        b.addEventListener('click', () => conOcupado(b, async () => {
+          limpiarSeg();
+          const q = await aTiempo(be.mfa.quitar(f.id));
+          if (q.error) { errorSeg(q.error); return; }
+          if (await pintarSeguridad()) avisarSeg(ps.quitado);
+        }, () => errorSeg('generico')));
+      }
+      lista.appendChild(li);
+    });
+    seg.querySelector('[data-unico]').hidden = r.lista.length !== 1;
+    seg.querySelector('[data-estado-codigo]').textContent = r.lista.length ? ps.activo : ps.inactivo;
+    return true;
+  }
+
+  if (seg) {
+    const agregar = seg.querySelector('[data-agregar]');
+    const alta = seg.querySelector('[data-alta]');
+    const formAlta = alta.querySelector('form');
+    agregar.addEventListener('click', () => conOcupado(agregar, async () => {
+      if (!be || !be.mfa) return;
+      limpiarSeg();
+      const r = await aTiempo(be.mfa.inscribir());
+      if (r.error) { errorSeg(r.error); return; }
+      altaId = r.id;
+      const img = new Image();
+      img.alt = ps.qr || '';
+      img.width = 180; img.height = 180;
+      img.src = r.qr;
+      seg.querySelector('[data-qr]').replaceChildren(img);
+      /* La clave se lee en grupos de 4; «Copiar» copia la de verdad, sin espacios. */
+      secreto = r.secreto;
+      seg.querySelector('[data-secreto]').textContent = secreto.replace(/(.{4})(?=.)/g, '$1 ');
+      agregar.hidden = true;
+      alta.hidden = false;
+      formAlta.elements.codigo.focus();
+    }, () => errorSeg('generico')));
+    formAlta.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const campo = formAlta.elements.codigo;
+      limpiarForm(formAlta);
+      if (!codigoValido(campo.value)) { errorEnForm(formAlta, campo, 'codigoMalo'); return; }
+      conOcupado(formAlta.querySelector('button[type="submit"]'), async () => {
+        const r = await aTiempo(be.mfa.confirmar(altaId, campo.value));
+        if (r.error) { errorEnForm(formAlta, campo, r.error); return; }
+        cerrarAlta();
+        if (await pintarSeguridad()) avisarSeg(ps.listo);
+      }, () => errorEnForm(formAlta, campo, 'generico'));
+    });
+    const copiar = seg.querySelector('[data-copiar]');
+    copiar.addEventListener('click', () => {
+      if (!secreto || !navigator.clipboard) return;
+      navigator.clipboard.writeText(secreto).then(() => avisarSeg(ps.copiada), () => {});
+    });
+    const otras = seg.querySelector('[data-cerrar-otras]');
+    otras.addEventListener('click', () => conOcupado(otras, async () => {
+      if (!be || !be.mfa) return;
+      limpiarSeg();
+      const r = await aTiempo(be.mfa.cerrarOtras());
+      if (r.error) { errorSeg(r.error); return; }
+      avisarSeg(ps.otrasCerradas);
+    }, () => errorSeg('generico')));
+    /* Cancelar: el dispositivo a medias se borra (si no, quedaria colgado sin confirmar). */
+    alta.querySelector('[data-cancelar]').addEventListener('click', () => {
+      if (ocupado) return;                   // mientras se confirma, no se cancela (no chocan)
+      const id = altaId;
+      cerrarAlta();
+      if (id && be && be.mfa) be.mfa.quitar(id);
+      agregar.focus();
+    });
+  }
+
   /* ---- Salir y reintentar --------------------------------------------------------- */
   raiz.addEventListener('click', (e) => {
     const b = e.target.closest ? e.target.closest('button') : null;
@@ -356,6 +555,8 @@ function iniciar(raiz) {
     elMarco.hidden = true;
     raiz.querySelectorAll('[data-lista]').forEach((l) => l.replaceChildren());
     raiz.querySelectorAll('[data-cuenta]').forEach((c) => { c.textContent = ''; });
+    if (elCodigo) elCodigo.hidden = true;
+    if (seg) { seg.querySelector('[data-qr]').replaceChildren(); seg.querySelector('[data-secreto]').textContent = ''; secreto = ''; }
     const saludo = raiz.querySelector('[data-titulo="inicio"]');
     if (saludo && p.secciones && p.secciones.inicio) saludo.textContent = p.secciones.inicio.titulo;
   }

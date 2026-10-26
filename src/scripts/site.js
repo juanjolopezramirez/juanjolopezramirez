@@ -15,6 +15,9 @@ import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar } from './biblioteca.js';
 import { LIBROS, TIPOS } from '../data/biblioteca.js';
+/* El salto al hiperespacio va DENTRO (1.3 KB): traerlo al pulsar lo hacia arrancar tarde
+   en el telefono, y el salto se veia a trompicones. */
+import { saltar as lanzarSalto, calentar as calentarSalto } from './portal/salto.js';
 
 const d = document;
 const lang = d.documentElement.lang || 'es';
@@ -3025,9 +3028,18 @@ function initCurrent() {
    proposito — todo lo que arranca aqui abajo (el glosario, las hojas,
    la luz del campo, las entradas) se inicializa una vez al cargar, y
    con un enrutador habria que rehacerlo en cada salto.               */
+/* EL PORTAL (The Alef Code) no tiene telon verde: se entra y se sale con el SALTO
+   al hiperespacio (scripts/portal/salto.js). Al ir del sitio al portal la pagina
+   se cubre de noche y las letras aceleran hacia ti; al salir del portal se recogen
+   al centro y la ventana se apaga, y el sitio te recibe con el telon de noche
+   (Base.astro, `curtain-noche`). Se navega a los mismos 420 ms de siempre. Al
+   primer gesto hacia un enlace del portal se calientan las letras y se trae la
+   pagina del portal por adelantado, asi que al pulsar todo esta listo. */
+const PORTAL = /^\/[a-z]{2}\/portal(\/|$)/;
 function initCurtain() {
   const el = d.getElementById('curtain');
-  if (!el) return;
+  const noche = d.body.classList.contains('pagina--noche');
+  if (!el && !noche) return;
 
   const quiet = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -3036,20 +3048,67 @@ function initCurtain() {
     el.classList.add('is-written');
     requestAnimationFrame(() => el.classList.add('is-lifted'));
   };
-  if (quiet) { el.classList.add('is-lifted', 'is-written'); }
-  else if (d.readyState === 'complete') lift();
-  else addEventListener('load', lift, { once: true });
+  if (el) {
+    if (quiet) { el.classList.add('is-lifted', 'is-written'); }
+    else if (d.readyState === 'complete') lift();
+    else addEventListener('load', lift, { once: true });
+  }
 
   /* Volver con el boton de atras devuelve la pagina tal cual estaba, con
-     el telon a medio bajar. Hay que quitarlo a mano. */
+     el telon a medio bajar (o el salto a medias). Hay que quitarlo a mano, y
+     soltar `leaving`: si no, ningun enlace volvia a responder. */
+  let leaving = false;
+  let salto = null;
   addEventListener('pageshow', (e) => {
-    if (e.persisted) { el.classList.remove('is-falling'); el.classList.add('is-written', 'is-lifted'); }
+    if (!e.persisted) return;
+    leaving = false;
+    if (salto) { salto.then((s) => s && s.parar && s.parar()); salto = null; }
+    d.querySelectorAll('.salto').forEach((n) => n.remove());
+    d.documentElement.classList.remove('is-saliendo');
+    const main = d.getElementById('main');
+    if (main) main.style.visibility = '';
+    if (el) { el.classList.remove('is-falling'); el.classList.add('is-written', 'is-lifted'); }
   });
 
   if (quiet) return;
 
   const SAME = (a) => a.origin === location.origin;
-  let leaving = false;
+  let calentado = false;
+  const cargarSalto = () => { if (!calentado) { calentado = true; calentarSalto(); } };
+  const traidas = new Set();
+  const urlDe = (a) => { try { return new URL(a.href); } catch (_) { return null; } };
+
+  /* Al primer gesto hacia un enlace del portal: su guion y su pagina, por adelantado. */
+  if (!noche) {
+    const antes = (e) => {
+      const a = e.target.closest ? e.target.closest('a[href]') : null;
+      const url = a && urlDe(a);
+      if (!url || !SAME(url) || !PORTAL.test(url.pathname)) return;
+      cargarSalto();
+      /* Con el ahorro de datos puesto, la pagina no se trae por adelantado. */
+      if (traidas.has(url.pathname) || (navigator.connection && navigator.connection.saveData)) return;
+      traidas.add(url.pathname);
+      const l = d.createElement('link');
+      l.rel = 'prefetch'; l.href = url.pathname;
+      d.head.appendChild(l);
+    };
+    d.addEventListener('pointerover', antes, { passive: true });
+    d.addEventListener('touchstart', antes, { passive: true });
+    d.addEventListener('focusin', antes);
+  }
+
+  /* La capa del salto (la noche, por CSS) y sus letras arrancan en el mismo cuadro. */
+  const saltar = (sentido) => {
+    const capa = d.createElement('div');
+    capa.className = `salto salto--${sentido}`;
+    capa.setAttribute('aria-hidden', 'true');
+    d.body.appendChild(capa);
+    /* Ya tapada la pagina (la noche del lienzo tarda 200 ms), que deje de pintarse
+       debajo: el salto va mas suelto. */
+    if (sentido === 'entrar') setTimeout(() => { const m = d.getElementById('main'); if (m && leaving) m.style.visibility = 'hidden'; }, 220);
+    cargarSalto();
+    salto = Promise.resolve(lanzarSalto(sentido, capa));
+  };
 
   d.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0) return;
@@ -3065,16 +3124,28 @@ function initCurtain() {
     if (url.pathname === location.pathname && url.hash) return;     // un ancla de la misma pagina
     if (url.href === location.href) return;
 
+    const alPortal = PORTAL.test(url.pathname);
+    /* De noche, con el fondo en pausa, no hay salto: se va al instante. */
+    if (noche && d.documentElement.classList.contains('fondo-quieto')) return;
+    if (noche && alPortal) return;          // dentro del portal no hay telon (lo mueve su guion)
+
     e.preventDefault();
     if (leaving) return;
     leaving = true;
 
-    el.classList.remove('is-lifted', 'is-written');
-    void el.offsetHeight;                    // punto de partida para la transicion
-    el.classList.add('is-falling');
+    if (!noche && alPortal) {
+      saltar('entrar');
+    } else if (noche) {
+      d.documentElement.classList.add('is-saliendo');   // la ventana se apaga (terminal.css)
+      saltar('salir');
+    } else {
+      el.classList.remove('is-lifted', 'is-written');
+      void el.offsetHeight;                    // punto de partida para la transicion
+      el.classList.add('is-falling');
+    }
 
     /* Sin firma que escribir, el telon solo tiene que cerrarse: 180ms de
-       fundido y la marca asentandose. 420ms y a la siguiente. */
+       fundido y la marca asentandose. 420ms y a la siguiente (el salto dura lo mismo). */
     setTimeout(() => { location.href = url.href; }, 420);
   });
 }

@@ -23,6 +23,37 @@
 .panel__problema { display: grid; gap: 1rem; justify-items: center; padding-block: 4rem; text-align: center; }
 .panel__boton-solo { width: auto; min-width: 12rem; }
 
+/* El codigo de la app: una tarjeta estrecha en medio, como la de entrar (panel.js) */
+.panel__codigo {
+  display: grid; gap: 1rem; justify-self: center; align-content: center;
+  width: min(100%, 24rem); padding: 3rem 1.5rem 3.5rem;
+}
+.panel__codigo[hidden], .panel__alta[hidden] { display: none; }
+.panel__codigo .portal__entrada,
+.panel__seguridad .portal__entrada { font-size: 1.35rem; letter-spacing: .35em; text-align: center; font-variant-numeric: tabular-nums; }
+.panel__codigo .panel__salir { justify-self: start; }
+
+/* «Seguridad»: la lista de dispositivos y el alta con su QR */
+.panel__seguridad { display: grid; gap: 1rem; align-content: start; }
+.panel__seguridad > .panel__boton-solo { justify-self: start; }
+.panel__alta {
+  display: grid; gap: .8rem; justify-items: start;
+  padding: 1.2rem; border: 1px solid var(--raya); border-radius: 14px;
+  background: rgb(241 239 233 / .03);
+}
+/* El QR lo da Supabase en negro sobre transparente: va sobre un cuadro blanco para que la camara lo lea */
+.panel__qr:empty { display: none; }
+.panel__qr img { display: block; width: 180px; height: 180px; padding: 10px; border-radius: 12px; background: #fff; }
+.panel__secreto {
+  margin: 0; padding: .5rem .75rem; border-radius: 10px;
+  background: rgb(5 8 6 / .6); border: 1px solid var(--raya);
+  font-family: var(--mono); font-size: .9rem; letter-spacing: .08em; word-break: break-all;
+  user-select: all; color: var(--tiza);
+}
+.panel__alta .panel__acciones { display: flex; flex-wrap: wrap; gap: .6rem; }
+.panel__clave { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.panel__copiar { width: auto; min-height: 44px; }
+
 .panel__marco {
   width: min(100%, 72rem); margin-inline: auto;
   display: grid; grid-template-columns: minmax(0, 1fr);
@@ -38,12 +69,7 @@
 /* Al abrirse, se enciende como una pantalla de tubo: un punto, una raya de luz, y la
    pantalla entera (panel.js pone y quita la clase; con el fondo quieto no la pone).
    Es la vuelta de la que se apago en el portal al entrar (portal.css). */
-.panel__cuerpo.is-encendiendo { animation: tubo-encender .5s cubic-bezier(.16, 1, .3, 1) both; }
-@keyframes tubo-encender {
-  0%   { clip-path: inset(50% 50% 50% 50%); filter: brightness(2.6); }
-  30%  { clip-path: inset(calc(50% - 1px) 0 calc(50% - 1px) 0); filter: brightness(2.6); }
-  100% { clip-path: inset(0); filter: none; }
-}
+.panel__cuerpo.is-encendiendo { animation: tubo-encender .5s cubic-bezier(.16, 1, .3, 1) both; }   /* tubo-encender: terminal.css */
 @media (prefers-reduced-motion: reduce) { .panel__cuerpo.is-encendiendo { animation: none; } }
 @media (min-width: 1024px) {
   .panel__marco { grid-template-rows: auto 1fr; min-height: 40rem; }

@@ -49,6 +49,20 @@ const hecha = (id) => HECHAS.includes(id);
       <button class="portal__boton portal__boton--suave panel__boton-solo" type="button" data-reintentar>{p.reintentar}</button>
     </div>
 
+    <!-- EL CODIGO DE LA APP: si la cuenta del admin tiene codigo (seccion «Seguridad»),
+         el panel no se abre hasta escribirlo. Con supabase/006 aplicado, la BASE tampoco
+         abre nada de admin sin el: esto es la puerta, el cerrojo esta en el servidor. -->
+    <div class="panel__codigo" data-codigo hidden>
+      <h2 class="portal__titulo" id="panel-codigo-titulo" tabindex="-1">{p.codigo.titulo}</h2>
+      <form class="portal__form panel__form" data-form="codigo" novalidate>
+        {/* La instruccion va como ayuda del campo: el lector la oye al llegar el foco */}
+        <Campo id="c-codigo" name="codigo" label={p.codigo.campo} ayuda={p.codigo.linea} inputmode="numeric" autocomplete="one-time-code" maxlength="9" />
+        <p class="portal__error" data-error role="alert" hidden></p>
+        <button class="portal__boton" type="submit">{p.codigo.boton}</button>
+      </form>
+      <button class="panel__salir" type="button" data-salir><Icon id="salir" /><span>{p.codigo.salir}</span></button>
+    </div>
+
     <div class="panel__cuerpo" data-marco hidden>
 
     <div class="panel__riel">
@@ -124,6 +138,44 @@ const hecha = (id) => HECHAS.includes(id);
             </div>
           )}
 
+          {s.id === 'seguridad' && (
+            <div class="panel__seguridad" data-seguridad>
+              {/* Sin role="status": el aviso recibe el foco (el boton que se pulso puede
+                  desaparecer) y con las dos cosas el lector lo diria dos veces. */}
+              <p class="panel__aviso" data-aviso tabindex="-1" hidden></p>
+              <p class="portal__error" data-error role="alert" hidden></p>
+              <p class="portal__nota" data-estado-codigo></p>
+
+              <h3 class="panel__subtitulo">{p.seguridad.dispositivos}</h3>
+              <ul class="panel__lista" role="list" data-lista="dispositivos"></ul>
+              <p class="panel__vacio" data-unico hidden>{p.seguridad.unico}</p>
+
+              <button class="portal__boton portal__boton--suave panel__boton-solo" type="button" data-agregar>{p.seguridad.agregar}</button>
+
+              {/* Añadir un dispositivo: el QR y la clave los pone panel.js (img.src y textContent) */}
+              <div class="panel__alta" data-alta hidden>
+                <p class="portal__linea">{p.seguridad.pasoQr}</p>
+                <div class="panel__qr" data-qr></div>
+                <p class="portal__linea">{p.seguridad.pasoClave}</p>
+                <div class="panel__clave">
+                  <p class="panel__secreto" data-secreto></p>
+                  <button class="portal__boton portal__boton--suave panel__copiar" type="button" data-copiar>{p.seguridad.copiar}</button>
+                </div>
+                <form class="portal__form panel__form" data-form="confirmar" novalidate>
+                  <Campo id="s-codigo" name="codigo" label={p.seguridad.campo} inputmode="numeric" autocomplete="one-time-code" maxlength="9" />
+                  <p class="portal__error" data-error role="alert" hidden></p>
+                  <div class="panel__acciones">
+                    <button class="portal__boton panel__boton-solo" type="submit">{p.seguridad.confirmar}</button>
+                    <button class="portal__boton portal__boton--suave panel__boton-solo" type="button" data-cancelar>{p.seguridad.cancelar}</button>
+                  </div>
+                </form>
+              </div>
+
+              <p class="portal__linea">{p.seguridad.sesiones}</p>
+              <button class="portal__boton portal__boton--suave panel__boton-solo" type="button" data-cerrar-otras>{p.seguridad.cerrarOtras}</button>
+            </div>
+          )}
+
           {!hecha(s.id) && (
             <div class="panel__pronto">
               <p class="portal__nota">{p.pronto}</p>
@@ -148,6 +200,18 @@ const hecha = (id) => HECHAS.includes(id);
         <button type="button" class="panel__boton" data-accion="aprobado" data-en="pendiente rechazado">{p.accesos.aprobar}</button>
         <button type="button" class="panel__boton panel__boton--suave" data-accion="rechazado" data-en="pendiente">{p.accesos.rechazar}</button>
         <button type="button" class="panel__boton panel__boton--suave" data-accion="rechazado" data-en="aprobado">{p.accesos.quitar}</button>
+      </div>
+    </li>
+  </template>
+
+  <template data-plantilla="dispositivo">
+    <li class="panel__fila">
+      <div class="panel__quien">
+        <p class="panel__persona" data-campo="nombre"></p>
+        <p class="panel__fecha" data-campo="fecha"></p>
+      </div>
+      <div class="panel__acciones">
+        <button type="button" class="panel__boton panel__boton--suave" data-quitar>{p.seguridad.quitar}</button>
       </div>
     </li>
   </template>

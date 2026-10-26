@@ -148,6 +148,10 @@ const canonical = alt(lang);
     document.addEventListener('DOMContentLoaded', function () { setTimeout(comprobar, 12000); });
   </script>
   <meta name="theme-color" content="#263B28" />
+  {/* De noche, el navegador pinta negro desde el primer cuadro: sin un instante blanco
+      entre el salto al hiperespacio y el portal. */}
+  {noche && <meta name="color-scheme" content="dark" />}
+  {noche && <style is:inline>html { background: #050806; }</style>}
   {noindex && <meta name="robots" content="noindex, nofollow" />}
   <title>{title ?? t('doc.title')}</title>
   <meta name="description" content={description ?? t('hero.role')} />
@@ -165,8 +169,30 @@ const canonical = alt(lang);
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Antes de pintar nada: si hay JavaScript, el telon esta puesto. Si no,
-       no se pone nunca y los enlaces navegan como siempre. -->
-  <script is:inline>document.documentElement.classList.add('js-curtain');</script>
+       no se pone nunca y los enlaces navegan como siempre.
+
+       Y de donde vienes, si es del mismo sitio y es una llegada de verdad (no
+       «atras» ni recargar), sin guardar nada: lo dice la pagina anterior.
+         · Del portal a una pagina del sitio: el telon nace de NOCHE y se levanta
+           como un amanecer (`curtain-noche`, base.css).
+         · Del sitio al portal (paginas `noche`, que no tienen telon): las letras
+           del salto llegan y frenan detras de la ventana, que se enciende como una
+           pantalla de tubo (`js-llegada`; fondo.js y terminal.css). -->
+  <script is:inline define:vars={{ noche }}>
+    (function () {
+      var h = document.documentElement;
+      h.classList.add('js-curtain');
+      try {
+        if (!document.referrer) return;
+        var de = new URL(document.referrer);
+        var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+        if (de.origin !== location.origin || (nav && nav.type !== 'navigate')) return;
+        var delPortal = /^\/[a-z]{2}\/portal(\/|$)/.test(de.pathname);
+        if (!noche && delPortal) h.classList.add('curtain-noche');
+        if (noche && !delPortal && !matchMedia('(prefers-reduced-motion: reduce)').matches) h.classList.add('js-llegada');
+      } catch (e) {}
+    })();
+  </script>
   <!-- La apariencia elegida, antes de pintar. Si se pusiera despues, quien
        eligio oscuro veria un destello de hueso en cada pagina. Sin nada
        guardado no se toca: manda el dispositivo (ThemePicker.astro).
@@ -213,7 +239,8 @@ const canonical = alt(lang);
   <main id="main"><slot /></main>
   {!limpio && <Footer t={t} />}
   <Panels lang={lang} t={t} />
-  <Curtain />
+  {/* El telon verde es del sitio de dia. De noche (el portal) se entra y se sale con el salto. */}
+  {!noche && <Curtain />}
   <script>import '../scripts/site.js';</script>
 </body>
 </html>

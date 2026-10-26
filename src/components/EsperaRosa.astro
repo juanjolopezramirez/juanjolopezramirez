@@ -1,0 +1,21 @@
+---
+import Rosa from './Rosa.astro';
+import { tp } from '../data/portal/textos.js';
+
+/* LA ESPERA DE LAS PAGINAS DETRAS DEL PORTAL (/contact/ y /meet/).
+
+   Mientras la guardia (scripts/portal/guardia.js) pregunta al servidor si
+   entraste y estas aprobado, la pagina esta escondida. Antes era una pantalla
+   en blanco; ahora, si la pregunta tarda mas de 0.3 s, aparece la brujula
+   (Rosa.astro) con «Un momento…», en el color de la tinta (de dia y de noche).
+   La guardia la quita al abrir. Sin JavaScript no se ve: no hay nada que esperar.
+
+   El aviso nace VACIO y la guardia le pone el texto a los 0.3 s: un role="status"
+   que ya llega lleno no se anuncia. */
+const { lang } = Astro.props;
+---
+<div class="espera-rosa" data-guardia-espera>
+  <Rosa prefijo="espera" />
+  <p class="espera-rosa__texto" role="status" data-texto={tp(lang).cargando}></p>
+</div>
+<noscript><style is:inline>.espera-rosa { display: none; }</style></noscript>

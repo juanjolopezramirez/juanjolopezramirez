@@ -160,8 +160,18 @@ const CODIGOS = {
   oauth_provider_not_supported: 'google',
   bad_oauth_callback: 'google',
   bad_oauth_state: 'google',
-  provider_email_needs_verification: 'google'
+  provider_email_needs_verification: 'google',
+  /* El codigo de 6 numeros de la app (solo el admin; panel → «Seguridad») */
+  mfa_verification_failed: 'codigoMalo',
+  mfa_challenge_expired: 'codigoCaducado',
+  mfa_ip_address_mismatch: 'redCambio',
+  mfa_factor_name_conflict: 'generico',
+  insufficient_aal: 'faltaCodigo'
 };
+
+/* Un codigo de la app: exactamente seis numeros (al pegarlo se aceptan espacios y guiones). */
+export const soloNumeros = (c) => String(c).replace(/\D+/g, '');
+export const codigoValido = (c) => typeof c === 'string' && /^[\d\s-]+$/.test(c) && /^\d{6}$/.test(soloNumeros(c));
 export function claveDeError(error) {
   if (!error || typeof error !== 'object') return 'generico';
   const codigo = typeof error.code === 'string' ? error.code : '';

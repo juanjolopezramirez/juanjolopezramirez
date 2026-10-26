@@ -4,9 +4,10 @@ import { idiomaDe } from '../../scripts/portal/estado.js';
 
 /* LA BARRA DE UNA VENTANA DE THE ALEF CODE (portal, panel y lo que venga).
 
-   A la izquierda, «‹ Inicio» (vuelve a la portada del sitio en el idioma de la
-   pagina; es un enlace, no cierra nada), el logo en verde y el nombre (el <h1>
-   de la pagina); a la derecha la ruta de la pantalla (~/entrar, ~/panel/inicio:
+   A la izquierda, «‹ Volver al inicio» (vuelve a la portada del sitio en el
+   idioma de la pagina; es un enlace, no cierra nada; su nombre es lo que se ve),
+   el logo en verde y el nombre (el <h1> de la pagina; en el telefono estrecho
+   solo lo oye el lector de pantalla, porque no cabe); a la derecha la ruta de la pantalla (~/entrar, ~/panel/inicio:
    la cambian entrar.js y panel.js por `data-ruta-actual`) y el boton de
    pausa/play del fondo, con los iconos de 8 bits.
 
@@ -19,7 +20,7 @@ const { nombre, idTitulo, ruta, pausar, seguir, lang, inicio } = Astro.props;
 <div class="terminal-barra">
   <div class="terminal-barra__marca">
     {inicio && (
-      <a class="terminal-barra__inicio" href={`/${idiomaDe(lang)}/`} aria-label={inicio.nombre}>
+      <a class="terminal-barra__inicio" href={`/${idiomaDe(lang)}/`}>
         <AlefIcono nombre="volver" class="terminal-barra__flecha" /><span>{inicio.texto}</span>
       </a>
     )}

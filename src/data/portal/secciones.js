@@ -8,7 +8,7 @@
 
    Cuando llegue la estructura definitiva de cada seccion, se añade aqui y en
    textos.js → panel.secciones (y, si necesita campos nuevos en la base, un
-   archivo NUEVO supabase/005_….sql). */
+   archivo NUEVO supabase/007_….sql). */
 export const GRUPOS = ['miembros', 'sitio', 'accesos', 'privado'];
 
 export const SECCIONES = [
@@ -19,13 +19,14 @@ export const SECCIONES = [
   { id: 'trabajos', grupo: 'sitio', admin: true },
   { id: 'videos', grupo: 'sitio', admin: true },
   { id: 'accesos', grupo: 'accesos', admin: true },
+  { id: 'seguridad', grupo: 'accesos', admin: true },
   { id: 'diario', grupo: 'privado', admin: true },
   { id: 'habitos', grupo: 'privado', admin: true },
   { id: 'crecimiento', grupo: 'privado', admin: true }
 ];
 
 /* Las que tienen su pantalla hecha; el resto enseña «Pronto». */
-export const HECHAS = ['inicio', 'accesos'];
+export const HECHAS = ['inicio', 'accesos', 'seguridad'];
 
 export const IDS = SECCIONES.map((s) => s.id);
 export const idsPara = (esAdmin) => SECCIONES.filter((s) => esAdmin || !s.admin).map((s) => s.id);

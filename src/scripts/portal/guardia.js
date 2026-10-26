@@ -25,6 +25,10 @@ const limite = (promesa, ms = 15000) =>
 const pagina = document.querySelector('[data-guardia]');
 if (pagina) revisar(pagina);
 
+/* «Un momento…» entra cuando la brujula aparece (0.3 s, carga.css), y asi se anuncia. */
+const aviso = document.querySelector('[data-guardia-espera] [data-texto]');
+if (aviso) setTimeout(() => { if (aviso.isConnected) aviso.textContent = aviso.dataset.texto || ''; }, 300);
+
 async function revisar(pagina) {
   const lang = idiomaDe(window.location.pathname.split('/')[1]);
   let be = null;
@@ -32,7 +36,12 @@ async function revisar(pagina) {
     const sufijo = be && be.modo === 'demo' ? window.location.search : '';
     window.location.replace(rutaPortal(lang) + sufijo);
   };
-  const abrir = () => { pagina.dataset.guardia = 'ok'; };
+  /* Al abrir se va la brujula de la espera (EsperaRosa.astro). */
+  const abrir = () => {
+    pagina.dataset.guardia = 'ok';
+    const espera = document.querySelector('[data-guardia-espera]');
+    if (espera) espera.remove();
+  };
 
   try {
     be = await abrirBackend(lang);

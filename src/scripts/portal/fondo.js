@@ -36,8 +36,11 @@
      cuando llegan las letras (JetBrains Mono, que trae el griego, y Noto Sans
      Syriac, que trae el arameo). El hebreo lo dibuja la letra del sistema.
    - La א sale de los trazos del logo (assets/alef/logo.svg) con Path2D: nada
-     de imagenes que cargar ni de leer pixeles. */
+     de imagenes que cargar ni de leer pixeles.
+   - Si llegas desde el sitio (`js-llegada`), encima de la red frenan las letras
+     del salto al hiperespacio (salto.js) antes de que se encienda la ventana. */
 import logoSvg from '../../assets/alef/logo.svg?raw';
+import { saltar } from './salto.js';
 
 const HEBREO = 'אבגדהוזחטיכלמנסעפצקרשת';
 const GRIEGO = 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ';
@@ -291,6 +294,10 @@ function iniciar(lienzo) {
   medir();
   aplicar(html.dataset.fondo, html.dataset.fondoLogo === '1');
   arrancar();
+  /* Vienes del sitio con el salto al hiperespacio: las letras llegan lanzadas y
+     frenan aqui, detras de la ventana (salto.js). La cabecera solo pone
+     `js-llegada` si no se pidio quietud; la pausa aqui aun no puede estar puesta. */
+  if (html.classList.contains('js-llegada') && !quieto()) saltar('llegar', lienzo.parentElement);
   const letra = document.fonts?.load
     ? Promise.all([document.fonts.load('500 12px "JetBrains Mono"', GRIEGO), document.fonts.load('500 12px "Noto Sans Syriac"', ARAMEO)])
     : Promise.resolve();

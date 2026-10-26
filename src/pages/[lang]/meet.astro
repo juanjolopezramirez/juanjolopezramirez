@@ -4,6 +4,7 @@ import { CONTACT } from '../../data/social.js';
 import { AGENDA } from '../../data/meet.js';
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
+import EsperaRosa from '../../components/EsperaRosa.astro';
 
 /* Cuadremos un rato: /es/meet/, /en/meet/…
 
@@ -92,5 +93,6 @@ const mail = CONTACT.find((c) => c.id === 'mail' && c.href);
       persona entro y esta aprobada (scripts/portal/guardia.js). */}
   <style is:global>[data-guardia]:not([data-guardia="ok"]) { visibility: hidden; }</style>
   <noscript><style is:inline>[data-guardia] { visibility: visible; }</style></noscript>
+  <EsperaRosa lang={lang} />
   <script>import '../../scripts/portal/guardia.js';</script>
 </Base>

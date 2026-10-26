@@ -19,6 +19,15 @@
      salir()                     { ok }
      alCambiar(cb)               cb(evento, sesion) cada vez que cambia quien es; devuelve «dejar de escuchar»
 
+   y `mfa`, el codigo de 6 numeros de una app (solo el admin; panel.js):
+     nivel()                     undefined | { actual: 'aal1'|'aal2', siguiente }  (siguiente 'aal2' = la cuenta tiene codigo)
+     factores()                  { ok, lista: [{ id, nombre, creado }] } | { error }   (solo los confirmados)
+     inscribir()                 { ok, id, qr (data:image/svg+xml…), secreto } | { error }
+     confirmar(id, codigo)       { ok } | { error }   (el primer codigo del dispositivo nuevo)
+     verificar(codigo)           { ok } | { error }   (entrar con el codigo)
+     quitar(id)                  { ok } | { error }
+     cerrarOtras()               { ok } | { error }   (cierra la cuenta en los demas navegadores)
+
    y, para el panel (components/portal/Panel.astro), `accesos`:
      listarPerfiles() · decidir(id, estado) · listarInvitaciones() · invitar(correo)
      · borrarInvitacion(correo) · leer(tabla)

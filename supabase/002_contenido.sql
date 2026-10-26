@@ -5,7 +5,7 @@
 --
 -- Estas tablas son ESQUELETOS: tienen lo mínimo para que las secciones del panel
 -- existan y se puedan llenar. Cuando me expliques la estructura definitiva se
--- añaden campos con un archivo NUEVO (005_...); este no se vuelve a editar.
+-- añaden campos con un archivo NUEVO (007_...); este no se vuelve a editar.
 --
 -- Requiere haber pegado antes 001_perfiles_y_acceso.sql (usa es_admin() y
 -- esta_aprobado()). Se puede volver a pegar sin romper nada.

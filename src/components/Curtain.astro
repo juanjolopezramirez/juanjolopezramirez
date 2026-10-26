@@ -1,15 +1,19 @@
 ---
+import Rosa from './Rosa.astro';
 ---
 <!-- El telon.
 
-     Solo la marca. La firma entera se queda para el arranque, que es la
-     primera vez y merece la ceremonia; entre paginas basta el sello, que
-     dice lo mismo en un gesto y no hace esperar. Asi las dos cosas se
-     distinguen: la firma es llegar, la marca es moverse.
+     La brujula (2026-10-26, la pidio el fundador; antes era la marca). La firma
+     y la marca se quedan para el arranque, que es la primera vez y merece la
+     ceremonia; entre paginas va la rosa de los vientos, que es moverse: al
+     bajar el telon sus aros se dibujan y la aguja busca el norte, y si la
+     pagina siguiente tarda, el aro gira mientras llega. Asi cada cosa dice lo
+     suyo: la firma es llegar, la brujula es ir de un sitio a otro. La marca de
+     la casa no se rota ni se mete en ningun aro: por eso aqui no esta.
 
      Va oculto salvo que el script se haga cargo (`js-curtain` en <html>):
      sin JavaScript no hay telon que levantar, y un telon que no se levanta
      es una pagina en blanco. -->
 <div class="curtain" id="curtain" aria-hidden="true">
-  <img class="curtain__mark" src="/assets/logos/mark-bone.svg" alt="" width="19" height="32" />
+  <Rosa prefijo="telon" clase="curtain__rosa" />
 </div>

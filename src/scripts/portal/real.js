@@ -11,7 +11,7 @@
         servidor lo vuelve a comprobar todo (supabase/*.sql). Que esta pagina
         lo valide es cortesia, no seguridad. */
 import { crearCliente } from './cliente.js';
-import { claveDeError, correoValido, errorDeClave, idiomaDe, limpiar, urlPortal } from './estado.js';
+import { claveDeError, codigoValido, correoValido, errorDeClave, idiomaDe, limpiar, soloNumeros, urlPortal } from './estado.js';
 
 const ESTADOS = ['pendiente', 'aprobado', 'rechazado'];
 const sinAngulos = (t) => t.replace(/[<>]/g, '');
@@ -158,6 +158,86 @@ export async function abrirReal(cfg, lang) {
         setTimeout(() => cb(evento, quien(sesion)), 0);
       });
       return () => data.subscription.unsubscribe();
+    },
+
+    /* ---- El codigo de 6 numeros de una app (TOTP), para la cuenta del admin ----
+       Lo pide el panel (panel.js): «Seguridad» para ponerlo y la pantalla del codigo
+       para entrar. Con supabase/006_admin_aal2.sql aplicado, sin el codigo la base
+       no abre nada de admin: es el SERVIDOR quien lo exige, no esta pagina. */
+    mfa: {
+      /* undefined = no se pudo saber. `siguiente` es 'aal2' si la cuenta tiene codigo. */
+      async nivel() {
+        try {
+          const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (error || !data) return undefined;
+          return { actual: data.currentLevel || 'aal1', siguiente: data.nextLevel || 'aal1' };
+        } catch (e) { return undefined; }
+      },
+      /* Los dispositivos ya confirmados (los que se quedaron a medias no cuentan). */
+      async factores() {
+        try {
+          const { data, error } = await sb.auth.mfa.listFactors();
+          if (error || !data) return { error: 'generico' };
+          const lista = (data.totp || []).map((f) => ({ id: f.id, nombre: typeof f.friendly_name === 'string' ? f.friendly_name : '', creado: f.created_at }));
+          return { ok: true, lista };
+        } catch (e) { return { error: 'red' }; }
+      },
+      /* Empieza a añadir un dispositivo: devuelve el QR (una imagen SVG en `data:`) y la
+         clave para escribirla a mano. Lo que quedo a medias de otra vez se borra antes. */
+      async inscribir() {
+        try {
+          const previo = await sb.auth.mfa.listFactors();
+          for (const f of (previo.data && previo.data.all) || []) {
+            if (f.factor_type === 'totp' && f.status !== 'verified') await sb.auth.mfa.unenroll({ factorId: f.id });
+          }
+          const nombre = `The Alef Code · ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
+          const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: nombre });
+          if (error || !data || !data.totp) return { error: error ? claveDeError(error) : 'generico' };
+          const qr = data.totp.qr_code;
+          if (typeof qr !== 'string' || !/^data:image\/svg\+xml[;,]/.test(qr)) return { error: 'generico' };
+          return { ok: true, id: data.id, qr, secreto: typeof data.totp.secret === 'string' ? data.totp.secret : '' };
+        } catch (e) { return { error: 'red' }; }
+      },
+      /* Confirma el dispositivo nuevo con su primer codigo. Al confirmarlo, la sesion
+         pasa a nivel 2 y las demas sesiones de la cuenta se cierran (Supabase). */
+      async confirmar(id, codigo) {
+        if (!codigoValido(codigo)) return { error: 'codigoMalo' };
+        try {
+          const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: id, code: soloNumeros(codigo) });
+          return error ? { error: claveDeError(error) } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      },
+      /* Entrar con el codigo: con el primer dispositivo confirmado (todos dan el mismo
+         resultado; el codigo se comprueba contra el que lo genero). */
+      async verificar(codigo) {
+        if (!codigoValido(codigo)) return { error: 'codigoMalo' };
+        try {
+          const { data, error } = await sb.auth.mfa.listFactors();
+          if (error || !data) return { error: 'generico' };
+          const limpio = soloNumeros(codigo);
+          let ultimo = 'codigoMalo';
+          for (const f of data.totp || []) {
+            const r = await sb.auth.mfa.challengeAndVerify({ factorId: f.id, code: limpio });
+            if (!r.error) return { ok: true };
+            ultimo = claveDeError(r.error);
+            if (ultimo !== 'codigoMalo') break;      // red, demasiados…: no se insiste con los demas
+          }
+          return { error: ultimo };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async quitar(id) {
+        try {
+          const { error } = await sb.auth.mfa.unenroll({ factorId: id });
+          return error ? { error: claveDeError(error) } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      },
+      /* Saca la cuenta de cualquier OTRO navegador donde haya quedado abierta (esta sigue). */
+      async cerrarOtras() {
+        try {
+          const { error } = await sb.auth.signOut({ scope: 'others' });
+          return error ? { error: claveDeError(error) } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      }
     },
 
     /* ---- Para el panel del admin. Cada una la protege el SERVIDOR (RLS y

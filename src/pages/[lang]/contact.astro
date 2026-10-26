@@ -2,6 +2,7 @@
 import { LANGS, useT } from '../../i18n/utils.js';
 import Base from '../../layouts/Base.astro';
 import Ruta from '../../components/ruta/Ruta.astro';
+import EsperaRosa from '../../components/EsperaRosa.astro';
 import { RUTA, di } from '../../data/ruta/textos.js';
 
 /* DAR EL PRIMER PASO: /es/contact/, /en/contact/…
@@ -57,5 +58,6 @@ const title = di(RUTA.titulo, lang);
       persona entro y esta aprobada (scripts/portal/guardia.js). */}
   <style is:global>[data-guardia]:not([data-guardia="ok"]) { visibility: hidden; }</style>
   <noscript><style is:inline>[data-guardia] { visibility: visible; }</style></noscript>
+  <EsperaRosa lang={lang} />
   <script>import '../../scripts/portal/guardia.js';</script>
 </Base>

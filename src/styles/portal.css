@@ -179,11 +179,6 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
    ENTRADA_MS (carga.js). Con el fondo quieto no pasa: se va al panel enseguida. */
 .portal[data-vista="aprobado"] .portal__ventana { animation: tubo-apagar .36s cubic-bezier(.7, 0, .84, 0) .06s both; }
 .portal[data-vista="aprobado"] .portal__halo { animation: none; opacity: 0; transition: opacity .3s var(--ease); }
-@keyframes tubo-apagar {
-  0%   { transform: none; filter: none; opacity: 1; }
-  55%  { transform: scale(1, .006); filter: brightness(3); opacity: 1; }
-  100% { transform: scale(0, .006); filter: brightness(3); opacity: 0; }
-}
 .fondo-quieto .portal[data-vista="aprobado"] .portal__ventana { animation: none; }
 /* La pausa del fondo para TODO lo que se mueve solo (WCAG 2.2.2): tambien la א que
    late y los cursores que parpadean. */

@@ -1,6 +1,30 @@
-# Álef · el portal
+# The Alef Code · el portal (antes «Álef»)
 
 Guía para ti, Juanjo. Sin tecnicismos. Si algo no se entiende, el error es de la guía, no tuyo.
+
+---
+
+## 0. Lo que te falta hacer, en orden, y DÓNDE se hace cada cosa
+
+Todo se hace en el **navegador** (Chrome, Edge…) salvo los pasos marcados con 📱, que son en tu **celular**. Ninguno pide pegarme nada en el chat.
+
+| # | Dónde (aplicación o página) | Qué haces | Cómo sabes que quedó bien |
+|---|---|---|---|
+| 1 | **Supabase** — supabase.com → proyecto **alef-code** → menú izquierdo **Authentication** → **URL Configuration** | En **Site URL** pones `https://juanjolopezramirez.com`. En **Redirect URLs** añades, una por una: `https://juanjolopezramirez.com/es/portal/`, `/en/portal/`, `/pt/portal/`, `/fr/portal/` y `/it/portal/` (cada una con el `https://juanjolopezramirez.com` delante). **Save**. | En tu web, «Continuar con Google» te devuelve al portal y no a `localhost:3000`. |
+| 2 | **Supabase** — mismo proyecto → **Authentication** → **Sign In / Providers** (o **Settings**, según la versión) | Encendido: **Confirm email**, **Secure email change** y **Secure password change**. Apagado: **Allow anonymous sign-ins**. | Los interruptores quedan como dice aquí. |
+| 3 | **Tu cuenta de Google** — myaccount.google.com → **Seguridad** | Activa la **Verificación en 2 pasos** y, si te lo ofrece, una **llave de acceso** (passkey). Guarda los códigos de respaldo en papel. | Google te pide el segundo paso al entrar en otro equipo. |
+| 4 | **Supabase** — tu foto (arriba a la derecha) → **Account preferences** → **Security** / **Multi-factor authentication** | Activa la verificación en 2 pasos de **tu cuenta de Supabase** (es la llave maestra de todo). | Supabase te pide un código al entrar. |
+| 5 | **GitHub** — github.com → tu foto → **Settings** → **Password and authentication** | Activa **Two-factor authentication**. | GitHub te pide un código al entrar. |
+| 6 | **GitHub** — **Settings** → **Emails** | Marca **Keep my email addresses private** y **Block command line pushes that expose my email**. | En tus próximos cambios ya no sale tu Gmail. |
+| 7 | **Tu web** — juanjolopezramirez.com/es/portal/ | Entra con Google. Te lleva al panel. Abre **Seguridad** → **Añadir un dispositivo**. | Ves un código QR y una clave. |
+| 8 | 📱 **Google Authenticator** (o Authy) en tu celular | Botón **+** → **Escanear un código QR** → apunta al QR de la pantalla. Aparece «The Alef Code» con 6 números. | La app muestra los 6 números, que cambian cada 30 segundos. |
+| 9 | **Tu web** — la misma pantalla del paso 7 | Escribe esos 6 números y pulsa **Confirmar**. | «Listo. Este dispositivo ya sirve para entrar.» |
+| 10 | **Tu web** + 📱 un **segundo** dispositivo (otra app, otro teléfono o tu gestor de contraseñas: 1Password, Bitwarden…) | Repite 7 → 9 con ese respaldo. **Desde la misma conexión a internet** de principio a fin. | En «Dispositivos» salen **dos**. |
+| 11 | **Tu web** | Pulsa **Salir** y vuelve a entrar con Google. | El panel te pide **«Escribe tu código»** antes de abrirse. |
+| 12 | **Supabase** — **SQL Editor** (menú izquierdo) → **New query** | En tu computador abre el archivo `juanjo-web/supabase/006_admin_aal2.sql` (con el Bloc de notas o VS Code), copia **todo**, pégalo en el editor y pulsa **Run**. | Dice «Success». Si dice «Primero añade tu celular…», te faltó el paso 9: no cambió nada. |
+| 13 | **Supabase** — **SQL Editor** → **New query** | Abre `juanjo-web/supabase/990_comprobar_rls.sql`, copia todo, pega, y corre las consultas **11, 12 y 13** (selecciona cada una y **Run**). | 11 dice **true**; 12 y 13 salen **vacías**. |
+
+Si un menú de Supabase, Google o GitHub cambió de nombre, busca la palabra en su buscador: lo que importa es lo que hace cada paso. Si te pierdes en alguno, dime el número del paso y lo vemos.
 
 ---
 
@@ -80,6 +104,7 @@ En Supabase → **SQL Editor**, abre cada archivo de la carpeta `supabase/`, cop
 3. `003_privado.sql`
 4. `004_almacen.sql`
 5. `005_indice_registros.sql`
+6. `006_admin_aal2.sql` — **todavía no**: va después de poner el código de tu celular (paso F2).
 
 **Ya hecho el 2026-10-26:** el proyecto se creó y estos cinco ya están aplicados y revisados. Solo hace falta repetirlo si algún día creas otro proyecto.
 
@@ -130,6 +155,20 @@ Con los datos básicos (correo y perfil) Google **no pide verificación**. Mient
 3. Recarga el portal: ya entras al panel y ves «Quién entra».
 4. Pega `990_comprobar_rls.sql` en el SQL Editor y córrelo consulta por consulta (selecciona una y Run). Los resultados dicen cómo leerlos (arriba del archivo). Si algo sale distinto a lo que dice, me lo cuentas.
 
+### F2. El código de tu celular (solo para tu cuenta de admin)
+Así, aunque alguien entrara con tu Google, no abriría nada de admin sin los 6 números de tu app.
+1. En el panel → **Seguridad** → **Añadir un dispositivo**. Escanea el QR con tu app (Google Authenticator, Authy o tu gestor de contraseñas) y escribe el primer código. Hazlo desde la misma conexión de principio a fin.
+2. Repite con un **segundo dispositivo de respaldo** (otra app, otro teléfono o tu gestor de contraseñas). Supabase no da códigos de recuperación: el respaldo es eso.
+3. Sal y vuelve a entrar: el panel te pide el código. Bien.
+4. Pega `006_admin_aal2.sql` **entero** en el SQL Editor → **Run**. Desde ahora la BASE exige el código (si algún admin aún no tiene dispositivo, el archivo se niega y no cambia nada).
+5. Corre `990_comprobar_rls.sql`: las consultas 11, 12 y 13 dicen si quedó bien.
+(Paso a paso y con el nombre de cada aplicación: la tabla de la sección 0, pasos 7 a 13.)
+- **Si pierdes todos tus dispositivos:** abre `910_deshacer_006.sql`, cambia `'NO'` por `'SI'` (viene apagado a propósito), pégalo en el SQL Editor (tu cuenta de Supabase, con su propia verificación), sal, entra, añade un dispositivo nuevo enseguida y vuelve a pegar el 006.
+- **No quites dispositivos desde dos pestañas a la vez**: el panel nunca deja quitar el último, pero dos pestañas abiertas podrían quitar uno cada una.
+- En Supabase → Authentication → Settings, deja encendidos **Secure password change** y **Secure email change**: así una sesión robada sin código tampoco cambia tu contraseña ni tu correo.
+- **«Cerrar mis otras sesiones»** (en Seguridad) saca a cualquier otro navegador donde haya quedado abierta tu cuenta.
+- Activa también la verificación en 2 pasos de tu **cuenta de Supabase**: es la llave maestra de todo esto.
+
 ### G. Publicar
 1. En GitHub → el repositorio → **Settings → Secrets and variables → Actions → pestaña Secrets** → `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY` con los mismos dos valores. Son públicos (viajan dentro de la web), pero como *Secrets* no salen escritos en los registros públicos de cada publicación. Desde este computador se cargan sin copiarlos a mano con `gh secret set -f .env -R juanjolopezramirez/juanjolopezramirez` (lee tu `.env`, que debe tener SOLO esas dos líneas).
 2. El archivo de publicación (`.github/workflows/astro.yml`) ya los usa (`secrets.PUBLIC_SUPABASE_*`) y corre `node tools/test-portal.mjs` antes de compilar. **No publico nada sin tu «sí, súbelo».**
@@ -161,7 +200,7 @@ Cómo se configura: Supabase → **Authentication** → SMTP (guía oficial: sup
 
 ## 8. Lo que viene
 
-Cuando me expliques la estructura de cada sección, se construye una a una (Escribir, Libros, Proyectos, Trabajos, Videos, Diario, Hábitos, Crecimiento). Si necesitan campos nuevos, va en un archivo **nuevo** (`006_…sql`): los de ahora no se vuelven a editar.
+Cuando me expliques la estructura de cada sección, se construye una a una (Escribir, Libros, Proyectos, Trabajos, Videos, Diario, Hábitos, Crecimiento). Si necesitan campos nuevos, va en un archivo **nuevo** (`007_…sql`): los de ahora no se vuelven a editar.
 
 ## 9. Si algo no va
 
