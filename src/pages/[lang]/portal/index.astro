@@ -1,0 +1,28 @@
+---
+import { LANGS, useT } from '../../../i18n/utils.js';
+import Terminal from '../../../layouts/Terminal.astro';
+import Tarjeta from '../../../components/portal/Tarjeta.astro';
+import { tp } from '../../../data/portal/textos.js';
+
+/* EL PORTAL «ÁLEF»: /es/portal/, /en/portal/…
+
+   Se llega por «Caminemos». Aqui se entra con Google o con correo, o se pide
+   acceso; el acceso lo da una sola persona (el admin). Debajo, siempre,
+   «¿Prefieres escribirme?».
+
+   NO sale en buscadores (`noindex`) ni en el mapa del sitio. Ver PORTAL.md.
+   La direccion sigue en ingles en los cinco idiomas, como el resto del sitio. */
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+const x = tp(lang);
+---
+<Terminal lang={lang} path="portal"
+          title={`${x.paginaTitulo} — Juan José López Ramírez`}
+          description={x.paginaDescripcion}>
+  <Tarjeta lang={lang} t={t} />
+</Terminal>

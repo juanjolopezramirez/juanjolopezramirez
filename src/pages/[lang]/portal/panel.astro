@@ -1,0 +1,25 @@
+---
+import { LANGS } from '../../../i18n/utils.js';
+import Terminal from '../../../layouts/Terminal.astro';
+import Panel from '../../../components/portal/Panel.astro';
+import { tp } from '../../../data/portal/textos.js';
+
+/* EL PANEL DE «ÁLEF»: /es/portal/panel/, /en/portal/panel/…
+
+   Solo para quien entro y esta aprobado (panel.js lo comprueba con el servidor y,
+   si no, lo manda al portal). Una pagina estatica no se puede proteger por si
+   sola: no hay nada secreto en ella, y los datos viven detras de las reglas de la
+   base. `noindex` y fuera del mapa del sitio. Ver PORTAL.md. */
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const x = tp(lang);
+---
+<Terminal lang={lang} path="portal/panel"
+          title={`${x.panel.paginaTitulo} — Juan José López Ramírez`}
+          description={x.paginaDescripcion}>
+  <Panel lang={lang} />
+</Terminal>

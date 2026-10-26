@@ -1,0 +1,50 @@
+---
+import logo from '../../assets/alef/logo.svg?raw';
+import pausa from '../../assets/alef/pausa.svg?raw';
+import play from '../../assets/alef/play.svg?raw';
+import volver from '../../assets/alef/volver.svg?raw';
+
+/* LOS ICONOS DE THE ALEF CODE: el logo (la א en pixeles), pausa y play, en 8 bits.
+
+   Los dibujo el fundador (2026-10-26); `volver` (la flecha del enlace a la
+   portada) se dibujo despues con la misma rejilla de pixeles, para que no
+   desentone. Viven en assets/alef/ con `fill="currentColor"`:
+   toman el color del texto que los rodea, y el tono se elige con una clase
+   (styles/terminal.css):
+
+     tono--verde   #00FF66  la terminal (el logo, el cursor, el boton del fondo)
+     tono--blanco  #FFFFFF  sobre fondos oscuros
+     tono--rojo    #FF3B3B  error y carga (siempre con texto al lado)
+     tono--iris    iris 300 los detalles de la casa
+
+   Van en linea (no <img>) para heredar el color. Son decoracion salvo que se les
+   de `titulo`: entonces llevan role="img" y su nombre. Los bordes en escalera se
+   pintan sin suavizar (`crispEdges`), como pixeles. */
+const DIBUJOS = { logo, pausa, play, volver };
+const { nombre = 'logo', tono, titulo, class: clase } = Astro.props;
+const fuente = DIBUJOS[nombre];
+if (!fuente) throw new Error(`AlefIcono: no existe «${nombre}»`);
+/* Van en linea (set:html): si alguien cambia un dibujo por uno con guiones o
+   enlaces, la compilacion se PARA aqui. Solo <svg> y <path>, y solo atributos de
+   dibujo. Se afirma, no se sanea. */
+const ATRIBUTOS = /^(d|fill|fill-rule|clip-rule|viewBox|xmlns)$/;
+for (const [, etiqueta, attrs] of fuente.matchAll(/<\/?([A-Za-z][\w:-]*)([^>]*)>/g)) {
+  if (!/^(svg|path)$/.test(etiqueta)) throw new Error(`AlefIcono «${nombre}»: etiqueta no permitida <${etiqueta}>`);
+  for (const [, a] of attrs.matchAll(/([\w:-]+)\s*=\s*"[^"<>]*"/g)) {
+    if (!ATRIBUTOS.test(a)) throw new Error(`AlefIcono «${nombre}»: atributo no permitido ${a}`);
+  }
+  /* Lo que sobra tras quitar los `nombre="valor"` limpios tiene que ser nada (o el «/» del
+     cierre). Asi un «>» escondido dentro de un valor no cuela otro atributo detras. */
+  if (!/^\s*\/?\s*$/.test(attrs.replace(/([\w:-]+)\s*=\s*"[^"<>]*"/g, ''))) {
+    throw new Error(`AlefIcono «${nombre}»: atributos que no se dejan leer en <${etiqueta}>`);
+  }
+}
+if (/<(?!\/?(svg|path)\b)/.test(fuente)) throw new Error(`AlefIcono «${nombre}»: hay algo que no es <svg> ni <path>`);
+const caja = fuente.match(/viewBox="([^"]+)"/)?.[1];
+const dibujo = fuente.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+---
+<svg class:list={['alef-icono', `alef-icono--${nombre}`, tono && `tono--${tono}`, clase]}
+     viewBox={caja} fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"
+     focusable="false"
+     role={titulo ? 'img' : undefined} aria-label={titulo} aria-hidden={titulo ? undefined : 'true'}
+     set:html={dibujo} />

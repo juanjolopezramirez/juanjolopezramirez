@@ -1,6 +1,9 @@
 # Dar el primer paso
 
-La ruta de `/[lang]/contact/`. Se llega por **Caminemos → Dar el primer paso**.
+La ruta de `/[lang]/contact/`. Se llega por **Caminemos → portal «Álef» → (ya aprobado) Inicio → Dar el primer paso**
+(ver [PORTAL.md](PORTAL.md)). La página lleva `noindex`, no sale en el mapa del sitio y una guardia
+(`src/scripts/portal/guardia.js`) manda al portal a quien no entró o aún no está aprobado; si el portal
+está «apagado» (sin Supabase conectado), la guardia se abre sola.
 
 **Dos juegos, uno detrás del otro, y cada uno pone un eje.**
 

@@ -4,7 +4,8 @@ import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import Biblioteca from '../../components/Biblioteca.astro';
 import Destacados from '../../components/Destacados.astro';
-import RepisaLibros from '../../components/RepisaLibros.astro';
+import SalaLibros from '../../components/SalaLibros.astro';
+import BuscarLibros from '../../components/BuscarLibros.astro';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
@@ -14,11 +15,13 @@ const t = useT(lang);
 const title = t('page.writing.title');
 ---
 <Base lang={lang} path="writing" active="writing" title={`${title} — Juan José López Ramírez`}>
-  {/* En el lado de la cabecera, tres libros de frente sobre su repisa, como en Destacados
-      (data/biblioteca.js → PORTADAS); tocar uno lo abre. Sin el sello ni los enlaces
-      «por donde seguir» a las otras pestañas. */}
-  <PageHero lang={lang} t={t} slug="writing">
-    <RepisaLibros slot="aside" lang={lang} t={t} />
+  {/* En el lado de la cabecera, la sala de lectura (SalaLibros): la pared dorada de la
+      biblioteca, un mueble de nogal y, de frente, las tres portadas de siempre (tocar una
+      la abre). Debajo del lead, la busqueda y la cuenta de libros. Sin el verde: aprobado
+      el 2026-10-26. */}
+  <PageHero lang={lang} t={t} slug="writing" sala>
+    <BuscarLibros slot="extra" lang={lang} t={t} />
+    <SalaLibros slot="aside" lang={lang} t={t} />
   </PageHero>
   <Biblioteca lang={lang} t={t} />
   <Destacados lang={lang} t={t} />

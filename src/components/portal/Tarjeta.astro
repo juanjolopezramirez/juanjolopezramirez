@@ -1,0 +1,207 @@
+---
+import Icon from '../Icon.astro';
+import BarraTerminal from './BarraTerminal.astro';
+import AlefIcono from './AlefIcono.astro';
+import Escribeme from './Escribeme.astro';
+import Campo from './Campo.astro';
+import { tp, jsonSeguro } from '../../data/portal/textos.js';
+import '../../styles/portal.css';
+
+/* LA TERMINAL DEL PORTAL «THE ALEF CODE» (/[lang]/portal/).
+
+   Una ventana de terminal sobre la noche (layouts/Terminal.astro pone el fondo:
+   la lava y la red de signos). Arriba, la barra (BarraTerminal.astro) con el
+   logo, el nombre, la ruta de la pantalla (~/entrar, ~/pedir-acceso…) y el
+   boton de pausa del fondo.
+
+   DOS COLUMNAS Y SIN SCROLL (2026-10-26, lo pidio el fundador): a la izquierda
+   el logo grande, el lema como linea de comando y «¿Prefieres escribirme?»; a
+   la derecha la pantalla que toque. En el telefono, una sola columna compacta:
+   el lema arriba, la pantalla, y los canales al pie. La pagina entera cabe en
+   la ventana; si una pantalla larga (pedir acceso) no cabe en un telefono muy
+   bajo, se desliza SOLO la hoja, por dentro de la ventana (portal.css). Las esquinas redondas, el brillo y la letra mono
+   son excepciones que el fundador aprobo el 2026-10-26 SOLO para estas
+   interfaces (styles/terminal.css las enumera).
+
+   UNA SOLA PAGINA, VARIAS PANTALLAS. Cada `section[data-pantalla]` es una
+   pantalla de la hoja; todas nacen escondidas y entrar.js enseña la que toca
+   segun quien eres (sin sesion, pendiente, rechazado, aprobado) y segun lo que
+   se pulse. Al cambiar, el foco va al titulo nuevo. Pantallas:
+
+     entrar · pedir · correoEnviado · recuperar · nuevaClave · pendiente · rechazado
+     · apagado (el portal aun no esta conectado) · problema (sin conexion)
+     · cargando · aprobado (de camino al panel)
+
+   SIN JAVASCRIPT no hay nada que enseñar salvo «para entrar hace falta
+   JavaScript» y los canales de siempre: el <noscript> y «¿Prefieres
+   escribirme?» son lo unico visible. Los textos viajan al navegador en el
+   <script type="application/json"> de abajo: nunca llevan nada secreto. */
+const { lang, t } = Astro.props;
+const x = tp(lang);
+---
+<section class="portal" id="portal" data-portal data-idioma={lang} aria-labelledby="portal-nombre"
+         lang={lang !== 'es' ? 'es' : undefined}>
+  <!-- El halo: la luz verde de la lava que se cuela por detras de la ventana y gira despacio. -->
+  <div class="portal__halo" aria-hidden="true"></div>
+
+  <div class="portal__ventana">
+
+    <BarraTerminal nombre={x.nombre} idTitulo="portal-nombre" ruta="~/entrar"
+                   pausar={x.fondo.pausar} seguir={x.fondo.seguir} lang={lang} inicio={x.inicio} />
+
+    <div class="portal__cuerpo">
+    <div class="portal__lado">
+      <AlefIcono nombre="logo" tono="verde" class="portal__logo" />
+      <p class="portal__comando" aria-hidden="true"><span class="portal__prompt">$</span> {x.lema}<span class="portal__cursor"></span></p>
+    </div>
+
+    <div class="portal__hoja">
+      <p class="portal__demo" data-demo hidden>{x.demo}</p>
+
+      <noscript><p class="portal__nota">{x.sinJavascript}</p></noscript>
+
+      <!-- Anuncia los cambios de pantalla y los avisos («Guardado.»). Siempre presente y
+           vacia: un role="status" que aparece ya lleno suele callar. Lo escribe entrar.js. -->
+      <p class="sr-only" data-anuncio role="status" aria-live="polite" aria-atomic="true"></p>
+
+      <!-- ESPERAS: la א late en rojo (el tono de la carga) y debajo, la bitacora: los pasos
+           que de verdad estan ocurriendo (carga.js). Detras, el fondo llueve (fondo.js). -->
+      <section class="portal__panel portal__espera" data-pantalla="cargando" aria-labelledby="p-cargando" hidden>
+        <AlefIcono nombre="logo" tono="rojo" class="portal__espera-logo" />
+        <p class="portal__nota" id="p-cargando" tabindex="-1">{x.cargando}</p>
+        <ol class="portal__bitacora" data-bitacora aria-hidden="true"></ol>
+      </section>
+
+      <!-- ENTRANDO: la ventana se apaga como una pantalla de tubo (portal.css) y detras
+           el fondo descifra la א; luego, el panel. -->
+      <section class="portal__panel portal__espera" data-pantalla="aprobado" data-ruta="entrando" aria-labelledby="p-aprobado" hidden>
+        <AlefIcono nombre="logo" tono="verde" class="portal__espera-logo" />
+        <p class="portal__nota" id="p-aprobado" tabindex="-1">{x.aprobado}</p>
+      </section>
+
+      <!-- ENTRAR -->
+      <section class="portal__panel" data-pantalla="entrar" data-ruta="entrar" aria-labelledby="p-entrar" hidden>
+        <h2 class="portal__titulo" id="p-entrar" tabindex="-1">{x.entrar.titulo}</h2>
+        <p class="portal__linea">{x.entrar.linea}</p>
+        <button class="portal__google" type="button" data-google>
+          <Icon id="google" /><span>{x.entrar.google}</span>
+        </button>
+        <p class="portal__o" aria-hidden="true"><span>{x.entrar.o}</span></p>
+        <form class="portal__form" data-form="entrar" novalidate>
+          <Campo id="e-correo" name="email" label={x.entrar.correo} type="email" autocomplete="username" maxlength="254" inputmode="email" />
+          <Campo id="e-clave" name="password" label={x.entrar.clave} type="password" autocomplete="current-password" maxlength="72"
+                 ojo verClave={x.entrar.verClave} />
+          <p class="portal__error" data-error role="alert" hidden></p>
+          <button class="portal__boton" type="submit">{x.entrar.boton}</button>
+        </form>
+        <p class="portal__enlaces">
+          <button class="portal__enlace" type="button" data-ir="recuperar">{x.entrar.olvide}</button>
+          <button class="portal__enlace" type="button" data-ir="pedir">{x.entrar.pedir}</button>
+        </p>
+      </section>
+
+      <!-- PEDIR ACCESO -->
+      <section class="portal__panel" data-pantalla="pedir" data-ruta="pedir-acceso" aria-labelledby="p-pedir" hidden>
+        <h2 class="portal__titulo" id="p-pedir" tabindex="-1">{x.pedir.titulo}</h2>
+        <p class="portal__linea">{x.pedir.linea}</p>
+        <button class="portal__google" type="button" data-google>
+          <Icon id="google" /><span>{x.pedir.google}</span>
+        </button>
+        <p class="portal__o" aria-hidden="true"><span>{x.pedir.o}</span></p>
+        <form class="portal__form" data-form="pedir" novalidate>
+          <Campo id="p-nombre" name="nombre" label={x.pedir.nombre} autocomplete="name" maxlength="80" />
+          <Campo id="p-correo" name="email" label={x.pedir.correo} type="email" autocomplete="username" maxlength="254" inputmode="email" />
+          <Campo id="p-clave" name="password" label={x.pedir.clave} type="password" autocomplete="new-password" minlength="10" maxlength="72"
+                 ayuda={x.pedir.ayudaClave} ojo verClave={x.entrar.verClave} />
+          <Campo id="p-motivo" name="motivo" label={x.pedir.motivo} textarea maxlength="300" autocomplete="off" required={false} />
+          <p class="portal__error" data-error role="alert" hidden></p>
+          <button class="portal__boton" type="submit">{x.pedir.boton}</button>
+        </form>
+        <p class="portal__nota portal__nota--chica">{x.pedir.privacidad}</p>
+        <p class="portal__enlaces">
+          <button class="portal__enlace" type="button" data-ir="entrar">{x.pedir.yaTengo}</button>
+        </p>
+      </section>
+
+      <!-- REVISA TU CORREO -->
+      <section class="portal__panel" data-pantalla="correoEnviado" data-ruta="revisa-tu-correo" aria-labelledby="p-correo-enviado" hidden>
+        <h2 class="portal__titulo" id="p-correo-enviado" tabindex="-1">{x.correoEnviado.titulo}</h2>
+        <p class="portal__linea">{x.correoEnviado.linea}</p>
+        <p class="portal__enlaces">
+          <button class="portal__enlace" type="button" data-ir="entrar">{x.correoEnviado.volver}</button>
+        </p>
+      </section>
+
+      <!-- OLVIDÉ MI CONTRASEÑA -->
+      <section class="portal__panel" data-pantalla="recuperar" data-ruta="recuperar" aria-labelledby="p-recuperar" hidden>
+        <h2 class="portal__titulo" id="p-recuperar" tabindex="-1">{x.recuperar.titulo}</h2>
+        <p class="portal__linea">{x.recuperar.linea}</p>
+        <form class="portal__form" data-form="recuperar" novalidate>
+          <Campo id="r-correo" name="email" label={x.entrar.correo} type="email" autocomplete="email" maxlength="254" inputmode="email" />
+          <p class="portal__error" data-error role="alert" hidden></p>
+          <p class="portal__listo" data-listo hidden>{x.recuperar.hecho}</p>
+          <button class="portal__boton" type="submit">{x.recuperar.boton}</button>
+        </form>
+        <p class="portal__enlaces">
+          <button class="portal__enlace" type="button" data-ir="entrar">{x.recuperar.volver}</button>
+        </p>
+      </section>
+
+      <!-- CONTRASEÑA NUEVA (se llega con el enlace del correo de «olvidé mi contraseña») -->
+      <section class="portal__panel" data-pantalla="nuevaClave" data-ruta="nueva-clave" aria-labelledby="p-nueva-clave" hidden>
+        <h2 class="portal__titulo" id="p-nueva-clave" tabindex="-1">{x.nuevaClave.titulo}</h2>
+        <p class="portal__linea">{x.nuevaClave.linea}</p>
+        <form class="portal__form" data-form="nuevaClave" novalidate>
+          <Campo id="n-clave" name="password" label={x.nuevaClave.clave} type="password" autocomplete="new-password" minlength="10" maxlength="72"
+                 ayuda={x.pedir.ayudaClave} ojo verClave={x.entrar.verClave} />
+          <p class="portal__error" data-error role="alert" hidden></p>
+          <button class="portal__boton" type="submit">{x.nuevaClave.boton}</button>
+        </form>
+      </section>
+
+      <!-- PENDIENTE -->
+      <section class="portal__panel" data-pantalla="pendiente" data-ruta="pendiente" aria-labelledby="p-pendiente" hidden>
+        <h2 class="portal__titulo" id="p-pendiente" tabindex="-1">{x.pendiente.titulo}</h2>
+        <p class="portal__linea">{x.pendiente.linea}</p>
+        <form class="portal__form" data-form="motivo" data-motivo-form novalidate hidden>
+          <Campo id="m-motivo" name="motivo" label={x.pendiente.motivo} textarea maxlength="300" autocomplete="off" required={false} />
+          <p class="portal__error" data-error role="alert" hidden></p>
+          <p class="portal__listo" data-listo hidden>{x.pendiente.guardado}</p>
+          <button class="portal__boton portal__boton--suave" type="submit">{x.pendiente.guardar}</button>
+        </form>
+        <p class="portal__enlaces">
+          <button class="portal__enlace portal__enlace--salir" type="button" data-salir><Icon id="salir" /><span>{x.pendiente.salir}</span></button>
+        </p>
+      </section>
+
+      <!-- RECHAZADO -->
+      <section class="portal__panel" data-pantalla="rechazado" data-ruta="rechazado" aria-labelledby="p-rechazado" hidden>
+        <h2 class="portal__titulo" id="p-rechazado" tabindex="-1">{x.rechazado.titulo}</h2>
+        <p class="portal__linea">{x.rechazado.linea}</p>
+        <p class="portal__enlaces">
+          <button class="portal__enlace portal__enlace--salir" type="button" data-salir><Icon id="salir" /><span>{x.rechazado.salir}</span></button>
+        </p>
+      </section>
+
+      <!-- AÚN NO ESTÁ ABIERTO (sin Supabase conectado en esta publicacion) -->
+      <section class="portal__panel" data-pantalla="apagado" data-ruta="pronto" aria-labelledby="p-apagado" hidden>
+        <h2 class="portal__titulo" id="p-apagado" tabindex="-1">{x.apagado.titulo}</h2>
+        <p class="portal__linea">{x.apagado.linea}</p>
+      </section>
+
+      <!-- SIN CONEXIÓN -->
+      <section class="portal__panel" data-pantalla="problema" data-ruta="sin-conexion" aria-labelledby="p-problema" hidden>
+        <h2 class="portal__titulo" id="p-problema" tabindex="-1">{x.problema.titulo}</h2>
+        <p class="portal__linea">{x.problema.linea}</p>
+        <button class="portal__boton" type="button" data-reintentar>{x.problema.reintentar}</button>
+      </section>
+
+    </div>
+
+    <Escribeme t={t} lang={lang} titulo={x.escribeme.titulo} />
+    </div>
+
+  </div>
+  <script type="application/json" id="portal-textos" set:html={jsonSeguro(x)}></script>
+  <script>import '../../scripts/portal/entrar.js';</script>
+</section>

@@ -4,7 +4,8 @@ import Icon from './Icon.astro';
 /* `sky` cambia el suelo de la seccion por debajo de la costura: en vez
    de hueso, un verde que se mueve. Lo pide quien lo necesita —hoy solo
    el camino, que lleva el planeta— y el resto sigue en hueso. */
-const { lang, t, slug, sky = false } = Astro.props;
+const { lang, t, slug, sky = false, sala = false } = Astro.props;
+/* `sala`: el lado de la cabecera deja de ser pinar y es la sala de lectura (Recursos). */
 
 const here = NAV.find((n) => n.slug === slug);
 /* Las otras puertas de la casa: desde aqui se sigue, no se vuelve atras. */
@@ -24,7 +25,7 @@ const titleTail = title.slice(cut);
 <!-- El mismo hero del home, con los lados cambiados: aqui el hueso esta a
      la izquierda y el pinar a la derecha. Movil primero — una columna, lo
      que se lee arriba — y desde 1200px la costura, al reves. -->
-<section class:list={['phero', { 'phero--foot': hasFoot, 'phero--sky': sky }]} id="top">
+<section class:list={['phero', { 'phero--foot': hasFoot, 'phero--sky': sky, 'phero--sala': sala }]} id="top">
 
   <div class="phero__field" aria-hidden="true"></div>
 
@@ -34,6 +35,10 @@ const titleTail = title.slice(cut);
          marcar aparte. -->
     <h1 class="phero__title" data-lift>{titleHead}<span class="phero__sub">{titleTail}</span></h1>
     <p class="phero__lead" data-lift>{t(`page.${slug}.lead`) ?? ''}</p>
+
+    <!-- Lo que va debajo del lead, si la seccion lo trae: en Proyectos, las
+         preguntas de las casas; en Recursos, la busqueda y la cuenta de libros. -->
+    <slot name="extra" />
 
     {here?.soon && (
       <p class="phero__status" data-lift>
@@ -64,12 +69,12 @@ const titleTail = title.slice(cut);
           </li>
         ))}
         <li>
-          <!-- Abre la misma hoja que la cabecera. Aqui hay sitio para la
+          <!-- Lleva al mismo portal que la cabecera. Aqui hay sitio para la
                pregunta entera, que invita mejor que el «Caminemos» corto. -->
-          <button class="door door--write" type="button" data-open-contact aria-haspopup="dialog">
+          <a class="door door--write" href={`/${lang}/portal/`}>
             <span>{t('contact.cta')}</span>
             <Icon id="corner" />
-          </button>
+          </a>
         </li>
       </ul>
     </nav>

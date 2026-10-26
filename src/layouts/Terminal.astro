@@ -1,0 +1,32 @@
+---
+import Base from './Base.astro';
+import Fondo from '../components/portal/Fondo.astro';
+import '../styles/terminal.css';
+
+/* LA BASE DE LAS INTERFACES DE TRABAJO: THE ALEF CODE.
+
+   El portal (/[lang]/portal/), el panel (/[lang]/portal/panel/) y cualquier
+   interfaz privada que venga (el dashboard, sus herramientas) se montan sobre
+   esto. El fundador lo pidio el 2026-10-26: «el fondo y la estructura del
+   portal me gustan para el dashboard y cualquier otra interfaz».
+
+   Lo que pone:
+     · la pagina SIN la cabecera ni el pie del sitio (Base `limpio`): una
+       interfaz limpia, solo la ventana;
+     · la noche (Base `noche`: JetBrains Mono y la clase .pagina--noche);
+     · el fondo vivo detras: la lava de los verdes y la red de signos en
+       hebreo, griego koine y arameo (Fondo.astro);
+     · los colores y la ventana de terminal (styles/terminal.css).
+
+   Dentro va la ventana de cada interfaz, con su BarraTerminal arriba. Todo esto
+   (esquinas redondas, brillo, letra mono, nombre en ingles) son excepciones al
+   libro de marca aprobadas SOLO para estas interfaces: no se usa en paginas
+   publicas. Siempre `noindex`. */
+const { lang, path, active = 'portal', title, description } = Astro.props;
+---
+<Base lang={lang} path={path} active={active} noindex noche limpio title={title} description={description}>
+  <div class="terminal">
+    <Fondo />
+    <slot />
+  </div>
+</Base>

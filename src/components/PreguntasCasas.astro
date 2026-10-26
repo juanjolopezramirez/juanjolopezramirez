@@ -1,0 +1,73 @@
+---
+import Pregunta from './Pregunta.astro';
+import { PROJECTS } from '../data/projects.js';
+import { propositoDe } from '../data/manifesto.js';
+import '../styles/hero-extra.css';
+
+/* LAS PREGUNTAS DE LAS CASAS, en el hero de Proyectos (aprobado el 2026-10-26).
+
+   Debajo del titulo, la pregunta de una casa con su correccion: las respuestas
+   de siempre pasando tachadas y la buena a mano (Pregunta.astro, que ya hace
+   eso con `initTachones`). Cada ~7 s pasa a la casa siguiente.
+
+   El texto sale de data/manifesto.js (PROPOSITO), el mismo de las fichas: aqui
+   no se escribe ninguna pregunta nueva. Las casas son las de PROYECTOS que
+   tienen proposito, en el mismo orden.
+
+   NO SALTA: todas las casas estan apiladas en la misma celda y las de fuera solo
+   se esconden (`visibility` + `inert`), asi que la caja mide siempre lo que la
+   pregunta mas larga y la pagina de abajo no se mueve al cambiar.
+
+   El nombre de la casa va al lado de las rayitas, en su letra normal: no es una
+   etiqueta sobre la pregunta.
+
+   WCAG 2.2.2: se mueve sola, asi que lleva boton de pausa, se detiene mientras
+   el puntero o el foco estan dentro, y con «reducir movimiento» no rota (las
+   rayitas siguen sirviendo para cambiar de casa). El lector de pantalla oye el
+   cambio solo cuando lo pide la persona (lo hace site.js, `initPreguntasCasas`). */
+const { lang, t } = Astro.props;
+const say = (o) => (o ? (o[lang] ?? o.es) : '');
+const casas = PROJECTS
+  .map((e) => ({ e, p: propositoDe(e.id) }))
+  .filter(({ p }) => p && p.pregunta && p.pone)
+  .map(({ e, p }) => ({
+    id: e.id,
+    nombre: e.name,
+    texto: say(p.pregunta),
+    /* Cuatro tachadas: 4 x 1,8 s caben en los 7,2 s de cada casa, asi se ven todas
+       antes de pasar a la siguiente. La primera sigue siendo la elegida a proposito. */
+    tacha: (p.tacha ? (p.tacha[lang] ?? p.tacha.es) : []).slice(0, 4),
+    pone: say(p.pone)
+  }));
+const irA = (nombre) => String(t('hero.irA')).replace('{casa}', nombre);
+---
+{casas.length > 0 && (
+  <div class="hpreg" data-hpreg role="group" aria-label={t('hero.preguntas')} data-lift>
+    <div class="hpreg__pista" data-hpreg-pista>
+      {casas.map((c, i) => (
+        <div class:list={['hpreg__casa', { 'is-on': i === 0 }]} data-hpreg-casa={c.id} data-nombre={c.nombre}
+             aria-hidden={i > 0 ? 'true' : undefined} inert={i > 0 ? true : undefined}>
+          <Pregunta texto={c.texto} tacha={c.tacha} pone={c.pone} cls="hpreg__pregunta" />
+        </div>
+      ))}
+    </div>
+
+    <div class="hpreg__pie">
+      {casas.length > 1 && (
+        <div class="hpreg__rayas">
+          {casas.map((c, i) => (
+            <button class="hpreg__raya" type="button" data-hpreg-ir={i}
+                    aria-label={irA(c.nombre)} aria-current={i === 0 ? 'true' : undefined}></button>
+          ))}
+        </div>
+      )}
+      <p class="hpreg__nombre" data-hpreg-nombre>{casas[0].nombre}</p>
+      {casas.length > 1 && (
+        <button class="hpreg__pausa" type="button" data-hpreg-pausa
+                data-pausar={t('hero.pausar')} data-seguir={t('hero.seguir')}>{t('hero.pausar')}</button>
+      )}
+      <a class="hpreg__ver" href="#seccion-projects">{t('hero.verCasas')}<span aria-hidden="true">↓</span></a>
+    </div>
+    <p class="sr-only" data-hpreg-anuncio aria-live="polite" aria-atomic="true"></p>
+  </div>
+)}

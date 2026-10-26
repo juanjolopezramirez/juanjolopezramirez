@@ -1,0 +1,37 @@
+---
+import AlefIcono from './AlefIcono.astro';
+import { idiomaDe } from '../../scripts/portal/estado.js';
+
+/* LA BARRA DE UNA VENTANA DE THE ALEF CODE (portal, panel y lo que venga).
+
+   A la izquierda, «‹ Inicio» (vuelve a la portada del sitio en el idioma de la
+   pagina; es un enlace, no cierra nada), el logo en verde y el nombre (el <h1>
+   de la pagina); a la derecha la ruta de la pantalla (~/entrar, ~/panel/inicio:
+   la cambian entrar.js y panel.js por `data-ruta-actual`) y el boton de
+   pausa/play del fondo, con los iconos de 8 bits.
+
+   El boton (WCAG 2.2.2: lo que se mueve solo se puede parar) nace escondido y
+   fondo.js lo enseña y alterna: icono de pausa mientras el fondo se mueve, de
+   play cuando esta quieto, y su nombre (`aria-label`) en el idioma de la
+   pagina. Con «reducir movimiento» no aparece: no hay nada que parar. */
+const { nombre, idTitulo, ruta, pausar, seguir, lang, inicio } = Astro.props;
+---
+<div class="terminal-barra">
+  <div class="terminal-barra__marca">
+    {inicio && (
+      <a class="terminal-barra__inicio" href={`/${idiomaDe(lang)}/`} aria-label={inicio.nombre}>
+        <AlefIcono nombre="volver" class="terminal-barra__flecha" /><span>{inicio.texto}</span>
+      </a>
+    )}
+    <AlefIcono nombre="logo" tono="verde" class="terminal-barra__logo" />
+    <h1 class="terminal-barra__nombre" id={idTitulo}>{nombre}</h1>
+  </div>
+  <div class="terminal-barra__lado">
+    <p class="terminal-barra__ruta" aria-hidden="true" data-ruta-actual>{ruta}</p>
+    <button class="fondo-pausa" type="button" data-fondo-pausa
+            data-pausar={pausar} data-seguir={seguir} aria-label={pausar} title={pausar} hidden>
+      <AlefIcono nombre="pausa" class="fondo-pausa__pausa" />
+      <AlefIcono nombre="play" class="fondo-pausa__play" />
+    </button>
+  </div>
+</div>

@@ -47,7 +47,9 @@ const piezas = PORTADAS.slice(0, 3).map((p) => {
             <span class="hrepisa__portada">
               <img src={p.imagen} alt={`${p.titulo}. ${p.glosa}`} width={p.ancho} height={p.alto} decoding="async" />
             </span>
-            <span class="sr-only" lang={lang}>{t('soon.badge')}</span>
+            {/* «Pronto» a la vista: es el unico que no se abre, y tiene que decirlo (marcar lo
+                que aun no es: PRODUCT.md) */}
+            <span class="hrepisa__pronto" lang={lang}>{t('soon.badge')}</span>
           </div>
         ) : (
           <a class="hrepisa__tarjeta" href={`#${p.id}`} data-libro={p.id} aria-haspopup="dialog">

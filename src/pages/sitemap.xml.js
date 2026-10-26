@@ -17,8 +17,11 @@ export function GET({ site }) {
   /* La portada, las cuatro secciones y la pagina de cada casa. Las casas
      salen de las mismas listas que pintan las tarjetas, asi que anadir
      una la mete sola en el mapa — que es la razon de que esto no se
-     escriba a mano. */
-  const paths = ['', ...NAV.map((n) => n.slug), 'contact', 'direct', 'meet', ...ENTITIES.map(slugOf)];
+     escriba a mano.
+
+     NO estan el portal ni lo que va detras de el (/contact/, /meet/): salen de
+     los buscadores a proposito, y /direct/ ya solo redirige al portal. */
+  const paths = ['', ...NAV.map((n) => n.slug), ...ENTITIES.map(slugOf)];
 
   const url = (lang, path) => `${origin}/${lang}/${path ? path + '/' : ''}`;
 

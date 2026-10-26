@@ -1,0 +1,33 @@
+---
+/* EL FONDO DE THE ALEF CODE: la noche detras de las interfaces de trabajo
+   (layouts/Terminal.astro: el portal, el panel y las que vengan).
+
+   Tres capas, todas decoracion (`aria-hidden`), fijas a la ventana:
+
+     lava    cinco gotas de los verdes de la casa (pino 900, pino, iris) que
+             flotan, se juntan y se separan despacio, como una lampara de lava.
+             Solo CSS: gradientes radiales que se mueven con `transform`.
+     signos  una red de letras de las lenguas de la Escritura —hebreo, griego
+             koine y arameo (en letra siriaca)— y signos de codigo, en un
+             <canvas> (scripts/portal/fondo.js): casi apagada, con una ola
+             lenta, y se enciende alrededor del puntero o del dedo.
+     velo    un oscurecido hacia los bordes, para que la ventana mande.
+
+   Con «reducir movimiento» nada se mueve: la lava queda quieta y los signos se
+   pintan una vez. Sin JavaScript queda la lava, que es CSS.
+
+   El boton para pararlo todo a mano (WCAG 2.2.2) vive en la barra de cada
+   ventana (BarraTerminal.astro), con los iconos de pausa y play. */
+---
+<div class="fondo" aria-hidden="true">
+  <div class="fondo__lava">
+    <i class="fondo__gota fondo__gota--1"></i>
+    <i class="fondo__gota fondo__gota--2"></i>
+    <i class="fondo__gota fondo__gota--3"></i>
+    <i class="fondo__gota fondo__gota--4"></i>
+    <i class="fondo__gota fondo__gota--5"></i>
+  </div>
+  <canvas class="fondo__signos" data-signos></canvas>
+  <div class="fondo__velo"></div>
+</div>
+<script>import '../../scripts/portal/fondo.js';</script>

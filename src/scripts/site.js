@@ -13,7 +13,6 @@ import { DEEP } from '../i18n/term-book.js';
 import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
-import { CONTACT } from '../data/social.js';
 import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar } from './biblioteca.js';
 import { LIBROS, TIPOS } from '../data/biblioteca.js';
 
@@ -154,11 +153,9 @@ function initNav() {
     btn.setAttribute('aria-label', t(open ? 'a11y.menuClose' : 'a11y.menu'));
   };
   btn.addEventListener('click', () => setOpen(btn.getAttribute('aria-expanded') !== 'true'));
-  /* Elegir una fila cierra el menu, sea la que sea. Escribirme es un
-     boton y no un enlace, asi que sin nombrarlo se quedaba abierto por
-     detras de la hoja — y el menu seguia diciendo que estaba desplegado. */
+  /* Elegir una fila cierra el menu, sea la que sea. */
   nav.addEventListener('click', (e) => {
-    if (e.target.closest('a, [data-open-contact]')) setOpen(false);
+    if (e.target.closest('a')) setOpen(false);
   });
   d.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { setOpen(false); btn.focus(); }
@@ -352,15 +349,6 @@ function initRedes() {
    Solo se intercepta el clic limpio. Con Ctrl, con Cmd, con Mayus o con
    el boton de en medio se abre el enlace tal cual: quien pide una
    pestana nueva esta pidiendo el destino, no una pregunta. */
-/* «Caminemos» abre la hoja de las tres puertas. Hay dos botones que la
-   abren —el de la barra ancha y el del menu— y en las paginas de seccion
-   uno mas, asi que se cablean todos y no solo el primero. */
-function initContact() {
-  const s = sheet('contact-panel', 'data-close-contact');
-  if (!s) return;
-  d.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', s.open));
-}
-
 function initAccounts() {
   const s = sheet('account-panel', 'data-close-account');
   if (!s) return;
@@ -421,11 +409,13 @@ function initOrbit() {
    Ya no traduce: cada bandera es un enlace a la misma pagina en
    otro idioma. Solo abre y cierra.                              */
 function initLang() {
+  /* El selector vive en la cabecera; las paginas sin ella (el portal) no lo tienen. */
   const root = d.querySelector('[data-lang]');
   if (!root) return;
   const btn  = root.querySelector('[data-lang-toggle]');
   const list = root.querySelector('.lang__list');
   const info = root.querySelector('[data-lang-info]');
+  if (!btn || !list) return;
   let hideTimer = null;
 
   const setNote = (open) => {
@@ -3960,6 +3950,88 @@ function initPiezas() {
    lo que las pautas de accesibilidad piden poder detener: con el raton o el
    foco encima de la ficha se queda quieto. Con el movimiento reducido no se
    mueve nunca: se ve la primera, la elegida a proposito. */
+/* LAS PREGUNTAS DE LAS CASAS en el hero de Proyectos (components/PreguntasCasas.astro).
+   Una casa a la vez; cada ~7 s pasa a la siguiente. Se para con el boton, mientras
+   el puntero o el foco estan dentro, cuando el hero no se ve, y no rota sola con
+   «reducir movimiento». Al cambiar a mano se anuncia la pregunta nueva; al rotar
+   solo, no (seria hablarle encima a quien lee otra cosa). */
+function initPreguntasCasas() {
+  d.querySelectorAll('[data-hpreg]').forEach((raiz) => {
+    const casas = [...raiz.querySelectorAll('[data-hpreg-casa]')];
+    if (casas.length < 2) return;
+    const rayas = [...raiz.querySelectorAll('[data-hpreg-ir]')];
+    const pausa = raiz.querySelector('[data-hpreg-pausa]');
+    const anuncio = raiz.querySelector('[data-hpreg-anuncio]');
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)');
+    const PASO = 7200;
+    let i = 0, reloj = 0, pausada = false, dentro = false, enPantalla = true;
+
+    const nombre = raiz.querySelector('[data-hpreg-nombre]');
+    const ir = (n, aMano) => {
+      i = (n + casas.length) % casas.length;
+      casas.forEach((c, k) => {
+        const on = k === i;
+        c.classList.toggle('is-on', on);
+        c.inert = !on;
+        if (on) c.removeAttribute('aria-hidden'); else c.setAttribute('aria-hidden', 'true');
+      });
+      rayas.forEach((r, k) => { if (k === i) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current'); });
+      if (nombre) nombre.textContent = casas[i].dataset.nombre || '';
+      if (aMano && anuncio) {
+        const texto = casas[i].querySelector('.pregunta__texto');
+        anuncio.textContent = `${casas[i].dataset.nombre || ''}. ${texto ? texto.textContent : ''}`;
+      }
+    };
+    const parar = () => { clearInterval(reloj); reloj = 0; };
+    const seguir = () => {
+      parar();
+      if (pausada || dentro || !enPantalla || d.hidden || quieto.matches) return;
+      reloj = setInterval(() => ir(i + 1, false), PASO);
+    };
+
+    rayas.forEach((r) => r.addEventListener('click', () => { ir(Number(r.dataset.hpregIr), true); seguir(); }));
+    if (pausa) {
+      if (quieto.matches) pausa.hidden = true;
+      pausa.addEventListener('click', () => {
+        pausada = !pausada;
+        pausa.textContent = pausada ? pausa.dataset.seguir : pausa.dataset.pausar;
+        seguir();
+      });
+    }
+    raiz.addEventListener('pointerenter', () => { dentro = true; parar(); });
+    raiz.addEventListener('pointerleave', () => { dentro = raiz.contains(d.activeElement); seguir(); });
+    raiz.addEventListener('focusin', () => { dentro = true; parar(); });
+    raiz.addEventListener('focusout', (e) => { if (!raiz.contains(e.relatedTarget)) { dentro = raiz.matches(':hover'); seguir(); } });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([e]) => { enPantalla = e.isIntersecting; seguir(); }).observe(raiz);
+    }
+    d.addEventListener('visibilitychange', seguir);
+    quieto.addEventListener?.('change', () => { if (pausa) pausa.hidden = quieto.matches; seguir(); });
+    seguir();
+  });
+}
+
+/* LA BUSQUEDA DEL HERO DE RECURSOS (components/BuscarLibros.astro). No busca sola:
+   pasa lo escrito a la busqueda de Destacados, que ya filtra las filas, y baja hasta
+   alli con el foco en ese cuadro. Si Destacados no tiene buscador (sin libros), el
+   formulario hace lo de siempre: lleva a #destacados. */
+function initBuscarHero() {
+  const form = d.querySelector('[data-hero-buscar]');
+  if (!form) return;
+  form.addEventListener('submit', (e) => {
+    const campo = d.querySelector('[data-dest-campo]');
+    const caja = d.querySelector('[data-dest-buscar]');
+    if (!campo || !caja || caja.hidden) return;
+    e.preventDefault();
+    const q = form.querySelector('input');
+    campo.value = q ? q.value.trim() : '';
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    const calma = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    caja.scrollIntoView({ behavior: calma ? 'auto' : 'smooth', block: 'start' });
+    campo.focus({ preventScroll: true });
+  });
+}
+
 function initTachones() {
   const preguntas = [...d.querySelectorAll('.pregunta--ciclo')];
   if (!preguntas.length) return;
@@ -4136,7 +4208,6 @@ initViewportLock();
 initSocial();
 initEnlace();
 initRedes();
-initContact();
 initAccounts();
 initOrbit();
 initLang();
@@ -4150,6 +4221,8 @@ initFilter();
 initCarriles();
 initPiezas();
 initTachones();
+initPreguntasCasas();
+initBuscarHero();
 initCamino();
 initReveal();
 try { initDestacados(); } catch (err) { /* sin buscador, las tarjetas siguen siendo enlaces */ }

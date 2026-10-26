@@ -508,6 +508,58 @@ ni con un lector de pantalla.**
 
 ---
 
+## El portal «The Alef Code» (antes «Álef»)
+
+Desde el 2026-10-26 es una terminal de noche montada sobre `layouts/Terminal.astro`, la base
+de TODAS las interfaces de trabajo (portal, panel y las que vengan): pagina sin cabecera ni pie
+(`<Base limpio>`), el fondo `components/portal/Fondo.astro` (la lava de los verdes y la red de
+signos en hebreo, griego koine y arameo-siriaco de `scripts/portal/fondo.js`) y
+`styles/terminal.css` (la noche, la barra, los iconos). Cada ventana lleva arriba
+`BarraTerminal.astro`: el logo de 8 bits en verde, el nombre, la ruta (`~/entrar`) y el boton
+de pausa/play del fondo (`AlefIcono.astro`: logo, pausa y play en `src/assets/alef/`, con
+tonos verde #00FF66, blanco, rojo #FF3B3B e iris). El login (`Tarjeta.astro`) va en dos
+columnas y la pagina no se desliza; el panel es `Panel.astro`. Estilos propios en
+`styles/portal.css` y `styles/panel.css`. Las esquinas redondas, el degradado, la
+letra JetBrains Mono (solo se descarga con `<Base noche>`) y el nombre en ingles son
+excepciones al libro de marca que el fundador aprobo SOLO para el portal. Lo que sigue abajo
+sobre el funcionamiento (Supabase, estados, demo) no cambio.
+
+«Caminemos» lleva a `/es/portal/` (y `/en/`, `/pt/`, `/fr/`, `/it/`): entrar con Google o con
+correo, pedir acceso, o escribirme. El acceso lo aprueba una sola persona. Ya aprobado, se llega
+al panel (`/es/portal/panel/`), y solo entonces se abren el test (`/contact/`) y «Cuadremos un
+rato» (`/meet/`). **La guía completa, con el paso a paso de Supabase y Google, es [PORTAL.md](PORTAL.md).**
+
+Es un sitio estático: no hay servidor. El navegador habla directo con **Supabase** (Auth con
+PKCE, Postgres con RLS en cada tabla, Storage) usando solo la clave pública; lo que protege los
+datos son las reglas de `supabase/*.sql`. Una página oculta **no** es una página protegida.
+
+```
+src/scripts/portal/   estado.js (piezas puras, probadas) · config.js · backend.js · cliente.js
+                      real.js (Supabase) · demo.js (solo `npm run dev`) · entrar.js (la tarjeta)
+                      panel.js (el panel) · guardia.js (lo que va detrás del portal)
+src/components/portal Tarjeta · Panel · Campo · Escribeme · Paramo
+src/data/portal/      textos.js (solo español; el resto cae a él) · secciones.js
+src/styles/           portal.css · panel.css
+supabase/             001 perfiles y acceso · 002 contenido · 003 privado · 004 almacén
+                      900 semilla del admin (ejemplo) · 990 comprobar las reglas
+```
+
+- **Tres backends con la misma forma**: real, demo (en memoria, solo con `npm run dev`; el código
+  de prueba no llega a la publicación) y apagado (sin las dos variables, la tarjeta dice «Pronto»).
+- **Variables**: `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY` (ver `.env.example`; para
+  publicar, en los *Secrets* de GitHub, que el workflow lee). Nunca la clave `service_role`/`secret`:
+  la compilación se para si cualquier `PUBLIC_` la trae (astro.config.mjs), y `config.js` lee solo
+  esas dos por su nombre, así ninguna otra `PUBLIC_` acaba en el JS publicado.
+- `portal`, el panel, `/contact/` y `/meet/` llevan `noindex` y no salen en el mapa del sitio.
+  `/direct/` solo redirige al portal.
+- **Pruebas**: `node tools/test-portal.mjs` — las piezas puras con datos hostiles, los textos, que no
+  haya claves en el código ni en `dist/`, que los guiones no usen `innerHTML`/`eval`/`localStorage`,
+  y la forma del SQL. **No sustituye** a `supabase/990_comprobar_rls.sql`, que mira la base de verdad.
+- **Sin probar**: contra un Supabase real (no hay proyecto todavía), en un teléfono real, Safari de
+  iPhone, ni con un lector de pantalla.
+
+---
+
 ## Escritorio y tablet
 
 Ya no existe el aviso de «en construcción».

@@ -1,0 +1,39 @@
+---
+import Icon from './Icon.astro';
+import { LIBROS } from '../data/biblioteca.js';
+import { TERMS } from '../i18n/terms.js';
+import { GLOSS } from '../i18n/term-cards.js';
+import { BOOKS } from '../data/books.js';
+import { TIPOS } from '../data/biblioteca.js';
+import { fichaLibro } from '../scripts/biblioteca.js';
+import '../styles/hero-extra.css';
+
+/* LA BUSQUEDA Y LA CUENTA, debajo del lead de Recursos (aprobadas el 2026-10-26).
+
+   La pregunta «¿Qué quieres leer hoy?» es el cuadro de busqueda. No busca por su
+   cuenta: al enviarla, pasa lo escrito a la busqueda de Destacados (la misma que
+   ya filtra las filas) y baja hasta alli (site.js, `initBuscarHero`). Sin
+   JavaScript, el formulario lleva a #destacados.
+
+   La cuenta sale de la lista: los libros de LIBROS que se pueden abrir en el
+   idioma de la pagina (los mismos que pinta la biblioteca). No se escribe a mano. */
+const { lang, t } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const datos = { BOOKS, TIPOS, TERMS, GLOSS };
+const n = LIBROS.filter((b) => fichaLibro(b, lang, datos, base)).length;
+---
+<div class="hbusca" data-lift>
+  <form class="hbusca__form" role="search" action="#destacados" data-hero-buscar>
+    <label class="sr-only" for="hero-buscar">{t('lib.hero.pregunta')}</label>
+    <Icon id="search" />
+    <input class="hbusca__campo" id="hero-buscar" type="search" placeholder={t('lib.hero.pregunta')}
+           maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
+    <button class="hbusca__boton" type="submit">{t('lib.hero.buscar')}</button>
+  </form>
+  {n > 0 && (
+    <p class="hbusca__datos">
+      <span><b>{n}</b> {n === 1 ? t('lib.hero.libro') : t('lib.hero.libros')}</span>
+      <span>{t('lib.hero.aqui')}</span>
+    </p>
+  )}
+</div>

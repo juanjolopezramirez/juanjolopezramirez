@@ -1,0 +1,38 @@
+---
+import Icon from '../Icon.astro';
+
+/* Un campo de la tarjeta: su etiqueta VISIBLE (no un placeholder que haga de
+   etiqueta), la caja, y si hace falta una ayuda y el ojo para ver la
+   contraseña.
+
+   Todo lo que pide un gestor de contraseñas está aquí: `name`, `autocomplete`,
+   y el <form> de verdad que lo rodea. Los errores los escribe entrar.js: pone
+   `aria-invalid` en la caja y el texto en el `role="alert"` del formulario, y
+   `aria-describedby` apunta a la ayuda. */
+const {
+  id, name, label, type = 'text', autocomplete = 'off', required = true,
+  minlength, maxlength, ayuda, ojo = false, textarea = false, filas = 3, verClave, inputmode
+} = Astro.props;
+const ayudaId = ayuda ? `${id}-ayuda` : undefined;
+---
+<div class="portal__campo">
+  <label class="portal__etiqueta" for={id}>{label}</label>
+  <div class:list={['portal__caja', { 'portal__caja--ojo': ojo }]}>
+    {textarea ? (
+      <textarea class="portal__entrada portal__entrada--texto" id={id} name={name} rows={filas}
+                maxlength={maxlength} autocomplete={autocomplete} required={required || undefined}
+                aria-describedby={ayudaId}></textarea>
+    ) : (
+      <input class="portal__entrada" id={id} name={name} type={type} autocomplete={autocomplete}
+             required={required || undefined} minlength={minlength} maxlength={maxlength}
+             inputmode={inputmode} autocapitalize={name === 'nombre' ? 'words' : 'off'} spellcheck="false" aria-describedby={ayudaId} />
+    )}
+    {ojo && (
+      <button class="portal__ojo" type="button" data-ojo aria-pressed="false" aria-label={verClave} aria-controls={id}>
+        <span data-ojo-ver><Icon id="ojo" /></span>
+        <span data-ojo-no hidden><Icon id="ojo-no" /></span>
+      </button>
+    )}
+  </div>
+  {ayuda && <p class="portal__ayuda" id={ayudaId}>{ayuda}</p>}
+</div>

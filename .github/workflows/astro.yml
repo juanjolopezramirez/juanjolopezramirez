@@ -16,6 +16,16 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # El portal (The Alef Code): la direccion de Supabase y su clave PUBLICA
+    # (sb_publishable_), que de todos modos viajan dentro de la web. Viven en
+    # Settings > Secrets and variables > Actions > Secrets, no aqui: asi no salen
+    # escritos en los registros publicos de cada publicacion. Si faltan las dos,
+    # el portal dice «Pronto»; si falta una, la compilacion se para
+    # (astro.config.mjs) y la web de antes sigue en linea. Una clave secreta en
+    # cualquier PUBLIC_ tambien la para: nunca llega al navegador.
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +42,10 @@ jobs:
         run: |
           pip install pymupdf==1.28.2
           python tools/books.py --force
+
+      # Las pruebas del portal (sin dependencias): si una falla, no se publica.
+      - name: Portal checks
+        run: node tools/test-portal.mjs
 
       - name: Install, build, and upload Site
         uses: withastro/action@v3

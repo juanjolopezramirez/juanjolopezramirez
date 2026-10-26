@@ -1,0 +1,153 @@
+/* =============================================================
+   THE ALEF CODE · LA BASE DE LAS INTERFACES DE TRABAJO
+   (layouts/Terminal.astro: el portal, el panel y las que vengan)
+
+   Lo comun a todas: la noche y sus colores, el fondo vivo (Fondo.astro), la
+   barra de la ventana (BarraTerminal.astro), los iconos de 8 bits y sus
+   tonos (AlefIcono.astro). Lo propio de cada interfaz va en su hoja
+   (portal.css, panel.css).
+
+   LAS EXCEPCIONES. El libro de marca pide esquinas rectas, nada de degradados
+   ni brillos, dos letras y el nombre en la lengua del lector. Aqui no: el
+   fundador aprobo, SOLO en estas interfaces (2026-10-26):
+     1. esquinas redondas: cajas y botones 12px, tarjetas 14px, ventana 20px;
+     2. la lava de pino a iris y su halo;
+     3. JetBrains Mono, que solo se descarga en estas paginas (Base.astro, `noche`);
+     4. el nombre en ingles en los cinco idiomas;
+     5. (el mismo dia) los tonos de los iconos: el verde de terminal #00FF66 y
+        el rojo #FF3B3B, que no estan en la paleta de la casa.
+   Nada de esto sale de aqui. Lo que SI se queda: nada de oro, el hueso hace de
+   blanco, y un error nunca se dice solo con color.
+
+   LOS COLORES, medidos sobre la consola (#0B110D):
+     tiza     #F1EFE9  (el hueso)   16.6:1   todo lo que se lee
+     tiza-2   #A7B0A5               8.5:1    etiquetas, notas, ayudas
+     prompt   #A9C47F  (iris 300)   ~9.7:1   el $ y el ›, y el aro del foco
+     verde    #00FF66               ~14:1    el logo, el boton del fondo
+     alerta   #FF3B3B               ~5.6:1   el punto junto al error, la carga
+   ============================================================= */
+
+.pagina--noche {
+  --noche: #050806;
+  --consola: #0B110D;
+  --consola-alta: #131B15;
+  --tiza: var(--bone);
+  --tiza-2: #A7B0A5;
+  --prompt: var(--iris-300);
+  --alef-verde: #00FF66;
+  --alef-blanco: #FFFFFF;
+  --alef-rojo: #FF3B3B;
+  --alerta: var(--alef-rojo);
+  --raya: rgb(241 239 233 / .12);
+  --raya-fuerte: rgb(241 239 233 / .3);
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  background-color: var(--noche);
+  color-scheme: dark;
+}
+.pagina--noche ::selection { background: rgb(169 196 127 / .35); color: var(--tiza); }
+
+/* La capa de la interfaz: encima del fondo, que vive dentro (z-index -1) */
+.terminal { position: relative; isolation: isolate; color: var(--tiza); font-family: var(--mono); }
+
+/* ---- El fondo: lava, signos y velo (Fondo.astro), fijo a la ventana ---- */
+.fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--noche); pointer-events: none; }
+.fondo__lava { position: absolute; inset: -12%; }
+.fondo__gota {
+  position: absolute; border-radius: 50%;
+  mix-blend-mode: screen; will-change: transform;
+  animation: lava-1 28s ease-in-out infinite;
+}
+.fondo__gota--1 { width: 52vmax; aspect-ratio: 1; left: -8%; top: 4%;
+  background: radial-gradient(circle at 42% 40%, #3F6A2F 0, var(--pine) 34%, rgb(38 59 40 / .45) 52%, transparent 70%); }
+.fondo__gota--2 { width: 44vmax; aspect-ratio: 1; right: -6%; top: -10%;
+  background: radial-gradient(circle, rgb(125 155 78 / .9) 0, #3D5A28 36%, rgb(38 59 40 / .4) 54%, transparent 70%);
+  animation-name: lava-2; animation-duration: 33s; }
+.fondo__gota--3 { width: 40vmax; aspect-ratio: 1; left: 30%; bottom: -22%;
+  background: radial-gradient(circle, #577A37 0, var(--pine) 40%, rgb(22 35 26 / .5) 56%, transparent 72%);
+  animation-name: lava-3; animation-duration: 24s; }
+.fondo__gota--4 { width: 22vmax; aspect-ratio: 1; right: 14%; bottom: 4%; opacity: .6;
+  background: radial-gradient(circle, var(--iris-300) 0, var(--iris) 30%, rgb(125 155 78 / .25) 52%, transparent 70%);
+  animation-name: lava-4; animation-duration: 21s; }
+.fondo__gota--5 { width: 30vmax; aspect-ratio: 1; left: 8%; bottom: 10%; opacity: .7;
+  background: radial-gradient(circle, rgb(125 155 78 / .7) 0, #2F4A2A 40%, transparent 70%);
+  animation-name: lava-5; animation-duration: 37s; }
+@keyframes lava-1 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(16%, 20%) scale(1.14, .9); } 66% { transform: translate(4%, 42%) scale(.9, 1.12); } }
+@keyframes lava-2 { 0%, 100% { transform: translate(0, 0) scale(1); } 40% { transform: translate(-26%, 34%) scale(1.18, .9); } 75% { transform: translate(-8%, 60%) scale(.92, 1.1); } }
+@keyframes lava-3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-34%, -52%) scale(1.16, 1.04); } }
+@keyframes lava-4 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-70%, -110%) scale(1.25); } }
+@keyframes lava-5 { 0%, 100% { transform: translate(0, 0) scale(1); } 45% { transform: translate(60%, -40%) scale(.85, 1.15); } }
+.fondo__signos { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fondo__velo {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, transparent 0, rgb(5 8 6 / .35) 60%, rgb(5 8 6 / .82) 100%);
+}
+
+/* ---- Los iconos de 8 bits y sus tonos (AlefIcono.astro) ---- */
+.alef-icono { display: block; flex: none; width: auto; height: 1em; }
+.tono--verde  { color: var(--alef-verde); }
+.tono--blanco { color: var(--alef-blanco); }
+.tono--rojo   { color: var(--alef-rojo); }
+.tono--iris   { color: var(--iris-300); }
+
+/* ---- La barra de la ventana (BarraTerminal.astro) ---- */
+.terminal-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .6rem .7rem .6rem 1.2rem;
+  border-bottom: 1px solid var(--raya);
+}
+.terminal-barra__marca { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+/* «‹ Inicio»: vuelve a la portada del sitio. Un enlace de verdad (lleva a otra
+   pagina), de 44px de alto, con la flecha de 8 bits y una raya que lo separa del logo. */
+.terminal-barra__inicio {
+  display: inline-flex; align-items: center; gap: .45rem; flex: none;
+  min-height: 44px; margin-block: -.3rem; margin-left: -.55rem; padding: 0 .1rem 0 .55rem;
+  border-radius: 12px;
+  font-family: var(--mono); font-size: .8rem; color: var(--tiza-2); text-decoration: none;
+  transition: color .2s var(--ease), background-color .2s var(--ease);
+}
+.terminal-barra__inicio::after { content: ""; width: 1px; height: 1.1rem; margin-left: .55rem; background: var(--raya-fuerte); }
+.terminal-barra__inicio:hover { color: var(--tiza); }
+.terminal-barra__inicio:hover .terminal-barra__flecha { translate: -2px 0; }
+.terminal-barra__inicio:focus-visible { outline: 2px solid var(--prompt); outline-offset: -2px; }
+.terminal-barra__flecha { height: .7rem; color: var(--prompt); transition: translate .2s var(--ease); }
+.terminal-barra__logo { height: 1.15rem; }
+.terminal-barra__nombre {
+  margin: 0;
+  font-family: var(--mono); font-weight: 500; font-size: .86rem; line-height: 1.2; letter-spacing: .01em;
+  color: var(--tiza);
+  white-space: nowrap;
+}
+.terminal-barra__lado { display: flex; align-items: center; gap: .35rem; min-width: 0; }
+.terminal-barra__ruta { margin: 0; font-size: .8rem; color: var(--tiza-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* En el telefono estrecho no caben «Inicio», el nombre y la ruta: la ruta es adorno
+   (`aria-hidden`), asi que se va ella. */
+@media (max-width: 439px) { .terminal-barra__ruta { display: none; } }
+
+/* El boton para quietar el fondo (WCAG 2.2.2): pausa mientras se mueve, play
+   cuando esta quieto (fondo.js pone `is-quieto` y `fondo-quieto` en <html>). */
+.fondo-pausa {
+  display: grid; place-items: center; flex: none;
+  width: 44px; height: 44px; margin-block: -.3rem;
+  border-radius: 12px;
+  color: var(--alef-verde);
+  cursor: pointer;
+  transition: background-color .2s var(--ease);
+}
+.fondo-pausa .alef-icono { height: 14px; }
+.fondo-pausa__play, .fondo-pausa.is-quieto .fondo-pausa__pausa { display: none; }
+.fondo-pausa.is-quieto .fondo-pausa__play { display: block; }
+.fondo-pausa:hover { background: rgb(0 255 102 / .1); }
+.fondo-pausa:focus-visible { outline: 2px solid var(--prompt); outline-offset: -2px; }
+.fondo-pausa[hidden] { display: none; }
+.fondo-quieto .fondo__gota { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fondo-pausa { display: none; }
+  .fondo__gota { animation: none; }
+  .terminal-barra__inicio, .terminal-barra__flecha { transition: none; }
+}
+@media (forced-colors: active) {
+  .fondo { display: none; }
+  .alef-icono { forced-color-adjust: auto; color: CanvasText; }
+}

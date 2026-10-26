@@ -1,0 +1,169 @@
+---
+import Icon from '../Icon.astro';
+import BarraTerminal from './BarraTerminal.astro';
+import AlefIcono from './AlefIcono.astro';
+import Campo from './Campo.astro';
+import { tp, jsonSeguro } from '../../data/portal/textos.js';
+import { SECCIONES, GRUPOS, HECHAS } from '../../data/portal/secciones.js';
+import '../../styles/portal.css';
+import '../../styles/panel.css';
+
+/* EL PANEL DE «ÁLEF» (/[lang]/portal/panel/).
+
+   La misma terminal que la entrada (Tarjeta.astro), mas grande, sobre
+   layouts/Terminal.astro: la barra (BarraTerminal.astro) con el logo, el
+   nombre, la ruta (~/panel/inicio) y la pausa del fondo, el menu a la izquierda como un arbol de
+   carpetas y la seccion a la derecha. En el telefono, el menu va arriba, en
+   fichas que se parten en lineas.
+
+   TODO (menos la barra) NACE ESCONDIDO (`hidden`) hasta que panel.js comprueba, con el SERVIDOR,
+   que la persona entro y esta aprobada; si no, la manda de vuelta al portal.
+   Las secciones «solo admin» las quita del DOM para quien no lo es. Eso es
+   comodidad: lo que protege los datos son las reglas de la base.
+
+   Las filas de «Quién entra» salen de los <template> de abajo y se rellenan con
+   `textContent`, nunca con innerHTML. */
+const { lang } = Astro.props;
+const x = tp(lang);
+const p = x.panel;
+const hecha = (id) => HECHAS.includes(id);
+---
+<section class="panel" id="panel" data-panel data-idioma={lang} aria-labelledby="panel-nombre"
+         lang={lang !== 'es' ? 'es' : undefined}>
+  <div class="panel__marco">
+    <!-- La barra se ve SIEMPRE, tambien mientras carga o si falla: lleva el boton
+         para parar el fondo (WCAG 2.2.2) y el <h1> de la pagina. -->
+    <BarraTerminal nombre={x.nombre} idTitulo="panel-nombre" ruta="~/panel/inicio"
+                   pausar={x.fondo.pausar} seguir={x.fondo.seguir} lang={lang} inicio={x.inicio} />
+
+    <noscript><p class="portal__nota panel__cargando">{p.sinJavascript}</p></noscript>
+    <!-- Mientras la guardia pregunta al servidor: la א roja que late y la bitacora (carga.js). -->
+    <div class="panel__cargando portal__espera" data-cargando>
+      <AlefIcono nombre="logo" tono="rojo" class="portal__espera-logo" />
+      <p class="portal__nota" role="status">{p.cargando}</p>
+      <ol class="portal__bitacora" data-bitacora aria-hidden="true"></ol>
+    </div>
+
+    <div class="panel__problema" data-problema hidden tabindex="-1">
+      <p class="portal__nota">{p.problema}</p>
+      <button class="portal__boton portal__boton--suave panel__boton-solo" type="button" data-reintentar>{p.reintentar}</button>
+    </div>
+
+    <div class="panel__cuerpo" data-marco hidden>
+
+    <div class="panel__riel">
+      <nav class="panel__menu" aria-label={p.menu}>
+        {GRUPOS.map((g) => (
+          <div class:list={['panel__grupo', { 'panel__grupo--solo': SECCIONES.filter((s) => s.grupo === g).length === 1 }]} data-grupo={g} data-solo-admin={g === 'miembros' ? undefined : ''}>
+            <p class="panel__grupo-titulo" id={`g-${g}`}>{p.grupos[g]}</p>
+            <ul class="panel__enlaces" role="list" aria-labelledby={`g-${g}`}>
+              {SECCIONES.filter((s) => s.grupo === g).map((s) => (
+                <li data-solo-admin={s.admin ? '' : undefined}>
+                  <a class:list={['panel__enlace', { 'panel__enlace--pronto': !hecha(s.id) }]} href={`#${s.id}`} data-nav={s.id}>
+                    <span>{p.secciones[s.id].titulo}</span>
+                    {!hecha(s.id) && <span class="panel__marca-pronto">{p.prontoCorto}</span>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <button class="panel__salir" type="button" data-salir><Icon id="salir" /><span>{p.salir}</span></button>
+    </div>
+
+    <div class="panel__hoja">
+      <p class="portal__demo" data-demo hidden>{x.demo}</p>
+
+      {SECCIONES.map((s) => (
+        <section class="panel__seccion" data-seccion={s.id} aria-labelledby={`s-${s.id}`} hidden
+                 data-solo-admin={s.admin ? '' : undefined}>
+          <h2 class="panel__titulo" id={`s-${s.id}`} tabindex="-1" data-titulo={s.id}>{p.secciones[s.id].titulo}</h2>
+          <p class="portal__linea">{p.secciones[s.id].linea}</p>
+
+          {s.id === 'inicio' && (
+            <ul class="panel__puertas" role="list">
+              <li><a class="panel__puerta" href={`/${lang}/contact/`}>
+                <span class="panel__puerta-titulo">{p.inicio.primerPaso.titulo}</span>
+                <span class="panel__puerta-linea">{p.inicio.primerPaso.linea}</span>
+              </a></li>
+              <li><a class="panel__puerta" href={`/${lang}/meet/`}>
+                <span class="panel__puerta-titulo">{p.inicio.cuadremos.titulo}</span>
+                <span class="panel__puerta-linea">{p.inicio.cuadremos.linea}</span>
+              </a></li>
+            </ul>
+          )}
+
+          {s.id === 'accesos' && (
+            <div class="panel__accesos">
+              <p class="panel__aviso" data-aviso role="status" tabindex="-1" hidden></p>
+              <p class="portal__error" data-error role="alert" hidden></p>
+
+              {['pendientes', 'aprobados', 'rechazados'].map((l) => (
+                <div class="panel__bloque" data-bloque={l}>
+                  <h3 class="panel__subtitulo" tabindex="-1" data-subtitulo={l}>{p.accesos[l]} <span class="panel__cuenta" data-cuenta={l}></span></h3>
+                  <ul class="panel__lista" role="list" data-lista={l}></ul>
+                  <p class="panel__vacio" data-mas={l} hidden>{p.accesos.hayMas}</p>
+                  <p class="panel__vacio" data-vacio={l}>{p.accesos[l === 'pendientes' ? 'nadiePendientes' : l === 'aprobados' ? 'nadieAprobados' : 'nadieRechazados']}</p>
+                </div>
+              ))}
+
+              <div class="panel__bloque" data-bloque="invitar">
+                <h3 class="panel__subtitulo" tabindex="-1">{p.accesos.invitar}</h3>
+                <p class="portal__linea">{p.accesos.invitarLinea}</p>
+                <form class="portal__form panel__form" data-form="invitar" novalidate>
+                  <Campo id="i-correo" name="email" label={p.accesos.invitarCorreo} type="email" autocomplete="off" maxlength="254" inputmode="email" />
+                  <p class="portal__error" data-error role="alert" hidden></p>
+                  <button class="portal__boton panel__boton-solo" type="submit">{p.accesos.invitarBoton}</button>
+                </form>
+                <h3 class="panel__subtitulo panel__subtitulo--chico">{p.accesos.invitaciones}</h3>
+                <ul class="panel__lista" role="list" data-lista="invitaciones"></ul>
+                <p class="panel__vacio" data-vacio="invitaciones">{p.accesos.nadieInvitaciones}</p>
+              </div>
+            </div>
+          )}
+
+          {!hecha(s.id) && (
+            <div class="panel__pronto">
+              <p class="portal__nota">{p.pronto}</p>
+              {s.grupo === 'privado' && <p class="portal__nota portal__nota--chica">{p.privado}</p>}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+    </div>
+  </div>
+
+  <template data-plantilla="persona">
+    <li class="panel__fila">
+      <div class="panel__quien">
+        <p class="panel__persona" data-campo="nombre"></p>
+        <p class="panel__correo" data-campo="correo"></p>
+        <p class="panel__motivo" data-campo="motivo"></p>
+        <p class="panel__fecha" data-campo="fecha"></p>
+      </div>
+      <div class="panel__acciones">
+        <button type="button" class="panel__boton" data-accion="aprobado" data-en="pendiente rechazado">{p.accesos.aprobar}</button>
+        <button type="button" class="panel__boton panel__boton--suave" data-accion="rechazado" data-en="pendiente">{p.accesos.rechazar}</button>
+        <button type="button" class="panel__boton panel__boton--suave" data-accion="rechazado" data-en="aprobado">{p.accesos.quitar}</button>
+      </div>
+    </li>
+  </template>
+
+  <template data-plantilla="invitacion">
+    <li class="panel__fila">
+      <div class="panel__quien">
+        <p class="panel__persona" data-campo="correo"></p>
+        <p class="panel__fecha" data-campo="estado"></p>
+      </div>
+      <div class="panel__acciones">
+        <button type="button" class="panel__boton panel__boton--suave" data-borrar>{p.accesos.quitarInvitacion}</button>
+      </div>
+    </li>
+  </template>
+
+  <script type="application/json" id="portal-textos" set:html={jsonSeguro(x)}></script>
+  <script>import '../../scripts/portal/panel.js';</script>
+</section>

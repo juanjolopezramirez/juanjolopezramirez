@@ -162,16 +162,22 @@
   /* Escribirme no es una seccion mas: es lo unico que pido. Va en hueso,
      que es lo unico claro dentro de una pastilla verde. */
   .site-nav__write { flex: 0 0 auto; margin-left: .5rem; }
-  .site-nav__wide-list .nav-cta {
+  /* Es un enlace: `a.nav-cta` le gana a `.site-nav__wide-list a` (que pone las
+     secciones en mayusculas chicas y cambia el color al pasar el raton) y le
+     devuelve la letra de siempre de «Caminemos». */
+  .site-nav__wide-list a.nav-cta {
     animation: callOut 10s var(--ease) 5s infinite;
     padding: .62rem 1.15rem;
     border-radius: 999px;
     background: var(--bone);
     color: var(--pine);
+    font-size: 1rem; font-weight: 400; line-height: 1.6;
+    letter-spacing: normal; text-transform: none;
     transition: background-color .25s var(--ease);
   }
-  .site-nav__wide-list .nav-cta::after { display: none; }
-  .site-nav__wide-list .nav-cta:hover { background: var(--bone-panel); }
+  .site-nav__wide-list a.nav-cta::after { display: none; }
+  .site-nav__wide-list a.nav-cta:hover,
+  .site-nav__wide-list a.nav-cta:focus-visible { background: var(--bone-panel); color: var(--pine); }
 
   /* ---- Idioma ---- */
   .site-header__tools { gap: .4rem; }
@@ -238,25 +244,18 @@
   .site-footer__logo { width: min(100%, 20rem); }
 
   /* ---- Hojas: no ocupan toda la pantalla ---- */
-  .contact-panel,
   .account-panel,
   .term-panel { align-items: center; justify-items: center; }
-  .contact-panel__sheet,
   .account-panel__sheet,
   .term-panel__sheet {
     width: min(52rem, calc(100vw - 6rem));
     border-radius: 32px;
     translate: 0 24px;
   }
-  /* La hoja de escribirme lleva dos fichas y un titulo, no ocho fichas
-     ni un parrafo: 52rem la dejaban vacia de lado a lado. Se queda con
-     lo que ocupa lo que hay dentro. */
-  .contact-panel__sheet { width: min(23rem, calc(100vw - 6rem)); }
   /* Dos filas con bandera, nombre y arroba piden un poco mas de sitio
      que dos fichas sueltas, pero tampoco mucho mas. */
   .account-panel__sheet { width: min(25rem, calc(100vw - 6rem)); }
 
-  .contact-panel.is-open .contact-panel__sheet,
   .account-panel.is-open .account-panel__sheet,
   .term-panel.is-open .term-panel__sheet { translate: 0 0; }
 

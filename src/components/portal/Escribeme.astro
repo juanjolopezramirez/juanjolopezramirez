@@ -1,0 +1,24 @@
+---
+import Icon from '../Icon.astro';
+import { CONTACT } from '../../data/social.js';
+
+/* «¿Prefieres escribirme?»: los dos canales de siempre (WhatsApp y correo,
+   data/social.js → CONTACT), al pie de la tarjeta. Es PUBLICO: no depende de
+   que el portal este abierto ni de que nadie haya entrado, y se ve sin JavaScript. */
+const { t, titulo, lang } = Astro.props;
+---
+<aside class="portal__escribeme" aria-labelledby="portal-escribeme-titulo">
+  <h2 class="portal__escribeme-titulo" id="portal-escribeme-titulo">{titulo}</h2>
+  <ul class="portal__canales" role="list" lang={lang}>
+    {CONTACT.map((c) => (
+      <li>
+        <a class="portal__canal" href={c.href}
+           target={c.href.startsWith('http') ? '_blank' : undefined}
+           rel={c.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+          <Icon id={c.id} />
+          <span>{t(c.key)}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</aside>

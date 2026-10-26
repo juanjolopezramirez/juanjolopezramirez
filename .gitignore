@@ -2,3 +2,18 @@ node_modules/
 dist/
 .astro/
 public/books/
+
+# Variables del portal: son tuyas, no se suben. `.env.example` si se sube.
+.env
+.env.*
+!.env.example
+
+# Copias de la semilla con tu correo dentro (el repositorio es publico)
+supabase/900_semilla_admin.sql
+supabase/*.local.sql
+
+# Restos de trabajo que no son la web
+__pycache__/
+.claude/
+_respaldos/
+/_*.mjs

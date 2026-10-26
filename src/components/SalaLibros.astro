@@ -1,0 +1,44 @@
+---
+import RepisaLibros from './RepisaLibros.astro';
+import { TONOS } from '../scripts/biblioteca.js';
+import '../styles/hero-extra.css';
+
+/* LA SALA DE LECTURA, en el lado de la cabecera de Recursos (aprobada el 2026-10-26).
+
+   El verde se fue: este lado es la misma sala dorada de la biblioteca de abajo
+   (la pared de biblioteca.css, con su grano y su luz), con un mueble de madera
+   de nogal. Arriba y abajo, lomos; en el medio, de frente, las tres portadas de
+   siempre (RepisaLibros.astro: se tocan y se abren). Una lampara cuelga encima
+   y su luz respira despacio.
+
+   Los lomos de arriba y de abajo son DECORACION (`aria-hidden`, sin titulo): sus
+   colores son los TONOS de los libros (scripts/biblioteca.js), repartidos con una
+   cuenta fija para que la sala salga igual cada vez. Los libros de verdad son
+   los de en medio. */
+const { lang, t } = Astro.props;
+const tonos = Object.values(TONOS);
+const ANCHOS = [15, 19, 23, 17, 21, 14, 24];
+const lomos = (n, s) => Array.from({ length: n }, (_, i) => ({
+  c: tonos[(i * 5 + s) % tonos.length],
+  h: 68 + ((i * 37 + s * 11) % 28),
+  w: ANCHOS[(i * 3 + s) % ANCHOS.length]
+}));
+const arriba = lomos(11, 1);
+const abajo = lomos(10, 4);
+---
+<div class="sala">
+  <div class="sala__lampara" aria-hidden="true"><span class="sala__foco"></span></div>
+  <div class="sala__mueble">
+    <div class="sala__estante" aria-hidden="true">
+      {arriba.map((l) => <i class="sala__lomo" style={`--c:${l.c};--h:${l.h}%;--w:${l.w}px`}></i>)}
+      <i class="sala__inclinado" style={`--c:${tonos[2]}`}></i>
+    </div>
+    <div class="sala__estante sala__estante--frente">
+      <RepisaLibros lang={lang} t={t} />
+    </div>
+    <div class="sala__estante" aria-hidden="true">
+      <i class="sala__pila"><b style={`--c:${tonos[4]}`}></b><b style={`--c:${tonos[0]}`}></b><b style={`--c:${tonos[3]}`}></b></i>
+      {abajo.map((l) => <i class="sala__lomo" style={`--c:${l.c};--h:${l.h}%;--w:${l.w}px`}></i>)}
+    </div>
+  </div>
+</div>

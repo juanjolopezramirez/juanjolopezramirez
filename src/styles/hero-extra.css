@@ -1,0 +1,291 @@
+/* =============================================================
+   LO QUE VA DEBAJO DEL LEAD EN LOS HEROES DE SECCION (PageHero, slot «extra»)
+
+   Proyectos: la pregunta de cada casa, rotando (components/PreguntasCasas.astro).
+   Recursos: la busqueda y la cuenta de libros (components/SalaLibros.astro).
+   Aprobado por el fundador el 2026-10-26. Es el papel de la casa: esquinas
+   rectas, slate y el tachon rojo de la pagina de proyectos.
+   ============================================================= */
+
+/* ---- Proyectos: las preguntas ---- */
+.hpreg {
+  display: grid; gap: .9rem;
+  margin-top: 1.8rem; padding-top: 1.3rem;
+  border-top: 1px solid var(--paper-border);
+  max-width: 34rem;
+}
+.hpreg__pista { display: grid; }
+.hpreg__casa { grid-area: 1 / 1; display: grid; align-content: start; }
+.hpreg__casa:not(.is-on) { visibility: hidden; }
+.hpreg__casa.is-on { animation: hpreg-entra .5s var(--ease) both; }
+@keyframes hpreg-entra { from { opacity: 0; translate: 0 .5rem; } }
+.hpreg__nombre { margin: 0; font-size: .92rem; font-weight: 600; color: var(--slate); }
+.hpreg__pregunta { margin: 0; }
+.hpreg .pregunta__texto {
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(1.3rem, 2.2vw, 1.6rem); line-height: 1.22; letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.hpreg .corrige { font-size: 1.05rem; margin-top: .55rem; }
+.hpreg .corrige__tacha { color: rgb(var(--slate-rgb) / .72); }   /* 4.5:1 sobre el papel (la de las fichas es mas tenue) */
+.hpreg .corrige__nota { font-size: 1.9em; }
+
+.hpreg__pie { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; }
+.hpreg__rayas { display: flex; margin-left: -8px; }
+.hpreg__raya {
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  cursor: pointer;
+}
+.hpreg__raya::before {
+  content: ""; width: 28px; height: 2px;
+  background: color-mix(in srgb, var(--slate) 55%, var(--paper));     /* 3:1 sobre el papel */
+  transition: background-color .25s var(--ease), height .25s var(--ease);
+}
+.hpreg__raya:hover::before { background: var(--slate-400-hundido); }
+.hpreg__raya[aria-current="true"]::before { background: var(--slate); height: 3px; }
+.hpreg__raya:focus-visible { outline: 2px solid var(--slate); outline-offset: -6px; }
+.hpreg__pausa, .hpreg__ver {
+  display: inline-flex; align-items: center;
+  min-height: 44px; padding: 0 .2rem;
+  font: inherit; font-size: .9rem; color: var(--slate);
+  text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--slate) 35%, transparent);
+  text-underline-offset: .3em;
+  cursor: pointer;
+}
+.hpreg__pausa[hidden] { display: none; }
+.hpreg__pausa:hover, .hpreg__ver:hover { text-decoration-color: var(--slate); }
+.hpreg__ver { margin-left: auto; gap: .35em; }
+.hpreg__nombre + .hpreg__pausa { margin-left: .2rem; }
+/* «Ver las casas» baja a la seccion de las fichas (no a su titulo: el titulo se mueve
+   con el paralaje y el ancla caia corrida). Que no quede debajo de la cabecera fija. */
+#seccion-projects { scroll-margin-top: calc(var(--header-h) + .8rem); }
+.hpreg__pausa:focus-visible, .hpreg__ver:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hpreg__casa.is-on { animation: none; }
+  .hpreg__raya::before { transition: none; }
+}
+@media (forced-colors: active) {
+  .hpreg__raya::before { background: GrayText; }
+  .hpreg__raya[aria-current="true"]::before { background: CanvasText; }
+}
+
+/* ---- Recursos: la busqueda y la cuenta ---- */
+.hbusca { display: grid; gap: .9rem; margin-top: 1.8rem; max-width: 30rem; }
+.hbusca__form {
+  display: flex; align-items: center; gap: .6rem;
+  min-height: 52px; padding-left: .95rem;
+  background: var(--papel-alto);
+  border: 1px solid color-mix(in srgb, var(--slate) 40%, transparent);
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.hbusca__form:focus-within { border-color: var(--slate); box-shadow: 0 0 0 3px color-mix(in srgb, var(--slate) 18%, transparent); }
+.hbusca__form .icon { flex: none; width: 1.1rem; height: 1.1rem; color: var(--slate-400-hundido); }
+.hbusca__campo {
+  flex: 1; min-width: 0; align-self: stretch;
+  border: 0; background: transparent; color: var(--slate);
+  font: inherit; font-size: 1rem;                 /* 16px: el iPhone no hace zoom */
+}
+.hbusca__campo::placeholder { color: var(--slate-400-hundido); opacity: 1; }
+.hbusca__campo:focus { outline: none; }
+.hbusca__boton {
+  align-self: stretch; flex: none;
+  padding: 0 1.15rem;
+  background: var(--slate); color: var(--papel);
+  font: inherit; font-size: .95rem; font-weight: 600;
+  cursor: pointer;
+  transition: background-color .2s var(--ease);
+}
+.hbusca__boton:hover { background: color-mix(in srgb, var(--slate) 86%, #000); }
+.hbusca__boton:focus-visible { outline: 2px solid var(--slate); outline-offset: 3px; }
+.hbusca__datos { display: flex; flex-wrap: wrap; gap: .3rem 1.4rem; margin: 0; font-size: .95rem; color: var(--slate-400-hundido); }
+.hbusca__datos b { font-weight: 600; color: var(--slate); font-variant-numeric: tabular-nums; }
+
+/* ---- Recursos: la sala de lectura (components/SalaLibros.astro) ----
+   La pared es la de la biblioteca de abajo (biblioteca.css: oro pastel con grano y
+   la luz arriba a la derecha). La madera es nogal: el unico color nuevo de la
+   sala, aprobado con ella. */
+.phero--sala, .sala {
+  --s-pared: color-mix(in srgb, var(--ring-300) 30%, var(--paper));
+  --s-luz: rgb(255 255 255 / .6);
+  --s-calida: rgb(255 228 170 / .55);
+  --s-marco: #6E4524;
+  --s-marco-claro: #8A5A30;
+  --s-fondo: #3E2612;
+  --s-fondo-claro: #563519;
+  --s-tabla: #A26B37;
+  --s-tabla-canto: #7A4D25;
+  --s-sombra: color-mix(in srgb, var(--ring-700) 45%, transparent);
+}
+html[data-tema="oscuro"] .phero--sala, html[data-tema="oscuro"] .sala {
+  --s-pared: color-mix(in srgb, var(--ring-700) 17%, var(--paper));
+  --s-luz: color-mix(in srgb, var(--ring-300) 10%, transparent);
+  --s-calida: rgb(255 210 140 / .3);
+  --s-sombra: rgb(0 0 0 / .45);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema="claro"]) .phero--sala, html:not([data-tema="claro"]) .sala {
+    --s-pared: color-mix(in srgb, var(--ring-700) 17%, var(--paper));
+    --s-luz: color-mix(in srgb, var(--ring-300) 10%, transparent);
+    --s-calida: rgb(255 210 140 / .3);
+    --s-sombra: rgb(0 0 0 / .45);
+  }
+}
+
+.sala {
+  position: relative; isolation: isolate;
+  display: grid; justify-items: center;
+  /* En el telefono y la tablet la sala es su propio bloque de pared, a sangre */
+  margin: 2.6rem calc(-1 * var(--gutter)) 0;
+  padding: 5rem var(--gutter) 2.6rem;
+  background-color: var(--s-pared);
+  background-image: radial-gradient(ellipse 80% 60% at 82% 0%, var(--s-luz), transparent 70%), var(--grano), var(--fibra);
+  background-size: 100% 100%, var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+  overflow: clip;
+}
+/* La luz de la lampara sobre el mueble: calida, y respira despacio */
+.sala::before {
+  content: ""; position: absolute; z-index: 1; pointer-events: none;
+  top: 2.5rem; right: 6%; width: 70%; height: 80%;
+  background: radial-gradient(ellipse 50% 55% at 62% 8%, var(--s-calida), transparent 72%);
+  mix-blend-mode: soft-light;
+  animation: sala-respira 9s ease-in-out infinite;
+}
+@keyframes sala-respira { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+
+.sala__lampara {
+  position: absolute; z-index: 3; top: 1.6rem; right: 22%;
+  width: 3.6rem; height: 1.9rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--slate) 80%, #fff) 0, var(--slate) 55%);
+  border-radius: 1.8rem 1.8rem .25rem .25rem;
+  box-shadow: 0 6px 10px -4px rgb(0 0 0 / .35);
+}
+.sala__lampara::before {             /* el cable */
+  content: ""; position: absolute; left: 50%; bottom: 100%;
+  width: 2px; height: 4.5rem; translate: -50% 0;
+  background: linear-gradient(0deg, var(--slate) 55%, transparent);
+}
+.sala__foco {                        /* la bombilla y su halo */
+  position: absolute; left: 50%; top: 100%;
+  width: 1.1rem; height: .55rem; translate: -50% -2px;
+  border-radius: 0 0 1rem 1rem;
+  background: #FFF3D6;
+  box-shadow: 0 0 22px 10px rgb(255 226 160 / .65), 0 0 90px 40px rgb(255 226 160 / .3);
+  animation: sala-respira 9s ease-in-out infinite;
+}
+
+.sala__mueble {
+  position: relative; z-index: 0;
+  width: min(100%, 30rem);
+  display: grid;
+  padding: 0 .75rem;
+  border: .75rem solid var(--s-marco);
+  border-top-width: 1rem;
+  border-bottom-width: 0;
+  border-image: linear-gradient(90deg, var(--s-marco), var(--s-marco-claro) 50%, var(--s-marco)) 1;
+  background: linear-gradient(180deg, var(--s-fondo) 0, var(--s-fondo-claro) 100%);
+  box-shadow: -26px 30px 46px -14px var(--s-sombra);
+}
+.sala__estante {
+  position: relative;
+  display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+  height: clamp(5.4rem, 16vw, 6.6rem);
+  padding: 0 .4rem;
+  /* la tabla: el canto de frente, y la sombra que deja la de arriba */
+  border-bottom: .8rem solid var(--s-tabla-canto);
+  box-shadow: inset 0 14px 16px -10px rgb(0 0 0 / .55);
+}
+.sala__estante::after {               /* la cara de arriba de la tabla, con su luz */
+  content: ""; position: absolute; left: -.75rem; right: -.75rem; bottom: -.8rem; height: .3rem;
+  background: var(--s-tabla);
+}
+.sala__estante--frente { height: auto; }
+.sala__lomo {
+  flex: none;
+  width: var(--w); height: var(--h);
+  background:
+    linear-gradient(180deg, transparent 12%, rgb(0 0 0 / .16) 12%, rgb(0 0 0 / .16) 14%, transparent 14%, transparent 84%, rgb(0 0 0 / .16) 84%, rgb(0 0 0 / .16) 86%, transparent 86%),
+    linear-gradient(90deg, rgb(0 0 0 / .22) 0, rgb(255 255 255 / .16) 22%, transparent 45%, rgb(0 0 0 / .2) 100%),
+    var(--c);
+  border-radius: 2px 2px 0 0;
+  transition: translate .35s cubic-bezier(.2, .8, .2, 1);
+}
+.sala__inclinado {
+  flex: none; width: 18px; height: 78%;
+  margin-left: 6px;
+  background: linear-gradient(90deg, rgb(0 0 0 / .22), transparent 40%, rgb(0 0 0 / .2)), var(--c);
+  border-radius: 2px 2px 0 0;
+  transform-origin: 0 100%; rotate: 14deg;
+}
+.sala__pila { display: grid; align-self: flex-end; margin-right: 8px; }
+.sala__pila b { display: block; height: 11px; width: 4.2rem; background: linear-gradient(180deg, rgb(255 255 255 / .2), transparent 40%, rgb(0 0 0 / .2)), var(--c); }
+.sala__pila b:nth-child(2) { width: 3.8rem; margin-left: 4px; }
+.sala__pila b:nth-child(3) { width: 4.4rem; margin-left: -3px; }
+@media (hover: hover) and (pointer: fine) {
+  .sala__estante:hover .sala__lomo { translate: 0 -4px; }
+  .sala__estante:hover .sala__lomo:nth-child(3n) { translate: 0 -7px; }
+}
+
+/* El libro que aun se escribe: su «Pronto», a la vista, colgado del pie de la portada */
+.hrepisa__tarjeta { position: relative; }
+.hrepisa__pronto {
+  position: absolute; left: 50%; bottom: .5rem; translate: -50% 0; z-index: 2;
+  padding: .2rem .55rem;
+  background: var(--slate); color: var(--bone);
+  font-size: .78rem; font-weight: 600; letter-spacing: .02em; white-space: nowrap;
+}
+/* Al pulsar «Buscar» en el hero, el cuadro de Destacados queda arriba, bajo la cabecera */
+.dest__buscar { scroll-margin-top: calc(var(--header-h) + 2.5rem); }
+
+/* Las tres portadas, sobre la tabla del medio (la repisa propia de RepisaLibros sobra) */
+.sala .hrepisa {
+  --h-w: min(5.6rem, calc((100vw - 2 * var(--gutter) - 4.4rem - 2 * var(--h-gap)) / 3));
+  --h-gap: .9rem;
+  --r-larga: rgb(0 0 0 / .4);
+  --r-aro-ext: var(--bone);
+  --r-aro-int: var(--s-fondo);
+  width: 100%;
+}
+.sala .hrepisa__pista { padding: 1.4rem 0 0; align-items: flex-end; }
+.sala .hrepisa__pista::after { display: none; }
+.sala .hrepisa__portada { filter: drop-shadow(-7px 5px 0 var(--r-larga)); }
+@media (min-width: 600px) {
+  .sala .hrepisa { --h-w: 6.6rem; --h-gap: 1.2rem; }
+}
+
+@media (max-width: 1199px) {
+  /* Sin la raya ni el papel de mas encima: la pared empieza justo despues de la cuenta */
+  .phero--sala .phero__aside { margin-top: 2rem; padding-top: 0; border-top: 0; }
+  .phero--sala .sala { margin-top: 0; }
+}
+
+@media (min-width: 1200px) {
+  /* El lado de la cabecera es la pared de la sala, no el pinar */
+  .phero--sala .phero__field {
+    background-color: var(--s-pared);
+    background-image: radial-gradient(ellipse 80% 60% at 82% 0%, var(--s-luz), transparent 70%), var(--grano), var(--fibra);
+    background-size: 100% 100%, var(--grano-tam) var(--grano-tam), var(--fibra-tam) var(--fibra-tam);
+    animation: none;
+    box-shadow: inset 16px 0 22px -18px var(--s-sombra);
+  }
+  .phero--sala .phero__aside { justify-content: center; align-items: center; }
+  .phero--sala .phero__aside > .sala {
+    width: min(100%, 32rem);
+    margin: 0; padding: 3rem 0 0;
+    background: none; overflow: visible;
+  }
+  .sala__lampara { top: -1.5rem; }
+  .sala .hrepisa { --h-w: 7rem; --h-gap: 1.3rem; }
+  .sala__estante:not(.sala__estante--frente) { height: 6.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sala::before, .sala__foco { animation: none; }
+  .sala__lomo { transition: none; }
+  .hbusca__form, .hbusca__boton { transition: none; }
+}
+@media (forced-colors: active) {
+  .sala::before, .sala__foco { display: none; }
+  .sala__mueble { border-color: CanvasText; }
+}

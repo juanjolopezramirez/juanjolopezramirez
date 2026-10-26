@@ -51,7 +51,7 @@ const ejes = Object.entries(AXES)
   .map(([id, a]) => ({ id, label: a.label, tags: Object.keys(a.tags).filter((t) => puestas.has(t)), all: a.tags }))
   .filter((a) => a.tags.length > 0);
 ---
-<section class="cards" aria-labelledby={`cards-${kind}`} data-filtrable>
+<section class="cards" id={`seccion-${kind}`} aria-labelledby={`cards-${kind}`} data-filtrable>
   <div class="cards__head">
     <h2 class="cards__title" id={`cards-${kind}`}>{title}</h2>
 

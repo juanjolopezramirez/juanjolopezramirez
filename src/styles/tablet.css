@@ -158,7 +158,6 @@
   /* ---- Hojas ----
      La de todas las redes ya no: va centrada y con su rejilla de cuatro
      en todos los anchos (base.css). */
-  .contact-panel__sheet,
   .account-panel__sheet,
   .term-panel__sheet { padding-inline: var(--gutter); }
 }

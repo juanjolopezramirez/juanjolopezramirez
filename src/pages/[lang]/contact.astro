@@ -6,7 +6,10 @@ import { RUTA, di } from '../../data/ruta/textos.js';
 
 /* DAR EL PRIMER PASO: /es/contact/, /en/contact/…
 
-   Se llega por «Caminemos», por la puerta del paso (Panels.astro).
+   Se llega por «Caminemos» → portal «The Alef Code» → ya aprobado (Inicio → «Dar el
+   primer paso»). La guardia (scripts/portal/guardia.js) manda al portal a quien
+   no ha entrado o aun no esta aprobado; la pagina sale de los buscadores y del
+   mapa del sitio.
 
    AQUI HUBO UN DIRECTORIO DE MARCAS y antes de eso un formulario. Las dos
    cosas pedian lo mismo sin decirlo: que la persona ya supiera lo que
@@ -34,10 +37,10 @@ const { lang } = Astro.params;
 const t = useT(lang);
 const title = di(RUTA.titulo, lang);
 ---
-<Base lang={lang} path="contact" active="contact"
+<Base lang={lang} path="contact" active="contact" noindex
       title={`${title} — Juan José López Ramírez`}
       description={di(RUTA.entrada, lang)}>
-  <article class="epage rpage">
+  <article class="epage rpage" data-guardia>
     {/* Aqui no va el campo verde del hero. Esta pagina es una mesa donde
         se juega: las cartas se tienen que ver contra el papel, no contra
         el bosque. El verde vuelve en lo que manda —las dianas, el nivel
@@ -50,4 +53,9 @@ const title = di(RUTA.titulo, lang);
   {/* Solo en esta pagina: el juego no pinta nada en las demas y no tiene
       por que viajar con ellas. */}
   <script>import '../../scripts/ruta.js';</script>
+  {/* Nace escondida y la guardia la abre cuando el servidor confirma que la
+      persona entro y esta aprobada (scripts/portal/guardia.js). */}
+  <style is:global>[data-guardia]:not([data-guardia="ok"]) { visibility: hidden; }</style>
+  <noscript><style is:inline>[data-guardia] { visibility: visible; }</style></noscript>
+  <script>import '../../scripts/portal/guardia.js';</script>
 </Base>

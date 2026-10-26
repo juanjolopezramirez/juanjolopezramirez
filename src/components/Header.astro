@@ -29,11 +29,12 @@ const to = (slug) => `/${lang}/${slug}/`;
           </li>
         ))}
         <li class="site-nav__write">
-          <!-- Abre la hoja de las tres puertas: pedir, gestionar, revisar.
-               No lleva a una sola pagina porque ya no hay una sola. -->
-          <button class="nav-cta" type="button" data-open-contact aria-haspopup="dialog">
+          <!-- Lleva al portal «The Alef Code»: ahi se entra, se pide acceso o se me
+               escribe. Es un enlace de verdad, no una hoja que se abre. -->
+          <a class="nav-cta" href={to('portal')}
+             aria-current={active === 'portal' ? 'page' : undefined}>
             {t('nav.write')}
-          </button>
+          </a>
         </li>
       </ul>
     </nav>
@@ -77,9 +78,10 @@ const to = (slug) => `/${lang}/${slug}/`;
         </li>
       ))}
       <li>
-        <button class="drop-write" type="button" data-open-contact aria-haspopup="dialog">
+        <a class="drop-write" href={to('portal')}
+           aria-current={active === 'portal' ? 'page' : undefined}>
           {t('nav.write')}
-        </button>
+        </a>
       </li>
     </ul>
   </nav>

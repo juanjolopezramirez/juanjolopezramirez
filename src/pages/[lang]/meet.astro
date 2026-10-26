@@ -7,6 +7,10 @@ import Icon from '../../components/Icon.astro';
 
 /* Cuadremos un rato: /es/meet/, /en/meet/…
 
+   Se llega desde el portal «The Alef Code», ya aprobado (Inicio → «Cuadremos un rato»).
+   La guardia (scripts/portal/guardia.js) manda al portal a quien no ha entrado;
+   sale de los buscadores y del mapa del sitio.
+
    La puerta del mapa. Enseña cuando estoy y por donde se reserva.
 
    LAS FRANJAS NO SALEN DEL CALENDARIO. Son la promesa general —de tal a tal
@@ -28,9 +32,9 @@ const say = (o) => (o ? (o[lang] ?? o.es) : '');
 const wa = CONTACT.find((c) => c.id === 'whatsapp' && c.href);
 const mail = CONTACT.find((c) => c.id === 'mail' && c.href);
 ---
-<Base lang={lang} path="meet" active="meet" title={`${title} — Juan José López Ramírez`}
+<Base lang={lang} path="meet" active="meet" noindex title={`${title} — Juan José López Ramírez`}
       description={t('page.meet.lead')}>
-  <article class="epage cpage">
+  <article class="epage cpage" data-guardia>
     <div class="cpage__field" aria-hidden="true"></div>
     <div class="epage__shell">
       <h1 class="cpage__title">{title}</h1>
@@ -84,4 +88,9 @@ const mail = CONTACT.find((c) => c.id === 'mail' && c.href);
       <p class="cpage__foot">{t('page.meet.foot')}</p>
     </div>
   </article>
+  {/* Nace escondida y la guardia la abre cuando el servidor confirma que la
+      persona entro y esta aprobada (scripts/portal/guardia.js). */}
+  <style is:global>[data-guardia]:not([data-guardia="ok"]) { visibility: hidden; }</style>
+  <noscript><style is:inline>[data-guardia] { visibility: visible; }</style></noscript>
+  <script>import '../../scripts/portal/guardia.js';</script>
 </Base>

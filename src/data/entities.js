@@ -49,7 +49,7 @@ export const ENTITY_BY_SLUG = Object.fromEntries(ENTITIES.map((e) => [slugOf(e),
 {
   /* Las secciones del menu y las paginas sueltas que no estan en el: la
      solicitud cuelga del idioma igual que ellas. */
-  const reservadas = new Set([...NAV.map((n) => n.slug), 'contact', 'portal', 'status']);
+  const reservadas = new Set([...NAV.map((n) => n.slug), 'contact', 'direct', 'meet', 'portal', 'status']);
   const choque = ENTITIES.map(slugOf).filter((s) => reservadas.has(s));
   if (choque.length) {
     throw new Error(

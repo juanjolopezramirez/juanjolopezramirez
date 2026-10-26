@@ -14,7 +14,24 @@ import '../styles/sketch.css';
 import '../styles/niebla.css';
 import '../styles/carga.css';
 
-const { lang, path = '', active = '', title, description } = Astro.props;
+/* `noindex`: paginas que no deben salir en buscadores (el portal). La meta lo pide
+   educadamente a Google y a los demas; no esconde la pagina: eso solo lo hace
+   no tenerla (ver el aviso de PORTAL.md). */
+const { lang, path = '', active = '', title, description, noindex = false, noche = false, limpio = false } = Astro.props;
+/* `limpio`: sin la cabecera ni el pie del sitio (las interfaces de trabajo de The
+   Alef Code: el portal, el panel y las que vengan; layouts/Terminal.astro). Los
+   paneles, el telon y site.js se quedan: el guardian de arriba espera `js-ready`. */
+/* `noche`: la pagina vive de noche aunque el sitio este de dia (el portal The Alef
+   Code). Pone la clase en <body> y suma JetBrains Mono a las letras: es la tercera
+   letra que el fundador aprobo SOLO para el portal (2026-10-26), y fuera de el no
+   se descarga. */
+const FUENTES = 'https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss'
+  + (noche ? '&family=JetBrains+Mono:wght@400;500;700' : '') + '&display=swap';
+/* De noche, el fondo de signos tambien escribe en arameo, con la letra siriaca
+   (estrangela). Casi ningun telefono la trae: se pide a Google SOLO con las 22
+   letras que se usan (`text=`), unos pocos KB. */
+const SIRIACO = 'ܐܒܓܕܗܘܙܚܛܝܟܠܡܢܣܥܦܨܩܪܫܬ';
+const FUENTE_SIRIACA = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Syriac:wght@500&text=' + encodeURIComponent(SIRIACO) + '&display=swap';
 const t = useT(lang);
 const clean = String(path).replace(/^\/+|\/+$/g, '');
 
@@ -131,18 +148,19 @@ const canonical = alt(lang);
     document.addEventListener('DOMContentLoaded', function () { setTimeout(comprobar, 12000); });
   </script>
   <meta name="theme-color" content="#263B28" />
+  {noindex && <meta name="robots" content="noindex, nofollow" />}
   <title>{title ?? t('doc.title')}</title>
   <meta name="description" content={description ?? t('hero.role')} />
 
-  <link rel="icon" href="/assets/logos/mark-icon.svg" type="image/svg+xml" />
+  <link rel="icon" href={limpio ? '/assets/logos/alef-code.svg' : '/assets/logos/mark-icon.svg'} type="image/svg+xml" />
   <!-- Cual es la buena de las cinco. Sin esto, las cinco traducciones
        compiten entre ellas por la misma consulta. -->
   <link rel="canonical" href={canonical} />
   {LANGS.map((l) => <link rel="alternate" hreflang={l} href={alt(l)} />)}
   <link rel="alternate" hreflang="x-default" href={alt('es')} />
 
-  <link rel="preload" as="image" href="/assets/img/me-hero.webp" type="image/webp" media="(min-width: 1200px)" />
-  <link rel="preload" as="image" href="/assets/img/just-me.webp" type="image/webp" media="(max-width: 1199px)" />
+  {!limpio && <link rel="preload" as="image" href="/assets/img/me-hero.webp" type="image/webp" media="(min-width: 1200px)" />}
+  {!limpio && <link rel="preload" as="image" href="/assets/img/just-me.webp" type="image/webp" media="(max-width: 1199px)" />}
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -182,17 +200,18 @@ const canonical = alt(lang);
 
        El `noscript` es para quien no tenga JavaScript: ahi va normal. -->
   <link rel="stylesheet" media="print" onload="this.media='all'"
-        href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss&display=swap" />
+        href={FUENTES} />
   <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss&display=swap" />
+    <link rel="stylesheet" href={FUENTES} />
   </noscript>
+  {noche && <link rel="stylesheet" media="print" onload="this.media='all'" href={FUENTE_SIRIACA} />}
 </head>
 
-<body>
+<body class={noche ? 'pagina--noche' : undefined}>
   <a class="skip-link" href="#main">{t('a11y.skip')}</a>
-  <Header lang={lang} t={t} path={path} active={active} />
+  {!limpio && <Header lang={lang} t={t} path={path} active={active} />}
   <main id="main"><slot /></main>
-  <Footer t={t} />
+  {!limpio && <Footer t={t} />}
   <Panels lang={lang} t={t} />
   <Curtain />
   <script>import '../scripts/site.js';</script>

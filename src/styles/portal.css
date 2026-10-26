@@ -1,0 +1,369 @@
+/* =============================================================
+   THE ALEF CODE · EL PORTAL (components/portal/Tarjeta.astro, /[lang]/portal/)
+
+   La entrada: una ventana de terminal sobre la noche. La base comun (la noche,
+   el fondo, la barra, los iconos y las excepciones de marca aprobadas) vive en
+   styles/terminal.css; aqui va lo de esta pantalla. Las cajas, botones y avisos
+   de abajo los usa tambien el panel (panel.css).
+
+   SIN SCROLL (2026-10-26, lo pidio el fundador). La pagina mide lo que mide la
+   ventana del navegador (100dvh) y no se desliza nunca. La ventana de la
+   terminal cabe dentro: en pantallas anchas, DOS COLUMNAS (a la izquierda el
+   logo, el lema y «¿Prefieres escribirme?»; a la derecha la pantalla); en el
+   telefono, una sola columna compacta. Si una pantalla larga (pedir acceso) no
+   cabe en un telefono bajo, se desliza SOLO la hoja, por dentro de la ventana.
+   Las alturas bajas aprietan los espacios (@media max-height).
+
+   LOS ESTADOS: cada `[data-pantalla]` se enseña con `hidden` (entrar.js), y su
+   `data-ruta` cambia la ruta de la barra (~/entrar). Sin JavaScript no se ve
+   ninguno, y quedan el <noscript> y «¿Prefieres escribirme?».
+   ============================================================= */
+
+/* La pagina no se desliza: el portal ocupa la ventana justa */
+html:has(.portal) { overflow: hidden; height: 100%; }
+html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow: hidden; }
+
+/* ---- La escena ---- */
+.portal {
+  position: relative; isolation: isolate;
+  height: 100vh; height: 100dvh;
+  display: grid; place-items: center;
+  padding: max(.75rem, env(safe-area-inset-top)) var(--gutter) max(.75rem, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.portal > .portal__halo, .portal > .portal__ventana { grid-area: 1 / 1; }
+
+/* El halo: la lava que se cuela por detras de la ventana. Gira despacio (@property). */
+@property --giro { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.portal__halo {
+  place-self: center;
+  width: min(100%, 31rem); height: min(100%, 36rem);
+  border-radius: 28px;
+  background: conic-gradient(from var(--giro), var(--pine) 0, var(--iris) 25%, var(--pine-900) 50%, var(--iris-300) 72%, var(--pine) 100%);
+  filter: blur(42px);
+  opacity: .42;
+  transform: scale(1.04);
+  animation: halo 16s linear infinite;
+}
+@keyframes halo { to { --giro: 360deg; } }
+.fondo-quieto .portal__halo { animation-play-state: paused; }
+
+/* ---- La ventana de la terminal ---- */
+.portal__ventana {
+  position: relative;
+  width: min(100%, 31rem); max-height: 100%; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+  background: rgb(11 17 13 / .74);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--raya);
+  border-radius: 20px;
+  box-shadow:
+    0 40px 90px -30px rgb(0 0 0 / .85),
+    0 18px 40px -24px rgb(0 0 0 / .7);
+  overflow: hidden;
+}
+
+/* El cuerpo: en el telefono, lema · pantalla · canales */
+.portal__cuerpo {
+  display: grid; min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "lado" "hoja" "escribe";
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.portal__lado {
+  grid-area: lado;
+  display: grid; gap: .8rem; align-content: start;
+  padding: 1.1rem clamp(1.2rem, 5vw, 2rem) 0;
+}
+.portal__logo { display: none; }
+.portal__hoja {
+  grid-area: hoja;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.6rem; align-content: start;
+  min-width: 0; min-height: 0; overflow: hidden auto; overscroll-behavior: contain;
+  padding: clamp(1rem, 3.5vh, 1.6rem) clamp(1.2rem, 5vw, 2rem) clamp(1rem, 3vh, 1.5rem);
+  scrollbar-width: thin; scrollbar-color: var(--raya-fuerte) transparent;
+  scrollbar-gutter: stable;     /* si aparece la barra, no empuja nada de lado */
+}
+
+/* En pantallas anchas: dos columnas. La izquierda es la cara de la casa. */
+@media (min-width: 860px) {
+  .portal__halo { width: min(100%, 58rem); }
+  .portal__ventana { width: min(100%, 58rem); }
+  .portal__cuerpo {
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1fr);
+    grid-template-areas: "lado hoja" "escribe hoja";
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .portal__lado {
+    align-content: center; justify-items: start; gap: 1.4rem;
+    padding: 2.4rem 2.2rem;
+    border-right: 1px solid var(--raya);
+    background: radial-gradient(ellipse 80% 60% at 30% 40%, rgb(0 255 102 / .06), transparent 70%);
+  }
+  .portal__logo {
+    display: block; height: clamp(4.5rem, 16vh, 7.5rem);
+    filter: drop-shadow(0 0 18px rgb(0 255 102 / .35));
+  }
+  .portal__hoja { align-content: center; padding: 2.2rem 2.2rem 2rem; }
+  /* Pedir acceso, en dos filas de dos: nombre y correo, contraseña y «para que»;
+     asi el formulario entero cabe sin deslizar */
+  .portal__form[data-form="pedir"] { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .8rem; align-items: start; }
+  .portal__form[data-form="pedir"] > :not(.portal__campo) { grid-column: 1 / -1; }
+  .portal__form[data-form="pedir"] .portal__entrada--texto { min-height: 48px; height: 48px; resize: none; }
+  .portal__escribeme { border-right: 1px solid var(--raya); }
+}
+
+.portal__comando { margin: 0; font-size: .84rem; line-height: 1.4; color: var(--tiza-2); }
+@media (min-width: 860px) { .portal__comando { font-size: .95rem; } }
+.portal__prompt { color: var(--prompt); }
+.portal__cursor {
+  display: inline-block; width: .55em; height: 1.05em; margin-left: .2em;
+  vertical-align: -.17em; background: var(--alef-verde);
+  animation: cursor 1.1s steps(1) 4;          /* parpadea menos de 5 s y se queda quieto (WCAG 2.2.2) */
+}
+@keyframes cursor { 50% { opacity: 0; } }
+
+.portal__demo {
+  margin: 0; justify-self: start;
+  padding: .25rem .65rem;
+  border: 1px dashed var(--raya-fuerte); border-radius: 8px;
+  font-size: .8rem; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--tiza-2);
+}
+.portal__demo[hidden] { display: none; }
+
+.portal__panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.05rem; align-content: start; min-width: 0; }
+.portal__panel[hidden] { display: none; }
+.portal__titulo {
+  margin: 0 0 -.4rem;
+  font-family: var(--mono); font-weight: 700;
+  font-size: clamp(1.45rem, 5vw, 1.95rem); line-height: 1.1; letter-spacing: -.025em;
+  color: var(--tiza);
+  text-wrap: balance;
+}
+.portal__titulo:focus, .portal__nota:focus { outline: none; }
+.portal__linea { margin: 0 0 .2rem; font-size: .9rem; line-height: 1.5; color: var(--tiza-2); }
+.portal__nota { margin: 0; font-size: .92rem; line-height: 1.5; color: var(--tiza); }
+.portal__nota--chica { font-size: .8rem; color: var(--tiza-2); }
+/* ---- Las esperas: «Un momento…» y «Entrando…» (y la carga del panel, panel.css) ----
+   La א late en rojo mientras se espera (el tono de la carga) y se queda en verde al
+   entrar. Debajo, la bitacora: los pasos de verdad (carga.js), que se teclean y
+   dejan el cursor en el ultimo. Su alto es fijo (tres lineas): nada salta. */
+.portal__espera {
+  display: grid; justify-items: center; align-content: center; gap: .9rem;
+  text-align: center;
+  padding-block: clamp(1rem, 6vh, 3rem);
+}
+.portal__espera-logo { height: 2.6rem; }
+.portal__espera .tono--rojo { animation: latido 1.1s ease-in-out infinite; filter: drop-shadow(0 0 12px rgb(255 59 59 / .45)); }
+.portal__espera .tono--verde { filter: drop-shadow(0 0 14px rgb(0 255 102 / .5)); }
+@keyframes latido { 50% { opacity: .35; } }
+.portal__bitacora {
+  display: grid; justify-items: start; align-content: start; gap: .2rem;
+  min-height: calc(3 * 1.45em + .4rem);
+  margin: 0; padding: 0; list-style: none;
+  font-size: .78rem; line-height: 1.45; color: var(--tiza-2); text-align: left;
+}
+.portal__bitacora li { white-space: nowrap; animation: teclear .36s steps(18, end) both; }
+.portal__bitacora li::before { content: "> "; color: var(--prompt); }
+.portal__bitacora li:last-child { color: var(--tiza); }
+.portal__bitacora li:last-child::after {
+  content: ""; display: inline-block; width: .5em; height: 1em; margin-left: .3em; vertical-align: -.15em;
+  background: var(--alef-verde); animation: cursor 1.1s steps(1) infinite;
+}
+@keyframes teclear { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+
+/* Entrando: la ventana se apaga como una pantalla de tubo (se aplana en una raya de
+   luz y se cierra) y deja ver el fondo, que descifra la א. Lo que dura cabe en
+   ENTRADA_MS (carga.js). Con el fondo quieto no pasa: se va al panel enseguida. */
+.portal[data-vista="aprobado"] .portal__ventana { animation: tubo-apagar .36s cubic-bezier(.7, 0, .84, 0) .06s both; }
+.portal[data-vista="aprobado"] .portal__halo { animation: none; opacity: 0; transition: opacity .3s var(--ease); }
+@keyframes tubo-apagar {
+  0%   { transform: none; filter: none; opacity: 1; }
+  55%  { transform: scale(1, .006); filter: brightness(3); opacity: 1; }
+  100% { transform: scale(0, .006); filter: brightness(3); opacity: 0; }
+}
+.fondo-quieto .portal[data-vista="aprobado"] .portal__ventana { animation: none; }
+/* La pausa del fondo para TODO lo que se mueve solo (WCAG 2.2.2): tambien la א que
+   late y los cursores que parpadean. */
+.fondo-quieto .portal__espera .tono--rojo,
+.fondo-quieto .portal__bitacora li:last-child::after,
+.fondo-quieto .portal__cursor { animation: none; }
+
+/* ---- Los botones ---- */
+.portal__boton, .portal__google {
+  display: inline-flex; align-items: center; justify-content: center; gap: .65rem;
+  min-height: 48px; width: 100%; padding: 0 1.2rem;
+  border: 1px solid transparent; border-radius: 12px;
+  font-family: var(--mono); font-size: .92rem; font-weight: 500; letter-spacing: 0;
+  cursor: pointer;
+  transition: background-color .2s var(--ease), box-shadow .25s var(--ease), border-color .2s var(--ease), scale .15s var(--ease);
+}
+.portal__boton { background: var(--tiza); color: var(--noche); font-weight: 700; }
+.portal__boton::after { content: "↵" / ""; font-weight: 400; opacity: .55; }   /* «/ \"\"»: el lector de pantalla no lo lee */
+.portal__boton:hover { box-shadow: 0 0 0 4px rgb(241 239 233 / .12), 0 12px 30px -12px rgb(169 196 127 / .55); }
+.portal__boton--suave, .portal__google {
+  background: rgb(241 239 233 / .03); color: var(--tiza);
+  border-color: var(--raya-fuerte);
+}
+.portal__boton--suave::after { content: none; }
+.portal__boton--suave:hover, .portal__google:hover { background: rgb(241 239 233 / .08); border-color: rgb(241 239 233 / .5); box-shadow: none; }
+.portal__google .icon { width: 1.15rem; height: 1.15rem; flex: none; }
+.portal__boton:active, .portal__google:active { scale: .985; }
+.portal__boton:focus-visible, .portal__google:focus-visible { outline: 2px solid var(--prompt); outline-offset: 3px; }
+.portal__boton:disabled, .portal__google:disabled, .portal__boton[aria-busy="true"] { opacity: .55; cursor: progress; box-shadow: none; scale: 1; }
+
+/* «o con tu correo»: una raya con la palabra en medio */
+.portal__o {
+  display: flex; align-items: center; gap: .8rem; margin: 0;
+  font-size: .8rem; color: var(--tiza-2);
+}
+.portal__o::before, .portal__o::after { content: ""; flex: 1; height: 1px; background: var(--raya); }
+
+/* ---- Los campos: la etiqueta con su ›, la caja redonda ---- */
+.portal__form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.portal__campo { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
+.portal__etiqueta { font-size: .8rem; font-weight: 400; letter-spacing: .01em; color: var(--tiza-2); }
+.portal__etiqueta::before { content: "› "; color: var(--prompt); }
+.portal__caja { position: relative; display: flex; }
+.portal__entrada {
+  flex: 1; min-width: 0;
+  min-height: 48px; padding: .7rem 1rem;
+  border: 1px solid var(--raya-fuerte); border-radius: 12px;
+  background: rgb(241 239 233 / .04); color: var(--tiza);
+  caret-color: var(--prompt);
+  font-family: var(--mono); font-size: 1rem;       /* 16px o mas: el iPhone no hace zoom al tocar */
+  transition: border-color .2s var(--ease), background-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.portal__entrada:hover { border-color: rgb(241 239 233 / .45); }
+.portal__entrada--texto { resize: vertical; min-height: 5.5rem; line-height: 1.5; }
+.portal__caja--ojo .portal__entrada { padding-right: 3.2rem; }
+.portal__entrada:focus-visible {
+  outline: none;
+  border-color: var(--tiza);
+  background: rgb(241 239 233 / .07);
+  box-shadow: 0 0 0 3px rgb(169 196 127 / .4);
+}
+.portal__entrada[aria-invalid="true"] { border-color: var(--alerta); }
+.portal__entrada:-webkit-autofill {
+  -webkit-text-fill-color: var(--tiza);
+  -webkit-box-shadow: 0 0 0 40px #18211A inset;
+  caret-color: var(--prompt);
+}
+.portal__ojo {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  display: grid; place-items: center; width: 48px;
+  border-radius: 0 12px 12px 0;
+  color: var(--tiza-2);
+}
+.portal__ojo:hover { color: var(--tiza); }
+.portal__ojo:focus-visible { outline: 2px solid var(--prompt); outline-offset: -4px; }
+.portal__ojo .icon { width: 1.2rem; height: 1.2rem; }
+.portal__ojo[hidden], .portal__ojo [hidden] { display: none; }
+.portal__ayuda { margin: 0; font-size: .8rem; color: var(--tiza-2); }
+
+/* Los avisos: el error con su punto rojo y su texto en tiza (nunca solo color) */
+.portal__error {
+  display: flex; gap: .6rem; align-items: baseline;
+  margin: 0; padding: .7rem .9rem;
+  border: 1px solid rgb(255 59 59 / .45); border-radius: 12px;
+  background: rgb(255 59 59 / .08);
+  font-size: .86rem; line-height: 1.45; color: var(--tiza);
+}
+.portal__error::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--alerta); translate: 0 -1px; }
+.portal__error[hidden] { display: none; }
+.portal__listo { display: flex; gap: .6rem; align-items: baseline; margin: 0; font-size: .88rem; line-height: 1.45; color: var(--tiza); }
+.portal__listo::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
+.portal__listo[hidden] { display: none; }
+
+/* ---- Los enlaces de abajo (son botones: no llevan a otra pagina) ---- */
+.portal__enlaces { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1rem; margin: 0; }
+.portal__enlace {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; padding: 0 .1rem;
+  font-family: var(--mono); font-size: .82rem; color: var(--tiza);
+  text-decoration: underline; text-decoration-color: var(--raya-fuerte); text-underline-offset: .35em;
+  cursor: pointer;
+  transition: text-decoration-color .2s var(--ease);
+}
+.portal__enlace:hover { text-decoration-color: var(--prompt); }
+.portal__enlace:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; border-radius: 4px; }
+.portal__enlace .icon { width: 1.05rem; height: 1.05rem; }
+.portal__enlace--salir { text-decoration: none; }
+
+/* ---- «¿Prefieres escribirme?»: el pie de la columna izquierda (o de la ventana) ---- */
+.portal__escribeme {
+  grid-area: escribe;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
+  padding: .7rem clamp(1.2rem, 5vw, 2rem);
+  border-top: 1px solid var(--raya);
+  background: rgb(5 8 6 / .35);
+}
+@media (min-width: 860px) {
+  .portal__escribeme { display: grid; justify-content: stretch; gap: .6rem; padding: 1.1rem 2.2rem 1.3rem; }
+}
+.portal__escribeme-titulo { margin: 0; font-family: var(--mono); font-weight: 400; font-size: .84rem; color: var(--tiza-2); }
+.portal__canales { display: flex; gap: .5rem; list-style: none; margin: 0; padding: 0; }
+.portal__canal {
+  display: inline-flex; align-items: center; gap: .5rem;
+  min-height: 44px; padding: 0 .9rem;
+  border: 1px solid var(--raya-fuerte); border-radius: 12px;
+  font-family: var(--mono); font-size: .8rem; color: var(--tiza); text-decoration: none;
+  transition: background-color .2s var(--ease), border-color .2s var(--ease);
+}
+.portal__canal .icon { width: 1.05rem; height: 1.05rem; }
+.portal__canal:hover { background: rgb(241 239 233 / .08); border-color: rgb(241 239 233 / .5); }
+.portal__canal:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+
+/* ---- Pantallas bajas: se aprietan los espacios para que todo quepa ---- */
+@media (max-height: 760px) {
+  .portal__hoja { gap: 1.1rem; }
+  .portal__panel { gap: .8rem; }
+  .portal__form { gap: .75rem; }
+  .portal__campo { gap: .3rem; }
+  .portal__boton, .portal__google, .portal__entrada { min-height: 44px; }
+  .portal__entrada { padding-block: .55rem; }
+  .portal__entrada--texto { min-height: 3.6rem; }
+  .portal__lado { gap: 1rem; }
+}
+@media (max-height: 760px) and (max-width: 859px) {
+  .portal__titulo { font-size: 1.4rem; }
+  .portal__linea { font-size: .84rem; line-height: 1.4; }
+  .portal__comando { font-size: .8rem; }
+}
+@media (max-height: 760px) and (min-width: 860px) {
+  .portal__hoja { padding-block: 1.4rem 1.3rem; }
+  .portal__panel { gap: .7rem; }
+  .portal__form { gap: .65rem; }
+  .portal__nota--chica { line-height: 1.35; }
+}
+@media (max-height: 640px) and (min-width: 860px) {
+  .portal__hoja { padding-block: 1rem; }
+  .portal__panel { gap: .6rem; }
+}
+/* Telefonos estrechos: «Olvidé mi contraseña» y «Pedir acceso» en una sola linea */
+@media (max-width: 389px) {
+  .portal__enlaces { gap: .2rem .6rem; }
+  .portal__enlace { font-size: .76rem; }
+}
+@media (max-height: 700px) and (max-width: 859px) {
+  .portal__lado { display: none; }     /* el lema se va: el logo y el nombre siguen en la barra */
+  .portal__hoja { padding-block: .85rem .9rem; gap: .9rem; }
+  .portal__panel { gap: .7rem; }
+  .portal__escribeme { padding-block: .5rem; gap: .35rem 1rem; }
+  .portal__canal { min-height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal__halo, .portal__cursor, .portal__espera .tono--rojo,
+  .portal__bitacora li, .portal__bitacora li:last-child::after,
+  .portal[data-vista="aprobado"] .portal__ventana { animation: none; }
+  .portal__boton, .portal__google, .portal__entrada, .portal__canal { transition: none; }
+}
+@media (forced-colors: active) {
+  .portal__halo { display: none; }
+  .portal__ventana, .portal__entrada, .portal__boton, .portal__google, .portal__canal, .portal__error { border: 1px solid CanvasText; }
+  .portal__entrada[aria-invalid="true"] { border-width: 3px; }  /* el color del borde lo anula este modo: el grosor no */
+  .portal__error::before, .portal__listo::before { forced-color-adjust: none; background: CanvasText; }
+}

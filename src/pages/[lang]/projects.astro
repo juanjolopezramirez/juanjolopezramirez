@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import Partners from '../../components/Partners.astro';
 import Covers from '../../components/Covers.astro';
+import PreguntasCasas from '../../components/PreguntasCasas.astro';
 import { PROJECTS } from '../../data/projects.js';
 import Cards from '../../components/Cards.astro';
 import Piezas from '../../components/Piezas.astro';
@@ -21,6 +22,7 @@ const enVideo = PIEZAS_PUBLICAS.filter((e) => casas.has(e.casa));
 ---
 <Base lang={lang} path="projects" active="projects" title={`${title} — Juan José López Ramírez`}>
   <PageHero lang={lang} t={t} slug="projects">
+    <PreguntasCasas slot="extra" lang={lang} t={t} />
     <Covers slot="aside" lang={lang} t={t} />
     <Partners slot="foot" lang={lang} items={PROJECTS} title={t('door.projects')} />
   </PageHero>
