@@ -47,10 +47,11 @@ jobs:
       - name: Portal checks
         run: node tools/test-portal.mjs
 
+      # Astro 7.4 pide Node 22.23.4 o mas; 24 es el que se probo en local.
       - name: Install, build, and upload Site
         uses: withastro/action@v3
         with:
-          node-version: 22
+          node-version: 24
 
   deploy:
     environment:
