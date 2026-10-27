@@ -1,6 +1,5 @@
 ---
 import BrandDot from './BrandDot.astro';
-import Icon from './Icon.astro';
 import { AXES, slugOf, nombreDe } from '../data/entities.js';
 
 /* Las casas, una por una.
@@ -10,23 +9,23 @@ import { AXES, slugOf, nombreDe } from '../data/entities.js';
    leerse. Son dos registros a proposito: la cinta se mira, la tarjeta
    se lee.
 
-   La tarjeta es la de un perfil de red social, porque es la forma que
-   todo el mundo sabe leer sin que se la expliquen: una cabecera ancha,
-   la cara redonda montada sobre su canto, y debajo el nombre y una
-   linea de quien es.
+   La tarjeta es una TARJETA DE PRESENTACION, horizontal y compacta (la
+   eligio el fundador el 2026-10-27 entre tres opciones): el sello de la casa
+   a la izquierda, y al lado su nombre, quien es y tres renglones de que hace.
+   Antes era un perfil de red social —cabecera ancha, la cara montada sobre el
+   canto— y seis tarjetas se comian pantalla y media.
 
    Y es un ENLACE, no un boton: cada casa tiene su propia direccion
    —/es/recvid/— y desde aqui se entra ahi. Antes abria una hoja encima,
    que no se puede enlazar ni compartir ni indexar, y de la que el boton
    de atras no sacaba.
 
-   LA CABECERA, cuando la casa no trae foto: un degradado de la casa con
-   su propio logo detras, grande y tenue, saliendose por el canto
-   derecho. No es un relleno de espera — es lo que hace que diez
-   tarjetas de los mismos colores se distingan sin pedir diez fotos que
-   no existen. El angulo lo mueve `--i`, que es su sitio en la fila, asi
+   LA FRANJA DE COLOR sustituye a la cabecera: un degradado de la casa, fino
+   y vertical, que hace que seis tarjetas de los mismos colores se distingan
+   de un vistazo. El angulo lo mueve `--i`, que es su sitio en la fila, asi
    que dos vecinas no salen nunca iguales, y la pagina de la casa usa el
-   mismo numero: entrar se lee como abrir la misma tarjeta. */
+   mismo numero: entrar se lee como abrir la misma tarjeta. Las fotos y
+   marcas de agua de la cabecera ya no se usan aqui. */
 const { lang, t, items = [], kind, title } = Astro.props;
 
 const say = (o) => (o ? (o[lang] ?? o.es) : null);
@@ -75,25 +74,11 @@ const ejes = Object.entries(AXES)
     )}
   </div>
 
-  {/* `data-carril`: en movil la fila lleva flechas e indicador (initCarriles). */}
-  <ul class="cards__grid" style={`--cols:${cols}`} data-carril data-filtrable-lista data-antes={t('carousel.prev')} data-despues={t('carousel.next')}>
+  <ul class="cards__grid" style={`--cols:${cols}`} data-filtrable-lista>
     {items.map((e, i) => (
       <li data-tags={(e.tags ?? []).join(' ')}>
         <a class="ecard" href={`/${lang}/${slugOf(e)}/`}>
-          <span class="ecard__banner" style={`--i:${i}`} aria-hidden="true">
-            {e.banner ? (
-              <picture>
-                {e.bannerWebp && <source srcset={e.bannerWebp} type="image/webp" />}
-                <img class="ecard__photo" src={e.banner} alt="" loading="lazy" decoding="async" />
-              </picture>
-            ) : e.src ? (
-              <picture>
-                {e.webp && <source srcset={e.webp} type="image/webp" />}
-                <img class="ecard__wash" src={e.src} alt="" width={e.w} height={e.h}
-                     loading="lazy" decoding="async" />
-              </picture>
-            ) : null}
-          </span>
+          <span class="ecard__spine" style={`--i:${i}`} aria-hidden="true"></span>
 
           <BrandDot mark={e.mark} logo={e.avatar ?? e.src} w={e.avatarW ?? e.w} h={e.avatarH ?? e.h} cls="ecard__dot" />
 
@@ -110,9 +95,4 @@ const ejes = Object.entries(AXES)
   {/* Cuatro ejes se pueden cruzar hasta no dejar nada. Sin esto, la
       seccion se quedaba en blanco y parecia rota. */}
   <p class="cards__none" data-filter-none hidden>{t('filter.none')}</p>
-
-  {/* El ictus de la casa, solo en movil: la seccion mide una pantalla entera
-      y el carrusel no la llena. En vez de dejar un hueco al pie, lo cierra
-      el sello, como una firma al final de una hoja. */}
-  <span class="cards__sello" aria-hidden="true"><Icon id="mark" /></span>
 </section>

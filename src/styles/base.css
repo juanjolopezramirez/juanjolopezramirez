@@ -2851,7 +2851,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    el suelo ya cambia.
    ============================================================= */
 .cards {
-  padding: 2.6rem var(--gutter) 3rem;
+  /* El de arriba libra la cabecera flotante: el salto de seccion en seccion
+     deja esta hoja pegada al borde de la ventana, y con 2,6rem el rotulo y
+     los filtros quedaban DEBAJO de las pastillas del menu. */
+  padding: calc(var(--header-h) + .8rem) var(--gutter) 3rem;
   background: var(--papel-2);
   color: var(--slate);
   --slate-400: var(--slate-400-hundido);
@@ -2930,37 +2933,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--slate-400);
 }
 
-/* EN MOVIL, UNA FILA QUE SE DESLIZA.
+/* EN MOVIL, UNA LISTA.
 
-   Apiladas, diez casas eran diez pantallas de alto y la seccion se comia
-   la pagina. En fila ocupan una sola altura y se recorren con el pulgar,
-   que es el gesto que ya hace la galeria de las piezas.
+   Las tarjetas son de presentacion y miden poco —sello, nombre y quien
+   es—, asi que las seis caben apiladas en una pantalla y ya no hace falta
+   el carrusel (con flechas y puntos) que tenian cuando eran una ficha alta.
+   Todas a la vista es lo que mantiene el contexto: no hay que deslizar para
+   saber que casas hay.
 
-   `scroll-snap` para que cada tarjeta quede encuadrada entera y no a
-   medias: es lo que hace que un carrusel se entienda como tal.
-
-   Los margenes negativos la sacan hasta los cantos de la pantalla y el
-   relleno vuelve a meter la primera en su sitio: asi la fila se desliza a
-   sangre pero arranca alineada con el resto de la pagina.
-
-   Desde 600px hay sitio para verlas todas y vuelve a ser rejilla. Eso
-   vive en tablet.css. */
+   Desde 600px hay sitio para dos o tres por fila. Eso vive en tablet.css. */
 .cards__grid {
   display: grid;
-  grid-auto-flow: column;
-  /* 17.5rem y no menos: por debajo de eso la descripcion no cabe en sus
-     cuatro renglones y se corta a media palabra. Ensanchar no cuesta alto
-     —al reves, el texto envuelve menos— y en una pantalla de 375 deja
-     asomar la siguiente tarjeta, que es lo que dice que hay mas. */
-  grid-auto-columns: 17.5rem;
-  gap: .85rem;
-  margin-inline: calc(var(--gutter) * -1);
-  padding: .3rem var(--gutter) .7rem;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  overscroll-behavior-x: contain;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .7rem;
+  padding: .3rem 0 .4rem;
 }
-.cards__grid > li { scroll-snap-align: center; }
 
 /* =============================================================
    LOS CARRILES: flechas a los costados e indicador debajo
@@ -3105,20 +3092,31 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* --- La tarjeta ---------------------------------------------------
-   Un boton, no un enlace: no lleva a otra direccion, abre la ficha aqui
-   mismo. Un <a> sin destino se ve igual y no lleva a ningun sitio. */
+   Una tarjeta de presentacion, horizontal: el sello de la casa a la izquierda,
+   y a su lado el nombre, quien es y dos o tres lineas de que hace. Es un
+   ENLACE a la pagina de la casa, no una hoja que se abre encima.
+
+   Antes era un perfil de red social (cabecera ancha con degradado, la cara
+   montada sobre el canto, y debajo el texto): seis tarjetas se comian una
+   pantalla y media. Esta mide la tercera parte y dice lo mismo.
+
+   La franja de color de la casa (`.ecard__spine`) es lo que reemplaza a la
+   cabecera: el mismo degradado, en pequeno, para que las seis se distingan
+   de un vistazo. Va metida dentro del marco de tinta (sketch.css) y no pegada
+   al canto, para no pisar su linea.
+
+   Esquina casi recta (2px): el marco dibujado a mano es un cuadrado y sobre
+   una esquina redonda el recorte se comia las cuatro puntas. */
 .ecard {
   display: grid;
-  align-content: start;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: .95rem;
   width: 100%; height: 100%;
   text-align: left;
   background: var(--papel-alto);
-  /* Esquina casi recta y una orilla de papel alrededor de la cabecera: el
-     marco de tinta (sketch.css) se dibuja sobre papel y no se recorta. La
-     orilla crece con la tarjeta (el marco tambien: va a ~1% del borde), de 8px
-     en el movil a 12px en escritorio. */
   border-radius: 2px;
-  padding: clamp(8px, 2.6%, 12px);
+  padding: 1rem 1.1rem 1rem 1.7rem;
   overflow: hidden;
   transition: translate .28s var(--ease), box-shadow .28s var(--ease);
 }
@@ -3129,15 +3127,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* El anillo del sello gira al acercarse, igual que en las piezas. */
 .ecard:hover .brand-dot::before { animation: dotSpin 7s linear infinite; }
 
-/* --- La cabecera --------------------------------------------------
-   Un degradado de la casa con el logo detras, enorme y tenue, saliendose
-   por el canto derecho. El angulo lo mueve --i, que es el sitio de la
+/* --- La franja de la casa (tarjeta) y la cabecera (pagina de la casa) ---
+   Un degradado de la casa. El angulo lo mueve --i, que es el sitio de la
    tarjeta en la fila: 37 grados por puesto, que no divide a 360, asi que
-   la vuelta no cae nunca sobre una vecina.
+   la vuelta no cae nunca sobre una vecina. La pagina de la casa usa el mismo
+   numero: entrar se lee como abrir la misma tarjeta.
 
    El velo negro del 18% es el mismo del suelo del arranque: sin el, los
    verdes claros del final del degradado dejan el logo sin contra. */
-.ecard__banner,
+.ecard__spine,
 .entity__banner {
   position: relative;
   display: block;
@@ -3150,10 +3148,18 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
       var(--iris-700) 66%,
       var(--iris) 100%);
 }
-.ecard__banner { height: 4.6rem; }
+/* La franja: fina y vertical, dentro del marco. Mide 4px de ancho y deja .8rem
+   de aire arriba, abajo y a la izquierda, que es mas de lo que el marco de
+   tinta se mete (hasta ~7px en una tarjeta ancha). */
+.ecard__spine {
+  position: absolute;
+  top: .8rem; bottom: .8rem; left: .8rem;
+  width: 4px;
+  border-radius: 2px;
+}
+.ecard { position: relative; }
 .entity__banner { height: 8.5rem; }
 
-.ecard__banner picture,
 .entity__banner picture { display: block; }
 
 /* Cuando la casa trae foto, la foto manda: llena la caja entera y se
@@ -3161,11 +3167,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    plan para cuando NO hay foto, no un fondo que se vea a traves.
 
    `cover` y no `contain` porque la caja tiene proporciones distintas en
-   cada sitio —de 3.8:1 en una tarjeta de movil a 5.3:1 en una de
-   escritorio— y una sola foto tiene que servir para las tres sin barras
-   a los lados. Lo que se recorta se recorta arriba y abajo por igual,
-   asi que lo que importe tiene que estar en la banda central. */
-.ecard__photo,
+   cada sitio y una sola foto tiene que servir para todas sin barras a los
+   lados. Lo que se recorta se recorta arriba y abajo por igual, asi que lo
+   que importe tiene que estar en la banda central. */
 .entity__photo {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -3187,24 +3191,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   pointer-events: none;
 }
 
-/* --- La cara, montada sobre el canto ------------------------------
-   El aro de hueso alrededor es lo que la despega de la cabecera: sin el,
-   el circulo parece un agujero en el degradado y no una cara encima. */
+/* --- El sello y el texto ------------------------------------------
+   El sello de la casa va a la izquierda, arriba, alineado con el nombre. El
+   aro de hueso alrededor lo despega del papel, igual que antes lo despegaba
+   de la cabecera. */
 .ecard__dot {
-  --dot: 3.5rem;
-  margin: -1.75rem 0 0 1.05rem;
-  z-index: 2;
+  --dot: 3.1rem;
+  margin: .1rem 0 0;
   border-radius: 50%;
   box-shadow: 0 0 0 3px var(--bone);
 }
 
 .ecard__body {
-  display: grid; gap: .18rem;
-  padding: .55rem 1.05rem 1.15rem;
+  display: grid; gap: .14rem;
+  min-width: 0;
 }
 .ecard__name {
   font-family: var(--serif);
-  font-size: 1.02rem; font-weight: 400;
+  font-size: 1.05rem; font-weight: 400;
   line-height: 1.25; letter-spacing: -.015em;
   text-wrap: balance;
 }
@@ -3212,27 +3216,33 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: .74rem; font-weight: 300;
   color: var(--slate-400);
 }
-/* El tope es una red de seguridad, no un formato.
+/* QUE HACE, EN CINCO RENGLONES COMO MUCHO. Es una tarjeta de presentacion: dice quien es
+   y de que va, y la pagina de la casa cuenta el resto (alli no se recorta
+   nada). Con tres se cortaban las seis descripciones (unos ciento cincuenta
+   caracteres) entre 768 y 1440px de ancho, y con cuatro aun algunas en tablet;
+   con cinco caben en todos los anchos probados. Las filas se igualan a la
+   tarjeta mas alta, asi que lo que sobra de una no descoloca nada. Si una se pasa, termina en puntos suspensivos y no a media
+   palabra.
 
-   Estuvo en tres y luego en cuatro renglones, y las dos veces cortaba a
-   media palabra en cuanto la tarjeta se estrechaba: en movil mide 280px y
-   ahi lo que en escritorio cabe en cuatro pide cinco. Y una descripcion
-   cortada por la mitad es peor que una fila descuadrada — que ademas no
-   pasa: las tarjetas de una fila se estiran a la mas alta porque la
-   rejilla las iguala, asi que la diferencia de un renglon no descoloca
-   nada.
-
-   Seis es el techo, y esta para que una descripcion que se vaya de las
-   manos no estire la fila entera. Con las de ahora —unos ciento cincuenta
-   caracteres— no llega a actuar en ningun ancho.
-
-   La pagina de la casa no recorta nada: el texto entero esta a un clic. */
+   En el telefono no se ve: ahi las seis casas van en lista y tienen que caber
+   en una pantalla, y el nombre con su «quien es» ya dicen a que se dedica. */
 .ecard__blurb {
-  margin-top: .35rem;
-  font-size: .82rem; font-weight: 300;
-  line-height: 1.55;
-  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
+  margin-top: .3rem;
+  font-size: .8rem; font-weight: 300;
+  line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical;
   overflow: hidden;
+}
+/* EN EL TELEFONO la lista tiene que caber en una pantalla (si la seccion mide
+   mas que la ventana, el salto de seccion en seccion se apaga en toda la
+   pagina): sin descripcion, con el sello mas chico y todo un poco mas junto. */
+@media (max-width: 599px) {
+  .ecard__blurb { display: none; }
+  .ecard { padding: .75rem 1rem .75rem 1.5rem; column-gap: .8rem; align-items: center; }
+  .ecard__dot { --dot: 2.6rem; margin: 0; }
+  .ecard__spine { top: .6rem; bottom: .6rem; left: .7rem; }
+  .ecard__name { font-size: 1rem; }
+  .cards__grid { gap: .5rem; }
 }
 
 /* =============================================================
@@ -4163,7 +4173,9 @@ textarea.cform__input { resize: vertical; line-height: 1.55; }
      los años. */
   --eje: .45rem;
   position: relative;
-  padding: clamp(4.5rem, 14vh, 8rem) var(--gutter) clamp(6rem, 18vh, 10rem);
+  /* 5,4rem de suelo: con una ventana baja 14vh se quedaba justo en la
+     cabecera flotante (--header-h + aire). */
+  padding: clamp(5.4rem, 14vh, 8rem) var(--gutter) clamp(6rem, 18vh, 10rem);
   background: var(--roca);
   color: var(--bone);
 }
@@ -7053,43 +7065,19 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   display: flex; flex-direction: column; justify-content: safe center;
 }
 
-/* EN MOVIL, ARRIBA Y CON SELLO. Centrado en una pantalla entera, el carrusel
-   dejaba doscientos pixeles vacios encima —justo entre la cinta de «Lo que
-   estoy construyendo» y «Una por una»— y otros tantos debajo. Se sube hasta
-   la cabecera, que es donde empieza a leerse, y el hueco que queda al pie
-   lo ocupa el ictus de la casa, centrado y apagado: cierra la hoja en vez de
-   dejarla a medias. Desde 600px las tarjetas vuelven a ser rejilla y llenan
-   la pantalla solas; ahi no hay hueco ni sello. */
-.cards__sello { display: none; }
+/* EN MOVIL, ARRIBA. Centrada en una pantalla entera, la lista dejaba hueco
+   encima —justo entre la cinta de «Lo que estoy construyendo» y «Una por
+   una»—. Se sube hasta la cabecera, que es donde empieza a leerse. Desde
+   600px las tarjetas son rejilla y llenan la pantalla solas. */
 @media (max-width: 599px) {
   .cards {
     justify-content: flex-start;
     padding-top: calc(var(--header-h) + 1.6rem);
     padding-bottom: 1.5rem;
   }
-  .cards__sello {
-    flex: 1 0 auto;
-    display: grid; place-items: center;
-    min-height: 4rem;
-    color: var(--iris-tinta);
-    opacity: .45;
-  }
-  .cards__sello .icon {
-    width: auto; height: 2.1rem;
-    animation: floatY 7s var(--ease-smooth) infinite;
-  }
-
-  /* LAS TARJETAS, CASI DE BORDE A BORDE. Con 17.5rem eran una ficha chica en
-     medio de la pantalla; ahora ocupan el ancho menos un margen de 2rem a
-     cada lado —por donde entran y salen fundiendose—, sin bajar de 17.5rem
-     en un telefono estrecho ni pasar de 22rem en uno grande. */
-  .cards__grid { grid-auto-columns: clamp(17.5rem, calc(100vw - 4rem), 22rem); }
-  /* Mas ancha la tarjeta, mas cerca del canto la flecha: un poco mas chica
-     para no pisar el texto. */
+  /* Las flechas de los carriles (los videos): un poco mas chicas para no
+     pisar el texto. */
   .carril__flecha { width: 2.3rem; height: 2.3rem; }
-}
-@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
-  .cards__sello .icon { animation: none; }
 }
 
 /* =============================================================

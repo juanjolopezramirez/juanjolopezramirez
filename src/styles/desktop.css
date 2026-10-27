@@ -262,8 +262,15 @@
   /* ---- Las casas ----
      Aqui ya no reparte la rejilla: manda el numero que Cards.astro
      calcula para que las filas queden parejas. Cuatro tarjetas en una
-     fila de cuatro, seis en dos de tres. */
-  .cards__grid { grid-template-columns: repeat(var(--cols, 3), 1fr); }
+     fila de cuatro, seis en dos de tres.
+
+     Solo desde 1280px: la tarjeta es horizontal (sello + texto) y por debajo
+     de 19rem de ancho el texto se queda en unos 30 caracteres por renglon y
+     los tres renglones no alcanzan. Entre 1024 y 1279 manda el auto-fit de
+     tablet.css, que reparte las que quepan a 19rem como minimo. */
+  @media (min-width: 1280px) {
+    .cards__grid { grid-template-columns: repeat(var(--cols, 3), 1fr); }
+  }
 }
 
 

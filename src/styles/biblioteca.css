@@ -567,7 +567,10 @@ html[data-tema="oscuro"] .hrepisa {
   --d-pad: 1.1rem;
   --h-t: calc(var(--w-t) * 1.4144);   /* ...y su alto: la proporcion de un libro, 707 x 1000 */
   position: relative;
-  padding: 3.2rem var(--gutter) 3.8rem;
+  /* Arriba libra la cabecera flotante (--header-h): al llegar aqui con el
+     salto de seccion o con el buscador del hero, el titulo y el buscador
+     quedaban debajo de las pastillas del menu. */
+  padding: calc(var(--header-h) + 1.6rem) var(--gutter) 3.8rem;
   background-color: var(--papel);
   color: var(--slate);
   --slate-400: var(--slate-400-hundido);        /* con el grano del papel, el slate 400 a secas se queda justo */

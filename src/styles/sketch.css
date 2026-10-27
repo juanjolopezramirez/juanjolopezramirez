@@ -53,7 +53,7 @@
    mas finas) y en una tarjeta ancha la onda caia, a tramos, sobre el verde de
    la cabecera. Este va a ~1 unidad del borde con una onda de 0,3, y el lienzo
    se abre 0,6 por cada lado (viewBox -.6 -.6 101.2 101.2): los cuatro lados se
-   ven iguales y siempre caen en la orilla de papel (.ecard, base.css).
+   ven iguales y quedan dentro del padding de la hoja (.ecard, base.css).
    Es para las hojas de esquina casi recta: la tarjeta de una casa y la ficha
    de «Disponible para». El token de siempre no se toca: lo usan tambien
    .rama, .naipe y la carga del libro. */
@@ -108,10 +108,11 @@
    plena. Sustituye a la sombra de elevacion de antes: una hoja sobre otra
    no proyecta una sombra de cristal, se distingue por su canto.
 
-   LA ORILLA DE PAPEL. La tarjeta lleva de 8 a 12px de papel alrededor de la cabecera
-   y el marco se dibuja sobre ese papel, no sobre el degradado oscuro: la
-   linea de tinta suave no se veia sobre el verde y el marco parecia cortado
-   por arriba. Las esquinas son casi rectas (2px, en base.css) porque el
+   SIEMPRE SOBRE PAPEL. La tarjeta es horizontal y no lleva cabecera oscura:
+   el marco se dibuja sobre el papel por los cuatro lados (antes la linea de
+   tinta suave no se veia sobre el verde y el marco parecia cortado por
+   arriba). La franja de color de la casa va metida dentro del marco, no
+   pegada al canto. Las esquinas son casi rectas (2px, en base.css) porque el
    marco es un cuadrado dibujado a mano: sobre una esquina de 16px el
    recorte se comia las cuatro puntas y quedaban cabos sueltos. */
 .ecard { position: relative; }
