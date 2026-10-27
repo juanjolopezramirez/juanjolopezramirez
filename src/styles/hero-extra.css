@@ -1,75 +1,10 @@
 /* =============================================================
    LO QUE VA DEBAJO DEL LEAD EN LOS HEROES DE SECCION (PageHero, slot «extra»)
 
-   Proyectos: la pregunta de cada casa, rotando (components/PreguntasCasas.astro).
    Recursos: la busqueda y la cuenta de libros (components/SalaLibros.astro).
    Aprobado por el fundador el 2026-10-26. Es el papel de la casa: esquinas
    rectas, slate y el tachon rojo de la pagina de proyectos.
    ============================================================= */
-
-/* ---- Proyectos: las preguntas ---- */
-.hpreg {
-  display: grid; gap: .9rem;
-  margin-top: 1.8rem; padding-top: 1.3rem;
-  border-top: 1px solid var(--paper-border);
-  max-width: 34rem;
-}
-.hpreg__pista { display: grid; }
-.hpreg__casa { grid-area: 1 / 1; display: grid; align-content: start; }
-.hpreg__casa:not(.is-on) { visibility: hidden; }
-.hpreg__casa.is-on { animation: hpreg-entra .5s var(--ease) both; }
-@keyframes hpreg-entra { from { opacity: 0; translate: 0 .5rem; } }
-.hpreg__nombre { margin: 0; font-size: .92rem; font-weight: 600; color: var(--slate); }
-.hpreg__pregunta { margin: 0; }
-.hpreg .pregunta__texto {
-  font-family: var(--serif); font-weight: 400;
-  font-size: clamp(1.3rem, 2.2vw, 1.6rem); line-height: 1.22; letter-spacing: -.01em;
-  text-wrap: balance;
-}
-.hpreg .corrige { font-size: 1.05rem; margin-top: .55rem; }
-.hpreg .corrige__tacha { color: rgb(var(--slate-rgb) / .72); }   /* 4.5:1 sobre el papel (la de las fichas es mas tenue) */
-.hpreg .corrige__nota { font-size: 1.9em; }
-
-.hpreg__pie { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; }
-.hpreg__rayas { display: flex; margin-left: -8px; }
-.hpreg__raya {
-  display: grid; place-items: center;
-  width: 44px; height: 44px;
-  cursor: pointer;
-}
-.hpreg__raya::before {
-  content: ""; width: 28px; height: 2px;
-  background: color-mix(in srgb, var(--slate) 55%, var(--paper));     /* 3:1 sobre el papel */
-  transition: background-color .25s var(--ease), height .25s var(--ease);
-}
-.hpreg__raya:hover::before { background: var(--slate-400-hundido); }
-.hpreg__raya[aria-current="true"]::before { background: var(--slate); height: 3px; }
-.hpreg__raya:focus-visible { outline: 2px solid var(--slate); outline-offset: -6px; }
-.hpreg__pausa, .hpreg__ver {
-  display: inline-flex; align-items: center;
-  min-height: 44px; padding: 0 .2rem;
-  font: inherit; font-size: .9rem; color: var(--slate);
-  text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--slate) 35%, transparent);
-  text-underline-offset: .3em;
-  cursor: pointer;
-}
-.hpreg__pausa[hidden] { display: none; }
-.hpreg__pausa:hover, .hpreg__ver:hover { text-decoration-color: var(--slate); }
-.hpreg__ver { margin-left: auto; gap: .35em; }
-.hpreg__nombre + .hpreg__pausa { margin-left: .2rem; }
-/* «Ver las casas» baja a la seccion de las fichas (no a su titulo: el titulo se mueve
-   con el paralaje y el ancla caia corrida). Que no quede debajo de la cabecera fija. */
-#seccion-projects { scroll-margin-top: calc(var(--header-h) + .8rem); }
-.hpreg__pausa:focus-visible, .hpreg__ver:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .hpreg__casa.is-on { animation: none; }
-  .hpreg__raya::before { transition: none; }
-}
-@media (forced-colors: active) {
-  .hpreg__raya::before { background: GrayText; }
-  .hpreg__raya[aria-current="true"]::before { background: CanvasText; }
-}
 
 /* ---- Recursos: la busqueda y la cuenta ---- */
 .hbusca { display: grid; gap: .9rem; margin-top: 1.8rem; max-width: 30rem; }

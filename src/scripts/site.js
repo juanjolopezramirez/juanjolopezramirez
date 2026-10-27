@@ -3999,6 +3999,27 @@ function initPiezas() {
   });
 }
 
+/* LA BUSQUEDA DEL HERO DE RECURSOS (components/BuscarLibros.astro). No busca sola:
+   pasa lo escrito a la busqueda de Destacados, que ya filtra las filas, y baja hasta
+   alli con el foco en ese cuadro. Si Destacados no tiene buscador (sin libros), el
+   formulario hace lo de siempre: lleva a #destacados. */
+function initBuscarHero() {
+  const form = d.querySelector('[data-hero-buscar]');
+  if (!form) return;
+  form.addEventListener('submit', (e) => {
+    const campo = d.querySelector('[data-dest-campo]');
+    const caja = d.querySelector('[data-dest-buscar]');
+    if (!campo || !caja || caja.hidden) return;
+    e.preventDefault();
+    const q = form.querySelector('input');
+    campo.value = q ? q.value.trim() : '';
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    const calma = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    caja.scrollIntoView({ behavior: calma ? 'auto' : 'smooth', block: 'start' });
+    campo.focus({ preventScroll: true });
+  });
+}
+
 /* ---------- Las respuestas de siempre, tachadas en bucle ----
 
    Cuando la correccion de una pregunta trae varias respuestas de siempre,
@@ -4021,88 +4042,6 @@ function initPiezas() {
    lo que las pautas de accesibilidad piden poder detener: con el raton o el
    foco encima de la ficha se queda quieto. Con el movimiento reducido no se
    mueve nunca: se ve la primera, la elegida a proposito. */
-/* LAS PREGUNTAS DE LAS CASAS en el hero de Proyectos (components/PreguntasCasas.astro).
-   Una casa a la vez; cada ~7 s pasa a la siguiente. Se para con el boton, mientras
-   el puntero o el foco estan dentro, cuando el hero no se ve, y no rota sola con
-   «reducir movimiento». Al cambiar a mano se anuncia la pregunta nueva; al rotar
-   solo, no (seria hablarle encima a quien lee otra cosa). */
-function initPreguntasCasas() {
-  d.querySelectorAll('[data-hpreg]').forEach((raiz) => {
-    const casas = [...raiz.querySelectorAll('[data-hpreg-casa]')];
-    if (casas.length < 2) return;
-    const rayas = [...raiz.querySelectorAll('[data-hpreg-ir]')];
-    const pausa = raiz.querySelector('[data-hpreg-pausa]');
-    const anuncio = raiz.querySelector('[data-hpreg-anuncio]');
-    const quieto = matchMedia('(prefers-reduced-motion: reduce)');
-    const PASO = 7200;
-    let i = 0, reloj = 0, pausada = false, dentro = false, enPantalla = true;
-
-    const nombre = raiz.querySelector('[data-hpreg-nombre]');
-    const ir = (n, aMano) => {
-      i = (n + casas.length) % casas.length;
-      casas.forEach((c, k) => {
-        const on = k === i;
-        c.classList.toggle('is-on', on);
-        c.inert = !on;
-        if (on) c.removeAttribute('aria-hidden'); else c.setAttribute('aria-hidden', 'true');
-      });
-      rayas.forEach((r, k) => { if (k === i) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current'); });
-      if (nombre) nombre.textContent = casas[i].dataset.nombre || '';
-      if (aMano && anuncio) {
-        const texto = casas[i].querySelector('.pregunta__texto');
-        anuncio.textContent = `${casas[i].dataset.nombre || ''}. ${texto ? texto.textContent : ''}`;
-      }
-    };
-    const parar = () => { clearInterval(reloj); reloj = 0; };
-    const seguir = () => {
-      parar();
-      if (pausada || dentro || !enPantalla || d.hidden || quieto.matches) return;
-      reloj = setInterval(() => ir(i + 1, false), PASO);
-    };
-
-    rayas.forEach((r) => r.addEventListener('click', () => { ir(Number(r.dataset.hpregIr), true); seguir(); }));
-    if (pausa) {
-      if (quieto.matches) pausa.hidden = true;
-      pausa.addEventListener('click', () => {
-        pausada = !pausada;
-        pausa.textContent = pausada ? pausa.dataset.seguir : pausa.dataset.pausar;
-        seguir();
-      });
-    }
-    raiz.addEventListener('pointerenter', () => { dentro = true; parar(); });
-    raiz.addEventListener('pointerleave', () => { dentro = raiz.contains(d.activeElement); seguir(); });
-    raiz.addEventListener('focusin', () => { dentro = true; parar(); });
-    raiz.addEventListener('focusout', (e) => { if (!raiz.contains(e.relatedTarget)) { dentro = raiz.matches(':hover'); seguir(); } });
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(([e]) => { enPantalla = e.isIntersecting; seguir(); }).observe(raiz);
-    }
-    d.addEventListener('visibilitychange', seguir);
-    quieto.addEventListener?.('change', () => { if (pausa) pausa.hidden = quieto.matches; seguir(); });
-    seguir();
-  });
-}
-
-/* LA BUSQUEDA DEL HERO DE RECURSOS (components/BuscarLibros.astro). No busca sola:
-   pasa lo escrito a la busqueda de Destacados, que ya filtra las filas, y baja hasta
-   alli con el foco en ese cuadro. Si Destacados no tiene buscador (sin libros), el
-   formulario hace lo de siempre: lleva a #destacados. */
-function initBuscarHero() {
-  const form = d.querySelector('[data-hero-buscar]');
-  if (!form) return;
-  form.addEventListener('submit', (e) => {
-    const campo = d.querySelector('[data-dest-campo]');
-    const caja = d.querySelector('[data-dest-buscar]');
-    if (!campo || !caja || caja.hidden) return;
-    e.preventDefault();
-    const q = form.querySelector('input');
-    campo.value = q ? q.value.trim() : '';
-    campo.dispatchEvent(new Event('input', { bubbles: true }));
-    const calma = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    caja.scrollIntoView({ behavior: calma ? 'auto' : 'smooth', block: 'start' });
-    campo.focus({ preventScroll: true });
-  });
-}
-
 function initTachones() {
   const preguntas = [...d.querySelectorAll('.pregunta--ciclo')];
   if (!preguntas.length) return;
@@ -4292,7 +4231,6 @@ initFilter();
 initCarriles();
 initPiezas();
 initTachones();
-initPreguntasCasas();
 initBuscarHero();
 initCamino();
 initReveal();

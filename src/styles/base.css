@@ -1119,15 +1119,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    dos veces la misma caja. Esta se queda en el pinar —un paso por delante
    del fondo, no encima de el—, la cierra un filo de iris y la luz le entra
    por el hombro derecho.
-   El movimiento tambien se separa: nueve segundos en vez de doce y un
-   grado escaso de inclinacion, asi las dos cajas no respiran nunca a la
+   El movimiento tambien se separa: nueve segundos en vez de doce y
+   solo sube (sin giro), asi las dos cajas no respiran nunca a la
    vez ni de la misma manera.
    Desde 600px se deshace sola: en la hoja no hace falta caja. */
 @media (max-width: 599px) {
   .hero__available {
     margin-top: 1.75rem;
     padding: 1.05rem 1.15rem 1.15rem;
-    border-radius: 22px;
+    border-radius: 2px;   /* casi recta: el marco de tinta (sketch.css) no se recorta */
     background:
       radial-gradient(120% 92% at 88% 0%, rgba(169, 196, 127, .15), transparent 62%),
       linear-gradient(160deg, rgba(30, 47, 32, .88), rgba(22, 35, 26, .66));
@@ -1143,10 +1143,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .hero__available .hero__emet { margin-top: .6rem; }
 }
 
-/* Ni sube recto ni tanto como la palabra: cinco pixeles y una pizca de
-   hombro. `translate` y `rotate` son propiedades sueltas, asi que no se
-   pisan con el transform de la entrada. */
-@keyframes floatTilt { 50% { translate: 0 -5px; rotate: -.4deg; } }
+/* Ni sube recto ni tanto como la palabra: cinco pixeles y nada mas.
+   `translate` y `rotate` son propiedades sueltas, asi que no se
+   pisan con el transform de la entrada.
+
+   Ya sin el hombro: la ficha lleva un marco de tinta de 1,5px y una linea
+   fina sobre una caja que gira fracciones de grado tiembla y se ve desigual.
+   Solo sube. */
+@keyframes floatTilt { 50% { translate: 0 -5px; } }
 
 /* =============================================================
    LA PALABRA (Rhema.astro) — una frase, no una ficha
@@ -3109,7 +3113,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   width: 100%; height: 100%;
   text-align: left;
   background: var(--papel-alto);
-  border-radius: 16px;
+  /* Esquina casi recta y una orilla de papel alrededor de la cabecera: el
+     marco de tinta (sketch.css) se dibuja sobre papel y no se recorta. La
+     orilla crece con la tarjeta (el marco tambien: va a ~1% del borde), de 8px
+     en el movil a 12px en escritorio. */
+  border-radius: 2px;
+  padding: clamp(8px, 2.6%, 12px);
   overflow: hidden;
   transition: translate .28s var(--ease), box-shadow .28s var(--ease);
 }

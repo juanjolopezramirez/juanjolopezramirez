@@ -36,8 +36,8 @@ const titleTail = title.slice(cut);
     <h1 class="phero__title" data-lift>{titleHead}<span class="phero__sub">{titleTail}</span></h1>
     <p class="phero__lead" data-lift>{t(`page.${slug}.lead`) ?? ''}</p>
 
-    <!-- Lo que va debajo del lead, si la seccion lo trae: en Proyectos, las
-         preguntas de las casas; en Recursos, la busqueda y la cuenta de libros. -->
+    <!-- Lo que va debajo del lead, si la seccion lo trae: en Recursos, la
+         busqueda y la cuenta de libros. -->
     <slot name="extra" />
 
     {here?.soon && (
