@@ -19,6 +19,8 @@
 
    El formulario de «Pedir acceso» siempre contesta «revisa tu correo». */
 import { codigoValido, correoValido, errorDeClave, limpiar, soloNumeros } from './estado.js';
+import { RepositorioMemoria } from '../contenido/Repositorio.js';
+import { revisarArchivo } from './archivos.js';
 
 const PRESETS = ['entrar', 'pendiente', 'rechazado', 'miembro', 'admin', 'admin2fa'];
 const CODIGO_DEMO = '123456';
@@ -64,6 +66,10 @@ export function abrirDemo() {
   const invitaciones = [
     { correo: 'camila@ejemplo.com', creada: '2026-10-18T10:00:00Z', caduca: '2026-12-17T10:00:00Z', usada_en: null }
   ];
+  /* Developer-Mode: un repositorio en memoria por tipo (las casas comparten filas) */
+  const repos = new Map();
+  const filasDeCasas = new Map();
+  const subidos = new Map();               // ruta → archivo (solo en memoria)
 
   return {
     modo: 'demo',
@@ -203,6 +209,29 @@ export function abrirDemo() {
         const i = invitaciones.findIndex((x) => x.correo === correo);
         if (i >= 0) invitaciones.splice(i, 1);
         return { ok: true };
+      }
+    },
+
+    /* Developer-Mode en memoria: guarda y publica de mentira (al recargar se va). Los
+       archivos se revisan igual que en el de verdad, pero no se suben a ningun sitio. */
+    contenido: {
+      repositorio(Tipo) {
+        const clave = Tipo.tabla + ':' + (Tipo.clase || '');
+        if (!repos.has(clave)) repos.set(clave, new RepositorioMemoria(Tipo));
+        /* Trabajos y Proyectos comparten tabla, como en la base */
+        if (Tipo.clase) repos.get(clave).filas = filasDeCasas;
+        return repos.get(clave);
+      },
+      async subir(ruta, archivo) {
+        await espera(300);
+        const r = await revisarArchivo(ruta, archivo);
+        if (r.error) return r;
+        subidos.set(ruta, archivo);               // para enseñarlo luego, como si estuviera en el almacen
+        return { ok: true };
+      },
+      async descargar(ruta) {
+        await espera(120);
+        return subidos.has(ruta) ? { ok: true, blob: subidos.get(ruta) } : { error: 'red' };
       }
     }
   };

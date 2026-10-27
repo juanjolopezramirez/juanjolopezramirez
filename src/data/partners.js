@@ -17,7 +17,9 @@
    llenan —role, blurb, tags, slug, banner, works— son opcionales y estan
    explicados enteros, con un ejemplo para copiar, arriba de PROJECTS en
    projects.js: son los mismos para las dos listas y se explican una vez. */
-export const PARTNERS = [
+import CASAS_DEL_PANEL from './remoto/casas.js';
+
+export const PARTNERS_DEL_CODIGO = [
   { id: 'casa-san-pedro', name: 'Casa San Pedro', src: '/assets/partners/casa-san-pedro.svg', w: 287,  h: 220, scale: 1.10,
     tags: ['gastronomia'],
     blurb: {
@@ -83,3 +85,8 @@ export const PARTNERS = [
       it: 'Comunità digitale per tornare all’essenziale: dall’amore e dalla verità, lontano dal rituale. Risorse per curare tre legami: con Dio, con sé stessi e con gli altri.'
     } }
 ];
+
+/* Y detras, las que el fundador publico desde el panel (Developer-Mode → Trabajos):
+   llegan en remoto/casas.js con su `clase` ('trabajo'), ya en esta misma forma y
+   con `panel: true`. Sin nada publicado, la lista es la de siempre. */
+export const PARTNERS = [...PARTNERS_DEL_CODIGO, ...CASAS_DEL_PANEL.filter((c) => c.clase === 'trabajo')];

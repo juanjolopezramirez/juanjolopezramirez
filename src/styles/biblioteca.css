@@ -831,6 +831,8 @@ html[data-tema="oscuro"] .hrepisa {
   color: var(--slate);
 }
 .dest__glosa { font-size: .88rem; line-height: 1.3; color: var(--slate-400); }
+/* Lo que hizo la IA en un libro del panel: una linea mas, del mismo gris que la glosa */
+.dest__ia { margin-top: .15rem; font-size: .8rem; line-height: 1.3; color: var(--slate-400); }
 .dest__pronto {
   margin-top: .3rem; padding: .18rem .6rem;
   border: 1px dashed color-mix(in srgb, var(--slate) 62%, transparent); border-radius: 999px;

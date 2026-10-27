@@ -220,7 +220,7 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
 .portal__form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 .portal__campo { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
 .portal__etiqueta { font-size: .8rem; font-weight: 400; letter-spacing: .01em; color: var(--tiza-2); }
-.portal__etiqueta::before { content: "› "; color: var(--prompt); }
+.portal__etiqueta::before { content: "› "; content: "› " / ""; color: var(--prompt); }   /* «/ ""»: el lector no lo lee como parte del nombre */
 .portal__caja { position: relative; display: flex; }
 .portal__entrada {
   flex: 1; min-width: 0;

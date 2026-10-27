@@ -4309,6 +4309,9 @@ button.etapa__nodo:focus-visible { outline: 2px solid var(--ring-300); outline-o
   color: rgb(241 239 233 / .76);
   text-wrap: pretty;
 }
+/* El aviso de origen de una etapa del panel (Origen.astro: «Escrito en portugués.»),
+   sobre la roca: el hueso del texto de la etapa, no la tinta del papel, que aqui no se lee */
+.camino .etapa__cuerpo .origen { color: rgb(241 239 233 / .76); }
 /* El glosario sobre la roca: el iris oscuro de la pagina clara no se leeria. */
 .camino .term:hover,
 .camino .term:focus-visible { color: var(--ring-300); }

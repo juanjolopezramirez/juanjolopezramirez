@@ -15,8 +15,9 @@ LOS LIBROS DE UNA PALABRA (ahava, rhema, emet, agape: las de term-book.js):
   HTML, asi que se pueden ir subiendo de uno en uno.
 
 LOS DEMAS LIBROS (cualquier nombre en minusculas y sin guiones: libertad,
-revista2...) SOLO EN ESPAÑOL E INGLES, cada idioma con su PDF y algunos con
-uno solo:
+revista2...) EN ESPAÑOL E INGLES los del codigo, y en el idioma en que se
+escribieron los que llegan del panel (BOOK_LANGS), cada idioma con su PDF y
+algunos con uno solo:
 
     books/libertad.es.pdf    la version en español
     books/libertad.en.pdf    la version en ingles (si la hay)
@@ -72,10 +73,15 @@ INDEX = ROOT / 'src' / 'data' / 'books.js'
 # src/data/biblioteca.js (`glosario: true`); una palabra nueva se añade en los dos.
 WORDS = {'ahava', 'rhema', 'emet', 'agape'}
 LANGS = {'es', 'en', 'pt', 'fr', 'it'}          # los de las palabras
-BOOK_LANGS = {'es', 'en'}                        # cualquier otro libro: solo estos
+# Cualquier otro libro: los del codigo van en es/en (lo comprueba scripts/biblioteca.js);
+# los que llegan del panel (Developer-Mode, tools/traer-contenido.mjs) pueden estar en
+# cualquiera de los idiomas del panel (src/scripts/contenido/comun.js → IDIOMAS).
+BOOK_LANGS = {'es', 'en', 'pt', 'fr', 'it', 'de', 'nl', 'ca', 'he', 'el', 'la', 'ar', 'ru', 'zh', 'ja', 'ko', 'qu', 'gn'}
 WIDTHS = (900, 1600, 2400)   # la de 2400 solo se pide con la lupa
 MAX_PAGES = 300              # 3 JPEG por pagina: mas que esto casi seguro es un PDF equivocado
-LINK_OK = re.compile(r'(?i)(https?://|mailto:)')   # los enlaces del PDF que se conservan
+MAX_LADO = 5000              # puntos de un lado de pagina (los libros de hoy miden ~1600 x 2240)
+LINK_OK = re.compile(r'(?i)(https://|mailto:)')    # los enlaces del PDF que se conservan (http no: va sin cifrar)
+LINK_AREA_MAX = 0.25         # un enlace que tapa mas de un cuarto de la pagina no es un enlace: es una trampa
 
 # LA PLANTILLA: 1600 x 2240 px (5:7). Todas las paginas del mismo tamaño.
 # Otro tamaño funciona, pero el libro no quedaria igual que los demas:
@@ -140,6 +146,12 @@ def render(pdf, dest, version):
         raise ValueError('el PDF no tiene paginas')
     if doc.page_count > MAX_PAGES:
         raise ValueError(f'{doc.page_count} paginas: mas de {MAX_PAGES}. Son 3 imagenes por pagina; si es de verdad, sube MAX_PAGES en tools/books.py')
+    # Una pagina rarisima (una tira de 1 x 14400 puntos) pediria una imagen de millones de
+    # pixeles y colgaria la publicacion. Los PDF del panel llegan de la base: se miran antes.
+    for i, p in enumerate(doc, 1):
+        w, h = p.rect.width, p.rect.height
+        if not (0 < w <= MAX_LADO and 0 < h <= MAX_LADO and 0.2 <= w / h <= 5):
+            raise ValueError(f'la pagina {i} mide {round(w)} x {round(h)} puntos: fuera de lo normal para un libro')
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True)
@@ -159,8 +171,10 @@ def render(pdf, dest, version):
                 'x': round(box.x0 / r.width, 4), 'y': round(box.y0 / r.height, 4),
                 'w': round(box.width / r.width, 4), 'h': round(box.height / r.height, 4),
             }
+            if spot['w'] * spot['h'] > LINK_AREA_MAX:
+                continue
             if ln.get('uri'):
-                # Solo http, https y mailto: un enlace «javascript:» de un PDF ajeno
+                # Solo https y mailto: un enlace «javascript:» de un PDF ajeno
                 # llegaria al href de la pagina. Lo demas se descarta.
                 if not LINK_OK.match(ln['uri']):
                     continue

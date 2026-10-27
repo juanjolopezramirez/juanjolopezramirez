@@ -20,10 +20,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+/* Las medidas viven en un solo sitio: las usa tambien el panel para recordarselas al
+   fundador antes de subir un lomo (Developer-Mode → Libros). */
+import { RATIO_LOMO as RATIO, TOLERANCIA } from '../scripts/contenido/medidas.js';
 
 const DIR = path.join(process.cwd(), 'public', 'assets', 'lomos');
-const RATIO = { fino: 240 / 1200, medio: 300 / 1200, grueso: 375 / 1200 };
-const TOLERANCIA = 0.04;
 const SEGURO = /^[a-z][a-z0-9]*$/;
 /* Un SVG con codigo (script, onclick…, foreignObject) no corre dentro de un
    <img>, pero si se abriera suelto en /assets/lomos/. Los lomos son del dueño o

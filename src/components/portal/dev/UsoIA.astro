@@ -1,0 +1,25 @@
+---
+/* «Lo que hizo la IA»: que partes se hicieron con IA y una frase suya. Lo ve quien lea la
+   pagina, debajo del texto (Origen.astro). Las traducciones hechas con IA se marcan en
+   cada version (la casilla de «Otra versión»), no aqui. */
+import { PARTES_IA, NOTA_MAX } from '../../../scripts/contenido/ia.js';
+
+const { prefijo, tx } = Astro.props;
+---
+<fieldset class="dev__grupo" data-campo="ia">
+  <legend class="portal__etiqueta">{tx.titulo}</legend>
+  <p class="portal__ayuda dev__ayuda-arriba">{tx.linea}</p>
+  <div class="dev__casillas">
+    {PARTES_IA.map((p) => (
+      <label class="dev__casilla">
+        <input type="checkbox" name="ia-partes" value={p} />
+        <span>{tx.partes[p]}</span>
+      </label>
+    ))}
+  </div>
+  <div class="dev__campo" data-campo="ia.nota">
+    <label class="portal__etiqueta" for={`${prefijo}-ia-nota`}>{tx.nota}</label>
+    <input class="portal__entrada" id={`${prefijo}-ia-nota`} name="ia-nota" maxlength={NOTA_MAX} autocomplete="off" />
+  </div>
+  <p class="dev__error" data-error-de="ia" hidden></p>
+</fieldset>

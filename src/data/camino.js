@@ -56,7 +56,9 @@
    los titulos, sin nada a mano: el fundador los prefiere asi.
 
    `hoy: true` es la etapa donde termina la linea. */
-export const ETAPAS = [
+import ETAPAS_DEL_PANEL from './remoto/etapas.js';
+
+export const ETAPAS_DEL_CODIGO = [
   {
     id: 'bogota',
     cuando: '2002',
@@ -239,3 +241,19 @@ export const ETAPAS = [
     }
   }
 ];
+
+/* LAS ETAPAS DEL PANEL (Developer-Mode → Sobre el camino): llegan en remoto/etapas.js
+   con `panel: true` y su idioma original. Cada una entra en su año, DESPUES de las del
+   codigo de ese mismo año y SIEMPRE antes de «Hoy», que es donde termina la linea. Sin
+   nada publicado, la lista es la de siempre. */
+export const ETAPAS = (() => {
+  const hoy = ETAPAS_DEL_CODIGO.filter((e) => e.hoy);
+  const lista = ETAPAS_DEL_CODIGO.filter((e) => !e.hoy);
+  for (const nueva of ETAPAS_DEL_PANEL) {
+    const año = Number(nueva.cuando);
+    let i = lista.length;
+    while (i > 0 && Number(lista[i - 1].cuando) > año) i -= 1;
+    lista.splice(i, 0, nueva);
+  }
+  return [...lista, ...hoy];
+})();

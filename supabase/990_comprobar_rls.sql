@@ -7,12 +7,18 @@
 -- Cómo leerlo:
 --   1. «Tablas sin RLS»            DEBE salir vacía.
 --   2. «Tablas con RLS y sin reglas» DEBE salir vacía.
---   3. «Lo que puede hacer anon»   solo SELECT en entradas, libros, tarjetas y videos.
---   4. «Funciones que anon puede ejecutar» DEBE salir vacía (las de disparador no cuentan).
+--   3. «Lo que puede hacer anon»   solo SELECT en entradas, libros, tarjetas, videos y,
+--                                  tras 007, biblioteca, casas y etapas.
+--   4. «Funciones que anon puede ejecutar» DEBE salir vacía (las de disparador no cuentan;
+--                                  tampoco rutas_validas, claves_de_idioma ni pdf_de_libro de 007).
 --   5. «Funciones sin search_path»  DEBE salir vacía.
---   6. «authenticated»             coincide con lo que da cada archivo (001..003).
---   7. «Cajones»                   portadas público, videos privado.
---   8. «storage.objects»           deben estar las cuatro reglas alef_admin_*.
+--   6. «authenticated»             coincide con lo que da cada archivo (001..003 y 007).
+--   7. «Cajones»                   portadas público, videos privado y, tras 007, libros
+--                                  PRIVADO (application/pdf, 50 MB).
+--   8. «storage.objects»           deben estar las cuatro reglas alef_admin_* y, tras 007,
+--                                  las cinco alef_libros_* (cuatro del admin y la de leer
+--                                  los PDF de libros publicados).
+--  14. «Tablas de Developer-Mode»  tras 007: las tres, con sus dos reglas cada una.
 --   9. «puede_cambiarse_el_estado» DEBE decir false.
 --  10. «Admins»                    DEBE decir 1 (tú) una vez hecha la semilla.
 --  11. «es_admin_pide_codigo»      true una vez aplicado 006 (antes, false).
@@ -99,6 +105,13 @@ select pg_get_functiondef('public.es_admin()'::regprocedure) like '%aal2%' as es
 select a.user_id as admin_sin_dispositivo
   from public.admins a
  where not exists (select 1 from auth.mfa_factors f where f.user_id = a.user_id and f.status = 'verified');
+
+-- 14. Developer-Mode (007): biblioteca, casas y etapas, cada una con «_todo_el_admin» y
+--     «_leer_publicado» (DEBE salir: 3 filas, 2 reglas cada una)
+select tablename as tabla_de_developer_mode, count(*) as reglas, string_agg(policyname, ', ' order by policyname) as cuales
+  from pg_policies
+ where schemaname = 'public' and tablename in ('biblioteca', 'casas', 'etapas')
+ group by 1 order by 1;
 
 -- 13. Reglas que leen la tabla admins por su cuenta (DEBE salir vacía: todas pasan por es_admin())
 select schemaname, tablename, policyname

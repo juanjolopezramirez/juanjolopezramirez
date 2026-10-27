@@ -3,11 +3,14 @@ name: Deploy Astro site to Pages
 on:
   push:
     branches: ["main"]
+  # «Publicar» desde el panel (Developer-Mode): el boton lleva a la pestaña Actions de
+  # GitHub, donde «Run workflow» vuelve a armar la web con lo publicado en la base.
+  workflow_dispatch:
 
+# Lo justo: la compilacion solo lee el repositorio. Publicar en Pages (y el token que
+# eso pide) es cosa del paso «deploy», no del que lee la base y convierte los PDF.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
@@ -16,6 +19,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Un PDF raro no deja la publicacion colgada horas (el tope de GitHub son 6)
+    timeout-minutes: 30
     # El portal (The Alef Code): la direccion de Supabase y su clave PUBLICA
     # (sb_publishable_), que de todos modos viajan dentro de la web. Viven en
     # Settings > Secrets and variables > Actions > Secrets, no aqui: asi no salen
@@ -29,6 +34,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Lo publicado desde el panel (Developer-Mode): libros, casas y etapas con
+      # «publicado = true», y sus archivos (tools/traer-contenido.mjs). Si la base no
+      # contesta, se para aqui y la web de antes sigue en linea.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bring content published from the panel
+        run: |
+          npm ci --no-audit --no-fund --ignore-scripts
+          node tools/traer-contenido.mjs
 
       # Los libros de las palabras: los PDF de books/ se convierten aqui en
       # paginas para el flipbook (tools/books.py). Asi en el repo solo van
@@ -45,7 +65,9 @@ jobs:
 
       # Las pruebas del portal (sin dependencias): si una falla, no se publica.
       - name: Portal checks
-        run: node tools/test-portal.mjs
+        run: |
+          node tools/test-portal.mjs
+          node tools/test-contenido.mjs
 
       # Astro 7.4 pide Node 22.23.4 o mas; 24 es el que se probo en local.
       - name: Install, build, and upload Site
@@ -54,6 +76,9 @@ jobs:
           node-version: 24
 
   deploy:
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

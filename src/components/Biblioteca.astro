@@ -1,4 +1,5 @@
 ---
+import { enElIdioma } from '../i18n/origen.js';
 import { SECCIONES, LIBROS, TIPOS, PORTADAS, CARTELERA } from '../data/biblioteca.js';
 import { TERMS } from '../i18n/terms.js';
 import { GLOSS, CARDS } from '../i18n/term-cards.js';
@@ -112,7 +113,7 @@ const conFiltro = muebles.length >= 2;
                     {b.marca && <span class="lomo__marca">{b.marca}</span>}
                   </span>
                   {/* El nombre accesible: «Libro (en ingles):» va en el idioma de la PAGINA; solo el titulo y el subtitulo, en el del libro (y solo si es otro) */}
-                  <span class="sr-only">{t('lib.book')}{b.marca ? ` (${t('lib.in.' + b.idioma)})` : ''}: <span lang={b.marca ? b.idioma : undefined}>{b.titulo}.{b.glosa ? ` ${b.glosa}` : ''}</span></span>
+                  <span class="sr-only">{t('lib.book')}{b.marca ? ` (${enElIdioma(lang, b.idioma, t)})` : ''}: <span lang={b.marca ? b.idioma : undefined}>{b.titulo}.{b.glosa ? ` ${b.glosa}` : ''}</span></span>
                 </a>
               </li>
             ))}

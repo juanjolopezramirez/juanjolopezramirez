@@ -8,6 +8,9 @@ import Pregunta from '../../components/Pregunta.astro';
 import { propositoDe } from '../../data/manifesto.js';
 import Piezas from '../../components/Piezas.astro';
 import { piezasDe, NOTAS } from '../../data/piezas.js';
+import { enSuIdioma } from '../../i18n/origen.js';
+import Origen from '../../components/Origen.astro';
+import Bloques from '../../components/Bloques.astro';
 
 /* La pagina de una casa: /es/recvid/, /en/casa-san-pedro/…
 
@@ -38,7 +41,12 @@ const { lang } = Astro.params;
 const { e, i } = Astro.props;
 const t = useT(lang);
 
-const say = (o) => (o ? (o[lang] ?? o.es) : null);
+/* Una casa del panel (`panel: true`) puede estar escrita solo en su idioma original:
+   sus textos salen en ese idioma, con su lang, y debajo el aviso de origen (Origen.astro).
+   Las del codigo, como siempre. */
+const say = (o) => (!o ? null : e.panel ? (enSuIdioma(o, lang, e.idiomaOriginal).texto || null) : (o[lang] ?? o.es));
+const idiomaDe = (o) => (e.panel && o ? enSuIdioma(o, lang, e.idiomaOriginal).idioma : lang);
+const otroIdioma = (l) => (l !== lang ? l : undefined);
 const nombre = nombreDe(e, lang);
 const que = say(e.role) ?? t(`card.kind.${e.kind}`);
 /* Si la casa tiene manifiesto, la frase de lo que es hace de descripcion
@@ -78,7 +86,7 @@ const piezas = piezasDe(e.id);
         <BrandDot mark={e.mark} logo={e.avatar ?? e.src} w={e.avatarW ?? e.w} h={e.avatarH ?? e.h} cls="entity__dot" />
 
         <h1 class="entity__name">{nombre}</h1>
-        <p class="entity__kind">{que}</p>
+        <p class="entity__kind" lang={otroIdioma(e.role ? idiomaDe(e.role) : lang)}>{que}</p>
         {p ? (
           <div class="proposito">
             <Pregunta texto={say(p.pregunta)} tacha={say(p.tacha)} pone={say(p.pone)} />
@@ -114,8 +122,11 @@ const piezas = piezasDe(e.id);
             </section>
           </div>
         ) : (
-          desc && <p class="entity__blurb">{desc}</p>
+          desc && <p class="entity__blurb" lang={otroIdioma(idiomaDe(e.blurb))}>{desc}</p>
         )}
+        {e.panel && <Origen lang={lang} mostrado={idiomaDe(e.blurb || e.role)} original={e.idiomaOriginal} ia={e.ia} />}
+        {/* Su pagina, hecha en el panel con el editor de bloques (Developer-Mode) */}
+        {e.panel && e.cuerpo && <Bloques lang={lang} cuerpo={e.cuerpo} original={e.idiomaOriginal} />}
 
         <h2 class="entity__works-title">{t('entity.works')}</h2>
         {/* Primero lo que se ve: los videos. Debajo, si los hay, los trabajos

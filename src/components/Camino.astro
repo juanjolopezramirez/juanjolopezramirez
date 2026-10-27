@@ -1,5 +1,7 @@
 ---
 import { ETAPAS } from '../data/camino.js';
+import { enSuIdioma } from '../i18n/origen.js';
+import Origen from './Origen.astro';
 
 /* ¿POR DONDE HE CAMINADO? La respuesta a la pregunta del paramo.
 
@@ -25,6 +27,11 @@ import { ETAPAS } from '../data/camino.js';
    ventana, asi que aqui el scroll no salta (initDiapositivas). */
 const { lang, t } = Astro.props;
 const say = (o) => (o == null ? null : typeof o === 'string' ? o : (o[lang] ?? o.es));
+/* Una etapa del panel (`panel: true`) puede estar escrita solo en su idioma original:
+   sale en ese idioma, con su lang y el aviso de origen (Origen.astro). Las del codigo,
+   como siempre. */
+const texto = (e, campo) => (e.panel ? enSuIdioma(e[campo], lang, e.idiomaOriginal) : { texto: say(e[campo]), idioma: lang });
+const otroIdioma = (l) => (l !== lang ? l : undefined);
 ---
 <section class="camino" id="camino" data-libre data-glossary aria-labelledby="ligero-title">
   <div class="camino__ruta">
@@ -33,7 +40,9 @@ const say = (o) => (o == null ? null : typeof o === 'string' ? o : (o[lang] ?? o
     <ol class="camino__lista">
       {ETAPAS.map((e) => {
         const cuando = say(e.cuando);
-        const titulo = say(e.titulo);
+        const tit = texto(e, 'titulo');
+        const cuerpo = texto(e, 'texto');
+        const titulo = tit.texto;
         const velado = cuando && !e.hoy;
         return (
           <li class:list={['etapa', { 'etapa--hoy': e.hoy, 'etapa--sin-fecha': !cuando }]}>
@@ -46,8 +55,9 @@ const say = (o) => (o == null ? null : typeof o === 'string' ? o : (o[lang] ?? o
             )}
             {cuando && <p class="etapa__cuando" id={`cuando-${e.id}`}>{cuando}</p>}
             <div class="etapa__cuerpo">
-              <h3 class="etapa__titulo">{titulo}</h3>
-              <p class="etapa__texto">{say(e.texto)}</p>
+              <h3 class="etapa__titulo" lang={otroIdioma(tit.idioma)}>{titulo}</h3>
+              <p class="etapa__texto" lang={otroIdioma(cuerpo.idioma)}>{cuerpo.texto}</p>
+              {e.panel && <Origen lang={lang} mostrado={cuerpo.idioma} original={e.idiomaOriginal} ia={e.ia} />}
             </div>
           </li>
         );

@@ -83,7 +83,12 @@ export function variante(libro, pagina, BOOKS) {
     const cual = tiene(hechos, pagina) ? pagina : (tiene(hechos, 'all') ? 'all' : null);
     return { lang: pagina, pdf: cual ? hechos[cual] : null, cual, texto: true, marca: null };
   }
-  for (const l of ORDEN[pagina] || ORDEN.en) {
+  /* Primero el idioma de la pagina, luego el orden de siempre y, al final, el idioma en
+     que se escribio y los demas que tenga: un libro del panel puede estar en portugues o
+     en aleman (lo pidio el fundador el 2026-10-27). Para los libros en español e ingles
+     esto da lo mismo que antes. */
+  const orden = [pagina, ...(ORDEN[pagina] || ORDEN.en), libro.idiomaOriginal, ...libro.idiomas];
+  for (const l of new Set(orden.filter((x) => typeof x === 'string'))) {
     if (libro.idiomas.includes(l) && tiene(hechos, l)) {
       return { lang: l, pdf: hechos[l], cual: l, texto: false, marca: l !== pagina ? l.toUpperCase() : null };
     }
@@ -231,7 +236,9 @@ export function fichaLibro(libro, pagina, datos, base) {
     guion: palabra ? palabra.script : null,
     lengua: palabra ? (palabra.dir === 'rtl' ? 'he' : 'el') : null,
     dir: palabra ? palabra.dir ?? 'ltr' : null,
-    portada: v.pdf ? `${base}books/${libro.id}/${v.cual}/01-900.jpg?v=${v.pdf.v}` : null
+    portada: v.pdf ? `${base}books/${libro.id}/${v.cual}/01-900.jpg?v=${v.pdf.v}` : null,
+    /* Solo los del panel: de donde viene (para el aviso «Traducción hecha con IA», Origen.astro) */
+    ...(libro.panel ? { panel: true, idiomaOriginal: libro.idiomaOriginal, ia: libro.ia || null } : {})
   };
 }
 
@@ -288,7 +295,7 @@ export function coincide(consulta, indice) {
    ancla. Los demas ids de la pagina llevan guion (`book-panel`,
    `biblio-titulo`) y no pueden chocar porque el id de un libro no puede
    llevarlo. */
-const RESERVADOS = new Set(['top', 'main', 'biblioteca', 'destacados', 'book', 'flip', 'arrow', 'info', 'mark', 'corner', 'toast',
+export const RESERVADOS = new Set(['top', 'main', 'biblioteca', 'destacados', 'book', 'flip', 'arrow', 'info', 'mark', 'corner', 'toast',
   'curtain', 'globe', 'lockup', 'links', 'mas']);
 /* Lo que makePages (site.js) necesita para armar un libro de una palabra: si
    falta una de estas, el libro se abriria en blanco o rompiendo. */
@@ -341,7 +348,12 @@ export function comprobar(datos) {
       for (const k of NIVELES) if (!DEEP[b.id][k]) throw new Error(`${donde} no tiene «${k}» en DEEP.`);
       if (!Array.isArray(DEEP[b.id].sources)) throw new Error(`${donde} tiene «sources» en DEEP y no es una lista.`);
     } else {
-      if (!Array.isArray(b.idiomas) || !b.idiomas.length || b.idiomas.some((l) => !IDIOMAS_LIBRO.includes(l))) {
+      /* Los del codigo, en español y/o ingles; los que llegan del panel (`panel: true`), en
+         el idioma en que se escribieron (un codigo de dos letras: tools/traer-contenido.mjs
+         ya los paso por contenido/comun.js → IDIOMAS; aqui no se importa para no cargar la
+         web publica con el codigo del panel). */
+      const idiomaBueno = (l) => (b.panel ? typeof l === 'string' && /^[a-z]{2}$/.test(l) : IDIOMAS_LIBRO.includes(l));
+      if (!Array.isArray(b.idiomas) || !b.idiomas.length || b.idiomas.some((l) => !idiomaBueno(l))) {
         throw new Error(`${donde} tiene que decir en que idiomas esta, solo ${IDIOMAS_LIBRO.join(' y/o ')}: idiomas: ['es'].`);
       }
       if (new Set(b.idiomas).size !== b.idiomas.length) throw new Error(`${donde} repite un idioma.`);

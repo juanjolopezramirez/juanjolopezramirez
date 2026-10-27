@@ -2,12 +2,13 @@
    EL PANEL DE THE ALEF CODE (components/portal/Panel.astro, /[lang]/portal/panel/)
 
    La misma terminal que la entrada (portal.css, sobre la base comun de
-   terminal.css), en grande: arriba la barra (BarraTerminal.astro); a la izquierda el menu como un arbol
-   («// lo que publico» y sus carpetas); a la derecha la seccion. Valen las
+   terminal.css), en grande: arriba la barra (BarraTerminal.astro); a la izquierda el menu en
+   acordeon («// Self-Mode», «// Developer-Mode», «// Acceso»); a la derecha la seccion. Valen las
    mismas excepciones aprobadas para el portal (terminal.css las enumera:
    esquinas redondas, la lava, la letra mono, el nombre en ingles, los tonos) y la misma regla: nada de
-   oro. En el telefono el riel pasa arriba y el menu son fichas que se parten en
-   lineas (nada de barras que se deslicen de lado).
+   oro. El menu es un acordeon (Self-Mode, Developer-Mode, Acceso). En el telefono el riel
+   pasa arriba y el menu se esconde detras de un boton «Menú» (nada de barras que se
+   deslicen de lado).
 
    Todo menos la barra nace con `hidden` y panel.js lo abre cuando el servidor confirma que la
    persona entro y esta aprobada.
@@ -76,44 +77,85 @@
   .panel__cuerpo { grid-template-columns: 15.5rem minmax(0, 1fr); }
 }
 
-/* ---- El riel: el arbol de carpetas ---- */
+/* ---- El riel: el menu en acordeon (panel/Menu.js) ----
+   Tres grupos que se pliegan (Self-Mode, Developer-Mode, Acceso). Cerrado, un grupo es
+   una sola linea: «// Self-Mode» y su pliegue. Abierto, sus secciones cuelgan de una raya
+   fina, como carpetas de un arbol. Lo que aun dice «pronto» va mas apagado. */
 .panel__riel {
-  display: grid; gap: 1.1rem; align-content: start;
-  padding: 1.1rem 1.1rem 1.2rem;
+  display: grid; gap: .8rem; align-content: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "boton salir" "menu menu";
+  padding: .9rem 1rem 1rem;
   border-bottom: 1px solid var(--raya);
 }
-.panel__menu { display: grid; gap: .9rem; align-content: start; }
-.panel__grupo-titulo {
-  margin: 0 0 .35rem;
-  font-size: .8rem; font-weight: 400; letter-spacing: .02em; text-transform: lowercase;
-  color: var(--tiza-2);
+.panel__menu-boton { grid-area: boton; }
+.panel__menu { grid-area: menu; display: grid; gap: .15rem; align-content: start; }
+.panel__riel > .panel__salir { grid-area: salir; align-self: center; }
+
+.panel__grupo { display: grid; }
+.panel__grupo + .panel__grupo { margin-top: .2rem; }
+.panel__grupo-boton {
+  display: flex; align-items: center; gap: .6rem;
+  width: 100%; min-height: 44px; padding: 0 .7rem;
+  border-radius: 10px;
+  font: inherit; font-size: .84rem; letter-spacing: .01em; text-align: start;
+  color: var(--tiza-2); cursor: pointer;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.panel__grupo-titulo::before { content: "// "; color: var(--prompt); }
-.panel__enlaces { display: flex; flex-wrap: wrap; gap: .35rem; list-style: none; margin: 0; padding: 0; }
+.panel__grupo-nombre { flex: 1; }
+/* Las marcas de terminal (// › ·) son de mirar: el lector de pantalla no las lee
+   (aria-hidden en el HTML; en CSS, el texto alternativo vacio tras la «/»). */
+.panel__prompt { color: var(--prompt); }
+.panel__grupo-boton .icon { flex: none; width: 1.05rem; height: 1.05rem; opacity: .7; transition: rotate .2s var(--ease), opacity .2s var(--ease); }
+.panel__grupo-boton:hover { background: rgb(241 239 233 / .05); color: var(--tiza); }
+.panel__grupo-boton:hover .icon { opacity: 1; }
+.panel__grupo-boton[aria-expanded="true"] { color: var(--tiza); }
+.panel__grupo-boton[aria-expanded="true"] .icon { rotate: 180deg; opacity: 1; }
+
+.panel__enlaces { display: grid; gap: .1rem; list-style: none; margin: .1rem 0 .5rem; padding: 0; }
+.panel__enlaces[hidden] { display: none; }
+/* Las secciones de un grupo plegable cuelgan de su raya */
+.panel__grupo-boton + .panel__enlaces { margin-left: 1.05rem; padding-left: .5rem; border-left: 1px solid var(--raya); }
 .panel__enlace {
-  display: inline-flex; align-items: center; gap: .5rem;
-  min-height: 44px; padding: 0 .85rem;
-  border: 1px solid var(--raya-fuerte); border-radius: 10px;
+  display: flex; align-items: center; gap: .5rem;
+  width: 100%; min-height: 44px; padding: 0 .7rem;
+  border: 1px solid transparent; border-radius: 10px;
   color: var(--tiza-2); text-decoration: none; font-size: .86rem;
   transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
 }
 .panel__enlace:hover { background: rgb(241 239 233 / .06); color: var(--tiza); }
-.panel__enlace[aria-current="true"] { background: rgb(241 239 233 / .1); color: var(--tiza); border-color: rgb(241 239 233 / .4); }
-.panel__enlace[aria-current="true"]::before { content: "›"; color: var(--prompt); }
+.panel__enlace[aria-current="true"] { background: rgb(241 239 233 / .1); color: var(--tiza); }
+.panel__enlace[aria-current="true"]::before { content: "›"; content: "›" / ""; color: var(--prompt); }
 /* Lo que aun no se llena: mas apagado y con su «pronto», para que no parezca igual
-   que lo que ya funciona */
-.panel__enlace--pronto { color: rgb(167 176 165 / .85); border-style: dashed; }
-.panel__marca-pronto { margin-left: auto; padding-left: .6rem; font-size: .8rem; color: var(--tiza-2); opacity: .8; }
-/* Un grupo de una sola entrada no necesita titulo: lo dice la entrada */
-.panel__grupo--solo .panel__grupo-titulo { display: none; }
-/* En el telefono el menu va arriba: sin titulos de grupo, para que no llene la pantalla */
-@media (max-width: 1023px) {
-  .panel__grupo-titulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .panel__menu { display: flex; flex-wrap: wrap; gap: .35rem; }
-  .panel__grupo { display: contents; }          /* un <div> sin papel: la lista (<ul>) sigue siendo lista */
-  .panel__enlace { min-height: 44px; padding: 0 .75rem; }
+   que lo que ya funciona (el texto lo dice; el color solo acompaña). El «pronto» va
+   en tiza-2 entero, sin transparencia: sobre la lava verde tiene que seguir leyendose. */
+.panel__enlace--pronto { color: rgb(167 176 165 / .85); }
+.panel__marca-pronto { margin-left: auto; padding-left: .6rem; font-size: .75rem; color: var(--tiza-2); }
+.panel__enlace:focus-visible, .panel__salir:focus-visible, .panel__grupo-boton:focus-visible, .panel__menu-boton:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+
+/* El boton «Menú» del telefono: dice donde estas («Menú · Hoy») y abre el menu debajo */
+.panel__menu-boton {
+  display: flex; align-items: center; gap: .55rem;
+  min-height: 48px; padding: 0 .9rem;
+  border: 1px solid var(--raya-fuerte); border-radius: 12px;
+  font: inherit; font-size: .9rem; text-align: start; color: var(--tiza); cursor: pointer;
+  transition: background-color .2s var(--ease), border-color .2s var(--ease);
 }
-.panel__enlace:focus-visible, .panel__salir:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.panel__menu-boton:hover { background: rgb(241 239 233 / .05); }
+.panel__menu-boton[hidden] { display: none; }
+.panel__menu-nombre { color: var(--tiza-2); }
+.panel__menu-actual { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.panel__menu-actual:not(:empty)::before { content: "· "; content: "· " / ""; color: var(--prompt); font-weight: 400; }
+.panel__menu-boton .icon { flex: none; width: 1.1rem; height: 1.1rem; transition: rotate .2s var(--ease); }
+.panel__menu-boton[aria-expanded="true"] .icon { rotate: 180deg; }
+@media (max-width: 1023px) {
+  /* Cerrado, el menu no ocupa nada; quien tiene una sola seccion (un miembro) lo ve siempre */
+  .panel__riel:not(.is-menu-abierto):not(.is-solo) .panel__menu { display: none; }
+  .panel__riel.is-solo { grid-template-areas: "menu salir"; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel__grupo-boton, .panel__grupo-boton .icon, .panel__menu-boton, .panel__menu-boton .icon, .panel__salir { transition: none; }
+}
 
 .panel__salir {
   display: inline-flex; align-items: center; gap: .5rem; justify-self: start;
@@ -127,12 +169,13 @@
 
 @media (min-width: 1024px) {
   .panel__riel {
-    padding: 1.4rem 1rem; grid-template-rows: auto 1fr auto;
+    padding: 1.4rem .8rem; grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr auto; grid-template-areas: "menu" "salir";
     border-bottom: 0; border-right: 1px solid var(--raya);
   }
-  .panel__enlaces { flex-direction: column; gap: .1rem; }
-  .panel__enlace { width: 100%; min-height: 44px; padding: 0 .7rem; border-color: transparent; }
-  .panel__enlace[aria-current="true"] { border-color: transparent; }
+  /* En la pantalla grande el menu siempre esta: el boton del telefono sobra */
+  .panel__menu-boton { display: none; }
+  .panel__riel > .panel__salir { justify-self: start; padding-inline: .7rem; }
 }
 
 /* ---- La hoja ---- */
@@ -225,6 +268,7 @@
   .panel__puerta, .panel__enlace, .panel__boton { transition: none; }
 }
 @media (forced-colors: active) {
-  .panel__marco, .panel__enlace, .panel__boton, .panel__puerta, .panel__aviso, .panel__fila { border: 1px solid CanvasText; }
+  .panel__marco, .panel__enlace, .panel__boton, .panel__puerta, .panel__aviso, .panel__fila, .panel__menu-boton { border: 1px solid CanvasText; }
   .panel__enlace[aria-current="true"] { background: Highlight; color: HighlightText; }
+  .panel__grupo-boton[aria-expanded="true"] { outline: 1px solid CanvasText; }
 }

@@ -45,6 +45,9 @@
                el del carton de su PDF, o pino)
 */
 
+import LIBROS_DEL_PANEL from './remoto/biblioteca.js';
+import { BOOKS } from './books.js';
+
 /* El orden es el de la lista que pidio el fundador.
 
    «Teologia» es la de los libros de una palabra (Ahava, Emet, Agape, Rhema…).
@@ -100,9 +103,29 @@ export const PORTADAS = [
 /* `tono` es el color del libro, de los de TONOS (scripts/biblioteca.js): lo usan
    su lomo y su portada dibujada. Cada uno el suyo, y alternados: oro claro,
    salvia, pizarra y oro hondo; asi la estanteria no es una fila del mismo pino. */
-export const LIBROS = [
+export const LIBROS_DEL_CODIGO = [
   { id: 'ahava', seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'ocre' },
   { id: 'emet',  seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'salvia' },
   { id: 'agape', seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'pizarra' },
   { id: 'rhema', seccion: 'teologia', tipo: 'revista', glosario: true, tono: 'tierra' }
 ];
+
+/* Y detras, los que el fundador publico desde el panel (Developer-Mode): llegan en
+   remoto/biblioteca.js, ya en esta misma forma y con `panel: true` (y su idioma
+   original, que puede no ser ni español ni ingles). Sin nada publicado, la lista es la
+   de siempre. */
+/* Un libro del panel sale solo en los idiomas cuyo PDF se convirtio (tools/books.py salta,
+   con aviso, un PDF roto o con paginas fuera de lo normal); si no quedo ninguno, se queda
+   fuera ese libro y la web se publica igual. Los del codigo, en cambio, paran la
+   compilacion si les falta algo (scripts/biblioteca.js → comprobar). */
+const convertido = (l) => {
+  const idiomas = (l.idiomas || []).filter((x) => Object.prototype.hasOwnProperty.call(BOOKS, l.id) && Object.prototype.hasOwnProperty.call(BOOKS[l.id], x));
+  if (!idiomas.length) return null;
+  /* El titulo y el subtitulo, solo en los idiomas que quedan (comprobar() no deja un
+     subtitulo en un idioma que el libro no tiene) */
+  const solo = (o) => Object.fromEntries(Object.entries(o || {}).filter(([x]) => idiomas.includes(x)));
+  const { subtitulo, ...resto } = l;
+  const sub = solo(subtitulo);
+  return { ...resto, idiomas, titulo: solo(l.titulo), ...(Object.keys(sub).length ? { subtitulo: sub } : {}) };
+};
+export const LIBROS = [...LIBROS_DEL_CODIGO, ...LIBROS_DEL_PANEL.map(convertido).filter(Boolean)];

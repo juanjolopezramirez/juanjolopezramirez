@@ -68,7 +68,9 @@
          { title: { es: 'Identidad de marca', en: 'Brand identity' }, year: '2025' }
        ] },
 */
-export const PROJECTS = [
+import CASAS_DEL_PANEL from './remoto/casas.js';
+
+export const PROJECTS_DEL_CODIGO = [
   /* La marca propia tambien es un proyecto, asi que la firma entra con
      el resto. Tira del SVG que ya vive en /logos: es el mismo fichero que
      firma la portada de arranque, y duplicarlo seria pedir que se separen.
@@ -172,3 +174,8 @@ export const PROJECTS = [
       it: 'Ha lasciato la commissione per girare il proprio — sketch e reel — e per consigliare invece di eseguire: ripresa, montaggio e marketing si imparano, e quasi nessuno li insegna davvero. Presto, la piattaforma.'
     } }
 ];
+
+/* Y detras, los que el fundador publico desde el panel (Developer-Mode → Proyectos):
+   llegan en remoto/casas.js con su `clase` ('proyecto'), ya en esta misma forma y con
+   `panel: true`. Sin nada publicado, la lista es la de siempre. */
+export const PROJECTS = [...PROJECTS_DEL_CODIGO, ...CASAS_DEL_PANEL.filter((c) => c.clase === 'proyecto')];

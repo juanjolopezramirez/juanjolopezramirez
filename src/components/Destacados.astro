@@ -1,4 +1,6 @@
 ---
+import { enElIdioma, avisos } from '../i18n/origen.js';
+import Origen from './Origen.astro';
 import { LIBROS, SECCIONES, TIPOS, PORTADAS, CARTELERA } from '../data/biblioteca.js';
 import { TERMS } from '../i18n/terms.js';
 import { GLOSS } from '../i18n/term-cards.js';
@@ -40,6 +42,13 @@ import '../styles/biblioteca.css';
 const { lang, t } = Astro.props;
 
 const say = (o) => (o ? (o[lang] ?? o.es) : '');
+/* Lo que hizo la IA en un libro del panel, en una linea para su tarjeta (el idioma ya lo
+   dice su marca «PT»): «Traducción hecha con IA.» / «Con ayuda de IA: la portada.» */
+const iaDe = (p) => {
+  if (!p.panel) return null;
+  const a = avisos({ lang, mostrado: p.idioma, ia: p.ia, sinIdioma: true });
+  return a.lineas.length ? { lang: a.lang, texto: a.lineas.join(' ') } : null;
+};
 const base = import.meta.env.BASE_URL;
 const datos = { BOOKS, TIPOS, TERMS, GLOSS };
 const temas = new Map(SECCIONES.map((s) => [s.id, s.nombre]));
@@ -109,6 +118,7 @@ const hay = tarjetas.length > 0 || pronto.length > 0;
         <p class="cartelera__tema">{cartelera.tema}</p>
         <h3 class="cartelera__titulo" id="cartelera-titulo" lang={cartelera.idioma}>{cartelera.titulo}</h3>
         {cartelera.glosa && <p class="cartelera__glosa" lang={cartelera.idioma}>{cartelera.glosa}</p>}
+        {cartelera.panel && <Origen class="cartelera__origen" lang={lang} mostrado={cartelera.idioma} original={cartelera.idiomaOriginal} ia={cartelera.ia} />}
         <a class="cartelera__boton" href={`#${cartelera.id}`} data-libro={cartelera.id} aria-haspopup="dialog">
           {t('lib.open')}
           <span class="sr-only">: <span lang={cartelera.marca ? cartelera.idioma : undefined}>{cartelera.titulo}</span></span>
@@ -148,9 +158,10 @@ const hay = tarjetas.length > 0 || pronto.length > 0;
                       <span class="dest__texto" aria-hidden="true">
                         <span class="dest__nombre" lang={p.idioma}>{p.titulo}</span>
                         {p.glosa && <span class="dest__glosa" lang={p.idioma}>{p.glosa}</span>}
+                        {iaDe(p) && <span class="dest__ia" lang={iaDe(p).lang !== lang ? iaDe(p).lang : undefined}>{iaDe(p).texto}</span>}
                       </span>
                       {/* «Libro (en ingles):» va en el idioma de la PAGINA; solo el titulo y el subtitulo, en el del libro (y solo si es otro) */}
-                      <span class="sr-only">{t('lib.book')}{p.marca ? ` (${t('lib.in.' + p.idioma)})` : ''}: <span lang={p.marca ? p.idioma : undefined}>{p.titulo}.{p.glosa ? ` ${p.glosa}` : ''}</span></span>
+                      <span class="sr-only">{t('lib.book')}{p.marca ? ` (${enElIdioma(lang, p.idioma, t)})` : ''}: <span lang={p.marca ? p.idioma : undefined}>{p.titulo}.{p.glosa ? ` ${p.glosa}` : ''}</span>{iaDe(p) && <span lang={iaDe(p).lang !== lang ? iaDe(p).lang : undefined}> {iaDe(p).texto}</span>}</span>
                     </a>
                   </li>
                 ))}

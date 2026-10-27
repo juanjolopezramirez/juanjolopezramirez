@@ -20,3 +20,9 @@ _respaldos/
 
 # Cache de la herramienta de diseno (impeccable): no es la web
 .impeccable/
+graphify-out/
+
+# Lo que trae tools/traer-contenido.mjs de la base al publicar (Developer-Mode): vive solo
+# en la maquina de GitHub, nunca en el repositorio. Los src/data/remoto/*.js SI se suben,
+# pero vacios: si alguna vez tienen filas, es que se corrio con --aqui y no hay que subirlos.
+public/assets/remoto/

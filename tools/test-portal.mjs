@@ -229,10 +229,38 @@ ok('cada seccion tiene titulo y linea, cada grupo su nombre, y solo hay admin do
   assert.ok(S.HECHAS.every((h) => S.IDS.includes(h)));
   assert.equal(new Set(S.IDS).size, S.IDS.length);
 });
-ok('el panel: las claves de textos que usa panel.js existen', () => {
-  const src = leer('src/scripts/portal/panel.js');
-  for (const m of src.matchAll(/\ba\.([a-zA-Z]+)\b/g)) assert.ok(m[1] in es.panel.accesos, 'a.' + m[1]);
-  for (const m of src.matchAll(/\bp\.([a-zA-Z]+)\b/g)) assert.ok(m[1] in es.panel, 'p.' + m[1]);
+ok('Self-Mode y Developer-Mode: el admin entra en «Hoy» y NO ve el test; el miembro entra en el test', () => {
+  assert.equal(S.inicioPara(true), 'hoy');
+  assert.equal(S.inicioPara(false), 'inicio');
+  assert.ok(!S.idsPara(true).includes('inicio'), 'el primer paso del admin no es el test');
+  assert.ok(S.idsPara(true).includes(S.inicioPara(true)) && S.idsPara(false).includes(S.inicioPara(false)));
+  const de = (g) => S.SECCIONES.filter((s) => s.grupo === g).map((s) => s.id);
+  assert.equal(de('self')[0], 'hoy');
+  for (const id of ['proyectos', 'trabajos', 'libros', 'camino']) assert.ok(de('dev').includes(id), id);
+  assert.deepEqual(de('acceso'), ['accesos', 'seguridad']);
+  assert.ok(S.PLEGABLES.every((g) => S.GRUPOS.includes(g)) && !S.PLEGABLES.includes('miembros'));
+  for (const s of S.SECCIONES) assert.ok(!(s.admin && s.soloMiembros), s.id);
+});
+ok('el menu es un acordeon accesible: boton con aria-expanded y aria-controls, lista con hidden, sin guardar nada', () => {
+  const panel = leer('src/components/portal/Panel.astro');
+  assert.match(panel, /<button class="panel__grupo-boton" type="button" id=\{`g-\$\{g\}`\} aria-expanded="false" aria-controls=\{`gl-\$\{g\}`\} data-acordeon/);
+  assert.match(panel, /<ul class="panel__enlaces" id=\{`gl-\$\{g\}`\}/);
+  assert.match(panel, /data-menu-boton/);
+  assert.match(panel, /aria-controls="panel-menu"/);
+  const menu = leer('src/scripts/portal/panel/Menu.js');
+  assert.match(menu, /setAttribute\('aria-expanded', String\(abierto\)\)/);
+  assert.match(menu, /lista\.hidden = !abierto/);
+  assert.match(menu, /e\.key !== 'Escape'/);
+  assert.match(menu, /setAttribute\('aria-current', 'true'\)/);
+});
+const guionesPanel = ['src/scripts/portal/panel.js', ...fs.readdirSync(path.join(raiz, 'src/scripts/portal/panel')).filter((f) => f.endsWith('.js')).map((f) => 'src/scripts/portal/panel/' + f)];
+ok('el panel: las claves de textos que usan panel.js y sus secciones existen', () => {
+  for (const f of guionesPanel) {
+    const src = leer(f);
+    for (const m of src.matchAll(/\ba\.([a-zA-Z]+)\b/g)) assert.ok(m[1] in es.panel.accesos, f + ': a.' + m[1]);
+    for (const m of src.matchAll(/\bp\.([a-zA-Z]+)\b/g)) assert.ok(m[1] in es.panel, f + ': p.' + m[1]);
+    for (const m of src.matchAll(/\bps\.([a-zA-Z]+)\b/g)) assert.ok(m[1] in es.panel.seguridad, f + ': ps.' + m[1]);
+  }
 });
 
 console.log('secretos y guiones');
@@ -426,7 +454,7 @@ ok('lo compilado (dist/), si existe: TODAS las paginas llevan su politica', () =
 console.log('SQL (forma, no sustituye a 990_comprobar_rls.sql)');
 const sql = Object.fromEntries(archivos('supabase', (r) => r.endsWith('.sql')).map((f) => [path.posix.basename(f), leer(f)]));
 const sinComentarioSql = (t) => t.replace(/^\s*--.*$/gm, '');
-const base = ['001_perfiles_y_acceso.sql', '002_contenido.sql', '003_privado.sql', '004_almacen.sql'];
+const base = ['001_perfiles_y_acceso.sql', '002_contenido.sql', '003_privado.sql', '004_almacen.sql', '007_desarrollo.sql'];
 ok('estan los archivos de siempre', () => {
   for (const f of [...base, '900_semilla_admin.ejemplo.sql', '990_comprobar_rls.sql']) assert.ok(f in sql, f);
 });
@@ -489,6 +517,20 @@ ok('006: ser admin pide el codigo (aal2), con el seguro contra quedarse fuera y 
   assert.match(deshacer, /delete from auth\.mfa_factors where user_id in \(select user_id from public\.admins\)/, 'deshacer borra los dispositivos');
   assert.match(sql['990_comprobar_rls.sql'], /es_admin_pide_codigo/);
 });
+ok('007: Developer-Mode escribe solo el admin, lo publicado lo lee cualquiera, y los PDF de borradores no salen', () => {
+  const t = sinComentarioSql(sql['007_desarrollo.sql']);
+  assert.match(t, /foreach t in array array\['biblioteca', 'casas', 'etapas'\]/);
+  assert.match(t, /using \(\(select public\.es_admin\(\)\)\) with check \(\(select public\.es_admin\(\)\)\)/);
+  assert.match(t, /for select to anon, authenticated using \(publicado\)/);
+  assert.ok(!/drop table/i.test(t), 'nada se borra');
+  /* El cajon de los PDF es privado y solo deja bajar los de libros publicados */
+  assert.match(t, /values \('libros', 'libros', false\)/);
+  assert.match(t, /"alef_libros_leer_publicados"[\s\S]*?where b\.publicado/);
+  assert.match(t, /allowed_mime_types = array\['application\/pdf'\]/);
+  /* Las mismas secciones reservadas que el modelo (Casa.RESERVADOS) */
+  for (const s of ['work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status']) assert.ok(t.includes(`'${s}'`), s);
+  for (const f of ['rutas_validas', 'claves_de_idioma']) assert.match(t, new RegExp(`function public\\.${f}\\([^)]*\\)[\\s\\S]*?immutable\\s+set search_path = ''`), f);
+});
 ok('el codigo de la app: seis numeros, y cada error de Supabase tiene su texto', () => {
   for (const b of ['123456', '123 456', ' 000000 ']) assert.ok(E.codigoValido(b), b);
   for (const m of ['12345', '1234567', 'abcdef', '12345a', '', null, undefined, 123456]) assert.ok(!E.codigoValido(m), String(m));
@@ -499,7 +541,7 @@ ok('el codigo de la app: seis numeros, y cada error de Supabase tiene su texto',
 });
 ok('el QR entra como imagen (img.src), nunca como HTML, y solo si es un SVG en data:', () => {
   assert.match(leer('src/scripts/portal/real.js'), /\/\^data:image\\\/svg\\\+xml\[;,\]\/\.test\(qr\)/);
-  assert.match(leer('src/scripts/portal/panel.js'), /img\.src = r\.qr;/);
+  assert.match(leer('src/scripts/portal/panel/Seguridad.js'), /img\.src = r\.qr;/);
 });
 ok('la semilla es un ejemplo sin correo real, y las copias con correo no se suben', () => {
   assert.match(sql['900_semilla_admin.ejemplo.sql'], /TU_CORREO_AQUI/);

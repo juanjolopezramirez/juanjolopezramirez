@@ -1,0 +1,242 @@
+/* =============================================================
+   DEVELOPER-MODE: los editores del panel (components/portal/dev/*.astro)
+
+   La misma terminal que el resto del panel (portal.css y panel.css, sobre terminal.css):
+   cajas redondas, la letra mono, la tiza sobre la noche, el «›» de los rotulos y nada de
+   oro. Es una herramienta: lo que importa es leerla de un vistazo. Las medidas (de pagina,
+   de lomo) van en mono y con cifras parejas, al lado de lo que miden.
+
+   Los errores, como en la tarjeta de entrar: punto rojo y texto en tiza (nunca solo color).
+   ============================================================= */
+
+.dev { display: grid; gap: 1.2rem; align-content: start; min-width: 0; }
+.dev .portal__boton { width: auto; }
+
+/* «Actualizar la web»: una franja tranquila, no un aviso */
+.dev__actualizar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.2rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--raya); border-radius: 14px;
+  background: rgb(241 239 233 / .025);
+}
+.dev__actualizar-linea { flex: 1 1 18rem; margin: 0; font-size: .84rem; line-height: 1.5; color: var(--tiza-2); }
+.dev__actualizar-boton { flex: none; min-height: 44px; text-decoration: none; }
+
+.dev__barra { display: flex; flex-wrap: wrap; gap: .6rem; }
+.dev__barra[hidden] { display: none; }
+.panel__lista[hidden], .panel__vacio[hidden] { display: none; }
+
+/* La fila de la lista: «Borrador» o «Publicado» (el texto lo dice; el borde acompaña) */
+.dev__estado {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 .65rem;
+  border: 1px dashed var(--raya-fuerte); border-radius: 999px;
+  font-family: var(--mono); font-size: .76rem; color: var(--tiza-2); white-space: nowrap;
+}
+.dev__estado--web { border-style: solid; border-color: rgb(169 196 127 / .55); color: var(--prompt); }
+.panel__fila .panel__acciones { align-items: center; }
+
+/* ---- El editor ---- */
+.dev__form { display: grid; gap: 1.15rem; max-width: 40rem; }
+.dev__form[hidden] { display: none; }
+.dev__campo { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; }
+.dev__mono { font-family: var(--mono); }
+.dev__corto { max-width: 9rem; }
+.dev__ruta { font-family: var(--mono); color: var(--tiza); overflow-wrap: anywhere; }
+.dev__select { appearance: auto; cursor: pointer; }
+.dev__select option { background: #0B110D; color: var(--tiza); }
+
+/* Un grupo de opciones (tipo, grosor, lo que hizo la IA, una version en otro idioma) */
+.dev__grupo {
+  display: grid; gap: .7rem; min-width: 0;
+  margin: 0; padding: .9rem 1rem 1rem;
+  border: 1px solid var(--raya); border-radius: 14px;
+}
+.dev__grupo > legend { padding: 0 .35rem; }
+.dev__ayuda-arriba { margin-top: -.25rem; }
+
+/* Las opciones de una sola respuesta: nombre a la izquierda, medida a la derecha */
+.dev__opciones { display: grid; gap: .4rem; }
+.dev__opcion {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .7rem;
+  min-height: 46px; padding: .35rem .85rem;
+  border: 1px solid var(--raya-fuerte); border-radius: 12px;
+  cursor: pointer;
+  transition: background-color .2s var(--ease), border-color .2s var(--ease);
+}
+.dev__opcion:hover { background: rgb(241 239 233 / .05); }
+.dev__opcion:has(input:checked) { border-color: rgb(241 239 233 / .5); background: rgb(241 239 233 / .07); }
+.dev__opcion:has(input:focus-visible) { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.dev__opcion-nombre { font-size: .92rem; color: var(--tiza); }
+.dev__opcion-medida { font-family: var(--mono); font-size: .78rem; color: var(--tiza-2); font-variant-numeric: tabular-nums; text-align: end; }
+.dev input[type="radio"], .dev input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin: 0; accent-color: var(--prompt); }
+
+.dev__casillas { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: .25rem .8rem; }
+.dev__casilla { display: flex; align-items: center; gap: .6rem; min-height: 44px; font-size: .9rem; color: var(--tiza); cursor: pointer; }
+.dev__casilla:has(input:focus-visible) { outline: 2px solid var(--prompt); outline-offset: 2px; border-radius: 8px; }
+
+/* Elegir un archivo. El boton del navegador habla el idioma del sistema («Choose File»);
+   este habla el del panel. El <input> de verdad sigue ahi, encima, transparente: el clic,
+   el teclado y el lector de pantalla lo usan a el; lo de abajo es solo como se ve. */
+.dev__elegir { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; max-width: 100%; }
+.dev__archivo { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 1rem; }
+.dev__elegir-boton {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 1rem;
+  border: 1px solid var(--raya-fuerte); border-radius: 12px;
+  background: rgb(241 239 233 / .03); color: var(--tiza);
+  font-family: var(--mono); font-size: .84rem; font-weight: 700;
+  transition: background-color .2s var(--ease), border-color .2s var(--ease);
+}
+.dev__elegir-nombre { min-width: 0; font-size: .84rem; color: var(--tiza-2); overflow-wrap: anywhere; }
+.dev__elegir:hover .dev__elegir-boton { background: rgb(241 239 233 / .08); border-color: rgb(241 239 233 / .5); }
+.dev__elegir:has(.dev__archivo:focus-visible) .dev__elegir-boton { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.dev__elegir:has(.dev__archivo[aria-invalid="true"]) .dev__elegir-boton { border-color: rgb(255 59 59 / .6); }
+
+/* El estante pequeño: el lomo elegido, de pie y a su proporcion, sobre una tabla */
+.dev__estante {
+  display: flex; align-items: flex-end; justify-content: center;
+  width: max-content; min-width: 9rem; padding: .9rem 1.4rem 0;
+  border-bottom: 3px solid var(--raya-fuerte); border-radius: 12px 12px 2px 2px;
+  background: linear-gradient(to top, rgb(241 239 233 / .05), transparent 70%);
+}
+.dev__estante[hidden] { display: none; }
+.dev__lomo { display: block; height: 240px; width: auto; border-radius: 2px; box-shadow: 0 14px 20px -12px rgb(0 0 0 / .8), inset 0 0 0 1px rgb(0 0 0 / .25); }
+.dev__medida { margin: 0; font-size: .84rem; line-height: 1.45; color: var(--tiza); font-variant-numeric: tabular-nums; }
+.dev__medida:empty { display: none; }
+.dev__medida::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: .5rem; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
+.dev__medida--mal::before { background: var(--alerta); }
+
+/* El error de un campo, debajo de el; la nota (un aviso que no frena), sin punto */
+.dev__error { display: flex; gap: .5rem; align-items: baseline; margin: 0; font-size: .84rem; line-height: 1.45; color: var(--tiza); }
+.dev__error::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--alerta); translate: 0 -1px; }
+.dev__error[hidden] { display: none; }
+.dev__nota { margin: 0; font-size: .8rem; line-height: 1.45; color: var(--tiza-2); }
+
+.dev__versiones { display: grid; gap: .9rem; }
+.dev__versiones:empty { display: none; }
+.dev__quitar { justify-self: start; }
+.dev__mas { justify-self: start; }
+
+.dev__acciones { display: flex; flex-wrap: wrap; gap: .6rem; padding-top: .3rem; }
+.dev__acciones [hidden] { display: none; }
+
+/* ---- Trabajos y Proyectos ---- */
+.dev__form--ancho { max-width: 46rem; }
+/* La muestra de una imagen elegida: el logo sobre la noche de la cinta, la cabecera tal cual */
+.dev__muestra {
+  display: flex; align-items: center; justify-content: center;
+  width: max-content; max-width: 100%; padding: .9rem 1.2rem;
+  border: 1px solid var(--raya); border-radius: 12px; background: #050806;
+}
+.dev__muestra[hidden] { display: none; }
+.dev__muestra canvas { display: block; max-width: 100%; height: auto; }
+.dev__muestra--banner { padding: 0; overflow: hidden; }
+.dev__trabajos { display: grid; gap: .8rem; }
+.dev__trabajos:empty { display: none; }
+.dev__trabajo { display: grid; gap: .6rem; padding: .8rem; border: 1px dashed var(--raya-fuerte); border-radius: 12px; }
+@media (min-width: 640px) {
+  .dev__trabajo { grid-template-columns: minmax(0, 1fr) 7rem; }
+  .dev__trabajo > .dev__campo:nth-child(3), .dev__trabajo > .dev__quitar { grid-column: 1 / -1; }
+}
+
+/* «Su página»: el editor de bloques, en su propia caja */
+.dev__pagina { display: grid; gap: .8rem; padding: 1.1rem 1rem 1.2rem; border: 1px solid var(--raya-fuerte); border-radius: 16px; background: rgb(241 239 233 / .02); }
+.dev__pagina-titulo { margin: 0; font-family: var(--mono); font-weight: 700; font-size: 1rem; color: var(--tiza); }
+.dev__pagina-idioma { max-width: 18rem; }
+
+/* ---- El editor de bloques (panel/dev/EditorBloques.js) ---- */
+.bed { display: grid; gap: .8rem; }
+.bed__vacio { margin: 0; padding: 1.2rem; border: 1px dashed var(--raya-fuerte); border-radius: 12px; font-size: .86rem; color: var(--tiza-2); text-align: center; }
+.bed__vacio[hidden] { display: none; }
+.bed__lista { display: grid; gap: .7rem; }
+.bed__lista:empty { display: none; }
+.bed__bloque {
+  display: grid; gap: .55rem;
+  padding: .55rem .8rem .8rem;
+  border: 1px solid var(--raya); border-radius: 12px;
+  background: rgb(241 239 233 / .02);
+  transition: border-color .2s var(--ease);
+}
+.bed__bloque:focus-within { border-color: rgb(241 239 233 / .4); }
+/* La barra del bloque: su tipo y sus acciones; tranquila hasta que se trabaja en el */
+.bed__barra { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .3rem; }
+.bed__tipo { flex: 1; min-width: 6rem; font-family: var(--mono); font-size: .72rem; letter-spacing: .04em; text-transform: lowercase; color: var(--tiza-2); }
+.bed__tipo::before { content: "// "; content: "// " / ""; color: var(--prompt); }
+/* (sin atenuarlas: a este tamaño tienen que leerse siempre, no solo al pasar por encima) */
+.bed__accion {
+  min-height: 32px; min-width: 32px; padding: 0 .55rem;
+  border-radius: 8px; font: inherit; font-family: var(--mono); font-size: .76rem; color: var(--tiza-2);
+  cursor: pointer; transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.bed__accion:hover { background: rgb(241 239 233 / .07); color: var(--tiza); }
+.bed__accion:focus-visible { outline: 2px solid var(--prompt); outline-offset: 1px; }
+.bed__cuerpo { display: grid; gap: .6rem; min-width: 0; }
+
+/* Lo que se escribe directo: se ve como se va a leer (sin caja de formulario) */
+.bed__texto {
+  min-height: 1.6em; padding: .2rem .1rem; outline: none;
+  font-size: 1rem; line-height: 1.6; color: var(--tiza);
+  white-space: pre-wrap; overflow-wrap: anywhere; caret-color: var(--prompt);
+}
+/* La pista se ve; la oye el lector por aria-placeholder, no por este ::before */
+.bed__texto:empty::before { content: attr(data-placeholder); content: attr(data-placeholder) / ""; color: var(--tiza-2); pointer-events: none; }
+.bed__texto:focus-visible { outline: 2px solid transparent; box-shadow: 0 1px 0 0 var(--prompt); }
+.bed__texto--h2 { font-family: var(--mono); font-weight: 700; font-size: 1.35rem; line-height: 1.25; }
+.bed__texto--h3 { font-family: var(--mono); font-weight: 700; font-size: 1.1rem; line-height: 1.3; }
+.bed__texto--blockquote { padding-left: .8rem; border-left: 1px solid var(--raya-fuerte); font-style: italic; }
+.bed__texto a { color: var(--tiza); text-decoration: underline; text-decoration-color: var(--prompt); text-underline-offset: .2em; }
+.bed__marcas-caja { display: grid; gap: .4rem; }
+.bed__marcas { display: flex; flex-wrap: wrap; gap: .25rem; }
+.bed__marca {
+  min-height: 30px; padding: 0 .6rem; border: 1px solid var(--raya); border-radius: 8px;
+  font: inherit; font-size: .76rem; color: var(--tiza-2); cursor: pointer;
+}
+.bed__marca:hover { color: var(--tiza); border-color: var(--raya-fuerte); }
+.bed__marca:focus-visible { outline: 2px solid var(--prompt); outline-offset: 1px; }
+.bed__marca--b { font-weight: 700; }
+.bed__marca--i { font-style: italic; }
+.bed__marca--a { text-decoration: underline; text-underline-offset: .2em; }
+.bed__enlace { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.bed__enlace[hidden] { display: none; }
+.bed__enlace .portal__entrada { flex: 1 1 14rem; min-height: 40px; font-size: .9rem; }
+.bed__raya { width: 100%; margin: .4rem 0; border: 0; border-top: 1px solid var(--raya-fuerte); }
+.bed__muestra { width: max-content; max-width: 100%; border-radius: 8px; overflow: hidden; }
+.bed__muestra[hidden] { display: none; }
+/* La muestra cabe en su columna y no pasa de 240 px de alto, a su proporcion */
+.bed__imagen { display: block; width: auto; height: auto; max-width: 100%; max-height: 240px; }
+.bed__columnas { display: grid; gap: .7rem; }
+@media (min-width: 900px) {
+  .bed__columnas[data-n="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bed__columnas[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.bed__columna { display: grid; gap: .6rem; align-content: start; padding: .6rem; border: 1px dashed var(--raya-fuerte); border-radius: 12px; min-width: 0; }
+.bed__anadir { justify-self: start; }
+.bed__columna .bed__anadir { min-height: 40px; font-size: .84rem; }
+/* El menu de bloques: una lista corta, cada uno con su linea de que es */
+.bed__menu {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .35rem;
+  padding: .6rem; border: 1px solid var(--raya-fuerte); border-radius: 14px;
+  background: #0B110D; box-shadow: 0 18px 40px -20px rgb(0 0 0 / .9);
+}
+.bed__menu[hidden] { display: none; }
+.bed__opcion {
+  display: grid; gap: .1rem; justify-items: start; text-align: start;
+  min-height: 48px; padding: .45rem .7rem; border-radius: 10px;
+  font: inherit; color: var(--tiza); cursor: pointer;
+}
+.bed__opcion:hover, .bed__opcion:focus-visible { background: rgb(241 239 233 / .08); outline: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--prompt); }
+.bed__opcion-nombre { font-family: var(--mono); font-size: .86rem; font-weight: 700; }
+.bed__opcion-linea { font-size: .76rem; color: var(--tiza-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dev__opcion, .dev__elegir-boton, .bed__bloque, .bed__accion { transition: none; }
+}
+@media (forced-colors: active) {
+  .dev__opcion, .dev__grupo, .dev__estado, .dev__actualizar, .bed__bloque, .bed__menu { border: 1px solid CanvasText; }
+  .dev__opcion:has(input:checked) { outline: 2px solid Highlight; }
+  /* Con los colores del sistema las sombras desaparecen: el foco se dibuja con un borde de verdad */
+  .dev :focus-visible, .bed__texto:focus, .bed__opcion:focus-visible { outline: 2px solid Highlight !important; outline-offset: 2px; }
+}
+
+/* Las cajas de los campos, un poco mas marcadas que en la tarjeta de entrar: aqui hay
+   muchos campos seguidos y el borde tiene que distinguirse del fondo (3:1) */
+.dev .portal__entrada:not([aria-invalid="true"]):not(:focus-visible), .dev__opcion, .dev__elegir-boton { border-color: rgb(241 239 233 / .45); }

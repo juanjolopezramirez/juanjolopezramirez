@@ -1,0 +1,11 @@
+---
+/* Un nodo del arbol NEUTRO de src/scripts/contenido/render.js: un texto (que Astro escapa)
+   o un elemento de la lista cerrada de render.js, con sus atributos ya filtrados, y sus
+   hijos (recursivo). Nunca set:html. */
+const { nodo } = Astro.props;
+const VACIOS = new Set(['img', 'br', 'hr']);
+const Tag = 'texto' in nodo ? null : nodo.tag;
+---
+{'texto' in nodo ? nodo.texto : VACIOS.has(Tag) ? <Tag {...nodo.attrs} /> : (
+  <Tag {...nodo.attrs}>{nodo.hijos.map((h) => <Astro.self nodo={h} />)}</Tag>
+)}

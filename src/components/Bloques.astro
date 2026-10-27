@@ -1,0 +1,77 @@
+---
+/* La pagina de una casa hecha en el panel con el editor estilo Notion (Developer-Mode):
+   el documento del idioma de la pagina o, si no esta, el del idioma en que se escribio,
+   con su lang. Lo pinta render.js → Nodo.astro: solo etiquetas de una lista cerrada, el
+   texto escapado y los enlaces revisados otra vez (aunque ya los reviso el panel y la
+   compilacion).
+
+   El papel y la tinta de la pagina: la letra de lectura, la medida de 65–70 caracteres,
+   las columnas que en el telefono se apilan, y los botones con el traje de los del sitio. */
+import Nodo from './Nodo.astro';
+import { aNodos } from '../scripts/contenido/render.js';
+import { enSuIdioma, textosDeBloques } from '../i18n/origen.js';
+
+const { lang, cuerpo, original } = Astro.props;
+const elegido = enSuIdioma(cuerpo, lang, original);
+const doc = elegido.texto && typeof elegido.texto === 'object' ? elegido.texto : null;
+const textos = textosDeBloques(lang);
+const nodos = doc ? aNodos(doc, textos) : [];
+---
+{nodos.length > 0 && (
+  <div class="bloques" lang={elegido.idioma !== lang ? elegido.idioma : undefined}>
+    {nodos.map((n) => <Nodo nodo={n} />)}
+  </div>
+)}
+
+<style>
+  .bloques {
+    display: grid; gap: 1.1rem;
+    max-width: 68ch; margin: 1.6rem 0 .4rem;
+    font-size: 1.02rem; line-height: 1.7; color: var(--ink);
+  }
+  .bloques :global(.bloque-p) { margin: 0; text-wrap: pretty; }
+  .bloques :global(.bloque-titulo) {
+    margin: .9rem 0 -.2rem;
+    font-family: var(--serif); font-weight: 400; line-height: 1.2; letter-spacing: -.01em;
+    text-wrap: balance;
+  }
+  .bloques :global(h2.bloque-titulo) { font-size: 1.55rem; }
+  .bloques :global(h3.bloque-titulo) { font-size: 1.22rem; }
+  .bloques :global(.bloque-lista) { margin: 0; padding-left: 1.3rem; display: grid; gap: .35rem; }
+  /* El sitio quita las viñetas a todas las listas: aqui son contenido y vuelven */
+  .bloques :global(ul.bloque-lista) { list-style: disc; }
+  .bloques :global(ol.bloque-lista) { list-style: decimal; }
+  .bloques :global(.bloque-lista li::marker) { color: var(--ink); }
+  .bloques :global(.bloque-cita) {
+    margin: .3rem 0; padding: .2rem 0 .2rem 1.1rem;
+    border-left: 1px solid var(--paper-border);
+    font-family: var(--serif); font-size: 1.12rem; line-height: 1.5;
+  }
+  .bloques :global(.bloque-cita p) { margin: 0; }
+  .bloques :global(.bloque-cita footer) { margin-top: .4rem; font-family: inherit; font-size: .88rem; font-style: normal; }
+  .bloques :global(.bloque-cita footer)::before { content: "— "; }
+  .bloques :global(a:not(.bloque-boton)) { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+  .bloques :global(figure) { margin: .3rem 0; display: grid; gap: .5rem; }
+  .bloques :global(.bloque-imagen img) { display: block; width: 100%; height: auto; border-radius: 4px; }
+  .bloques :global(figcaption) { font-size: .84rem; line-height: 1.45; color: var(--ink); }
+  .bloques :global(.bloque-video__marco) { position: relative; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: var(--paper-raised); }
+  .bloques :global(.bloque-video__marco iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .bloques :global(.bloque-columnas) { display: grid; gap: 1.1rem 1.6rem; }
+  .bloques :global(.bloque-columna) { display: grid; gap: 1.1rem; align-content: start; min-width: 0; }
+  @media (min-width: 720px) {
+    .bloques :global(.bloque-columnas[data-n="2"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bloques :global(.bloque-columnas[data-n="3"]) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .bloques :global(.bloque-boton-fila) { margin: .2rem 0; }
+  .bloques :global(.bloque-boton) {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.2rem;
+    background: var(--ink); color: var(--paper); text-decoration: none;
+    font-size: .95rem; font-weight: 600;
+    transition: opacity .2s ease;
+  }
+  .bloques :global(.bloque-boton:hover) { opacity: .88; }
+  .bloques :global(.bloque-boton--suave) { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px currentColor; }
+  .bloques :global(.bloque-boton:focus-visible), .bloques :global(a:focus-visible) { outline: 2px solid currentColor; outline-offset: 3px; }
+  .bloques :global(.bloque-separador) { width: 100%; margin: .6rem 0; border: 0; border-top: 1px solid var(--paper-border); }
+  @media (prefers-reduced-motion: reduce) { .bloques :global(.bloque-boton) { transition: none; } }
+</style>

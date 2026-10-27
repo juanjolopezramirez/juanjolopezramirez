@@ -32,6 +32,11 @@
      listarPerfiles() · decidir(id, estado) · listarInvitaciones() · invitar(correo)
      · borrarInvitacion(correo) · leer(tabla)
 
+   y `contenido`, Developer-Mode (panel/dev/*.js):
+     repositorio(Tipo)           listar · leer · guardar · publicar · borrar (src/scripts/contenido/Repositorio.js)
+     subir(ruta, archivo)        { ok } | { error }  (archivos.js lo revisa antes: tipo, tope, ruta)
+     descargar(ruta)             { ok, blob } | { error }  (una imagen ya subida, para enseñarla en el panel)
+
    EL CODIGO DE PRUEBA NO VIAJA A LA PUBLICACION: la comprobacion de `DEV` esta
    escrita tal cual para que Vite la resuelva al compilar y se lleve el resto. */
 import { leerConfig } from './config.js';

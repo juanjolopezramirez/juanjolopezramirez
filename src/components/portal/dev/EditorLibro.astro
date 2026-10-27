@@ -1,0 +1,184 @@
+---
+/* Developer-Mode → Libros: la lista de los libros del panel y su editor (panel/dev/EditorLibro.js).
+
+   El editor recuerda las medidas en el sitio donde se necesitan: el tamaño de pagina al
+   lado de cada tipo de libro, el del lomo al lado de cada grosor, y al elegir el PNG del
+   lomo lo mide AQUI (antes de subirlo) y lo enseña en un estante pequeño.
+
+   Los libros de siempre (los de una palabra) siguen en el codigo: aqui solo los nuevos.
+   Todo texto que viene de la base entra con textContent (panel/dev/*.js). */
+import Actualizar from './Actualizar.astro';
+import UsoIA from './UsoIA.astro';
+import { IDIOMAS } from '../../../scripts/contenido/comun.js';
+import { LOMOS, PORTADAS, GROSORES } from '../../../scripts/contenido/medidas.js';
+import { SECCIONES, TIPOS } from '../../../data/biblioteca.js';
+import { TONOS } from '../../../scripts/biblioteca.js';
+
+const { tx } = Astro.props;
+const l = tx.libros;
+const medida = (m) => `${m.ejemplo.w} × ${m.ejemplo.h} px`;
+---
+<div class="dev" data-dev="libros">
+  <p class="panel__aviso" data-aviso role="status" tabindex="-1" hidden></p>
+  <p class="portal__error" data-error role="alert" hidden></p>
+
+  <Actualizar tx={tx.actualizar} />
+
+  <div class="dev__barra">
+    <button class="portal__boton dev__nuevo" type="button" data-dev-nuevo>{l.nuevo}</button>
+  </div>
+  <ul class="panel__lista" role="list" data-dev-lista></ul>
+  <p class="panel__vacio" data-dev-vacio>{l.vacio}</p>
+
+  <form class="dev__form" data-dev-form hidden novalidate aria-labelledby="dev-libros-titulo">
+    <h3 class="panel__subtitulo" id="dev-libros-titulo" tabindex="-1" data-dev-titulo
+        data-nuevo={l.tituloNuevo} data-editar={l.tituloEditar}>{l.tituloNuevo}</h3>
+
+    <div class="dev__campo" data-campo="idiomaOriginal">
+      <label class="portal__etiqueta" for="lb-idioma">{tx.idioma}</label>
+      <select class="portal__entrada dev__select" id="lb-idioma" name="idiomaOriginal">
+        {IDIOMAS.map((i) => <option value={i.id}>{i.nombre}</option>)}
+      </select>
+    </div>
+
+    <div class="dev__campo" data-campo="titulo">
+      <label class="portal__etiqueta" for="lb-titulo">{l.titulo}</label>
+      <input class="portal__entrada" id="lb-titulo" name="titulo" maxlength="120" autocomplete="off" />
+    </div>
+    <div class="dev__campo" data-campo="subtitulo">
+      <label class="portal__etiqueta" for="lb-subtitulo">{l.subtitulo}</label>
+      <input class="portal__entrada" id="lb-subtitulo" name="subtitulo" maxlength="160" autocomplete="off" />
+    </div>
+    <div class="dev__campo" data-campo="id">
+      <label class="portal__etiqueta" for="lb-id">{tx.nombreCorto}</label>
+      <input class="portal__entrada dev__mono" id="lb-id" name="id" maxlength="40" autocomplete="off" spellcheck="false"
+             autocapitalize="off" aria-describedby="lb-id-ayuda" />
+      <p class="portal__ayuda" id="lb-id-ayuda">{tx.nombreCortoAyuda} <span class="dev__ruta">/es/writing/#<span data-ruta-id></span></span></p>
+    </div>
+
+    <div class="dev__campo" data-campo="seccion">
+      <label class="portal__etiqueta" for="lb-seccion">{l.tema}</label>
+      <select class="portal__entrada dev__select" id="lb-seccion" name="seccion">
+        {SECCIONES.map((s) => <option value={s.id}>{s.nombre.es}</option>)}
+      </select>
+    </div>
+
+    <fieldset class="dev__grupo" data-campo="tipo">
+      <legend class="portal__etiqueta">{l.tipo}</legend>
+      <p class="portal__ayuda dev__ayuda-arriba">{l.tipoAyuda}</p>
+      <div class="dev__opciones">
+        {Object.keys(TIPOS).map((t, i) => (
+          <label class="dev__opcion">
+            <input type="radio" name="tipo" value={t} checked={i === 0} />
+            <span class="dev__opcion-nombre">{l.tipos[t]}</span>
+            <span class="dev__opcion-medida">{medida(PORTADAS[t])}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+
+    <div class="dev__campo" data-campo="pdf">
+      <label class="portal__etiqueta" for="lb-pdf">{l.pdf}</label>
+      <span class="dev__elegir"><input class="dev__archivo" id="lb-pdf" name="pdf" type="file" accept="application/pdf,.pdf" aria-describedby="lb-pdf-ayuda lb-pdf-nombre" /><span class="dev__elegir-boton" aria-hidden="true">{l.elegirPdf}</span><span class="dev__elegir-nombre" id="lb-pdf-nombre" data-nombre-archivo>{tx.ningunArchivo}</span></span>
+      <p class="portal__ayuda" id="lb-pdf-ayuda">{l.pdfAyuda} <span data-pdf-ya hidden>{l.pdfYa}</span></p>
+    </div>
+
+    <fieldset class="dev__grupo" data-campo="grosor">
+      <legend class="portal__etiqueta">{l.grosor}</legend>
+      <div class="dev__opciones">
+        <label class="dev__opcion">
+          <input type="radio" name="grosor" value="" checked />
+          <span class="dev__opcion-nombre">{l.grosores.auto}</span>
+          <span class="dev__opcion-medida">{l.grosorAuto}</span>
+        </label>
+        {GROSORES.map((g) => (
+          <label class="dev__opcion">
+            <input type="radio" name="grosor" value={g} />
+            <span class="dev__opcion-nombre">{l.grosores[g]}</span>
+            <span class="dev__opcion-medida">{medida(LOMOS[g])}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+
+    <div class="dev__campo" data-campo="lomo">
+      <label class="portal__etiqueta" for="lb-lomo">{l.lomo}</label>
+      <span class="dev__elegir"><input class="dev__archivo" id="lb-lomo" name="lomo" type="file" accept="image/png,.png" aria-describedby="lb-lomo-ayuda lb-lomo-nombre lb-lomo-medida" /><span class="dev__elegir-boton" aria-hidden="true">{l.elegirLomo}</span><span class="dev__elegir-nombre" id="lb-lomo-nombre" data-nombre-archivo>{tx.ningunArchivo}</span></span>
+      <p class="portal__ayuda" id="lb-lomo-ayuda">{l.lomoAyuda} <span data-lomo-ya hidden>{l.lomoYa}</span></p>
+      {/* El estante pequeño: el lomo elegido, de pie, a su proporcion (lo pinta EditorLibro.js en un canvas) */}
+      <div class="dev__estante" data-estante hidden>
+        <canvas class="dev__lomo" data-lomo-vista width="60" height="240" aria-hidden="true"></canvas>
+      </div>
+      <p class="dev__medida" id="lb-lomo-medida" data-lomo-medida aria-live="polite"></p>
+    </div>
+
+    <div class="dev__campo" data-campo="tono">
+      <label class="portal__etiqueta" for="lb-tono">{l.tono}</label>
+      <select class="portal__entrada dev__select" id="lb-tono" name="tono">
+        <option value="">{l.tonoAuto}</option>
+        {Object.keys(TONOS).map((t) => <option value={t}>{l.tonos[t]}</option>)}
+      </select>
+    </div>
+
+    <div class="dev__campo" data-campo="etiquetas">
+      <label class="portal__etiqueta" for="lb-etiquetas">{tx.etiquetas}</label>
+      <input class="portal__entrada" id="lb-etiquetas" name="etiquetas" maxlength="400" autocomplete="off" aria-describedby="lb-etiquetas-ayuda" />
+      <p class="portal__ayuda" id="lb-etiquetas-ayuda">{tx.etiquetasAyuda}</p>
+    </div>
+
+    <div class="dev__versiones" data-versiones></div>
+    <button class="portal__boton portal__boton--suave dev__mas" type="button" data-dev-version>{tx.otraVersion}</button>
+
+    <UsoIA prefijo="lb" tx={tx.ia} />
+
+    <p class="portal__error" data-error-form role="alert" hidden></p>
+    <div class="dev__acciones">
+      <button class="portal__boton" type="submit">{tx.guardar}</button>
+      <button class="portal__boton portal__boton--suave" type="button" data-dev-publicar
+              data-publicar={tx.publicar} data-despublicar={tx.despublicar} hidden>{tx.publicar}</button>
+      <button class="portal__boton portal__boton--suave dev__borrar" type="button" data-dev-borrar
+              data-borrar={tx.borrar} data-seguro={tx.borrarSeguro} hidden>{tx.borrar}</button>
+      <button class="portal__boton portal__boton--suave" type="button" data-dev-cerrar>{tx.cerrar}</button>
+    </div>
+  </form>
+
+  {/* Otra version del libro, en otro idioma (EditorLibro.js la copia y le da ids propios) */}
+  <template data-plantilla="version-libro">
+    <fieldset class="dev__grupo dev__version" data-version>
+      <legend class="portal__etiqueta">{tx.otraVersion}</legend>
+      <div class="dev__campo">
+        <label class="portal__etiqueta" data-para="v-idioma">{tx.versionIdioma}</label>
+        <select class="portal__entrada dev__select" name="v-idioma" data-id="v-idioma">
+          {IDIOMAS.map((i) => <option value={i.id}>{i.nombre}</option>)}
+        </select>
+      </div>
+      <div class="dev__campo">
+        <label class="portal__etiqueta" data-para="v-titulo">{l.titulo}</label>
+        <input class="portal__entrada" name="v-titulo" data-id="v-titulo" maxlength="120" autocomplete="off" />
+      </div>
+      <div class="dev__campo">
+        <label class="portal__etiqueta" data-para="v-pdf">{l.pdf}</label>
+        <span class="dev__elegir"><input class="dev__archivo" name="v-pdf" data-id="v-pdf" type="file" accept="application/pdf,.pdf" /><span class="dev__elegir-boton" aria-hidden="true">{l.elegirPdf}</span><span class="dev__elegir-nombre" data-nombre-archivo>{tx.ningunArchivo}</span></span>
+        <p class="portal__ayuda" data-pdf-ya hidden>{l.pdfYa}</p>
+      </div>
+      <label class="dev__casilla">
+        <input type="checkbox" name="v-ia" />
+        <span>{tx.traducidaIA}</span>
+      </label>
+      <button class="panel__boton panel__boton--suave dev__quitar" type="button" data-quitar-version>{tx.quitarVersion}</button>
+    </fieldset>
+  </template>
+
+  <template data-plantilla="fila-dev">
+    <li class="panel__fila">
+      <div class="panel__quien">
+        <p class="panel__persona" data-campo-fila="titulo"></p>
+        <p class="panel__fecha" data-campo-fila="detalle"></p>
+      </div>
+      <div class="panel__acciones">
+        <span class="dev__estado" data-campo-fila="estado"></span>
+        <button type="button" class="panel__boton panel__boton--suave" data-editar>{tx.editar}</button>
+      </div>
+    </li>
+  </template>
+</div>

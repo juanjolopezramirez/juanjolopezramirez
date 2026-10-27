@@ -1,6 +1,7 @@
 ---
 import BrandDot from './BrandDot.astro';
 import { AXES, slugOf, nombreDe } from '../data/entities.js';
+import { enSuIdioma } from '../i18n/origen.js';
 
 /* Las casas, una por una.
 
@@ -29,6 +30,13 @@ import { AXES, slugOf, nombreDe } from '../data/entities.js';
 const { lang, t, items = [], kind, title } = Astro.props;
 
 const say = (o) => (o ? (o[lang] ?? o.es) : null);
+/* Lo de una casa del panel (`panel: true`) puede estar solo en su idioma original: sale
+   en ese idioma y con su lang (el aviso de origen va en su pagina, no en la tarjeta). */
+const deCasa = (e, o) => (e.panel && o ? enSuIdioma(o, lang, e.idiomaOriginal) : { texto: say(o), idioma: lang });
+const otroIdioma = (l) => (l !== lang ? l : undefined);
+/* Las etiquetas que el fundador escribe en el panel pueden llevar espacios; en
+   data-tags (separadas por espacios) solo van las de una palabra, que son las de los ejes */
+const marcas = (e) => (e.tags ?? []).filter((tag) => !/\s/.test(tag)).join(' ');
 
 /* Cuantas columnas dejan las filas parejas: la mayor de 4, 3 o 2 que
    divida al numero de casas. Con seis proyectos salen dos filas de tres;
@@ -76,7 +84,7 @@ const ejes = Object.entries(AXES)
 
   <ul class="cards__grid" style={`--cols:${cols}`} data-filtrable-lista>
     {items.map((e, i) => (
-      <li data-tags={(e.tags ?? []).join(' ')}>
+      <li data-tags={marcas(e)}>
         <a class="ecard" href={`/${lang}/${slugOf(e)}/`}>
           <span class="ecard__spine" style={`--i:${i}`} aria-hidden="true"></span>
 
@@ -84,8 +92,8 @@ const ejes = Object.entries(AXES)
 
           <span class="ecard__body">
             <span class="ecard__name">{nombreDe(e, lang)}</span>
-            <span class="ecard__kind">{say(e.role) ?? t(`card.kind.${kind}`)}</span>
-            {e.blurb && <span class="ecard__blurb">{say(e.blurb)}</span>}
+            <span class="ecard__kind" lang={e.role ? otroIdioma(deCasa(e, e.role).idioma) : undefined}>{deCasa(e, e.role).texto ?? t(`card.kind.${kind}`)}</span>
+            {e.blurb && <span class="ecard__blurb" lang={otroIdioma(deCasa(e, e.blurb).idioma)}>{deCasa(e, e.blurb).texto}</span>}
           </span>
         </a>
       </li>

@@ -1,0 +1,32 @@
+---
+/* El aviso de origen de algo publicado desde el panel (Developer-Mode): «Escrito en
+   portugués.», «Traducción hecha con IA.», «Con ayuda de IA: la portada.» y, si el
+   fundador la escribio, su nota. Una linea pequeña y tranquila debajo del texto: dice
+   lo que es, no se disculpa ni lo esconde. Sin nada que decir, no se pinta nada.
+
+   mostrado  el idioma en que se ve el texto (i18n/origen.js → enSuIdioma)
+   original  el idioma en que se escribio (el de la nota)
+   ia        { partes, traducciones, nota } (src/scripts/contenido/ia.js) */
+import { avisos } from '../i18n/origen.js';
+
+const { lang, mostrado, original, ia, class: clase } = Astro.props;
+const a = avisos({ lang, mostrado, ia });
+const hay = a.lineas.length > 0 || !!a.nota;
+---
+{hay && (
+  <p class:list={['origen', clase]} lang={a.lang !== lang ? a.lang : undefined}>
+    {a.lineas.join(' ')}
+    {a.nota && <> <span class="origen__nota" lang={original && original !== a.lang ? original : undefined}>{a.nota}</span></>}
+  </p>
+)}
+
+<style>
+  /* Tinta entera, no la gris: a este tamaño el gris no llega a 4.5:1 (PRODUCT.md) */
+  .origen {
+    margin: .4rem 0 0;
+    font-size: .8rem; line-height: 1.45; letter-spacing: .01em;
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+  .origen__nota { font-style: italic; }
+</style>

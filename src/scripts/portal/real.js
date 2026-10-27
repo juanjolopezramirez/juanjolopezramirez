@@ -12,6 +12,9 @@
         lo valide es cortesia, no seguridad. */
 import { crearCliente } from './cliente.js';
 import { claveDeError, codigoValido, correoValido, errorDeClave, idiomaDe, limpiar, soloNumeros, urlPortal } from './estado.js';
+import { RepositorioSupabase } from '../contenido/Repositorio.js';
+import { revisarArchivo } from './archivos.js';
+import { ubicacion } from '../contenido/Almacen.js';
 
 const ESTADOS = ['pendiente', 'aprobado', 'rechazado'];
 const sinAngulos = (t) => t.replace(/[<>]/g, '');
@@ -293,6 +296,34 @@ export async function abrirReal(cfg, lang) {
         try {
           const { error } = await sb.from('invitaciones').delete().eq('correo', String(correo).toLowerCase());
           return error ? { error: 'generico' } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      }
+    },
+
+    /* ---- Developer-Mode: libros, casas y etapas (supabase/007). Escribe solo el admin
+       con su codigo (RLS + es_admin() con aal2); el panel valida antes con las mismas
+       reglas (src/scripts/contenido/). ---- */
+    contenido: {
+      repositorio: (Tipo) => new RepositorioSupabase(sb, Tipo),
+      /* Sube `archivo` a la `ruta` del almacen (Almacen.js dice en que cajon y con que
+         nombre). Antes, aqui mismo: que sea del tipo que dice ser (sus primeros bytes), que
+         no pase su tope y que la ruta sea una de las conocidas. */
+      async subir(ruta, archivo) {
+        const r = await revisarArchivo(ruta, archivo);
+        if (r.error) return r;
+        try {
+          const { error } = await sb.storage.from(r.donde.cajon).upload(r.donde.nombre, archivo, { contentType: r.donde.mime, upsert: true, cacheControl: '3600' });
+          return error ? { error: 'subida' } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      },
+      /* Una imagen ya subida, para enseñarla en el panel (se pinta en un canvas: la politica
+         de contenido no deja <img> de fuera, y no hace falta abrirla) */
+      async descargar(ruta) {
+        const donde = ubicacion(ruta);
+        if (!donde || donde.cajon !== 'portadas') return { error: 'archivoRuta' };
+        try {
+          const { data, error } = await sb.storage.from(donde.cajon).download(donde.nombre);
+          return error || !data ? { error: 'red' } : { ok: true, blob: data };
         } catch (e) { return { error: 'red' }; }
       }
     }

@@ -353,5 +353,42 @@ ok('un PDF convertido que no esta en LIBROS AVISA', () => {
   assert.ok(bien({ BOOKS: { ...BOOKS, ...hechos('huerfano', ['es']) } }).some((a) => /huerfano/.test(a)));
 });
 
+console.log('libros del panel (Developer-Mode): en el idioma en que se escribieron');
+const delPanel = (extra) => generico({ id: 'liberdade', panel: true, idiomas: ['pt'], idiomaOriginal: 'pt', titulo: { pt: 'Liberdade' }, ...extra });
+ok('un libro del panel en portugues pasa la comprobacion; uno del codigo en portugues no', () => {
+  const B2 = { ...BOOKS, ...hechos('liberdade', ['pt']) };
+  comprobar(con({ LIBROS: [...LIBROS, delPanel()], BOOKS: B2 }));
+  assert.throws(() => comprobar(con({ LIBROS: [...LIBROS, delPanel({ panel: undefined })], BOOKS: B2 })), /idiomas/);
+  assert.throws(() => comprobar(con({ LIBROS: [...LIBROS, delPanel({ idiomas: ['../'] })], BOOKS: B2 })), /idiomas/);
+});
+ok('variante: el libro en portugues se abre en portugues en TODAS las paginas, con su marca fuera de /pt/', () => {
+  const B2 = hechos('liberdade', ['pt']);
+  const l = delPanel();
+  assert.deepEqual([variante(l, 'pt', B2).lang, variante(l, 'pt', B2).marca], ['pt', null]);
+  for (const p of ['es', 'en', 'fr', 'it']) assert.deepEqual([variante(l, p, B2).lang, variante(l, p, B2).marca], ['pt', 'PT'], p);
+});
+ok('variante: un libro en portugues Y español se abre en portugues en /pt/ y en español en /es/', () => {
+  const B2 = hechos('liberdade', ['pt', 'es']);
+  const l = delPanel({ idiomas: ['pt', 'es'], titulo: { pt: 'Liberdade', es: 'Libertad' } });
+  assert.equal(variante(l, 'pt', B2).lang, 'pt');
+  assert.equal(variante(l, 'es', B2).lang, 'es');
+  assert.equal(variante(l, 'en', B2).lang, 'es', 'en /en/ sigue el orden de siempre: ingles, luego español');
+});
+ok('un libro del panel que pierde un idioma (su PDF no se convirtio) no tumba la compilacion', () => {
+  const leer = (r) => fs.readFileSync(path.join(raiz, r), 'utf8');
+  /* La misma cuenta que data/biblioteca.js → convertido(), con un libro es+en del que solo quedo el es */
+  const l = delPanel({ id: 'dos', idiomas: ['es', 'en'], titulo: { es: 'Dos', en: 'Two' }, subtitulo: { es: 'a', en: 'b' } });
+  const B2 = { ...BOOKS, ...hechos('dos', ['es']) };
+  const solo = (o) => Object.fromEntries(Object.entries(o).filter(([x]) => ['es'].includes(x)));
+  const queda = { ...l, idiomas: ['es'], titulo: solo(l.titulo), subtitulo: solo(l.subtitulo) };
+  comprobar(con({ LIBROS: [...LIBROS, queda], BOOKS: B2 }));
+  assert.match(leer('src/data/biblioteca.js'), /titulo: solo\(l\.titulo\)/);
+});
+ok('variante: los libros de hoy (español/ingles) se abren igual que antes', () => {
+  const B2 = hechos('prueba', ['es', 'en']);
+  const l = generico({ idiomas: ['es', 'en'] });
+  for (const [p, esperado] of [['es', 'es'], ['en', 'en'], ['pt', 'es'], ['fr', 'en'], ['it', 'en']]) assert.equal(variante(l, p, B2).lang, esperado, p);
+});
+
 console.log(`\n${n} bien${mal ? `, ${mal} MAL` : ''}`);
 process.exit(mal ? 1 : 0);

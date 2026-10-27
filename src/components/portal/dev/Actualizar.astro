@@ -1,0 +1,14 @@
+---
+/* «Actualizar la web»: lo publicado en el panel sale en la web cuando GitHub la vuelve a
+   armar (tools/traer-contenido.mjs). Por ahora el boton lleva a la pagina de GitHub donde
+   se pulsa «Run workflow» (decidido el 2026-10-27; un boton que lo haga solo, sin pasar
+   por GitHub, queda para despues). Abre en otra pestaña: el panel no se pierde. */
+const { tx } = Astro.props;
+const URL_PUBLICAR ='https://github.com/juanjolopezramirez/juanjolopezramirez/actions/workflows/astro.yml';
+---
+<div class="dev__actualizar">
+  <p class="dev__actualizar-linea">{tx.linea}</p>
+  <a class="portal__boton portal__boton--suave dev__actualizar-boton" href={URL_PUBLICAR} target="_blank" rel="noopener noreferrer">
+    {tx.boton}<span class="sr-only"> (GitHub)</span>
+  </a>
+</div>
