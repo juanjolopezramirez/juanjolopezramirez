@@ -375,6 +375,54 @@ ok('«atrás» no enseña una pagina vieja: el portal y el panel se recargan al 
   assert.match(leer('src/scripts/portal/panel.js'), /function olvidar\(\)[\s\S]*?\[data-lista\][\s\S]*?replaceChildren\(\)/);
 });
 
+console.log('politica de contenido (CSP)');
+const PC = await cargar('tools/politica-contenido.mjs');
+ok('cada guion en linea entra por su huella; JSON y guiones de fuera no cuentan; nada de unsafe-inline/eval en script-src', () => {
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><script>uno()</script><script type="module">dos()</script>'
+    + '<script type="application/json">{"a":1}</script><script type="module" src="/_astro/x.js"></script>'
+    + '<link rel="stylesheet" media="print" onload="this.media=\'all\'" href="https://fonts.googleapis.com/x"></head><body></body></html>';
+  const r = PC.ponerPolitica(html, { supabase: URL_BUENA });
+  const meta = r.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)[1];
+  const script = meta.split('; ').find((d) => d.startsWith('script-src'));
+  assert.equal((script.match(/'sha256-/g) || []).length, 3, 'dos guiones + el manejador de las letras');
+  assert.ok(!/unsafe-inline|unsafe-eval|\*/.test(script), script);
+  assert.match(meta, /object-src 'none'/);
+  assert.match(meta, /frame-src https:\/\/www\.youtube-nocookie\.com(;|$)/);
+  assert.match(meta, /base-uri 'self'/);
+  assert.match(meta, new RegExp(`connect-src 'self' ${URL_BUENA} ${URL_BUENA.replace('https:', 'wss:')}`));
+  assert.ok(r.indexOf('Content-Security-Policy') < r.indexOf('<script>uno()'), 'la politica va antes del primer guion');
+});
+ok('un manejador en linea que no es el de las letras PARA la compilacion (con cualquier comilla)', () => {
+  const pag = (cuerpo) => `<!DOCTYPE html><head><meta charset="UTF-8"></head><body>${cuerpo}</body>`;
+  assert.throws(() => PC.ponerPolitica(pag('<button onclick="alert(1)">x</button>')), /manejador/);
+  assert.throws(() => PC.ponerPolitica(pag("<img src=x onerror='alert(1)'>")), /manejador/);
+  assert.throws(() => PC.ponerPolitica(pag('<img src=x onerror=alert(1)>')), /manejador/);
+  assert.throws(() => PC.ponerPolitica(pag('<img src=x onload="this.media=\'all\'" onerror="alert(1)">')), /manejador/);
+  assert.throws(() => PC.ponerPolitica(pag('<script>var s = "<!--";</script>')), /guion/);
+  /* un «onclick=» escrito DENTRO de un guion no es un manejador */
+  assert.doesNotThrow(() => PC.ponerPolitica(pag('<script>const t = \' onclick="x"\';</script>')));
+});
+ok('cada marco (iframe) que el sitio abre esta permitido en frame-src', () => {
+  const origenes = new Set();
+  for (const f of archivos('src/scripts', (r) => r.endsWith('.js'))) {
+    const t = leer(f);
+    if (!/createElement\('iframe'\)/.test(t)) continue;
+    for (const m of t.matchAll(/`(https:\/\/[^/`$]+)\//g)) if (/embed|player|video/.test(t.slice(m.index, m.index + 80))) origenes.add(m[1]);
+  }
+  assert.ok(origenes.size >= 1, 'no encontre el reproductor');
+  for (const o of origenes) assert.ok(PC.MARCOS.includes(o), o);
+});
+ok('la compilacion pone la politica en todas las paginas (astro.config.mjs)', () => {
+  const c = leer('astro.config.mjs');
+  assert.match(c, /integrations: \[politicaDeContenido\(\{ supabase: supabaseUrl \}\)\]/);
+});
+ok('lo compilado (dist/), si existe: TODAS las paginas llevan su politica', () => {
+  const html = archivos('dist', (r) => r.endsWith('.html'));
+  if (!html.length) return;
+  const sin = html.filter((f) => !/<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'/.test(leer(f)));
+  assert.deepEqual(sin, []);
+});
+
 console.log('SQL (forma, no sustituye a 990_comprobar_rls.sql)');
 const sql = Object.fromEntries(archivos('supabase', (r) => r.endsWith('.sql')).map((f) => [path.posix.basename(f), leer(f)]));
 const sinComentarioSql = (t) => t.replace(/^\s*--.*$/gm, '');
