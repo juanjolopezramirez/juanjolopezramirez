@@ -52,15 +52,38 @@ export class Marca extends Seccion {
     this.form.addEventListener('input', (e) => { if (e.target === this.form.elements.hex) this.refrescar(); });
     this.form.addEventListener('submit', (e) => { e.preventDefault(); this.bajar(); });
     /* Las piezas nacen apagadas (aria-disabled) hasta que este modulo carga: ya responden */
-    this.caja.querySelectorAll('[data-marca-abrir]').forEach((b) => b.removeAttribute('aria-disabled'));
+    this.caja.querySelectorAll('[data-marca-abrir], [data-marca-anim]').forEach((b) => b.removeAttribute('aria-disabled'));
+    this.video = null;           // la ficha de las animaciones (MarcaVideo.js), la primera vez que se pide
+    this.cargaVideo = null;
   }
 
   alClic(e) {
-    const el = e.target.closest ? e.target.closest('[data-marca-abrir], [data-marca-volver]') : null;
+    const el = e.target.closest ? e.target.closest('[data-marca-abrir], [data-marca-anim], [data-marca-volver]') : null;
     if (!el || !this.caja.contains(el)) return;
     if (el.hasAttribute('data-marca-volver')) { this.volver(); return; }
     this.abierta = el;
-    this.abrir(el.getAttribute('data-marca-abrir'));
+    if (el.hasAttribute('data-marca-anim')) this.abrirAnimacion(el.getAttribute('data-marca-anim'));
+    else this.abrir(el.getAttribute('data-marca-abrir'));
+  }
+
+  /* Una animacion: su ficha vive en otro modulo (MarcaVideo.js) que se baja la primera vez */
+  async abrirAnimacion(id) {
+    const boton = this.abierta;
+    const turno = ++this.turno;           // si se pide otra cosa mientras carga, esta se deja
+    this.limpiar();
+    if (boton) boton.setAttribute('aria-busy', 'true');
+    try {
+      /* UNA sola construccion (una promesa guardada): dos pulsaciones seguidas no hacen dos fichas */
+      this.cargaVideo ||= import('./MarcaVideo.js').then((m) => { this.video ||= new m.MarcaVideo(this); return this.video; });
+      const video = await this.cargaVideo;
+      if (turno !== this.turno) return;
+      await video.abrir(id);
+    } catch (e) {
+      this.cargaVideo = null;                // si el modulo no bajo, el proximo intento lo vuelve a pedir
+      this.fallo('video');
+    } finally {
+      if (boton) boton.removeAttribute('aria-busy');
+    }
   }
 
   /* El nombre de la pieza con las letras hebreas en su idioma (un lector en español no las lee) */
@@ -95,6 +118,7 @@ export class Marca extends Seccion {
     const activo = ACTIVOS.find((a) => a.id === id);
     if (!activo) return;
     const turno = ++this.turno;
+    if (this.video) this.video.cerrar();      // nunca dos fichas a la vez
     this.limpiar();
     const boton = this.abierta;
     if (boton) boton.setAttribute('aria-busy', 'true');
@@ -123,6 +147,7 @@ export class Marca extends Seccion {
   volver() {
     this.turno++;
     this.limpiar();
+    if (this.video) this.video.cerrar();        // si se estaba haciendo un video, se cancela
     this.ficha.hidden = true;
     this.lista.hidden = false;
     this.ficha.querySelector('[data-marca-imagen]').src = VACIO;
@@ -312,6 +337,7 @@ export class Marca extends Seccion {
     this.abierta = null;
     if (!this.caja) return;
     this.limpiar();
+    if (this.video) this.video.olvidar();
     if (this.ficha) {
       this.ficha.hidden = true;
       this.ficha.querySelector('[data-marca-imagen]').src = VACIO;

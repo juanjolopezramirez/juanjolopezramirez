@@ -155,6 +155,37 @@ export const PORTAL_TEXTOS = {
       /* Brand Assets (panel/dev/Marca.js): elegir una pieza, su color, su fondo y su tamaño, y bajarla */
       marca: {
         pista: 'Elige una pieza. Verás cómo queda y la bajas en SVG o en PNG.',
+        animaciones: 'Animaciones',
+        animacionesLinea: 'La lluvia de The Alef Code, en un video MP4 (con sonido, si quieres).',
+        /* Las animaciones en video (panel/dev/MarcaVideo.js; las opciones, en data/portal/animaciones.js) */
+        video: {
+          vista: 'Así se ve un cuadro, a los 3 segundos.',
+          vistaAlt: 'Un cuadro de la animación',
+          pantalla: 'Forma de la pantalla',
+          formatos: { horizontal: 'Horizontal (16:9)', vertical: 'Vertical (9:16)', cuadrado: 'Cuadrado (1:1)' },
+          calidad: 'Calidad',
+          calidades: { '720': '720p', '1080': '1080p (Full HD)', '2160': '4K (la más pesada: tarda y pide un computador potente)' },
+          noPuede: 'No disponible en este navegador',
+          avance: 'Avance del video',
+          cancelando: 'Cancelando…',
+          duracion: 'Cuánto dura',
+          duraciones: '{n} segundos',
+          sonido: 'Con sonido',
+          sonidoNo: 'Este navegador no puede ponerle sonido al video.',
+          peso: 'Pesará unos {mb} MB.',
+          hacer: 'Hacer el video',
+          cancelar: 'Cancelar',
+          mantener: 'Deja esta pestaña abierta mientras se hace.',
+          progreso: { video: 'Dibujando el cuadro {hecho} de {total}…', sonido: 'Fabricando el sonido…', archivo: 'Armando el archivo…' },
+          listo: 'Listo: se bajó {archivo} ({mb} MB).',
+          cancelado: 'Cancelado. No se bajó nada.',
+          sinSoporte: 'Este navegador no puede hacer videos. Prueba con Chrome o Edge en un computador.',
+          errores: {
+            video: 'No pude hacer el video. Prueba con una calidad más baja.',
+            lienzo: 'No pude preparar el dibujo. Prueba con una calidad más baja.',
+            atascado: 'El video se quedó atascado y lo paré. Prueba con una calidad más baja.'
+          }
+        },
         volver: 'Elegir otra pieza',
         piezas: 'piezas',
         color: 'Color',
@@ -180,7 +211,8 @@ export const PORTAL_TEXTOS = {
           archivo: 'No pude abrir esta pieza. Revisa tu internet e intenta otra vez.',
           imagen: 'No pude dibujar esta pieza.',
           color: 'Escribe el color con seis letras o números, como #00FF66.',
-          bajar: 'No pude preparar el archivo. Prueba con un tamaño más chico.'
+          bajar: 'No pude preparar el archivo. Prueba con un tamaño más chico.',
+          video: 'No pude abrir las animaciones. Revisa tu internet e intenta otra vez.'
         }
       },
       /* Recursos: antes de subir algo, se elige que (libros hoy; videos y escritos, luego) */

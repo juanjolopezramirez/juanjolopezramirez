@@ -89,3 +89,12 @@
   .marca__miniatura, .marca__vista { forced-color-adjust: none; }
   .marca__muestra { forced-color-adjust: none; border-color: CanvasText; }
 }
+
+/* Las animaciones (panel/dev/MarcaVideo.js): la muestra, el avance y lo bloqueado mientras se hace */
+.marca__lienzo { display: block; max-width: 100%; height: auto; border-radius: 6px; }
+.marca__progreso { width: 100%; height: .6rem; accent-color: var(--prompt); }
+.marca__progreso[hidden] { display: none; }
+.dev__grupo:disabled { opacity: .6; }
+.dev__opcion:has(input:disabled), .dev__casilla:has(input:disabled) { opacity: .6; cursor: not-allowed; }
+.marca__bajar[hidden] { display: none; }
+@media (forced-colors: active) { .marca__progreso { forced-color-adjust: auto; } }

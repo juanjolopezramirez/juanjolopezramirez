@@ -8,6 +8,7 @@
 import Icon from '../../Icon.astro';
 import AlefIcono from '../AlefIcono.astro';
 import { CATEGORIAS, ACTIVOS, TONOS, FONDOS, TAMANOS } from '../../../data/portal/marca.js';
+import { ANIMACIONES, FORMATOS, CALIDADES, DURACIONES } from '../../../data/portal/animaciones.js';
 import '../../../styles/marca.css';
 
 const { tx } = Astro.props;
@@ -45,6 +46,80 @@ const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => (
         </ul>
       </div>
     ))}
+
+    <!-- LAS ANIMACIONES: la lluvia de The Alef Code en un video MP4 (panel/dev/MarcaVideo.js) -->
+    <div class="marca__categoria">
+      <h3 class="panel__subtitulo" id="marca-c-animaciones">{tx.animaciones} <span class="panel__cuenta">{ANIMACIONES.length}<span class="sr-only"> {tx.piezas}</span></span></h3>
+      <p class="marca__linea">{tx.animacionesLinea}</p>
+      <ul class="marca__rejilla" role="list" aria-labelledby="marca-c-animaciones">
+        {ANIMACIONES.map((a) => (
+          <li>
+            <button class="marca__pieza" type="button" data-marca-anim={a.id} aria-disabled="true">
+              <span class="marca__miniatura" data-vista="noche" data-letra={a.letra}><AlefIcono nombre={a.letra} /></span>
+              <span class="marca__nombre">{partes(a.nombre).map((p) => (p.he ? <span lang="he">{p.t}</span> : p.t))}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <!-- LA FICHA de una ANIMACION: como se ve, y sus opciones (los textos, en panel.marca.video) -->
+  <div class="marca__ficha" data-marca-video hidden>
+    <button class="panel__volver" type="button" data-marca-volver><Icon id="pliegue" /><span>{tx.volver}</span></button>
+    <h3 class="panel__subtitulo marca__titulo" tabindex="-1" data-video-titulo></h3>
+    <p class="marca__linea" data-video-linea></p>
+
+    <div class="marca__cuerpo">
+      <div class="marca__izquierda">
+        <div class="marca__vista" data-fondo="noche">
+          <canvas class="marca__lienzo" data-video-vista role="img" aria-label={tx.video.vistaAlt}></canvas>
+        </div>
+        <p class="marca__nota">{tx.video.vista}</p>
+      </div>
+
+      <form class="dev__form marca__form" data-video-form novalidate>
+        <fieldset class="dev__grupo" data-video-grupo>
+          <legend class="portal__etiqueta">{tx.video.pantalla}</legend>
+          <div class="dev__opciones">
+            {FORMATOS.map((f, i) => (
+              <label class="dev__opcion"><input type="radio" name="pantalla" value={f.id} checked={i === 0} /><span class="dev__opcion-nombre">{tx.video.formatos[f.id]}</span></label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset class="dev__grupo" data-video-grupo>
+          <legend class="portal__etiqueta">{tx.video.calidad}</legend>
+          <div class="dev__opciones">
+            {CALIDADES.map((c, i) => (
+              <label class="dev__opcion"><input type="radio" name="calidad" value={c.id} checked={c.id === '1080'} /><span class="dev__opcion-nombre">{tx.video.calidades[c.id]}</span><span class="dev__opcion-medida" data-video-calidad-nota={c.id}></span></label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset class="dev__grupo" data-video-grupo>
+          <legend class="portal__etiqueta">{tx.video.duracion}</legend>
+          <div class="dev__casillas">
+            {DURACIONES.map((n) => (
+              <label class="dev__casilla"><input type="radio" name="duracion" value={n} checked={n === 6} /><span>{tx.video.duraciones.replace('{n}', n)}</span></label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label class="dev__casilla" data-video-grupo><input type="checkbox" name="sonido" checked /><span>{tx.video.sonido}</span></label>
+        <p class="marca__nota" data-video-nota-sonido hidden>{tx.video.sonidoNo}</p>
+        <p class="marca__nota" data-video-peso></p>
+
+        <div class="dev__acciones">
+          <button class="portal__boton marca__bajar" type="submit" data-video-hacer>{tx.video.hacer}</button>
+          <button class="portal__boton portal__boton--suave marca__bajar" type="button" data-video-cancelar hidden>{tx.video.cancelar}</button>
+        </div>
+        <progress class="marca__progreso" data-video-progreso max="1" value="0" hidden aria-label={tx.video.avance}></progress>
+        <p class="marca__nota" data-video-mantener hidden>{tx.video.mantener}</p>
+        <p class="portal__error" data-video-error role="alert" hidden></p>
+        <p class="marca__hecho" data-video-estado role="status"></p>
+      </form>
+    </div>
   </div>
 
   <!-- LA FICHA de la pieza elegida: como queda, y sus opciones -->

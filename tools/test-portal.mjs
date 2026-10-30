@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cargar = (ruta) => import(pathToFileURL(path.join(raiz, ruta)).href);
@@ -608,6 +609,135 @@ ok('Brand Assets: la seccion esta en Developer-Mode, va a «Más» en el telefon
   const html = leer('src/components/portal/dev/EditorMarca.astro');
   assert.ok(!/\sstyle=|\son[a-z]+=/.test(html), 'sin style= ni manejadores en linea (la politica de seguridad)');
   assert.ok(!/src="https?:/.test(html), 'las miniaturas son del propio sitio');
+});
+console.log('Animaciones en video');
+const AN = await cargar('src/data/portal/animaciones.js');
+const LL = await cargar('src/scripts/portal/animacion/lluvia.js');
+/* Un «lienzo» de mentira que apunta cada llamada: sirve para comprobar que el dibujo es el mismo siempre */
+const grabadora = () => {
+  const registro = [];
+  const ctx = new Proxy({}, {
+    get: (o, k) => (k === 'createRadialGradient' ? (...a) => { registro.push(k + JSON.stringify(a)); return { addColorStop: (...b) => registro.push('stop' + JSON.stringify(b)) }; }
+      : (...a) => registro.push(String(k) + JSON.stringify(a))),
+    set: (o, k, v) => { registro.push(String(k) + '=' + (typeof v === 'object' ? 'objeto' : v)); return true; }
+  });
+  return { ctx, registro };
+};
+const rastro = (semilla, modo, cuadros = 80) => {
+  const letra = { ancho: 100, alto: 100, dentro: (x, y) => (x - 50) ** 2 + (y - 50) ** 2 < 1600 };
+  const { ctx, registro } = grabadora();
+  const sim = LL.crearLluvia({ ancho: 1280, alto: 720, azar: LL.crearAzar(semilla), letra, modo, duracionMs: 6000 });
+  const pasos = [];
+  for (let n = 0; n < cuadros; n++) { sim.avanzar(1000 / 30); pasos.push(sim.pasos); sim.pintar(ctx); }
+  return { huella: crypto.createHash('sha1').update(registro.join('|')).digest('hex'), pasos, llamadas: registro.length, letra: sim.letra };
+};
+ok('Animaciones: la misma semilla dibuja EXACTAMENTE lo mismo, otra semilla otra cosa, y la letra se descifra', () => {
+  const a = rastro(7, 'entrada'), b = rastro(7, 'entrada'), c = rastro(8, 'entrada');
+  assert.equal(a.huella, b.huella, 'misma semilla, mismo dibujo');
+  assert.notEqual(a.huella, c.huella, 'otra semilla, otro dibujo');
+  assert.deepEqual(a.pasos, b.pasos);
+  assert.ok(a.llamadas > 50_000, 'dibuja de verdad: ' + a.llamadas);
+  assert.ok(a.pasos.some((n) => n > 0), 'la lluvia da pasos (el sonido los usa)');
+  const larga = rastro(7, 'salida', 130);       // pasados los 3.2 s la letra ya esta entera
+  assert.equal(larga.letra, 1, 'la letra llega a descifrarse');
+  for (const modo of ['entrada', 'carga', 'salida']) assert.ok(rastro(3, modo, 20).llamadas > 1000, modo);
+  assert.ok(rastro(7, 'carga').huella !== a.huella && rastro(7, 'salida').huella !== a.huella, 'cada modo se ve distinto');
+});
+ok('Animaciones: los signos son los del fondo del portal, y la letra termina antes del desvanecido final del video mas corto', () => {
+  const sacar = (t) => ['HEBREO', 'GRIEGO', 'ARAMEO', 'CODIGO'].map((n) => (t.match(new RegExp(`const ${n} = '([^']*)'`)) || [])[1]);
+  const fondo = sacar(leer('src/scripts/portal/fondo.js'));
+  const lluvia = sacar(leer('src/scripts/portal/animacion/lluvia.js'));
+  assert.ok(fondo.every(Boolean) && fondo.join('|') === lluvia.join('|'), 'fondo.js y lluvia.js usan los mismos signos');
+  const corto = Math.min(...AN.DURACIONES) * 1000;
+  assert.ok(LL.TIEMPO.letraInicio + LL.TIEMPO.letraMs <= corto - LL.TIEMPO.sale, 'la letra queda entera antes del desvanecido');
+  assert.ok(LL.TIEMPO.entra > 0 && LL.TIEMPO.sale > 0);
+});
+ok('Animaciones: las opciones son pares (H.264), el 4K es 3840×2160 y cada una tiene su texto', () => {
+  const m = (f, c) => AN.medidasDeSalida(AN.FORMATOS.find((x) => x.id === f), AN.CALIDADES.find((x) => x.id === c));
+  assert.deepEqual([m('horizontal', '720').w, m('horizontal', '720').h], [1280, 720]);
+  assert.deepEqual([m('horizontal', '1080').w, m('horizontal', '1080').h], [1920, 1080]);
+  assert.deepEqual([m('horizontal', '2160').w, m('horizontal', '2160').h], [3840, 2160]);
+  assert.deepEqual([m('vertical', '1080').w, m('vertical', '1080').h], [1080, 1920]);
+  assert.deepEqual([m('cuadrado', '2160').w, m('cuadrado', '2160').h], [2160, 2160]);
+  for (const f of AN.FORMATOS) for (const c of AN.CALIDADES) {
+    const s = AN.medidasDeSalida(f, c);
+    assert.ok(s.w % 2 === 0 && s.h % 2 === 0, `${f.id} ${c.id}: ${s.w}×${s.h} no es par`);
+    assert.equal(Math.min(s.w, s.h), c.lado, 'el lado corto es la calidad');
+  }
+  assert.equal(new Set(AN.ANIMACIONES.map((a) => a.id)).size, AN.ANIMACIONES.length);
+  assert.equal(new Set(AN.ANIMACIONES.map((a) => a.semilla)).size, AN.ANIMACIONES.length, 'cada una, su semilla');
+  for (const a of AN.ANIMACIONES) { assert.ok(a.nombre && a.linea && ['entrada', 'carga', 'salida'].includes(a.modo) && ['logo', 'mem', 'tav'].includes(a.letra), a.id); }
+  const v = es.panel.marca.video;
+  for (const f of AN.FORMATOS) assert.ok(v.formatos[f.id], f.id);
+  for (const c of AN.CALIDADES) assert.ok(v.calidades[c.id], c.id);
+  for (const k of ['vista', 'vistaAlt', 'pantalla', 'calidad', 'duracion', 'duraciones', 'sonido', 'sonidoNo', 'peso', 'hacer', 'cancelar', 'mantener', 'listo', 'cancelado', 'sinSoporte', 'noPuede']) assert.ok(v[k], k);
+  for (const k of ['video', 'sonido', 'archivo']) assert.ok(v.progreso[k], k);
+  assert.ok(v.duraciones.includes('{n}') && v.peso.includes('{mb}') && v.listo.includes('{archivo}'));
+  for (const k of ['video', 'lienzo']) assert.ok(v.errores[k], k);
+  assert.ok(es.panel.marca.errores.video && es.panel.marca.animaciones && es.panel.marca.animacionesLinea);
+  assert.ok(AN.AUDIO.frecuencia === 48000 && AN.AUDIO.canales === 2 && AN.FPS === 30);
+});
+ok('Animaciones: la libreria de MP4 va con version EXACTA, se carga solo al exportar, y lo nuevo no abre hilos ni usa almacenamiento ni HTML escrito a mano', () => {
+  const pkg = JSON.parse(leer('package.json'));
+  assert.match(pkg.dependencies.mediabunny, /^\d+\.\d+\.\d+$/, 'sin ^ ni ~: ' + pkg.dependencies.mediabunny);
+  const lock = JSON.parse(leer('package-lock.json'));
+  assert.equal(lock.packages['node_modules/mediabunny'].version, pkg.dependencies.mediabunny, 'el lock coincide');
+  assert.equal(lock.packages['node_modules/mediabunny'].license, 'MPL-2.0');
+  /* mediabunny entra SOLO con import() dentro de exportarVideo: ningun import estatico en el portal */
+  const todos = archivos('src', (r) => /\.(js|astro)$/.test(r));
+  const estaticos = todos.filter((f) => /^\s*import\b[^\n]*from\s+['"]mediabunny['"]/m.test(leer(f)));
+  assert.deepEqual(estaticos, [], 'import estatico de mediabunny');
+  const video = leer('src/scripts/portal/animacion/video.js');
+  assert.equal((video.match(/import\('mediabunny'\)/g) || []).length, 1);
+  for (const f of ['src/scripts/portal/animacion/lluvia.js', 'src/scripts/portal/animacion/sonido.js', 'src/scripts/portal/animacion/video.js', 'src/scripts/portal/panel/dev/MarcaVideo.js']) {
+    const t = leer(f).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/localStorage|sessionStorage|innerHTML|insertAdjacentHTML|eval\(|new Function|document\.write|new Worker|createObjectURL|WebAssembly|Math\.random/.test(t), f);
+  }
+  /* sin Math.random: todo el azar sale de la semilla (que el video salga igual cada vez) */
+  assert.ok(!/Math\.random/.test(leer('src/scripts/portal/animacion/lluvia.js') + leer('src/scripts/portal/animacion/sonido.js')));
+  /* Mp4 en memoria, h264 + aac, y el audio no entra si no se pidio */
+  assert.match(video, /codec: 'avc'/);
+  assert.match(video, /codec: 'aac'/);
+  assert.match(video, /if \(conSonido\)/);
+  assert.match(video, /senal && senal\.aborted/);       // se puede cancelar
+  /* 4K: no se le pregunta al codificador (en algunos equipos cuelga la pagina) */
+  assert.match(video, /if \(c\.lado > 1080\) continue;/);
+});
+ok('Animaciones: cancelar corta en cualquier fase, un codificador atascado se corta solo, y la libreria lleva su aviso de licencia', () => {
+  const v = leer('src/scripts/portal/animacion/video.js');
+  assert.match(v, /const PLAZO_MS = \d+;/);
+  const plazo = Number((v.match(/const PLAZO_MS = (\d+);/) || [])[1]);
+  assert.ok(plazo >= 10000 && plazo <= 60000, 'plazo razonable: ' + plazo);
+  for (const llamada of ['fuente.add(', 'sintetizar(', 'fuenteAudio.add(', 'output.finalize(']) {
+    assert.ok(v.includes('esperar(' + llamada), llamada + ' pasa por esperar()');
+  }
+  assert.match(v, /await esperar\(output\.finalize\(\), senal\);\s*if \(senal && senal\.aborted\) throw new Error\('cancelado'\)/);
+  assert.match(v, /alpha: 'discard'/);                                    // sin transparencia: ni se intenta
+  assert.match(v, /if \(!DURACIONES\.includes\(duracion\)\) throw/);       // la duracion se comprueba tambien aqui
+  const ui = leer('src/scripts/portal/panel/dev/MarcaVideo.js');
+  assert.match(ui, /DURACIONES\.includes\(n\) \? n : 6/);
+  assert.match(ui, /cancelarAhora\(\)/);
+  assert.match(ui, /Date\.now\(\) - this\.inicio < 400/);                  // no se cancela por una tecla sostenida
+  const v2 = es.panel.marca.video;
+  for (const k of ['cancelando', 'avance']) assert.ok(v2[k], k);
+  assert.ok(v2.errores.atascado);
+  assert.match(leer('src/components/portal/dev/EditorMarca.astro'), /aria-label=\{tx\.video\.avance\}/);
+  const terceros = leer('THIRD-PARTY.md');
+  const pkg = JSON.parse(leer('package.json'));
+  assert.ok(terceros.includes('mediabunny ' + pkg.dependencies.mediabunny) && terceros.includes('MPL-2.0') && terceros.includes('github.com/Vanilagy/mediabunny'), 'aviso de licencia al dia');
+});
+ok('Animaciones: la ficha nace apagada, se bloquea mientras trabaja, avisa sin leer cada cuadro y se puede cancelar', () => {
+  const html = leer('src/components/portal/dev/EditorMarca.astro');
+  assert.match(html, /data-marca-anim=\{a\.id\} aria-disabled="true"/);
+  assert.match(html, /<progress class="marca__progreso" data-video-progreso/);
+  assert.match(html, /data-video-cancelar hidden/);
+  assert.match(html, /data-video-estado role="status"/);
+  assert.match(html, /data-video-error role="alert" hidden/);
+  const js = leer('src/scripts/portal/panel/dev/MarcaVideo.js');
+  assert.match(js, /Math\.floor\(\(hecho \/ total\) \* 4\)/);        // la frase cambia por cuartos
+  assert.match(js, /fieldset|FIELDSET/);
+  assert.match(js, /this\.control\.abort\(\)/);
+  assert.match(leer('src/scripts/portal/panel/dev/Marca.js'), /this\.cargaVideo \|\|= import\('\.\/MarcaVideo\.js'\)/);      // una sola carga y una sola ficha, aunque se pulse dos veces
 });
 ok('la bitacora: cada paso que se escribe tiene su texto', () => {
   const pasos = ['src/scripts/portal/entrar.js', 'src/scripts/portal/panel.js']
