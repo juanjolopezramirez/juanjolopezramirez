@@ -7,7 +7,8 @@
    tal cual (cada uno es un SVG de 1080 x 1080 con su sombra) y solo se pone en escena:
      · el tablero se pinta de izquierda a derecha, como una mano que pasa el pincel;
      · cada pieza CAE sobre su casilla (llega de mas grande y mas arriba, y se asienta);
-     · los corazones aparecen y laten dos veces (lub-dub), como el amor que no se va.
+     · los corazones aparecen muy despacio, casi sin notarse, y laten dos veces (lub-dub) apenas: el amor
+       que no se va no hace ruido.
    Todo sobre un papiro CLARO (el primero salio oscuro): papel de papiro color crema con fibras en
    las dos direcciones, uniones de las tiras y motas, con los bordes apenas oscurecidos.
 
@@ -26,9 +27,9 @@ export const COMPONENTES = [
   { id: 'lanza', url: '/assets/tictactoe/lanza.svg' },
   { id: 'corona', url: '/assets/tictactoe/corona.svg' },
   { id: 'cruz', url: '/assets/tictactoe/cruz.svg' },
-  /* Los corazones vienen casi transparentes (fill-opacity .13): aqui se pintan macizos y se les da la
-     fuerza al aparecer */
-  { id: 'corazones', url: '/assets/tictactoe/corazones.svg', macizo: true }
+  /* Los corazones se quedan como el los dibujo: el contorno rojo y un relleno casi transparente (.13).
+     Son sutiles a proposito: casi no se notan, como el amor que ya estaba ahi. */
+  { id: 'corazones', url: '/assets/tictactoe/corazones.svg' }
 ];
 
 /* El guion (milisegundos de JUEGO): cuando llega cada cosa */
@@ -39,18 +40,18 @@ export const GUION = [
   { capa: 'lanza', tipo: 'cae', t0: 3400, t1: 3900 },
   { capa: 'corona', tipo: 'cae', t0: 4100, t1: 4600 },
   { capa: 'cruz', tipo: 'cae', t0: 4800, t1: 5300 },
-  { capa: 'corazones', tipo: 'aparece', t0: 5900, t1: 6700 }
+  { capa: 'corazones', tipo: 'aparece', t0: 5900, t1: 7300 }
 ];
 /* Los latidos de los corazones (lub, dub, y otra vez) */
-export const LATIDOS = [6800, 7050, 7700, 7950];
+export const LATIDOS = [7400, 7700, 8100, 8400];
 
-const JUEGO_MS = 8300;
+const JUEGO_MS = 8800;
 const ENTRA_MS = 500;
 const SALE_MS = 800;
 export const PAPIRO = { JUEGO_MS, ENTRA_MS, SALE_MS };
 
 const LADO = 1080;          // el lado del cuadrado en que estan dibujados los componentes
-const AMPLIA = 1.75;        // cuanto se agranda ese cuadrado respecto al lado corto del cuadro
+const AMPLIA = 1.36;        // cuanto se agranda ese cuadrado respecto al lado corto del cuadro (era 1.75: todo un 22 % mas pequeño, pedido del fundador)
 const VELO = '#F3EACB';     // se entra desde (y se sale hacia) el color del papel, no desde lo oscuro
 
 const suave = (q) => q * q * (3 - 2 * q);
@@ -73,8 +74,7 @@ export async function prepararCapas({ ancho, alto, escala, lienzoDe, cargarImage
   const capas = {};
   const M = 270;                                           // para buscar la caja se dibuja en pequeño
   for (const c of COMPONENTES) {
-    let svg = await texto(c.url);
-    if (c.macizo) svg = svg.replace(/fill-opacity="[^"]*"/g, 'fill-opacity="1"');
+    const svg = await texto(c.url);
     const img = await cargarImagen(svg);
     const pq = lienzoDe(M, M).getContext('2d', { willReadFrequently: true });
     if (!pq) throw new Error('lienzo');
@@ -211,8 +211,8 @@ export function crearPapiro({ ancho, alto, azar, duracionMs, escala, lienzoDe, c
         /* los corazones aparecen y laten (cada latido los agranda un instante) */
         let pulso = 0;
         for (const b of LATIDOS) { const d = (tj - b) / 110; pulso += Math.exp(-d * d); }
-        const s = 1 + 0.09 * Math.min(1, pulso);
-        ctx.globalAlpha = 0.9 * suave(q);
+        const s = 1 + 0.02 * Math.min(1, pulso);              // un latido que apenas se nota
+        ctx.globalAlpha = 0.7 * suave(q) * (1 + 0.08 * Math.min(1, pulso));
         ctx.translate(c.x + c.w / 2, c.y + c.h / 2);
         ctx.scale(s, s);
         ctx.drawImage(c.lienzo, -c.w / 2, -c.h / 2, c.w, c.h);

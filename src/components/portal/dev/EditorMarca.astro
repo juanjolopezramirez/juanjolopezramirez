@@ -7,7 +7,7 @@
    del boton). Las tres letras en pixeles van en linea (AlefIcono) con su color fijo. */
 import Icon from '../../Icon.astro';
 import AlefIcono from '../AlefIcono.astro';
-import { CATEGORIAS, ACTIVOS, TONOS, FONDOS, TAMANOS } from '../../../data/portal/marca.js';
+import { CATEGORIAS, ACTIVOS, TONOS, FONDOS, ESPACIOS, TAMANOS } from '../../../data/portal/marca.js';
 import { ANIMACIONES, FORMATOS, CALIDADES, DURACIONES } from '../../../data/portal/animaciones.js';
 import '../../../styles/marca.css';
 
@@ -66,7 +66,7 @@ const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => (
         {ANIMACIONES.map((a) => (
           <li>
             <button class="marca__pieza" type="button" data-marca-anim={a.id} aria-disabled="true">
-              <span class="marca__miniatura" data-vista={a.vista} data-letra={a.letra} data-motor={a.motor}>
+              <span class="marca__miniatura" data-vista={a.vista} data-letra={a.letra} data-motor={a.motor} data-paleta={a.paleta}>
                 {a.letra ? <AlefIcono nombre={a.letra} /> : <Icon id={a.icono} />}
               </span>
               <span class="marca__nombre">{partes(a.nombre).map((p) => (p.he ? <span lang="he">{p.t}</span> : p.t))}</span>
@@ -184,7 +184,13 @@ const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => (
           ))}
         </div>
       </fieldset>
-      <label class="dev__casilla"><input type="checkbox" name="margen" /><span>{tx.margen}</span></label>
+      <div class="dev__campo">
+        <label class="portal__etiqueta" for="marca-espacio">{tx.espacio}</label>
+        <select class="portal__entrada dev__select dev__corto" id="marca-espacio" name="espacio" aria-describedby="marca-espacio-ayuda">
+          {ESPACIOS.map((e) => <option value={e.id}>{tx.espacios[e.id]}</option>)}
+        </select>
+        <p class="portal__ayuda" id="marca-espacio-ayuda">{tx.espacioAyuda}</p>
+      </div>
 
       <fieldset class="dev__grupo">
         <legend class="portal__etiqueta">{tx.formato}</legend>

@@ -14,7 +14,7 @@
    Los errores salen JUNTO a lo que los causo: el del color, bajo su campo; el de bajar, junto
    al boton; solo el de «no pude abrir esta pieza» va arriba de la seccion. */
 import { Seccion } from '../Seccion.js';
-import { ACTIVOS, CATEGORIAS, TONOS, FONDOS, TAMANO_MAX } from '../../../../data/portal/marca.js';
+import { ACTIVOS, CATEGORIAS, TONOS, FONDOS, ESPACIOS, TAMANO_MAX } from '../../../../data/portal/marca.js';
 import {
   colorValido, comoDireccion, conFondo, conMedida, esSeguro, leerCaja, medidasPara, mejorFondo,
   nombreDeArchivo, normalizarColor, recolorar
@@ -24,7 +24,6 @@ import memSvg from '../../../../assets/alef/mem.svg?raw';
 import tavSvg from '../../../../assets/alef/tav.svg?raw';
 
 const LETRAS = { logo: logoAlef, mem: memSvg, tav: tavSvg };
-const MARGEN = 0.08;       // «con un poco de aire»: el 8 % del lado mas largo
 const VISTA_LADO = 480;    // el lado mas largo de la vista previa, en px
 const ESPERA_IMAGEN_MS = 15000;   // si el navegador no dibuja la pieza en este tiempo, es un fallo
 const HEBREO = /([֐-׿]+)/;
@@ -175,7 +174,7 @@ export class Marca extends Seccion {
       color: f.color.value,
       hex: normalizarColor(f.hex.value),
       fondo: f.fondo.value,
-      margen: f.margen.checked,
+      espacio: f.espacio.value,
       formato: f.formato.value,
       tamano: Number(f.tamano.value)
     };
@@ -198,7 +197,7 @@ export class Marca extends Seccion {
       texto = recolorar(texto, color);
     }
     const fondo = (FONDOS.find((x) => x.id === o.fondo) || {}).hex || null;
-    return conFondo(texto, caja, fondo, o.margen ? MARGEN : 0);
+    return conFondo(texto, caja, fondo, (ESPACIOS.find((x) => x.id === o.espacio) || ESPACIOS[0]).margen);
   }
 
   /* El aviso del «otro color», pegado a su campo: la marca (aria-invalid), el texto y su vinculo */
@@ -252,7 +251,7 @@ export class Marca extends Seccion {
     const nombre = nombreDeArchivo({
       id: this.actual.activo.id,
       color: this.colorPedido(o) === null ? 'original' : (o.color === 'otro' ? o.hex : o.color),
-      fondo: o.fondo, lado, formato: o.formato
+      fondo: o.fondo, espacio: o.espacio, lado, formato: o.formato
     });
     /* Una segunda pulsacion mientras trabaja no se pierde en silencio: se le dice que sigue */
     if (this.ocupado) { hechoEl.textContent = (this.tx.preparando || '').replace('{archivo}', nombre); return; }

@@ -42,6 +42,8 @@
 .marca__miniatura[data-letra="logo"] .alef-icono { color: #00FF66; }
 .marca__miniatura[data-letra="mem"] .alef-icono { color: #FFD60A; }
 .marca__miniatura[data-letra="tav"] .alef-icono { color: #FF3B3B; }
+.marca__miniatura[data-paleta="bn"] { background: #000; }
+.marca__miniatura[data-paleta="bn"] .alef-icono { color: #FFFFFF; }
 
 /* La ficha */
 .marca__titulo { margin: 0; font-size: 1.15rem; }
@@ -111,6 +113,9 @@
 .marca__grupo[hidden] { display: none; }
 /* La miniatura del Tic Tac Toe: papiro y tinta */
 .marca__miniatura[data-vista="papiro"] { background: #D2BC8A; color: #2A1B0E; }
-.marca__miniatura[data-motor="papiro"] .icon { width: 3rem; height: 3rem; }
+.marca__miniatura[data-motor="papiro"] .icon, .marca__miniatura[data-motor="rosa"] .icon, .marca__miniatura[data-motor="salto"] .icon { width: 3rem; height: 3rem; }
+/* La rosa y el libro: tiza sobre el pinar; el salto: verde sobre la noche */
+.marca__miniatura[data-motor="rosa"] { background: #1D2E1F; color: #F1EFE9; }
+.marca__miniatura[data-motor="salto"] { color: #00FF66; }
 @media (prefers-reduced-motion: reduce) { .marca__selector-boton { transition: none; } }
 @media (forced-colors: active) { .marca__selector-boton[aria-pressed="true"] { background: Highlight; color: HighlightText; } .marca__selector { border-color: CanvasText; } }

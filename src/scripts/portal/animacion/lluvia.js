@@ -41,6 +41,9 @@ export const TONOS = {
   salida: { color: ROJO, brillo: '255,59,59', estela: ROJO }
 };
 
+const NEGRO = '#000000';
+const TONOS_BN = { color: BLANCO, brillo: '255,255,255', estela: '#E8E8E8' };
+
 /* La linea de tiempo (milisegundos) */
 export const TIEMPO = { letraInicio: 1200, letraMs: 2000, entra: 300, sale: 600 };
 
@@ -73,8 +76,12 @@ export function leerLetra(svg, lienzoDe) {
 
 /* La lluvia. `letra`: lo que da leerLetra (o null). `duracionMs`: lo que dura el video (para el
    desvanecido del final). */
-export function crearLluvia({ ancho, alto, azar, letra, modo, duracionMs }) {
-  const tono = TONOS[modo] || TONOS.entrada;
+export function crearLluvia({ ancho, alto, azar, letra, modo, duracionMs, paleta }) {
+  /* paleta 'bn': una terminal normal, blanco sobre negro puro (sin verde, sin amarillo, sin rojo) */
+  const bn = paleta === 'bn';
+  const tono = bn ? TONOS_BN : (TONOS[modo] || TONOS.entrada);
+  const fondo = bn ? NEGRO : FONDO;
+  const reposo = bn ? BLANCO : TIZA;
   const rapidez = RAPIDEZ[modo] || 1;
   const paso = ancho < 600 ? PASO_ESTRECHO : PASO_ANCHO;
   const signoAzar = () => SIGNOS[(azar() * SIGNOS.length) | 0];
@@ -147,7 +154,7 @@ export function crearLluvia({ ancho, alto, azar, letra, modo, duracionMs }) {
       ctx.globalAlpha = Math.max(0, Math.min(1, luz));
     };
     ctx.globalAlpha = 1;
-    ctx.fillStyle = FONDO;
+    ctx.fillStyle = fondo;
     ctx.fillRect(0, 0, ancho, alto);
     ctx.font = LETRA;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -166,9 +173,9 @@ export function crearLluvia({ ancho, alto, azar, letra, modo, duracionMs }) {
         if (estela > 0.05 && d < 1) { tinta(BLANCO, 0.45 + 0.55 * estela); ctx.fillText(k.c, k.x, k.y); continue; }
       }
       const pulso = franja * latido;
-      if (pulso > estela && pulso > 0.05) tinta(AMARILLO, luz + pulso * 0.4);   // el barrido de la carga
+      if (pulso > estela && pulso > 0.05) tinta(bn ? BLANCO : AMARILLO, luz + pulso * 0.4);   // el barrido de la carga
       else if (estela > 0.02) tinta(tono.estela, luz + estela * 0.85);
-      else tinta(TIZA, luz);
+      else tinta(reposo, luz);
       ctx.fillText(k.c, k.x, k.y);
     }
 
@@ -199,7 +206,7 @@ export function crearLluvia({ ancho, alto, azar, letra, modo, duracionMs }) {
     const velo = 1 - Math.min(1, t / TIEMPO.entra) * Math.min(1, Math.max(0, (duracionMs - t) / TIEMPO.sale));
     if (velo > 0.001) {
       ctx.globalAlpha = Math.min(1, velo);
-      ctx.fillStyle = FONDO;
+      ctx.fillStyle = fondo;
       ctx.fillRect(0, 0, ancho, alto);
     }
     ctx.globalAlpha = 1;

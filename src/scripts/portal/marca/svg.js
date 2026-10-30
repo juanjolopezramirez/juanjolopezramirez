@@ -48,13 +48,15 @@ export function recolorar(svg, color) {
   return String(svg).replace(/\s(fill|stroke)="(?!none")[^"]*"/g, ` $1="${color}"`);
 }
 
+/* hasta una vez el lado mas largo por cada lado: la pieza queda en un tercio del lienzo */
+export const MARGEN_MAX = 1;
 const num = (n) => String(Math.round(n * 1000) / 1000);
 
 /* Le pone fondo (`hex`, o ninguno si es null) y margen (una parte del lado mas largo: .08 = 8 %)
    y quita su ancho y alto, para darle la medida despues. Devuelve el SVG nuevo y su caja. */
 export function conFondo(svg, caja, hex, margen = 0) {
   if (hex !== null && !colorValido(hex)) throw new Error('fondo');
-  const m = margen > 0 ? Math.max(caja.w, caja.h) * Math.min(margen, 0.5) : 0;
+  const m = margen > 0 ? Math.max(caja.w, caja.h) * Math.min(margen, MARGEN_MAX) : 0;
   const c = { x: caja.x - m, y: caja.y - m, w: caja.w + 2 * m, h: caja.h + 2 * m };
   const salida = String(svg).replace(/<svg\b[^>]*>/i, (raiz) => {
     const limpia = raiz.replace(/\s(viewBox|width|height)="[^"]*"/gi, '');
@@ -88,12 +90,13 @@ export const mejorFondo = (hex) => (colorValido(hex) && contraste(hex, '#F1EFE9'
 /* El SVG como direccion `data:` (la unica que la politica de seguridad deja usar en <img>). */
 export const comoDireccion = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 
-/* El nombre del archivo: id[-color][-sobre-fondo][-1024px].svg|png, solo letras, numeros y guiones. */
-export function nombreDeArchivo({ id, color, fondo, lado, formato }) {
+/* El nombre del archivo: id[-color][-sobre-fondo][-espacio-mucho][-1024px].svg|png, solo letras, numeros y guiones. */
+export function nombreDeArchivo({ id, color, fondo, espacio, lado, formato }) {
   const limpio = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const partes = [limpio(id)];
   if (color && color !== 'original') partes.push(limpio(color));
   if (fondo && fondo !== 'transparente') partes.push('sobre', limpio(fondo));
+  if (espacio && espacio !== 'ninguno') partes.push('espacio', limpio(espacio));
   if (formato === 'png' && lado) partes.push(`${Math.round(lado)}px`);
   return `${partes.filter(Boolean).join('-')}.${formato === 'png' ? 'png' : 'svg'}`;
 }

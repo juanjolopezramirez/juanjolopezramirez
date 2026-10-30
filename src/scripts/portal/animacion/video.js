@@ -21,6 +21,10 @@ import { sintetizar } from './sonido.js';
 import { crearPapiro, prepararCapas } from './papiro.js';
 import { comoDireccion, esSeguro } from '../marca/svg.js';
 import { sintetizarPapiro } from './sonidoPapiro.js';
+import { crearRosa } from './rosa.js';
+import { sintetizarRosa } from './sonidoRosa.js';
+import { crearHiperespacio } from './hiperespacio.js';
+import { sintetizarHiperespacio } from './sonidoHiperespacio.js';
 import logoAlef from '../../../assets/alef/logo.svg?raw';
 import memSvg from '../../../assets/alef/mem.svg?raw';
 import tavSvg from '../../../assets/alef/tav.svg?raw';
@@ -118,8 +122,8 @@ async function capasDe(formato, k) {
 }
 
 /* El motor de una animacion: lo que dibuja (`sim`: avanzar(dt) y pintar(ctx)), lo que anota de
-   cada cuadro para el sonido (`muestra`) y como se hace el sonido (`sonido`). Hay dos: la lluvia
-   con una letra y el papiro con el Tic Tac Toe. `k` es cuanto se escala lo logico (para el papel). */
+   cada cuadro para el sonido (`muestra`) y como se hace el sonido (`sonido`). Hay cuatro: la lluvia
+   con una letra, el papiro con el Tic Tac Toe, la rosa (y el libro) y el salto. `k` es cuanto se escala lo logico (para el papel). */
 async function fabricar(animacion, formato, duracionMs, k) {
   const azar = crearAzar(animacion.semilla);
   const semillaSonido = animacion.semilla ^ SEMILLA_SONIDO;
@@ -131,9 +135,17 @@ async function fabricar(animacion, formato, duracionMs, k) {
       sonido: (duracion) => sintetizarPapiro({ duracion, eventos: sim.eventos, azar: crearAzar(semillaSonido) })
     };
   }
+  if (animacion.motor === 'rosa') {
+    const sim = crearRosa({ ancho: formato.ancho, alto: formato.alto, azar, duracionMs, escala: k, lienzoDe, modo: animacion.modo });
+    return { sim, muestra: () => null, sonido: (duracion) => sintetizarRosa({ duracion, eventos: sim.eventos, azar: crearAzar(semillaSonido) }) };
+  }
+  if (animacion.motor === 'salto') {
+    const sim = crearHiperespacio({ ancho: formato.ancho, alto: formato.alto, azar, duracionMs });
+    return { sim, muestra: () => null, sonido: (duracion) => sintetizarHiperespacio({ duracion, azar: crearAzar(semillaSonido) }) };
+  }
   const sim = crearLluvia({
     ancho: formato.ancho, alto: formato.alto, azar, letra: leerLetra(LETRAS[animacion.letra], lienzoDe),
-    modo: animacion.modo, duracionMs
+    modo: animacion.modo, duracionMs, paleta: animacion.paleta
   });
   return {
     sim, muestra: () => ({ pasos: sim.pasos, fuerza: sim.lluvia }),
@@ -149,11 +161,13 @@ export async function pintarFotograma({ animacion, formato, lienzo, ancho, segun
   const k = ancho / formato.ancho;
   lienzo.width = Math.round(formato.ancho * k);
   lienzo.height = Math.round(formato.alto * k);
-  const ctx = lienzo.getContext('2d', { alpha: false });
+  /* (sin {alpha:false}: un lienzo opaco pinta el texto con subpixeles y deja franjas de color en los bordes,
+     y la version en blanco y negro tiene que ser gris de verdad) */
+  const ctx = lienzo.getContext('2d');
   if (!ctx) throw new Error('lienzo');
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  /* (la muestra se arma como un video de 6 s en el papiro, y sin desvanecido al final en la lluvia) */
-  const { sim } = await fabricar(animacion, formato, animacion.motor === 'papiro' ? 6000 : segundos * 1000 + 5000, k);
+  /* (la muestra se arma como un video de 6 s en el papiro, la rosa y el salto, y sin desvanecido al final en la lluvia) */
+  const { sim } = await fabricar(animacion, formato, animacion.motor !== 'lluvia' ? 6000 : segundos * 1000 + 5000, k);
   const dt = 1000 / FPS;
   const cuadros = Math.round(segundos * FPS);
   for (let n = 0; n < cuadros; n++) {
@@ -173,7 +187,7 @@ export async function exportarVideo({ animacion, formato, calidad, duracion, con
   await cargarTipografias();
 
   const lienzo = lienzoDe(salida.w, salida.h);
-  const ctx = lienzo.getContext('2d', { alpha: false });
+  const ctx = lienzo.getContext('2d');
   if (!ctx) throw new Error('lienzo');
   const { sim, muestra, sonido } = await fabricar(animacion, formato, duracion * 1000, salida.k);
 

@@ -556,6 +556,12 @@ ok('Brand Assets: recolorar, fondo, margen y medida (las piezas puras)', () => {
   assert.match(f.svg, /<rect x="-2" y="-2" width="14" height="24" fill="#050806"\/>/);
   assert.ok(!/<rect/.test(SV.conFondo(svg, caja, null).svg), 'sin fondo, sin rect');
   assert.throws(() => SV.conFondo(svg, caja, 'azul'));
+  /* el espacio «muchisimo» (1 = una vez el lado mas largo por cada lado) cabe, y mas que eso se recorta */
+  assert.deepEqual(SV.conFondo(svg, caja, null, 1).caja, { x: -20, y: -20, w: 50, h: 60 });
+  assert.deepEqual(SV.conFondo(svg, caja, null, 9).caja, { x: -20, y: -20, w: 50, h: 60 }, 'tope');
+  assert.deepEqual(M.ESPACIOS.map((e) => e.id), ['ninguno', 'poco', 'mucho', 'muchisimo']);
+  assert.ok(M.ESPACIOS.every((e, i, a) => e.margen >= 0 && e.margen <= SV.MARGEN_MAX && (i === 0 || e.margen > a[i - 1].margen)), 'de menos a mas');
+  for (const e of M.ESPACIOS) assert.ok(es.panel.marca.espacios[e.id], 'texto de ' + e.id);
   assert.deepEqual(SV.medidasPara(caja, 1000), { w: 500, h: 1000 });
   assert.deepEqual(SV.medidasPara(caja, 99999), { w: 2048, h: 4096 }, 'tope de 4096');
   assert.equal(SV.conMedida('<svg viewBox="0 0 1 1">', 5.4, 8.6), '<svg width="5" height="9" preserveAspectRatio="none" viewBox="0 0 1 1">', 'el fondo llena el lienzo aunque se redondee');
@@ -564,6 +570,8 @@ ok('Brand Assets: recolorar, fondo, margen y medida (las piezas puras)', () => {
   assert.deepEqual(SV.leerCaja('<svg width="100%" height="50%">'), null, 'un ancho en % no sirve para medir');
   assert.equal(SV.nombreDeArchivo({ id: 'Let Be', color: 'original', fondo: 'transparente', lado: 512, formato: 'svg' }), 'let-be.svg');
   assert.equal(SV.nombreDeArchivo({ id: 'mem', color: '#FFD60A', fondo: 'noche', lado: 1024, formato: 'png' }), 'mem-ffd60a-sobre-noche-1024px.png');
+  assert.equal(SV.nombreDeArchivo({ id: 'x', color: 'original', fondo: 'transparente', espacio: 'mucho', lado: 1, formato: 'svg' }), 'x-espacio-mucho.svg');
+  assert.equal(SV.nombreDeArchivo({ id: 'x', color: 'original', fondo: 'transparente', espacio: 'ninguno', lado: 1, formato: 'svg' }), 'x.svg');
   assert.ok(!/[^a-z0-9.-]/.test(SV.nombreDeArchivo({ id: '../x', color: '"><b>', fondo: '/', lado: 1, formato: 'png' })));
 });
 ok('Brand Assets: un SVG con guiones, enlaces, imagenes o cosas de afuera NO se pinta ni se baja', () => {
@@ -596,7 +604,7 @@ ok('Brand Assets: la seccion esta en Developer-Mode, va a «Más» en el telefon
   assert.ok(S.HECHAS.includes('marca'));
   assert.ok(!S.enBarra('marca'), 'la barra del telefono esta llena a 4: «Brand Assets» sale en «Más»');
   assert.equal(es.panel.secciones.marca.titulo, 'Brand Assets');
-  for (const k of ['pista', 'volver', 'color', 'colorFijo', 'original', 'otro', 'otroEtiqueta', 'otroAyuda', 'fondo', 'margen', 'formato', 'tamano', 'preparando', 'bajar', 'listo', 'vista', 'sinFondo', 'piezas']) assert.ok(es.panel.marca[k], k);
+  for (const k of ['pista', 'volver', 'color', 'colorFijo', 'original', 'otro', 'otroEtiqueta', 'otroAyuda', 'fondo', 'espacio', 'espacios', 'espacioAyuda', 'formato', 'tamano', 'preparando', 'bajar', 'listo', 'vista', 'sinFondo', 'piezas']) assert.ok(es.panel.marca[k], k);
   for (const k of ['archivo', 'imagen', 'color', 'bajar']) assert.ok(es.panel.marca.errores[k], k);
   assert.ok(es.panel.marca.listo.includes('{archivo}'));
   assert.match(leer('src/components/portal/Panel.astro'), /s\.id === 'marca' && <EditorMarca tx=\{p\.marca\} \/>/);
@@ -643,6 +651,22 @@ ok('Animaciones: la misma semilla dibuja EXACTAMENTE lo mismo, otra semilla otra
   for (const modo of ['entrada', 'carga', 'salida']) assert.ok(rastro(3, modo, 20).llamadas > 1000, modo);
   assert.ok(rastro(7, 'carga').huella !== a.huella && rastro(7, 'salida').huella !== a.huella, 'cada modo se ve distinto');
 });
+ok('Animaciones: la Alef en blanco y negro es una terminal normal (sin verde, ni amarillo, ni rojo, fondo negro puro)', () => {
+  const colores = (paleta, modo) => {
+    const letra = { ancho: 100, alto: 100, dentro: (x, y) => (x - 50) ** 2 + (y - 50) ** 2 < 1600 };
+    const { ctx, registro } = grabadora();
+    const sim = LL.crearLluvia({ ancho: 1280, alto: 720, azar: LL.crearAzar(5), letra, modo, duracionMs: 6000, paleta });
+    for (let n = 0; n < 130; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
+    return new Set(registro.filter((r) => r.startsWith('fillStyle=')).map((r) => r.slice(10).toLowerCase()));
+  };
+  const bn = colores('bn', 'entrada'), color = colores(undefined, 'entrada');
+  assert.ok(bn.has('#000000'), 'fondo negro puro');
+  for (const c of ['#00ff66', '#ffd60a', '#ff3b3b', '#050806', '#f1efe9']) assert.ok(!bn.has(c), 'sin ' + c);
+  assert.ok(color.has('#00ff66') && !color.has('#000000'), 'la de color sigue verde');
+  assert.ok(colores('bn', 'carga').has('#ffffff') && !colores('bn', 'carga').has('#ffd60a'), 'ni el barrido de la carga es amarillo');
+  const a = AN.ANIMACIONES.find((x) => x.id === 'lluvia-alef-bn');
+  assert.ok(a && a.paleta === 'bn' && a.motor === 'lluvia' && a.letra === 'logo' && a.modo === 'entrada');
+});
 ok('Animaciones: los signos son los del fondo del portal, y la letra termina antes del desvanecido final del video mas corto', () => {
   const sacar = (t) => ['HEBREO', 'GRIEGO', 'ARAMEO', 'CODIGO'].map((n) => (t.match(new RegExp(`const ${n} = '([^']*)'`)) || [])[1]);
   const fondo = sacar(leer('src/scripts/portal/fondo.js'));
@@ -667,7 +691,7 @@ ok('Animaciones: las opciones son pares (H.264), el 4K es 3840×2160 y cada una 
   assert.equal(new Set(AN.ANIMACIONES.map((a) => a.id)).size, AN.ANIMACIONES.length);
   assert.equal(new Set(AN.ANIMACIONES.map((a) => a.semilla)).size, AN.ANIMACIONES.length, 'cada una, su semilla');
   for (const a of AN.ANIMACIONES) {
-    assert.ok(a.nombre && a.linea && ['lluvia', 'papiro'].includes(a.motor) && ['noche', 'papiro'].includes(a.vista) && a.vistaSegundos > 0, a.id);
+    assert.ok(a.nombre && a.linea && ['lluvia', 'papiro', 'rosa', 'salto'].includes(a.motor) && ['noche', 'papiro'].includes(a.vista) && a.vistaSegundos > 0, a.id);
     if (a.motor === 'lluvia') assert.ok(['entrada', 'carga', 'salida'].includes(a.modo) && ['logo', 'mem', 'tav'].includes(a.letra), a.id);
     else assert.ok(ICONS[a.icono], a.id + ': su icono');
   }
@@ -693,12 +717,12 @@ ok('Animaciones: la libreria de MP4 va con version EXACTA, se carga solo al expo
   assert.deepEqual(estaticos, [], 'import estatico de mediabunny');
   const video = leer('src/scripts/portal/animacion/video.js');
   assert.equal((video.match(/import\('mediabunny'\)/g) || []).length, 1);
-  for (const f of ['src/scripts/portal/animacion/lluvia.js', 'src/scripts/portal/animacion/sonido.js', 'src/scripts/portal/animacion/video.js', 'src/scripts/portal/panel/dev/MarcaVideo.js']) {
+  for (const f of ['src/scripts/portal/animacion/lluvia.js', 'src/scripts/portal/animacion/sonido.js', 'src/scripts/portal/animacion/video.js', 'src/scripts/portal/panel/dev/MarcaVideo.js', 'src/scripts/portal/animacion/rosa.js', 'src/scripts/portal/animacion/hiperespacio.js', 'src/scripts/portal/animacion/sonidoRosa.js', 'src/scripts/portal/animacion/sonidoHiperespacio.js', 'src/scripts/portal/animacion/sonidoPapiro.js', 'src/scripts/portal/animacion/papiro.js']) {
     const t = leer(f).replace(/\/\*[\s\S]*?\*\//g, '');
     assert.ok(!/localStorage|sessionStorage|innerHTML|insertAdjacentHTML|eval\(|new Function|document\.write|new Worker|createObjectURL|WebAssembly|Math\.random/.test(t), f);
   }
   /* sin Math.random: todo el azar sale de la semilla (que el video salga igual cada vez) */
-  assert.ok(!/Math\.random/.test(leer('src/scripts/portal/animacion/lluvia.js') + leer('src/scripts/portal/animacion/sonido.js')));
+  assert.ok(!/Math\.random|Date\.now|performance\.now/.test(['lluvia', 'sonido', 'rosa', 'hiperespacio', 'sonidoRosa', 'sonidoHiperespacio', 'sonidoPapiro', 'papiro'].map((n) => leer(`src/scripts/portal/animacion/${n}.js`).replace(/\/\*[\s\S]*?\*\//g, '')).join('')));
   /* Mp4 en memoria, h264 + aac, y el audio no entra si no se pidio */
   assert.match(video, /codec: 'avc'/);
   assert.match(video, /codec: 'aac'/);
@@ -745,6 +769,111 @@ ok('Animaciones: la ficha nace apagada, se bloquea mientras trabaja, avisa sin l
 });
 const PA = await cargar('src/scripts/portal/animacion/papiro.js');
 /* Capas de mentira (una por componente): lo unico que el movimiento necesita es su caja y algo que dibujar */
+/* ---- La rosa, el libro que llega y el salto al hiperespacio ---- */
+if (typeof Path2D === 'undefined') globalThis.Path2D = class { moveTo() {} lineTo() {} };
+const RO = await cargar('src/scripts/portal/animacion/rosa.js');
+const HI = await cargar('src/scripts/portal/animacion/hiperespacio.js');
+const rosaRastro = (modo, semilla, duracionMs = 6000, cuadros = 150) => {
+  const { ctx, registro } = grabadora();
+  const lienzoDe = () => ({ getContext: () => ctx });
+  const sim = RO.crearRosa({ ancho: 1280, alto: 720, azar: LL.crearAzar(semilla), duracionMs, escala: 1, lienzoDe, modo });
+  for (let n = 0; n < cuadros; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
+  return { huella: crypto.createHash('sha1').update(registro.join('|')).digest('hex'), llamadas: registro.length, sim };
+};
+ok('La rosa: sus trazos son LOS DE Rosa.astro (letra por letra), y el largo de un trazo se mide bien', () => {
+  const astro = leer('src/components/Rosa.astro');
+  const de = (clase) => (astro.match(new RegExp(`class="${clase}"[^>]* d="([^"]+)"`)) || [])[1];
+  assert.equal(RO.ARO_A, de('carga__aro carga__aro--a'));
+  assert.equal(RO.ARO_B, de('carga__aro carga__aro--b'));
+  assert.equal(RO.NORTE, de('carga__norte'));
+  assert.equal(RO.RAYADO, de('carga__rayado'));
+  assert.equal(RO.SUR, de('carga__sur'));
+  assert.equal(RO.PIVOTE, de('carga__pivote'));
+  assert.equal(RO.LISTO, de('carga__listo'));
+  assert.ok(Math.abs(RO.largoDe('M0 0L3 4') - 5) < 1e-9, 'una recta de 3-4-5');
+  const aro = RO.largoDe(RO.ARO_A);
+  assert.ok(aro > 420 && aro < 470, 'un aro de radio ~70 mide ~440: ' + aro);
+  assert.throws(() => RO.largoDe('M0 0A5 5 0 0 1 10 0'), /trazo/, 'lo que no entiende, lo dice');
+});
+ok('La rosa: las curvas son las de carga.css y el libro llega a tiempo en 4, 6 y 10 s con una marca por pagina', () => {
+  assert.equal(RO.dibujado(0), 0); assert.equal(RO.dibujado(0.5), 0.625); assert.equal(RO.dibujado(1), 0);
+  assert.equal(RO.giroAro(0), -45); assert.equal(RO.giroAro(0.5), -180); assert.equal(RO.giroAro(1), -45);
+  assert.equal(RO.escondida(0), 1); assert.equal(RO.escondida(0.2), 0); assert.equal(RO.escondida(0.8), 1);
+  const m = RO.marcasDe(10), otra = RO.marcasDe(10);
+  assert.deepEqual(m.map((x) => x.d), otra.map((x) => x.d), 'el mismo libro, la misma rosa');
+  assert.equal(new Set(m.map((x) => x.d)).size, 10, 'cada marca, un poco distinta');
+  assert.ok(m.every((x) => x.largo > 9 && x.largo < 20), 'marcas cortas');
+  assert.ok(m[0].giro > 170 && m[0].giro < 190 && m[5].giro > 350 && m[5].giro < 370, 'repartidas desde arriba, hacia la derecha');
+  for (const dur of [4000, 6000, 10000]) {
+    const p = RO.tiempoLibro(dur);
+    assert.equal(p.llegadas.length, 10);
+    assert.ok(p.llegadas.every((t, i) => i === 0 || t > p.llegadas[i - 1]), 'una tras otra');
+    assert.ok(p.llegadas[0] >= RO.LIBRO.entra, 'la primera llega despues de la entrada');
+    assert.ok(p.listo > p.llegadas.at(-1), 'el «listo» es despues de la ultima');
+    assert.ok(p.fin <= dur - RO.LIBRO.sale, `${dur} ms: el «listo» queda entero antes del desvanecido (${p.fin})`);
+  }
+  for (const id of ['la-rosa-de-los-vientos', 'el-libro-llega']) {
+    const a = AN.ANIMACIONES.find((x) => x.id === id);
+    assert.ok(a && a.motor === 'rosa' && ['brujula', 'libro'].includes(a.modo) && ICONS[a.icono], id);
+  }
+});
+ok('La rosa: la tiza cubre lo mismo a 720p que a 4K, y sin lienzo no arranca; el salto no alarga la estela a 30 cuadros', () => {
+  const cobertura = (escala) => {
+    const { ctx, registro } = grabadora();
+    RO.crearRosa({ ancho: 1280, alto: 720, azar: LL.crearAzar(31), duracionMs: 6000, escala, lienzoDe: () => ({ getContext: () => ctx }), modo: 'brujula' });
+    const arcos = registro.filter((r) => r.startsWith('arc[')).map((r) => JSON.parse(r.slice(3)));
+    const lado = Math.max(64, Math.round(Math.round(Math.min(1280, 720) * 0.56 * escala) * 0.94));
+    return arcos.reduce((s, a) => s + Math.PI * a[2] * a[2], 0) / (lado * lado);
+  };
+  const [c1, c3] = [cobertura(1), cobertura(3)];
+  assert.ok(c1 > 0.02 && c1 < 0.4, 'cobertura razonable: ' + c1);
+  assert.ok(Math.abs(c1 - c3) / c1 < 0.1, `la misma a escala 1 y 3: ${c1} contra ${c3}`);
+  assert.throws(() => RO.crearRosa({ ancho: 1280, alto: 720, azar: LL.crearAzar(1), duracionMs: 6000, escala: 1, lienzoDe: () => ({ getContext: () => null }) }), /lienzo/);
+  const sim = HI.crearHiperespacio({ ancho: 1280, alto: 720, azar: LL.crearAzar(41), duracionMs: 6000 });
+  const { ctx, registro } = grabadora();
+  for (let n = 0; n < 100; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
+  assert.equal(registro.filter((r) => r.startsWith('globalAlpha=')).at(-1), 'globalAlpha=1', 'deja el lienzo como lo encontro');
+});
+ok('La rosa: la misma semilla dibuja EXACTAMENTE lo mismo (la brujula y el libro), y el libro trae un evento por pagina y el «listo»', () => {
+  for (const modo of ['brujula', 'libro']) {
+    const a = rosaRastro(modo, 31), b = rosaRastro(modo, 31), c = rosaRastro(modo, 32);
+    assert.equal(a.huella, b.huella, modo + ': misma semilla, mismo dibujo');
+    assert.notEqual(a.huella, c.huella, modo + ': otra semilla, otra tiza');
+    assert.ok(a.llamadas > 400, modo + ' dibuja de verdad: ' + a.llamadas);
+  }
+  const ev = rosaRastro('libro', 37, 6000, 1).sim.eventos;
+  assert.equal(ev.filter((e) => e.tipo === 'pagina').length, 10);
+  assert.equal(ev.filter((e) => e.tipo === 'listo').length, 1);
+  assert.equal(rosaRastro('brujula', 31, 6000, 1).sim.eventos.length, 0, 'la brujula no cuenta paginas');
+  assert.ok(rosaRastro('libro', 37).huella !== rosaRastro('brujula', 37).huella, 'cada escena se ve distinta');
+});
+const hiperRastro = (semilla, duracionMs = 6000, cuadros = 180) => {
+  const { ctx, registro } = grabadora();
+  const sim = HI.crearHiperespacio({ ancho: 1280, alto: 720, azar: LL.crearAzar(semilla), duracionMs });
+  const vel = [];
+  for (let n = 0; n < cuadros; n++) { sim.avanzar(1000 / 30); vel.push(sim.velocidad); sim.pintar(ctx); }
+  return { huella: crypto.createHash('sha1').update(registro.join('|')).digest('hex'), llamadas: registro.length, vel };
+};
+ok('El salto al hiperespacio: acelera, salta y frena (y cabe en 4, 6 y 10 s), y sale igual con la misma semilla', () => {
+  for (const dur of [4000, 6000, 10000]) {
+    const x = HI.tiempos(dur);
+    assert.ok(x.acelera[1] === x.salto[0] && x.salto[1] === x.frena[0] && x.frena[1] < dur, 'las partes van una tras otra y acaban antes del final');
+    assert.ok(HI.velocidad(0, dur) < HI.velocidad(x.acelera[1] - 1, dur), 'acelera');
+    assert.ok(HI.velocidad(x.salto[0] + 1, dur) >= 3.7, 'en el salto va a toda velocidad');
+    assert.ok(HI.velocidad(x.frena[1] - 1, dur) < 0.05 && HI.velocidad(dur, dur) === 0, 'frena hasta quedarse quieto');
+  }
+  const a = hiperRastro(41), b = hiperRastro(41), c = hiperRastro(42);
+  assert.equal(a.huella, b.huella, 'misma semilla, mismo dibujo');
+  assert.notEqual(a.huella, c.huella, 'otra semilla, otras letras');
+  assert.ok(a.llamadas > 3000, 'dibuja de verdad: ' + a.llamadas);
+  assert.deepEqual(a.vel, b.vel);
+  /* los signos son los de salto.js (el del sitio) */
+  const de = (t) => [...t.matchAll(/\.\.\.'([^']+)'/g)].map((m) => m[1]).join('|');
+  assert.ok(de(leer('src/scripts/portal/salto.js')).length > 20, 'se leen los signos de salto.js');
+  assert.equal(de(leer('src/scripts/portal/animacion/hiperespacio.js')), de(leer('src/scripts/portal/salto.js')), 'hiperespacio.js usa los signos de salto.js');
+  const an = AN.ANIMACIONES.find((x) => x.id === 'salto-al-hiperespacio');
+  assert.ok(an && an.motor === 'salto' && ICONS[an.icono]);
+});
 const capasFalsas = () => Object.fromEntries(PA.COMPONENTES.map((c, i) => [c.id, { lienzo: { nombre: c.id }, x: 100 + i * 10, y: 80 + i * 5, w: 300, h: 200 }]));
 const papiroRastro = (semilla, duracionMs = 6000, cuadros = 140) => {
   const { ctx, registro } = grabadora();
@@ -797,7 +926,11 @@ ok('«El juego que el amor ya ganó»: el papel es CLARO (el primero salio oscur
   for (const hex of (t.match(/addColorStop\([\d.]+, '(#[0-9A-F]{6})'\)/g) || []).map((m) => m.match(/#[0-9A-F]{6}/)[0])) assert.ok(lum(hex) > 0.5, 'papel claro: ' + hex + ' ' + lum(hex).toFixed(2));
   const velo = (t.match(/const VELO = '(#[0-9A-F]{6})'/) || [])[1];
   assert.ok(velo && lum(velo) > 0.7, 'se entra desde el papel, no desde lo oscuro: ' + velo);
-  assert.match(t, /macizo: true/);                                    // los corazones vienen casi transparentes (.13): se pintan macizos
+  assert.ok(!/macizo/.test(t), 'los corazones se quedan como los dibujó (contorno y relleno casi transparente): sutiles');
+  /* el latido y la aparicion de los corazones apenas se notan, y todo es ~22 % mas chico que la primera version (1.75) */
+  assert.match(t, /const AMPLIA = 1[.]3[0-9]/);
+  assert.match(t, /const s = 1 [+] 0[.]0[0-3] [*]/, 'el latido apenas agranda');
+  assert.match(t, /globalAlpha = 0[.][5-7] [*] suave[(]q[)]/, 'los corazones no llegan a macizos');
 });
 ok('Lluvia: cada letra llueve en SU color (verde, amarillo, rojo)', () => {
   const t = leer('src/scripts/portal/animacion/lluvia.js');

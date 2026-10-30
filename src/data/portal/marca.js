@@ -113,6 +113,16 @@ export const FONDOS = [
   { id: 'negro', hex: '#000000' }
 ];
 
+/* El aire alrededor de la pieza: una parte del lado mas largo, por cada lado (el 1 = la pieza queda en
+   un tercio del lienzo). Pedido del fundador (2026-10-30): los logos de redes se veian cortados y
+   necesitaba «muchisimo» espacio para verlos enteros en el centro. */
+export const ESPACIOS = [
+  { id: 'ninguno', margen: 0 },
+  { id: 'poco', margen: 0.08 },
+  { id: 'mucho', margen: 0.4 },
+  { id: 'muchisimo', margen: 1 }
+];
+
 /* El lado mas largo del PNG, en pixeles (el SVG no tiene tamaño: escala solo) */
 export const TAMANOS = [256, 512, 1024, 2048, 4096];
 export const TAMANO_MAX = 4096;

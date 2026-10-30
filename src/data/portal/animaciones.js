@@ -8,13 +8,19 @@
    Los nombres que se ven (y las opciones) estan aqui; los textos de la pantalla, en
    textos.js → panel.marca.video.
 
-   Hay dos motores (campo `motor`): la lluvia con una letra (animacion/lluvia.js) y el Tic Tac
-   Toe sobre papiro (animacion/papiro.js). `vistaSegundos` es el instante de la muestra. */
+   Hay cuatro motores (campo `motor`): la lluvia con una letra (animacion/lluvia.js), el Tic Tac
+   Toe sobre papiro (animacion/papiro.js), la rosa de los vientos y el cargador del libro
+   (animacion/rosa.js, `modo` 'brujula' o 'libro') y el salto al hiperespacio
+   (animacion/hiperespacio.js). `vistaSegundos` es el instante de la muestra. */
 
 export const ANIMACIONES = [
   { id: 'lluvia-alef', nombre: 'Lluvia con la Álef (א)', linea: 'Al entrar: cae la lluvia verde y la letra se descifra.', motor: 'lluvia', modo: 'entrada', letra: 'logo', vista: 'noche', semilla: 7, vistaSegundos: 3.1 },
+  { id: 'lluvia-alef-bn', nombre: 'Lluvia con la Álef (א) en blanco y negro', linea: 'Como una terminal normal: letras blancas sobre negro, sin colores.', motor: 'lluvia', modo: 'entrada', paleta: 'bn', letra: 'logo', vista: 'noche', semilla: 17, vistaSegundos: 3.1 },
   { id: 'lluvia-mem', nombre: 'Lluvia con la Mem (מ)', linea: 'Al cargar: llueve en amarillo, el barrido late y la letra se descifra.', motor: 'lluvia', modo: 'carga', letra: 'mem', vista: 'noche', semilla: 11, vistaSegundos: 3.1 },
   { id: 'lluvia-tav', nombre: 'Lluvia con la Tav (ת)', linea: 'Al salir: llueve en rojo y la letra se descifra.', motor: 'lluvia', modo: 'salida', letra: 'tav', vista: 'noche', semilla: 13, vistaSegundos: 3.1 },
+  { id: 'la-rosa-de-los-vientos', nombre: 'La rosa de los vientos', linea: 'La brújula del telón y de la espera: dos aros de tiza que se dibujan y se borran, y la aguja que busca el norte.', motor: 'rosa', modo: 'brujula', icono: 'compass', vista: 'noche', semilla: 31, vistaSegundos: 1.0 },
+  { id: 'el-libro-llega', nombre: 'El libro llega', linea: 'El cargador del libro: una marca por página que se enciende al llegar, y al final, el «listo».', motor: 'rosa', modo: 'libro', icono: 'book', vista: 'noche', semilla: 37, vistaSegundos: 4.4 },
+  { id: 'salto-al-hiperespacio', nombre: 'El salto al hiperespacio', linea: 'Las letras vienen hacia ti cada vez más rápido, el destello, y llegan frenando hasta quedarse quietas.', motor: 'salto', icono: 'bolt', vista: 'noche', semilla: 41, vistaSegundos: 3.4 },
   { id: 'el-juego-que-el-amor-ya-gano', nombre: 'El juego que el amor ya ganó', linea: 'Un tres en raya sobre papiro con la corona, los clavos, la moneda y la cruz. Al final, el amor.', motor: 'papiro', icono: 'tablero', vista: 'papiro', semilla: 21, vistaSegundos: 5.0 }
 ];
 
