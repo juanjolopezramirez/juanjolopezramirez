@@ -438,10 +438,65 @@ ok('la entrada no hace esperar: ENTRADA_MS <= 800, y 0 con el fondo quieto o «r
 });
 ok('el fondo tiene sus tres modos y se queda quieto cuando debe', () => {
   const f = leer('src/scripts/portal/fondo.js');
-  assert.match(f, /const RAPIDEZ = \{ reposo: 1, carga: 1, entrada: [\d.]+ \}/);
+  assert.match(f, /const RAPIDEZ = \{ reposo: 1, carga: 1, entrada: [\d.]+, salida: [\d.]+ \}/);
   assert.match(f, /addEventListener\('alef:fondo'/);
   assert.match(f, /if \(quieto\(\)\) \{ pintar\(0\); return; \}/);
   assert.match(f, /document\.hidden \|\| quieto\(\)/);
+});
+ok('las tres letras de Emet: la א al entrar (verde), la מ al cargar (amarilla) y la ת al salir (roja); archivos por lo que DIBUJAN', () => {
+  for (const f of ['mem', 'tav']) {
+    const svg = leer(`src/assets/alef/${f}.svg`);
+    assert.ok(!/white|width=|height=/.test(svg), f + ': sin blanco fijo ni tamaño (el color lo pone el tono)');
+    assert.match(svg, /fill="currentColor"/, f);
+    assert.match(svg, /viewBox="0 0 \d+ \d+"/, f);
+    assert.ok(!/<(?!\/?(svg|path)\b)/.test(svg), f + ': solo svg y path');
+  }
+  const ico = leer('src/components/portal/AlefIcono.astro');
+  assert.match(ico, /const DIBUJOS = \{[^}]*\bmem\b[^}]*\btav\b[^}]*\}/);
+  assert.match(ico, /nemPixel\.svg/, 'la nota de los nombres cruzados');
+  /* Cada pantalla de espera usa la suya */
+  assert.match(leer('src/components/portal/Panel.astro'), /<AlefIcono nombre="mem" tono="amarillo" class="portal__espera-logo" \/>/);
+  assert.match(leer('src/components/portal/Tarjeta.astro'), /<AlefIcono nombre="mem" tono="amarillo" class="portal__espera-logo" \/>/);
+  assert.match(leer('src/components/portal/Panel.astro'), /data-saliendo[\s\S]{0,80}<AlefIcono nombre="tav" tono="rojo"/);
+  const f = leer('src/scripts/portal/fondo.js');
+  assert.match(f, /const LETRAS = \{\s*alef: [^}]*VERDE[^}]*\},\s*mem: [^}]*AMARILLO[^}]*\},\s*tav: [^}]*ROJO/);
+  assert.match(f, /if \(modo === 'entrada'\) return 'alef';/);
+  assert.match(f, /if \(modo === 'salida'\) return 'tav';/);
+  assert.match(f, /MEM_MS/);
+});
+ok('el amarillo de la carga y el rojo de la salida se ven: de noche sobre la consola y de dia sobre el hueso; el oro sigue sin existir', () => {
+  const t = leer('src/styles/terminal.css');
+  const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const con = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const noche = t.slice(t.indexOf('.pagina--noche {'), t.indexOf('/* ---- SELF-MODE'));
+  const dia = t.slice(t.indexOf('[data-modo="self"] .pagina--noche {'), t.indexOf('[data-modo="self"] .fondo'));
+  const v = (bloque, n) => (bloque.match(new RegExp(`--${n}: (#[0-9A-Fa-f]{6})`)) || [])[1];
+  assert.ok(con(v(noche, 'alef-amarillo'), '#0B110D') >= 7, 'amarillo de noche');
+  assert.ok(con(v(noche, 'alef-rojo'), '#0B110D') >= 4.5, 'rojo de noche');
+  assert.ok(con(v(dia, 'alef-amarillo'), '#F1EFE9') >= 4.4, 'amarillo de dia (ambar) sobre el hueso');
+  assert.ok(con(v(dia, 'alef-rojo'), '#F1EFE9') >= 4.5, 'rojo de dia sobre el hueso');
+  assert.match(t, /\.tono--amarillo \{ color: var\(--alef-amarillo\); \}/);
+  assert.ok(!/--ring|#C08A2E|#9A6A1F/i.test(dia.slice(0, 2500)), 'nada de oro de dia');
+  /* los latidos y su pausa cubren tambien el amarillo (WCAG 2.2.2) */
+  const css = leer('src/styles/portal.css');
+  assert.match(css, /\.fondo-quieto \.portal__espera \.tono--amarillo/);
+  assert.match(css, /\.portal__espera \.tono--amarillo \{ animation: latido/);
+});
+ok('salir: la ת se ve SALIDA_MS (<= 600) EN PARALELO con el cierre real, y 0 con el fondo quieto; lo de otras personas se borra al empezar', () => {
+  const c = leer('src/scripts/portal/carga.js');
+  const ms = Number((c.match(/export const SALIDA_MS = (\d+);/) || [])[1]);
+  assert.ok(ms > 0 && ms <= 600, String(ms));
+  assert.match(c, /esperaDeSalida = \(\) => \(fondoQuieto\(\) \? 0 : SALIDA_MS\)/);
+  const p = leer('src/scripts/portal/panel.js');
+  assert.match(p, /async function salir\(cerrar\) \{/);
+  assert.match(p, /Promise\.all\(\[limite\(cerrar\(\), 8000\), new Promise\(\(resolver\) => setTimeout\(resolver, esperaDeSalida\(\)\)\)\]\)/);   // en paralelo, y con tope
+  assert.match(p, /problema\(p\.salirFallo\)/);
+  assert.match(leer('src/components/portal/Panel.astro'), /data-saliendo-texto/);
+  assert.ok(p.indexOf("modoFondo('salida');") < p.indexOf('olvidar();', p.indexOf('async function salir')), 'primero la ת y el borrado, luego la espera');
+  assert.match(p, /salir\(\(\) => be\.salir\(\)\)/);
+  assert.match(p, /evento === 'SIGNED_OUT'\) salir\(/);        // una sesion que se cierra sola pasa por lo mismo
+  assert.ok(es.panel.saliendo, 'el texto «Saliendo…»');
+  assert.ok(typeof es.panel.saliendo === 'string' && !es.panel.saliendo.includes('?'));
 });
 ok('la bitacora: cada paso que se escribe tiene su texto', () => {
   const pasos = ['src/scripts/portal/entrar.js', 'src/scripts/portal/panel.js']

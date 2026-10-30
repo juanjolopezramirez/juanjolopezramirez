@@ -147,8 +147,8 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
 .portal__nota { margin: 0; font-size: .92rem; line-height: 1.5; color: var(--tiza); }
 .portal__nota--chica { font-size: .8rem; color: var(--tiza-2); }
 /* ---- Las esperas: «Un momento…» y «Entrando…» (y la carga del panel, panel.css) ----
-   La א late en rojo mientras se espera (el tono de la carga) y se queda en verde al
-   entrar. Debajo, la bitacora: los pasos de verdad (carga.js), que se teclean y
+   La מ (Mem) late en amarillo mientras se espera (el tono de la carga), la א se queda en
+   verde al entrar y la ת (Tav) sale en rojo al irse (panel.js → salir). Debajo, la bitacora: los pasos de verdad (carga.js), que se teclean y
    dejan el cursor en el ultimo. Su alto es fijo (tres lineas): nada salta. */
 .portal__espera {
   display: grid; justify-items: center; align-content: center; gap: .9rem;
@@ -157,6 +157,7 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
 }
 .portal__espera-logo { height: 2.6rem; }
 .portal__espera .tono--rojo { animation: latido 1.1s ease-in-out infinite; filter: drop-shadow(0 0 12px rgb(255 59 59 / .45)); }
+.portal__espera .tono--amarillo { animation: latido 1.1s ease-in-out infinite; filter: drop-shadow(0 0 12px rgb(255 214 10 / .4)); }
 .portal__espera .tono--verde { filter: drop-shadow(0 0 14px rgb(0 255 102 / .5)); }
 @keyframes latido { 50% { opacity: .35; } }
 .portal__bitacora {
@@ -180,9 +181,13 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
 .portal[data-vista="aprobado"] .portal__ventana { animation: tubo-apagar .36s cubic-bezier(.7, 0, .84, 0) .06s both; }
 .portal[data-vista="aprobado"] .portal__halo { animation: none; opacity: 0; transition: opacity .3s var(--ease); }
 .fondo-quieto .portal[data-vista="aprobado"] .portal__ventana { animation: none; }
-/* La pausa del fondo para TODO lo que se mueve solo (WCAG 2.2.2): tambien la א que
-   late y los cursores que parpadean. */
+/* La pausa del fondo para TODO lo que se mueve solo (WCAG 2.2.2): tambien la מ y la ת que
+   laten y los cursores que parpadean. De dia (Self-Mode) tampoco laten: no hay fondo que pausar. */
 .fondo-quieto .portal__espera .tono--rojo,
+.fondo-quieto .portal__espera .tono--amarillo,
+[data-modo="self"] .portal__espera .tono--rojo,
+[data-modo="self"] .portal__espera .tono--amarillo,
+[data-modo="self"] .portal__bitacora li:last-child::after,
 .fondo-quieto .portal__bitacora li:last-child::after,
 .fondo-quieto .portal__cursor { animation: none; }
 
@@ -351,7 +356,7 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .portal__halo, .portal__cursor, .portal__espera .tono--rojo,
+  .portal__halo, .portal__cursor, .portal__espera .tono--rojo, .portal__espera .tono--amarillo,
   .portal__bitacora li, .portal__bitacora li:last-child::after,
   .portal[data-vista="aprobado"] .portal__ventana { animation: none; }
   .portal__boton, .portal__google, .portal__entrada, .portal__canal { transition: none; }

@@ -64,10 +64,10 @@ const x = tp(lang);
            vacia: un role="status" que aparece ya lleno suele callar. Lo escribe entrar.js. -->
       <p class="sr-only" data-anuncio role="status" aria-live="polite" aria-atomic="true"></p>
 
-      <!-- ESPERAS: la א late en rojo (el tono de la carga) y debajo, la bitacora: los pasos
+      <!-- ESPERAS: la מ (Mem) late en amarillo (el tono de la carga) y debajo, la bitacora: los pasos
            que de verdad estan ocurriendo (carga.js). Detras, el fondo llueve (fondo.js). -->
       <section class="portal__panel portal__espera" data-pantalla="cargando" aria-labelledby="p-cargando" hidden>
-        <AlefIcono nombre="logo" tono="rojo" class="portal__espera-logo" />
+        <AlefIcono nombre="mem" tono="amarillo" class="portal__espera-logo" />
         <p class="portal__nota" id="p-cargando" tabindex="-1">{x.cargando}</p>
         <ol class="portal__bitacora" data-bitacora aria-hidden="true"></ol>
       </section>

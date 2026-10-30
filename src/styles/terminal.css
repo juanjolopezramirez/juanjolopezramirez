@@ -37,6 +37,7 @@
   --alef-verde: #00FF66;
   --alef-blanco: #FFFFFF;
   --alef-rojo: #FF3B3B;
+  --alef-amarillo: #FFD60A;               /* la carga (la מ). Pedido por el fundador, solo para los loaders: oro sigue sin haber */
   --alerta: var(--alef-rojo);
   /* LOS CANALES (r g b) de los colores que se usan con transparencia en portal.css,
      panel.css y dev.css: `rgb(var(--luz) / .05)`. Son la llave de los dos temas del panel:
@@ -89,6 +90,8 @@ html[data-modo="self"] { background: #E6E3DA; color-scheme: light; }
   --alef-verde: var(--pine);
   --alef-blanco: var(--pine);
   --alerta: #C62828;                      /* el rojo de noche, sobre hueso, se queda en 3:1; este da 5:1 */
+  --alef-rojo: #C62828;                   /* la ת de dia: el mismo rojo, 5:1 sobre el hueso */
+  --alef-amarillo: #8A6A00;               /* la מ de dia: el amarillo vivo da 1.2:1 sobre el hueso; este ambar, 4.4:1 */
   --mono: var(--sans);                   /* de dia, las letras de la casa; de noche, la de terminal */
   background-color: var(--noche);
   color-scheme: light;
@@ -191,6 +194,7 @@ html[data-modo="self"] { background: #E6E3DA; color-scheme: light; }
 .tono--verde  { color: var(--alef-verde); }
 .tono--blanco { color: var(--alef-blanco); }
 .tono--rojo   { color: var(--alef-rojo); }
+.tono--amarillo { color: var(--alef-amarillo); }
 .tono--iris   { color: var(--iris-300); }
 
 /* ---- La barra de la ventana (BarraTerminal.astro) ---- */

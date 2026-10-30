@@ -15,7 +15,7 @@
 
    Todo texto de otra persona (nombre, correo, motivo) entra con `textContent`. */
 import { abrirBackend } from './backend.js';
-import { bitacora, fondoQuieto, modoFondo } from './carga.js';
+import { bitacora, esperaDeSalida, fondoQuieto, modoFondo } from './carga.js';
 import { anclaValida, codigoValido, idiomaDe, rutaPortal } from './estado.js';
 import { idsPara, inicioPara, inicioDeModo, modoDe, modoPara } from '../../data/portal/secciones.js';
 import { Menu } from './panel/Menu.js';
@@ -47,6 +47,7 @@ function iniciar(raiz) {
   const p = tx.panel || {};
 
   const elCargando = raiz.querySelector('[data-cargando]');
+  const elSaliendo = raiz.querySelector('[data-saliendo]');
   const elProblema = raiz.querySelector('[data-problema]');
   const elMarco = raiz.querySelector('[data-marco]');
   const elCodigo = raiz.querySelector('[data-codigo]');
@@ -149,21 +150,30 @@ function iniciar(raiz) {
   function alPortal(saliendo = false) {
     /* En la demo la direccion lleva `?demo=…`: se conserva para no perder el caso, salvo al
        SALIR (si no, el portal te volveria a meter con el mismo `?demo=`). */
-    const sufijo = be && be.modo === 'demo' ? (saliendo ? '?demo=entrar' : window.location.search) : '';
+    let sufijo = be && be.modo === 'demo' ? (saliendo ? '?demo=entrar' : window.location.search) : '';
+    /* Quien paro el fondo con el boton lo sigue teniendo parado al salir (fondo.js lee `?quieto=1`) */
+    if (saliendo && document.documentElement.classList.contains('fondo-quieto')) sufijo += (sufijo ? '&' : '?') + 'quieto=1';
     window.location.replace(rutaPortal(lang) + sufijo);
   }
 
-  function problema() {
+  function problema(texto) {
+    if (saliendo) return;
     modoFondo('reposo');
     elCargando.hidden = true;
     elMarco.hidden = true;
+    /* (el aviso de siempre, o uno propio: «no pude cerrar la sesion») */
+    const frase = elProblema.querySelector('p');
+    if (frase) frase.textContent = typeof texto === 'string' && texto ? texto : (p.problema || frase.textContent);
     elProblema.hidden = false;
     elProblema.focus();                      // el aviso se lee: sin foco, un aviso que aparece ya lleno suele callar
   }
 
   async function arrancar() {
+    /* «Intentar otra vez» desaparece con su aviso: el foco pasa al «Un momento…» (WCAG 2.4.3) */
+    const eraDelAviso = elProblema.contains(document.activeElement);
     elProblema.hidden = true;
     elCargando.hidden = false;
+    if (eraDelAviso) { const t = elCargando.querySelector('[data-cargando-texto]'); if (t) t.focus(); }
     log.limpiar();
     modoFondo('carga', { logo: desdePortal && primera });
     primera = false;
@@ -187,7 +197,7 @@ function iniciar(raiz) {
 
     if (!escuchando) {
       escuchando = true;
-      be.alCambiar((evento) => { if (evento === 'SIGNED_OUT') { olvidar(); alPortal(true); } });
+      be.alCambiar((evento) => { if (evento === 'SIGNED_OUT') salir(() => Promise.resolve()); });
     }
     /* El admin con codigo de app (seccion «Seguridad») lo escribe antes de ver nada. */
     if (perfil.esAdmin && be.mfa) {
@@ -200,6 +210,7 @@ function iniciar(raiz) {
 
   /* ---- El codigo de la app (solo el admin que lo puso) ------------------------------ */
   function pedirCodigo(ses, perfil) {
+    if (saliendo) return;                    // ya se esta saliendo: nada reaparece (la ת sigue hasta irse)
     modoFondo('reposo');
     elCargando.hidden = true;
     elProblema.hidden = true;
@@ -226,6 +237,7 @@ function iniciar(raiz) {
 
   /* ---- Abrir el panel ------------------------------------------------------------ */
   function abrir(ses, perfil) {
+    if (saliendo) return;                    // ya se esta saliendo: nada reaparece (la ת sigue hasta irse)
     yo = ses.id;
     esAdmin = !!perfil.esAdmin;
     /* Cada quien ve lo suyo: un miembro no tiene lo del admin, y el admin no tiene el
@@ -293,11 +305,46 @@ function iniciar(raiz) {
   }
 
   /* ---- Salir y reintentar --------------------------------------------------------- */
+  /* AL SALIR se ve la ת (Tav, roja) con «Saliendo…» y el fondo la descifra en rojo. Lo que se vio
+     de otras personas se borra de la pagina AL EMPEZAR (no despues de esperar), y la sesion se
+     cierra de verdad mientras tanto: las dos cosas corren a la vez, asi que la ת solo alarga la
+     salida lo que falte para SALIDA_MS (carga.js; 0 con el fondo quieto o «reducir movimiento»).
+     Tambien entra por aqui el aviso de que la sesion se cerro sola (otra pestaña, o caduco). */
+  let saliendo = false;
+  async function salir(cerrar) {
+    if (saliendo) return;
+    saliendo = true;
+    elCargando.hidden = true;
+    elProblema.hidden = true;
+    if (elSaliendo) {
+      elSaliendo.hidden = false;
+      /* El boton «Salir» se va con la ventana: el foco pasa a «Saliendo…» y asi se oye */
+      const t = elSaliendo.querySelector('[data-saliendo-texto]');
+      if (t) t.focus();
+    }
+    modoFondo('salida');
+    /* olvidar() suelta el modo (Self/Dev): se conserva hasta irse, o el papel de dia
+       se oscureceria justo antes de salir. */
+    const modo = document.documentElement.dataset.modo;
+    olvidar();
+    if (modo) document.documentElement.dataset.modo = modo;
+    try {
+      /* Un cierre que se cuelga no deja «Saliendo…» para siempre: a los 8 s cuenta como fallo */
+      const [cierre] = await Promise.all([limite(cerrar(), 8000), new Promise((resolver) => setTimeout(resolver, esperaDeSalida()))]);
+      if (cierre === TARDO) throw new Error('tardo');
+      alPortal(true);
+    } catch (e) {
+      saliendo = false;
+      if (elSaliendo) elSaliendo.hidden = true;
+      problema(p.salirFallo);
+    }
+  }
+
   raiz.addEventListener('click', (e) => {
     const b = e.target.closest ? e.target.closest('button') : null;
     if (!b || !raiz.contains(b)) return;
     if (b.hasAttribute('data-salir') && be) {
-      be.salir().then(() => { olvidar(); alPortal(true); });
+      salir(() => be.salir());
     } else if (b.hasAttribute('data-reintentar')) {
       arrancar();
     }

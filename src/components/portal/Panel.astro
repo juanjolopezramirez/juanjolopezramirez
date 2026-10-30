@@ -45,11 +45,18 @@ const seccion = (id) => SECCIONES.find((x) => x.id === id);
                    pausar={x.fondo.pausar} seguir={x.fondo.seguir} lang={lang} inicio={x.inicio} />
 
     <noscript><p class="portal__nota panel__cargando">{p.sinJavascript}</p></noscript>
-    <!-- Mientras la guardia pregunta al servidor: la א roja que late y la bitacora (carga.js). -->
+    <!-- Mientras la guardia pregunta al servidor: la מ amarilla que late y la bitacora (carga.js). -->
     <div class="panel__cargando portal__espera" data-cargando>
-      <AlefIcono nombre="logo" tono="rojo" class="portal__espera-logo" />
-      <p class="portal__nota" role="status">{p.cargando}</p>
+      <AlefIcono nombre="mem" tono="amarillo" class="portal__espera-logo" />
+      <p class="portal__nota" role="status" tabindex="-1" data-cargando-texto>{p.cargando}</p>
       <ol class="portal__bitacora" data-bitacora aria-hidden="true"></ol>
+    </div>
+
+    <!-- AL SALIR: la ת roja y «Saliendo…» mientras se cierra la sesion (panel.js → salir). -->
+    <div class="panel__cargando portal__espera" data-saliendo hidden>
+      <AlefIcono nombre="tav" tono="rojo" class="portal__espera-logo" />
+      {/* Sin role="status": el texto recibe el foco al aparecer (el boton «Salir» desaparece con la ventana) */}
+      <p class="portal__nota" tabindex="-1" data-saliendo-texto>{p.saliendo}</p>
     </div>
 
     <div class="panel__problema" data-problema hidden tabindex="-1">

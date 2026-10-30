@@ -3,8 +3,17 @@ import logo from '../../assets/alef/logo.svg?raw';
 import pausa from '../../assets/alef/pausa.svg?raw';
 import play from '../../assets/alef/play.svg?raw';
 import volver from '../../assets/alef/volver.svg?raw';
+import mem from '../../assets/alef/mem.svg?raw';
+import tav from '../../assets/alef/tav.svg?raw';
 
-/* LOS ICONOS DE THE ALEF CODE: el logo (la א en pixeles), pausa y play, en 8 bits.
+/* LOS ICONOS DE THE ALEF CODE: el logo (la א en pixeles), pausa y play, en 8 bits, y las
+   otras dos letras de «Emet» (אמת): la מ (Mem) y la ת (Tav), tambien en pixeles.
+
+   Las tres letras cuentan el recorrido (2026-10-30, lo pidio el fundador): la א al entrar
+   (verde), la מ mientras se carga algo dentro del portal (amarilla) y la ת al salir (roja).
+   OJO: en su carpeta (`fraterni Icon/nemyTav/`) los archivos venian con los nombres
+   cruzados —`nemPixel.svg` dibuja la ת y `tavPixel.svg` la מ—; aqui se llaman por lo que
+   DIBUJAN (mem.svg, tav.svg).
 
    Los dibujo el fundador (2026-10-26); `volver` (la flecha del enlace a la
    portada) se dibujo despues con la misma rejilla de pixeles, para que no
@@ -14,13 +23,14 @@ import volver from '../../assets/alef/volver.svg?raw';
 
      tono--verde   #00FF66  la terminal (el logo, el cursor, el boton del fondo)
      tono--blanco  #FFFFFF  sobre fondos oscuros
-     tono--rojo    #FF3B3B  error y carga (siempre con texto al lado)
+     tono--rojo    #FF3B3B  error y salida (la ת); siempre con texto al lado
+     tono--amarillo #FFD60A la carga (la מ); de dia, un ambar que se lee sobre el hueso
      tono--iris    iris 300 los detalles de la casa
 
    Van en linea (no <img>) para heredar el color. Son decoracion salvo que se les
    de `titulo`: entonces llevan role="img" y su nombre. Los bordes en escalera se
    pintan sin suavizar (`crispEdges`), como pixeles. */
-const DIBUJOS = { logo, pausa, play, volver };
+const DIBUJOS = { logo, pausa, play, volver, mem, tav };
 const { nombre = 'logo', tono, titulo, class: clase } = Astro.props;
 const fuente = DIBUJOS[nombre];
 if (!fuente) throw new Error(`AlefIcono: no existe «${nombre}»`);

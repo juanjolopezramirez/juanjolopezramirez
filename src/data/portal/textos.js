@@ -114,6 +114,8 @@ export const PORTAL_TEXTOS = {
     panel: {
       paginaTitulo: 'The Alef Code · Panel',
       cargando: 'Un momento…',
+      saliendo: 'Saliendo…',
+      salirFallo: 'No pude cerrar la sesión. Revisa tu internet e intenta otra vez.',
       saludo: 'Hola',
       menu: 'Secciones',
       /* El boton de los dos modos: su nombre no cambia (lo dice «pulsado» o no) */
