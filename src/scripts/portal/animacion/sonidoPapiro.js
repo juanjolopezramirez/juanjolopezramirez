@@ -73,17 +73,20 @@ export async function sintetizarPapiro({ duracion, eventos, azar }) {
     if (t0 >= duracion - 0.2) continue;
     const dur = Math.max(0.2, t1 - t0);
     switch (ev.tipo) {
-      case 'tablero': {
-        /* el roce largo de la madera: ruido que sube de tono mientras el pincel pasa, y un golpe hondo al acabar */
-        const g = e.voz(0.9, -0.1);
+      case 'trazo': {
+        /* una linea del tablero: el roce de la madera, que sube de tono mientras el pincel pasa (las dos verticales
+           suenan a la izquierda y la derecha, las horizontales al centro), y un golpe sordo al soltarlo; el de la
+           cuarta linea, que cierra el tablero, es el hondo */
+        const pan = [-0.35, 0.35, -0.1, 0.1][ev.i] || 0;
+        const g = e.voz(0.9, pan);
         g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(0.1, t0 + dur * 0.45);
+        g.gain.linearRampToValueAtTime(0.09, t0 + dur * 0.5);
         g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
-        const banda = e.filtro('bandpass', 220, 1.4, g);
-        banda.frequency.setValueAtTime(220, t0);
-        banda.frequency.exponentialRampToValueAtTime(1600, t0 + dur);
+        const banda = e.filtro('bandpass', 240, 1.4, g);
+        banda.frequency.setValueAtTime(240, t0);
+        banda.frequency.exponentialRampToValueAtTime(1500 + ev.i * 120, t0 + dur);
         e.fuenteRuido(t0, t0 + dur + 0.05, banda);
-        golpe(t1, 0.15, 64, 1.8);
+        if (ev.i === 3) golpe(t1, 0.15, 64, 1.8); else golpe(t1, 0.05, 90 - ev.i * 6, 0.7);
         break;
       }
       case 'clavos':

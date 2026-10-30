@@ -884,7 +884,11 @@ const papiroRastro = (semilla, duracionMs = 6000, cuadros = 140) => {
 };
 ok('«El juego que el amor ya ganó»: usa SUS dibujos (el tablero, cinco piezas y los corazones), en ese orden, y sale igual con la misma semilla', () => {
   assert.deepEqual(PA.COMPONENTES.map((c) => c.id), ['tablero', 'clavos', 'moneda', 'lanza', 'corona', 'cruz', 'corazones']);
-  assert.deepEqual(PA.GUION.map((g) => g.capa), PA.COMPONENTES.map((c) => c.id), 'el guion pone cada cosa, en orden');
+  assert.deepEqual([...new Set(PA.GUION.map((g) => g.capa))], PA.COMPONENTES.map((c) => c.id), 'el guion pone cada cosa, en orden');
+  assert.deepEqual(PA.GUION.filter((g) => g.capa === 'tablero').map((g) => g.linea), [0, 1, 2, 3], 'el tablero se pinta linea por linea: cuatro');
+  assert.equal(PA.LINEAS.length, 4);
+  for (const l of PA.LINEAS) assert.ok(l.de.every((n) => n > 0 && n < 1080) && l.a.every((n) => n > 0 && n < 1080), 'las lineas caen dentro del dibujo');
+  assert.ok(PA.GUION.filter((g) => g.tipo === 'linea').at(-1).t1 < PA.GUION.find((g) => g.capa === 'clavos').t0, 'el tablero esta entero antes de la primera pieza');
   for (const c of PA.COMPONENTES) assert.ok(fs.existsSync(path.join(raiz, 'public', c.url)), 'falta ' + c.url);
   for (const g of PA.GUION) assert.ok(g.t1 > g.t0 && g.t0 >= 0);
   assert.ok(PA.GUION.every((g, i) => i === 0 || g.t0 > PA.GUION[i - 1].t0), 'en orden de tiempo');

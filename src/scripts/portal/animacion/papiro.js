@@ -5,7 +5,8 @@
    clavos con lanza, la corona de espinas y la cruz — que se van poniendo una a una; y al final,
    los corazones rojos: el amor, que ya gano. Aqui NO se dibuja nada de eso: se usan SUS dibujos
    tal cual (cada uno es un SVG de 1080 x 1080 con su sombra) y solo se pone en escena:
-     · el tablero se pinta de izquierda a derecha, como una mano que pasa el pincel;
+     · el tablero se pinta LINEA POR LINEA (las dos verticales, de arriba abajo, y luego las dos horizontales,
+       de izquierda a derecha), como una mano que pasa el pincel cuatro veces;
      · cada pieza CAE sobre su casilla (llega de mas grande y mas arriba, y se asienta);
      · los corazones aparecen muy despacio, casi sin notarse, y laten dos veces (lub-dub) apenas: el amor
        que no se va no hace ruido.
@@ -34,7 +35,10 @@ export const COMPONENTES = [
 
 /* El guion (milisegundos de JUEGO): cuando llega cada cosa */
 export const GUION = [
-  { capa: 'tablero', tipo: 'barrido', t0: 600, t1: 1700 },
+  { capa: 'tablero', tipo: 'linea', linea: 0, t0: 600, t1: 900 },
+  { capa: 'tablero', tipo: 'linea', linea: 1, t0: 950, t1: 1250 },
+  { capa: 'tablero', tipo: 'linea', linea: 2, t0: 1300, t1: 1600 },
+  { capa: 'tablero', tipo: 'linea', linea: 3, t0: 1650, t1: 1950 },
   { capa: 'clavos', tipo: 'cae', t0: 2000, t1: 2500 },
   { capa: 'moneda', tipo: 'cae', t0: 2700, t1: 3200 },
   { capa: 'lanza', tipo: 'cae', t0: 3400, t1: 3900 },
@@ -49,6 +53,21 @@ const JUEGO_MS = 8800;
 const ENTRA_MS = 500;
 const SALE_MS = 800;
 export const PAPIRO = { JUEGO_MS, ENTRA_MS, SALE_MS };
+
+/* Las cuatro lineas del tablero, en el sistema del dibujo (1080 x 1080), de donde empieza el trazo a donde
+   acaba. NO estan en el SVG (el tablero es UN contorno): se midieron sobre el, buscando las cuatro rectas
+   (dos casi verticales, a 19.5 grados, y dos casi horizontales, a 9.5). `ancho` es lo que se destapa a cada
+   lado de la recta (el trazo mide ~20: poco, para que al cruzarse no asome un pedazo de la linea que aun no
+   se pinta); `mas`, lo que se pasa de cada punta. Cuando acaba la ultima linea, el tablero entero reemplaza
+   a las franjas (asi la sombra, que las franjas recortan, no se corta). */
+export const LINEAS = [
+  { de: [508, 341], a: [382, 697] },     // la vertical de la izquierda, de arriba abajo
+  { de: [682, 375], a: [554, 735] },     // la vertical de la derecha
+  { de: [322, 424], a: [786, 497] },     // la horizontal de arriba, de izquierda a derecha
+  { de: [292, 563], a: [757, 637] }      // la horizontal de abajo
+];
+export const TRAZO = { ancho: 17, mas: 28 };
+const ASIENTA_MS = 260;      // al acabar la ultima linea, el tablero entero (con su sombra) reemplaza a las franjas
 
 const LADO = 1080;          // el lado del cuadrado en que estan dibujados los componentes
 const AMPLIA = 1.36;        // cuanto se agranda ese cuadrado respecto al lado corto del cuadro (era 1.75: todo un 22 % mas pequeño, pedido del fundador)
@@ -174,12 +193,31 @@ export function crearPapiro({ ancho, alto, azar, duracionMs, escala, lienzoDe, c
 
   /* Lo que oye el sonido: cada cosa que pasa, en milisegundos del VIDEO */
   const eventos = [
-    ...GUION.map((g) => ({ tipo: g.capa, t0: aVideo(g.t0), t1: aVideo(g.t1) })),
+    ...GUION.map((g) => (g.tipo === 'linea' ? { tipo: 'trazo', i: g.linea, t0: aVideo(g.t0), t1: aVideo(g.t1) } : { tipo: g.capa, t0: aVideo(g.t0), t1: aVideo(g.t1) })),
     ...LATIDOS.map((b) => ({ tipo: 'latido', t0: aVideo(b), t1: aVideo(b + 200) }))
   ];
   let t = 0;
 
   function avanzar(dt) { t += dt; }
+
+  /* La franja de la linea `i` ya recorrida (de 0 a 1): un rectangulo girado desde un poco antes de donde empieza
+     hasta donde va el pincel. Todas con el mismo sentido de giro: juntas, el recorte es su union. */
+  const g0 = geometria(ancho, alto);
+  const punto = (x, y) => [g0.ox + x * g0.e, g0.oy + y * g0.e];
+  function trazar(ctx, i, p) {
+    const { de, a } = LINEAS[i];
+    const largo = Math.hypot(a[0] - de[0], a[1] - de[1]);
+    const ux = (a[0] - de[0]) / largo, uy = (a[1] - de[1]) / largo;
+    const desde = [de[0] - ux * TRAZO.mas, de[1] - uy * TRAZO.mas];
+    const hasta = [desde[0] + ux * (largo + 2 * TRAZO.mas) * p, desde[1] + uy * (largo + 2 * TRAZO.mas) * p];
+    const nx = -uy * TRAZO.ancho, ny = ux * TRAZO.ancho;
+    const esquinas = [[desde[0] + nx, desde[1] + ny], [hasta[0] + nx, hasta[1] + ny], [hasta[0] - nx, hasta[1] - ny], [desde[0] - nx, desde[1] - ny]];
+    /* el sentido de giro: si sale al reves, se invierte (el recorte juntaria dos signos distintos y se restarian) */
+    const area = esquinas.reduce((s, q, k) => { const r = esquinas[(k + 1) % 4]; return s + q[0] * r[1] - r[0] * q[1]; }, 0);
+    if (area < 0) esquinas.reverse();
+    esquinas.forEach((q, k) => { const [x, y] = punto(q[0], q[1]); if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+    ctx.closePath();
+  }
 
   function pintar(ctx) {
     const tj = Math.max(0, t - ENTRA_MS) * velocidad;      // el juego empieza cuando termina la entrada
@@ -190,14 +228,25 @@ export function crearPapiro({ ancho, alto, azar, duracionMs, escala, lienzoDe, c
       if (!c || tj <= g.t0) continue;
       const q = Math.min(1, (tj - g.t0) / (g.t1 - g.t0));
       ctx.save();
-      if (g.tipo === 'barrido') {
-        /* el tablero se pinta de izquierda a derecha */
-        const p = suave(q);
-        ctx.beginPath();
-        ctx.rect(c.x, c.y, c.w * p, c.h);
-        ctx.clip();
-        ctx.globalAlpha = Math.min(1, q * 3);
-        ctx.drawImage(c.lienzo, c.x, c.y, c.w, c.h);
+      if (g.tipo === 'linea') {
+        /* una linea del tablero: se destapa solo la franja que el pincel ya recorrio. Las cuatro se juntan en UN
+           recorte y el tablero se dibuja una sola vez (si no, la sombra se oscurece donde se cruzan). */
+        if (g.linea !== 0) { ctx.restore(); continue; }
+        const fin = GUION.filter((h) => h.tipo === 'linea').at(-1).t1;
+        const asentado = Math.min(1, Math.max(0, (tj - fin) / (ASIENTA_MS * velocidad)));
+        if (asentado < 1) {
+          ctx.beginPath();
+          GUION.forEach((h) => {
+            if (h.tipo !== 'linea' || tj <= h.t0) return;
+            trazar(ctx, h.linea, suave(Math.min(1, (tj - h.t0) / (h.t1 - h.t0))));
+          });
+          ctx.save();
+          ctx.clip();
+          ctx.globalAlpha = 1 - asentado;
+          ctx.drawImage(c.lienzo, c.x, c.y, c.w, c.h);
+          ctx.restore();
+        }
+        if (asentado > 0) { ctx.globalAlpha = asentado; ctx.drawImage(c.lienzo, c.x, c.y, c.w, c.h); }
       } else if (g.tipo === 'cae') {
         /* la pieza cae: llega mas grande y mas arriba, y se asienta */
         const p = 1 - Math.pow(1 - q, 3);
