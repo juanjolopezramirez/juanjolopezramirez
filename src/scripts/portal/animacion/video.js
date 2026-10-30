@@ -1,7 +1,7 @@
-/* DE LA LLUVIA A UN ARCHIVO MP4 (Brand Assets → Animaciones; la pantalla es panel/dev/MarcaVideo.js).
+/* DE UNA ANIMACION A UN ARCHIVO MP4 (la lluvia o el papiro) (Brand Assets → Animaciones; la pantalla es panel/dev/MarcaVideo.js).
 
    Todo pasa en el navegador de quien lo pide, SIN grabar la pantalla:
-     1. se dibuja cada cuadro de la lluvia (animacion/lluvia.js) en un lienzo del tamaño elegido,
+     1. se dibuja cada cuadro de la animacion (animacion/lluvia.js o papiro.js) en un lienzo del tamaño elegido,
         mas rapido que el tiempo real y con el mismo resultado cada vez;
      2. cada cuadro se comprime a H.264 con el codificador del navegador (WebCodecs) y se va
         metiendo en un MP4;
@@ -18,6 +18,8 @@
 import { FPS, AUDIO, CALIDADES, DURACIONES, FORMATOS, medidasDeSalida } from '../../../data/portal/animaciones.js';
 import { crearAzar, crearLluvia, leerLetra, TIPOGRAFIAS } from './lluvia.js';
 import { sintetizar } from './sonido.js';
+import { crearPapiro } from './papiro.js';
+import { sintetizarPapiro } from './sonidoPapiro.js';
 import logoAlef from '../../../assets/alef/logo.svg?raw';
 import memSvg from '../../../assets/alef/mem.svg?raw';
 import tavSvg from '../../../assets/alef/tav.svg?raw';
@@ -84,7 +86,32 @@ export async function capacidades() {
 export const estimarMB = (calidad, duracion, conSonido) =>
   Math.max(0.1, ((calidad.bps + (conSonido ? AUDIO.bps : 0)) * duracion) / 8 / 1_048_576);
 
-/* UN cuadro (para la vista previa): dibuja la lluvia a los `segundos` en `lienzo`, a `ancho` px de ancho. */
+/* El motor de una animacion: lo que dibuja (`sim`: avanzar(dt) y pintar(ctx)), lo que anota de
+   cada cuadro para el sonido (`muestra`) y como se hace el sonido (`sonido`). Hay dos: la lluvia
+   con una letra y el papiro con el Tic Tac Toe. `k` es cuanto se escala lo logico (para el papel). */
+function fabricar(animacion, formato, duracionMs, k) {
+  const azar = crearAzar(animacion.semilla);
+  const semillaSonido = animacion.semilla ^ SEMILLA_SONIDO;
+  if (animacion.motor === 'papiro') {
+    const sim = crearPapiro({ ancho: formato.ancho, alto: formato.alto, azar, duracionMs, escala: k, lienzoDe });
+    return {
+      sim, muestra: () => null,
+      sonido: (duracion) => sintetizarPapiro({ duracion, eventos: sim.eventos, azar: crearAzar(semillaSonido) })
+    };
+  }
+  const sim = crearLluvia({
+    ancho: formato.ancho, alto: formato.alto, azar, letra: leerLetra(LETRAS[animacion.letra], lienzoDe),
+    modo: animacion.modo, duracionMs
+  });
+  return {
+    sim, muestra: () => ({ pasos: sim.pasos, fuerza: sim.lluvia }),
+    sonido: (duracion, registro) => sintetizar({
+      modo: animacion.modo, duracion, fps: FPS, pasos: registro.map((r) => r.pasos), fuerza: registro.map((r) => r.fuerza), azar: crearAzar(semillaSonido)
+    })
+  };
+}
+
+/* UN cuadro (para la vista previa): dibuja la animacion a los `segundos` en `lienzo`, a `ancho` px de ancho. */
 export async function pintarFotograma({ animacion, formato, lienzo, ancho, segundos, vigente }) {
   await cargarTipografias();
   const k = ancho / formato.ancho;
@@ -93,10 +120,8 @@ export async function pintarFotograma({ animacion, formato, lienzo, ancho, segun
   const ctx = lienzo.getContext('2d', { alpha: false });
   if (!ctx) throw new Error('lienzo');
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  const sim = crearLluvia({
-    ancho: formato.ancho, alto: formato.alto, azar: crearAzar(animacion.semilla),
-    letra: leerLetra(LETRAS[animacion.letra], lienzoDe), modo: animacion.modo, duracionMs: segundos * 1000 + 5000
-  });
+  /* (la muestra se arma como un video de 6 s en el papiro, y sin desvanecido al final en la lluvia) */
+  const { sim } = fabricar(animacion, formato, animacion.motor === 'papiro' ? 6000 : segundos * 1000 + 5000, k);
   const dt = 1000 / FPS;
   const cuadros = Math.round(segundos * FPS);
   for (let n = 0; n < cuadros; n++) {
@@ -118,11 +143,7 @@ export async function exportarVideo({ animacion, formato, calidad, duracion, con
   const lienzo = lienzoDe(salida.w, salida.h);
   const ctx = lienzo.getContext('2d', { alpha: false });
   if (!ctx) throw new Error('lienzo');
-  const azar = crearAzar(animacion.semilla);
-  const sim = crearLluvia({
-    ancho: formato.ancho, alto: formato.alto, azar, letra: leerLetra(LETRAS[animacion.letra], lienzoDe),
-    modo: animacion.modo, duracionMs: duracion * 1000
-  });
+  const { sim, muestra, sonido } = fabricar(animacion, formato, duracion * 1000, salida.k);
 
   if (!DURACIONES.includes(duracion)) throw new Error('video');       // solo las duraciones de la lista
   const total = Math.round(duracion * FPS);
@@ -137,14 +158,12 @@ export async function exportarVideo({ animacion, formato, calidad, duracion, con
   }
   await output.start();
 
-  const pasos = new Array(total).fill(0);
-  const fuerza = new Array(total).fill(0);
+  const registro = [];          // lo que cada cuadro le cuenta al sonido
   try {
     for (let n = 0; n < total; n++) {
       if (senal && senal.aborted) throw new Error('cancelado');
       sim.avanzar(dt);
-      pasos[n] = sim.pasos;
-      fuerza[n] = sim.lluvia;
+      registro.push(muestra());
       ctx.setTransform(salida.k, 0, 0, salida.k, 0, 0);
       sim.pintar(ctx);
       await esperar(fuente.add(n / FPS, 1 / FPS), senal);        // el codificador marca el ritmo
@@ -154,9 +173,7 @@ export async function exportarVideo({ animacion, formato, calidad, duracion, con
     fuente.close();
     if (fuenteAudio) {
       avisar({ fase: 'sonido', hecho: total, total });
-      const buffer = await esperar(sintetizar({
-        modo: animacion.modo, duracion, fps: FPS, pasos, fuerza, azar: crearAzar(animacion.semilla ^ SEMILLA_SONIDO)
-      }), senal);
+      const buffer = await esperar(sonido(duracion, registro), senal);
       await esperar(fuenteAudio.add(buffer), senal);
       fuenteAudio.close();
     }

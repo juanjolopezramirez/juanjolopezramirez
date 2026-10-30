@@ -33,10 +33,11 @@ const RAPIDEZ = { entrada: 2.6, carga: 1, salida: 2.2 };
 
 const FONDO = '#050806';
 const BLANCO = '#FFFFFF', VERDE = '#00FF66', ROJO = '#FF3B3B', AMARILLO = '#FFD60A', TIZA = '#F1EFE9';
-/* El tono de cada letra: su color y el brillo (r,g,b) que le late detras */
+/* El tono de cada letra: su color, el de la ESTELA de la lluvia (cada letra llueve en su color: la
+   א verde, la מ amarilla, la ת roja; pedido del fundador, 2026-10-30) y el brillo (r,g,b) que le late detras */
 export const TONOS = {
   entrada: { color: VERDE, brillo: '0,255,102', estela: VERDE },
-  carga: { color: AMARILLO, brillo: '255,214,10', estela: VERDE },
+  carga: { color: AMARILLO, brillo: '255,214,10', estela: AMARILLO },
   salida: { color: ROJO, brillo: '255,59,59', estela: ROJO }
 };
 

@@ -52,18 +52,26 @@ export class Marca extends Seccion {
     this.form.addEventListener('input', (e) => { if (e.target === this.form.elements.hex) this.refrescar(); });
     this.form.addEventListener('submit', (e) => { e.preventDefault(); this.bajar(); });
     /* Las piezas nacen apagadas (aria-disabled) hasta que este modulo carga: ya responden */
-    this.caja.querySelectorAll('[data-marca-abrir], [data-marca-anim]').forEach((b) => b.removeAttribute('aria-disabled'));
+    this.caja.querySelectorAll('[data-marca-abrir], [data-marca-anim], [data-marca-ver]').forEach((b) => b.removeAttribute('aria-disabled'));
     this.video = null;           // la ficha de las animaciones (MarcaVideo.js), la primera vez que se pide
     this.cargaVideo = null;
   }
 
   alClic(e) {
-    const el = e.target.closest ? e.target.closest('[data-marca-abrir], [data-marca-anim], [data-marca-volver]') : null;
+    const el = e.target.closest ? e.target.closest('[data-marca-abrir], [data-marca-anim], [data-marca-ver], [data-marca-volver]') : null;
     if (!el || !this.caja.contains(el)) return;
     if (el.hasAttribute('data-marca-volver')) { this.volver(); return; }
+    if (el.hasAttribute('data-marca-ver')) { this.ver(el.getAttribute('data-marca-ver')); return; }
     this.abierta = el;
     if (el.hasAttribute('data-marca-anim')) this.abrirAnimacion(el.getAttribute('data-marca-anim'));
     else this.abrir(el.getAttribute('data-marca-abrir'));
+  }
+
+  /* Las dos partes de la lista: «estaticos» (imagenes: logos e iconos) y «dinamicos» (videos). Solo
+     cambia lo que se ve; el foco se queda en el boton que se pulso. */
+  ver(grupo) {
+    for (const g of this.caja.querySelectorAll('[data-marca-grupo]')) g.hidden = g.getAttribute('data-marca-grupo') !== grupo;
+    for (const b of this.caja.querySelectorAll('[data-marca-ver]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-marca-ver') === grupo));
   }
 
   /* Una animacion: su ficha vive en otro modulo (MarcaVideo.js) que se baja la primera vez */
@@ -152,7 +160,12 @@ export class Marca extends Seccion {
     this.lista.hidden = false;
     this.ficha.querySelector('[data-marca-imagen]').src = VACIO;
     this.actual = null;
-    if (this.abierta && this.abierta.isConnected) this.abierta.focus();
+    if (this.abierta && this.abierta.isConnected) {
+      /* si mientras cargaba se cambio de parte (Estaticos/Dinamicos), la tarjeta quedo escondida: se vuelve a su parte */
+      const parte = this.abierta.closest('[data-marca-grupo]');
+      if (parte && parte.hidden) this.ver(parte.getAttribute('data-marca-grupo'));
+      this.abierta.focus();
+    }
   }
 
   /* ---- Lo que se pidio en el formulario ----------------------------------------- */
@@ -337,6 +350,7 @@ export class Marca extends Seccion {
     this.abierta = null;
     if (!this.caja) return;
     this.limpiar();
+    this.ver('estaticos');
     if (this.video) this.video.olvidar();
     if (this.ficha) {
       this.ficha.hidden = true;

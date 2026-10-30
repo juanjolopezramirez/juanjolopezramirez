@@ -154,12 +154,15 @@ export const PORTAL_TEXTOS = {
       mas: 'Más',
       /* Brand Assets (panel/dev/Marca.js): elegir una pieza, su color, su fondo y su tamaño, y bajarla */
       marca: {
-        pista: 'Elige una pieza. Verás cómo queda y la bajas en SVG o en PNG.',
+        pista: 'Imágenes: elige una pieza, verás cómo queda y la bajas en SVG o en PNG.',
+        pistaDinamicos: 'Videos MP4: elige una animación, ajusta cómo la quieres y se hace aquí mismo.',
+        grupo: 'Qué quieres bajar',
+        grupos: { estaticos: 'Estáticos', dinamicos: 'Dinámicos' },
         animaciones: 'Animaciones',
-        animacionesLinea: 'La lluvia de The Alef Code, en un video MP4 (con sonido, si quieres).',
+        animacionesLinea: 'Con sonido, si quieres.',
         /* Las animaciones en video (panel/dev/MarcaVideo.js; las opciones, en data/portal/animaciones.js) */
         video: {
-          vista: 'Así se ve un cuadro, a los 3 segundos.',
+          vista: 'Así se ve un cuadro de la animación.',
           vistaAlt: 'Un cuadro de la animación',
           pantalla: 'Forma de la pantalla',
           formatos: { horizontal: 'Horizontal (16:9)', vertical: 'Vertical (9:16)', cuadrado: 'Cuadrado (1:1)' },

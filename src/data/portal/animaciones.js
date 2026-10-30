@@ -6,12 +6,16 @@
    exportar (animacion/sonido.js); en el portal en vivo todo sigue en silencio.
 
    Los nombres que se ven (y las opciones) estan aqui; los textos de la pantalla, en
-   textos.js → panel.marca.video. */
+   textos.js → panel.marca.video.
+
+   Hay dos motores (campo `motor`): la lluvia con una letra (animacion/lluvia.js) y el Tic Tac
+   Toe sobre papiro (animacion/papiro.js). `vistaSegundos` es el instante de la muestra. */
 
 export const ANIMACIONES = [
-  { id: 'lluvia-alef', nombre: 'Lluvia con la Álef (א)', linea: 'Al entrar: cae la lluvia y la letra se descifra, en verde.', modo: 'entrada', letra: 'logo', semilla: 7 },
-  { id: 'lluvia-mem', nombre: 'Lluvia con la Mem (מ)', linea: 'Al cargar: el barrido late en amarillo y la letra se descifra.', modo: 'carga', letra: 'mem', semilla: 11 },
-  { id: 'lluvia-tav', nombre: 'Lluvia con la Tav (ת)', linea: 'Al salir: la lluvia cae en rojo y la letra se descifra.', modo: 'salida', letra: 'tav', semilla: 13 }
+  { id: 'lluvia-alef', nombre: 'Lluvia con la Álef (א)', linea: 'Al entrar: cae la lluvia verde y la letra se descifra.', motor: 'lluvia', modo: 'entrada', letra: 'logo', vista: 'noche', semilla: 7, vistaSegundos: 3.1 },
+  { id: 'lluvia-mem', nombre: 'Lluvia con la Mem (מ)', linea: 'Al cargar: llueve en amarillo, el barrido late y la letra se descifra.', motor: 'lluvia', modo: 'carga', letra: 'mem', vista: 'noche', semilla: 11, vistaSegundos: 3.1 },
+  { id: 'lluvia-tav', nombre: 'Lluvia con la Tav (ת)', linea: 'Al salir: llueve en rojo y la letra se descifra.', motor: 'lluvia', modo: 'salida', letra: 'tav', vista: 'noche', semilla: 13, vistaSegundos: 3.1 },
+  { id: 'tres-en-raya', nombre: 'Tic Tac Toe en papiro', linea: 'Un juego de tres en raya dibujado a mano sobre papiro, con el sonido de la pluma.', motor: 'papiro', icono: 'tablero', vista: 'papiro', semilla: 21, vistaSegundos: 4.8 }
 ];
 
 /* La forma de la pantalla. `ancho` y `alto` son el tamaño LOGICO sobre el que se dibuja la

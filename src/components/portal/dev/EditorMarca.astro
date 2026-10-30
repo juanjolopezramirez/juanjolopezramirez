@@ -24,6 +24,14 @@ const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => (
 
   <!-- LA LISTA, por categorias -->
   <div class="marca__lista" data-marca-lista>
+    {/* Dos partes: Estáticos (imágenes: logos e íconos, SVG/PNG) y Dinámicos (videos MP4). Es un
+        grupo de dos botones con aria-pressed; el cambio lo hace Marca.js (ver()). */}
+    <div class="marca__selector" role="group" aria-label={tx.grupo}>
+      <button class="marca__selector-boton" type="button" data-marca-ver="estaticos" aria-pressed="true" aria-disabled="true">{tx.grupos.estaticos}</button>
+      <button class="marca__selector-boton" type="button" data-marca-ver="dinamicos" aria-pressed="false" aria-disabled="true">{tx.grupos.dinamicos}</button>
+    </div>
+
+    <div class="marca__grupo" data-marca-grupo="estaticos">
     <p class="portal__linea">{tx.pista}</p>
     {CATEGORIAS.map((c) => (
       <div class="marca__categoria">
@@ -46,8 +54,11 @@ const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => (
         </ul>
       </div>
     ))}
+    </div>
 
-    <!-- LAS ANIMACIONES: la lluvia de The Alef Code en un video MP4 (panel/dev/MarcaVideo.js) -->
+    <!-- LOS DINAMICOS: animaciones en video MP4 (panel/dev/MarcaVideo.js) -->
+    <div class="marca__grupo" data-marca-grupo="dinamicos" hidden>
+    <p class="portal__linea">{tx.pistaDinamicos}</p>
     <div class="marca__categoria">
       <h3 class="panel__subtitulo" id="marca-c-animaciones">{tx.animaciones} <span class="panel__cuenta">{ANIMACIONES.length}<span class="sr-only"> {tx.piezas}</span></span></h3>
       <p class="marca__linea">{tx.animacionesLinea}</p>
@@ -55,12 +66,15 @@ const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => (
         {ANIMACIONES.map((a) => (
           <li>
             <button class="marca__pieza" type="button" data-marca-anim={a.id} aria-disabled="true">
-              <span class="marca__miniatura" data-vista="noche" data-letra={a.letra}><AlefIcono nombre={a.letra} /></span>
+              <span class="marca__miniatura" data-vista={a.vista} data-letra={a.letra} data-motor={a.motor}>
+                {a.letra ? <AlefIcono nombre={a.letra} /> : <Icon id={a.icono} />}
+              </span>
               <span class="marca__nombre">{partes(a.nombre).map((p) => (p.he ? <span lang="he">{p.t}</span> : p.t))}</span>
             </button>
           </li>
         ))}
       </ul>
+    </div>
     </div>
   </div>
 

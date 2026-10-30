@@ -12,7 +12,7 @@ import { ANIMACIONES, FORMATOS, CALIDADES, DURACIONES } from '../../../../data/p
 import { capacidades, estimarMB, exportarVideo, pintarFotograma } from '../../animacion/video.js';
 
 const VISTA_LADO = 560;          // el lado mas largo de la muestra, en px
-const VISTA_SEGUNDOS = 3.1;      // el cuadro de muestra: cuando la letra ya casi esta entera
+const VISTA_SEGUNDOS = 3.1;      // el cuadro de muestra si la animacion no dice otro (`vistaSegundos`)
 
 export class MarcaVideo {
   /** @param {import('./Marca.js').Marca} marca */
@@ -113,7 +113,7 @@ export class MarcaVideo {
     try {
       await pintarFotograma({
         animacion: this.actual, formato, lienzo: this.lienzo,
-        ancho: Math.round(formato.ancho * VISTA_LADO / Math.max(formato.ancho, formato.alto)), segundos: VISTA_SEGUNDOS,
+        ancho: Math.round(formato.ancho * VISTA_LADO / Math.max(formato.ancho, formato.alto)), segundos: this.actual.vistaSegundos || VISTA_SEGUNDOS,
         vigente: () => turno === this.turnoVista
       });
     } catch (e) { /* sin muestra: lo demas sigue sirviendo */ }

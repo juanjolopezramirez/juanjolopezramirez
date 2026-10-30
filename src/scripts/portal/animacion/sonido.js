@@ -1,148 +1,114 @@
-/* EL SONIDO DEL VIDEO (solo existe en el archivo que se baja: el portal en vivo sigue en silencio).
+/* EL SONIDO DE LA LLUVIA (solo existe en el archivo que se baja: el portal en vivo sigue en silencio).
 
-   Se FABRICA, no se graba ni se descarga: unos cuantos osciladores y un poco de ruido, mezclados
-   en un OfflineAudioContext (un estudio de audio que trabaja mas rapido que el tiempo real y no
-   necesita altavoces ni permiso). El ruido sale del mismo azar con semilla que la imagen, asi el
-   mismo video suena igual cada vez.
+   Pedido del fundador (2026-10-30): «cinematografico, envolvente, que intrigue y sea sutil».
+   Se FABRICA con el estudio de animacion/estudio.js (una sala de eco largo y oscuro, niveles
+   bajos), sin grabar ni descargar nada, y con el azar de la semilla: suena igual cada vez.
 
-   Que suena:
-     · la lluvia: «ticks» suaves y agudos, tantos como signos cambian, mas fuertes cuanto mas
-       fuerte llueve (los pasos de la lluvia los da lluvia.js, cuadro a cuadro: imagen y sonido
-       van juntos por construccion);
-     · la letra: mientras se descifra, y un acorde al quedar entera;
-         entrada (א)  una subida de tono y un acorde brillante (la mayor);
-         carga (מ)    un pulso suave que late una vez por segundo, y un acorde tranquilo;
-         salida (ת)   una bajada de tono y, al final, el golpe grave de una pantalla de tubo que se apaga.
-   Todo entra con un fundido de 80 ms y sale con uno de medio segundo. */
+   Lo que suena, en capas:
+     · un ZUMBIDO grave que respira (el «cuerpo» de la escena), con acordes abiertos y un poco
+       inquietantes: la א en re con quinta y novena (abierto, expectante), la מ sobre do con una
+       septima menor (suspendido, latiendo), la ת sobre re con un semitono pegado (oscuro);
+     · gotas: la lluvia son notas sueltas, suaves, que caen en la sala y se apagan lejos (tantas
+       como signos cambian, mas fuertes cuanto mas fuerte llueve; imagen y sonido van juntos);
+     · una TENSION que sube mientras la letra se descifra (aire que se abre y un brillo agudo
+       apenas audible), y al quedar entera, el GOLPE: un grave que cae y se alarga en la sala;
+         א  un destello alto y esperanzado despues del golpe;
+         מ  un latido de fondo (un pulso grave por segundo, como el barrido amarillo);
+         ת  en vez de subir, el tono BAJA hasta el golpe, y el aire se va como el de una
+            pantalla que se apaga.
+   Todo entra despacio (casi un segundo) y se va con un fundido largo. */
 import { TIEMPO } from './lluvia.js';
+import { crearEstudio } from './estudio.js';
 
-export const FRECUENCIA = 48000;
-const NOTAS = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];        // pentatonica de do: los ticks nunca desafinan
+const ARMONIA = {
+  entrada: { notas: [73.42, 110, 164.81], gotas: [293.66, 349.23, 392, 440, 523.25, 587.33], raiz: 73.42 },
+  carga: { notas: [65.41, 98, 116.54], gotas: [261.63, 311.13, 392, 466.16, 523.25], raiz: 65.41 },
+  salida: { notas: [55, 73.42, 77.78], gotas: [233.08, 277.18, 311.13, 349.23], raiz: 73.42 }
+};
 
 /** @param {{ modo: string, duracion: number, fps: number, pasos: number[], fuerza: number[], azar: () => number }} p
     duracion en segundos; pasos[i] y fuerza[i], lo que paso en el cuadro i. */
 export async function sintetizar({ modo, duracion, fps, pasos, fuerza, azar }) {
-  const ctx = new OfflineAudioContext(2, Math.ceil(duracion * FRECUENCIA), FRECUENCIA);
+  const e = crearEstudio({ duracion, azar });
+  const { ctx } = e;
+  const a = ARMONIA[modo] || ARMONIA.entrada;
   const inicio = TIEMPO.letraInicio / 1000;
   const fin = (TIEMPO.letraInicio + TIEMPO.letraMs) / 1000;
 
-  /* La salida: un compresor suave (para que nada sature) y los fundidos */
-  const compresor = ctx.createDynamicsCompressor();
-  compresor.connect(ctx.destination);
-  const maestro = ctx.createGain();
-  maestro.connect(compresor);
-  maestro.gain.setValueAtTime(0, 0);
-  maestro.gain.linearRampToValueAtTime(0.9, 0.08);
-  maestro.gain.setValueAtTime(0.9, Math.max(0.1, duracion - 0.5));
-  maestro.gain.linearRampToValueAtTime(0, duracion);
+  /* 1. El zumbido, de principio a fin */
+  e.drone(a.notas, 0, duracion, 0.02, { subida: 1.6, bajada: 1.0, corte: modo === 'salida' ? 320 : 460 });
 
-  /* Ruido con semilla (dos segundos, se reutiliza) */
-  const ruido = ctx.createBuffer(1, FRECUENCIA * 2, FRECUENCIA);
-  const datos = ruido.getChannelData(0);
-  for (let i = 0; i < datos.length; i++) datos[i] = azar() * 2 - 1;
-  const fuenteRuido = (desde, hasta, destino) => {
-    const s = ctx.createBufferSource();
-    s.buffer = ruido;
-    s.loop = true;
-    s.connect(destino);
-    s.start(desde);
-    s.stop(hasta);
-    return s;
-  };
-  const tono = (tipo, frecuencia, desde, hasta, destino) => {
-    const o = ctx.createOscillator();
-    o.type = tipo;
-    o.frequency.setValueAtTime(frecuencia, desde);
-    o.connect(destino);
-    o.start(desde);
-    o.stop(hasta);
-    return o;
-  };
-  const volumen = (destino, nivel = 0) => { const g = ctx.createGain(); g.gain.value = nivel; g.connect(destino); return g; };
-  const sobre = (g, desde, subida, nivel, bajada) => {         // una envolvente: sube a `nivel` y se apaga
-    g.gain.setValueAtTime(0.0001, desde);
-    g.gain.linearRampToValueAtTime(nivel, desde + subida);
-    g.gain.exponentialRampToValueAtTime(0.0001, desde + subida + bajada);
-  };
-
-  /* LA LLUVIA: un tick por cuadro como mucho, con probabilidad segun cuantos signos cambiaron */
+  /* 2. Las gotas: notas sueltas y suaves que caen en la sala */
   for (let i = 0; i < pasos.length; i++) {
     const n = pasos[i];
-    if (!n || azar() > Math.min(1, n / 10)) continue;
-    const desde = i / fps + azar() * 0.02;
-    if (desde >= duracion - 0.05) continue;
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = azar() * 1.6 - 0.8;
-    pan.connect(maestro);
-    const g = volumen(pan);
-    sobre(g, desde, 0.002, 0.03 * Math.min(1, fuerza[i] || 0), 0.05);
-    tono('sine', NOTAS[(azar() * NOTAS.length) | 0] * (azar() < 0.3 ? 2 : 1), desde, desde + 0.07, g);
+    if (!n || azar() > Math.min(1, n / 22)) continue;
+    const desde = i / fps + azar() * 0.03;
+    if (desde >= duracion - 0.3) continue;
+    const g = e.voz(1.1, azar() * 1.4 - 0.7);
+    e.sobre(g, desde, 0.008, 0.03 * Math.min(1, fuerza[i] || 0), 0.6);
+    e.tono('sine', a.gotas[(azar() * a.gotas.length) | 0] * (azar() < 0.25 ? 2 : 1), desde, desde + 0.7, g);
   }
 
-  /* LA LETRA */
-  if (modo === 'entrada') {
-    const subida = volumen(maestro);
-    subida.gain.setValueAtTime(0, inicio);
-    subida.gain.linearRampToValueAtTime(0.1, fin - 0.1);
-    subida.gain.linearRampToValueAtTime(0, fin + 0.05);
-    const o = tono('triangle', 110, inicio, fin + 0.1, subida);
-    o.frequency.exponentialRampToValueAtTime(880, fin);
-    const filtro = ctx.createBiquadFilter();
-    filtro.type = 'bandpass';
-    filtro.frequency.setValueAtTime(300, inicio);
-    filtro.frequency.exponentialRampToValueAtTime(4000, fin);
-    const aire = volumen(maestro);
-    aire.gain.setValueAtTime(0, inicio);
-    aire.gain.linearRampToValueAtTime(0.05, fin - 0.1);
-    aire.gain.linearRampToValueAtTime(0, fin + 0.05);
-    filtro.connect(aire);
-    fuenteRuido(inicio, fin + 0.1, filtro);
-    for (const [f, nivel] of [[880, 0.14], [1318.5, 0.09], [1760, 0.04]]) {
-      const g = volumen(maestro);
-      sobre(g, fin, 0.01, nivel, 1.3);
-      tono('sine', f, fin, fin + 1.5, g);
-    }
-  } else if (modo === 'carga') {
-    /* un pulso por segundo (como el barrido amarillo): dos notas con el volumen subiendo y bajando */
-    const pulso = volumen(maestro, 0.035);
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 1;
-    const profundidad = ctx.createGain();
-    profundidad.gain.value = 0.03;
-    lfo.connect(profundidad);
-    profundidad.connect(pulso.gain);
-    lfo.start(0.2);
-    lfo.stop(duracion);
-    tono('sine', 330, 0.2, duracion, pulso);
-    tono('sine', 495, 0.2, duracion, pulso);
-    for (const [f, nivel] of [[659.25, 0.1], [987.77, 0.05]]) {
-      const g = volumen(maestro);
-      sobre(g, fin, 0.02, nivel, 1.4);
-      tono('sine', f, fin, fin + 1.6, g);
-    }
+  /* 3. La tension mientras se descifra la letra */
+  if (modo === 'salida') {
+    /* baja: un tono que cae hasta el golpe */
+    const g = e.voz(0.6);
+    g.gain.setValueAtTime(0.0001, inicio);
+    g.gain.linearRampToValueAtTime(0.05, inicio + 0.5);
+    g.gain.linearRampToValueAtTime(0.0001, fin + 0.1);
+    const f = e.filtro('lowpass', 900, 0.8, g);
+    const o = e.tono('sawtooth', 196, inicio, fin + 0.15, f);
+    o.frequency.exponentialRampToValueAtTime(42, fin);
   } else {
-    /* salida: baja de tono mientras se descifra, y al final el golpe grave de la pantalla que se apaga */
-    const baja = volumen(maestro);
-    baja.gain.setValueAtTime(0, inicio);
-    baja.gain.linearRampToValueAtTime(0.09, inicio + 0.3);
-    baja.gain.linearRampToValueAtTime(0, fin);
-    const filtro = ctx.createBiquadFilter();
-    filtro.type = 'lowpass';
-    filtro.frequency.value = 1800;
-    filtro.connect(baja);
-    const o = tono('sawtooth', 880, inicio, fin + 0.05, filtro);
-    o.frequency.exponentialRampToValueAtTime(55, fin);
-    const golpe = volumen(maestro);
-    sobre(golpe, fin, 0.005, 0.3, 0.9);
-    const grave = tono('sine', 70, fin, fin + 1, golpe);
-    grave.frequency.exponentialRampToValueAtTime(38, fin + 0.8);
-    const lpf = ctx.createBiquadFilter();
-    lpf.type = 'lowpass';
-    lpf.frequency.value = 900;
-    const soplo = volumen(maestro);
-    sobre(soplo, fin, 0.003, 0.12, 0.18);
-    lpf.connect(soplo);
-    fuenteRuido(fin, fin + 0.3, lpf);
+    /* sube: aire que se abre (ruido filtrado) y un brillo agudo apenas audible */
+    const aire = e.voz(0.8);
+    aire.gain.setValueAtTime(0.0001, inicio);
+    aire.gain.linearRampToValueAtTime(modo === 'carga' ? 0.07 : 0.1, fin - 0.05);
+    aire.gain.linearRampToValueAtTime(0.0001, fin + 0.15);
+    const banda = e.filtro('bandpass', 160, 2.2, aire);
+    banda.frequency.setValueAtTime(160, inicio);
+    banda.frequency.exponentialRampToValueAtTime(2800, fin);
+    e.fuenteRuido(inicio, fin + 0.2, banda);
+    const brillo = e.voz(1.0, 0.3);
+    brillo.gain.setValueAtTime(0.0001, inicio);
+    brillo.gain.linearRampToValueAtTime(0.014, fin);
+    brillo.gain.linearRampToValueAtTime(0.0001, fin + 1.2);
+    for (const k of [8, 12, 16]) e.tono('sine', a.raiz * k, inicio, fin + 1.3, brillo);
+  }
+
+  /* 4. El golpe, cuando la letra queda entera */
+  const nivelGolpe = modo === 'carga' ? 0.12 : modo === 'salida' ? 0.26 : 0.2;
+  const sub = e.voz(0.25);
+  e.sobre(sub, fin - 0.04, 0.012, nivelGolpe, 2.0);
+  const caida = e.tono('sine', 54, fin - 0.04, fin + 2.2, sub);
+  caida.frequency.exponentialRampToValueAtTime(30, fin + 1.8);
+  const cuerpo = e.voz(0.9);
+  e.sobre(cuerpo, fin - 0.04, 0.006, modo === 'salida' ? 0.1 : 0.07, 0.9);
+  e.fuenteRuido(fin - 0.04, fin + 1.2, e.filtro('lowpass', modo === 'salida' ? 520 : 380, 0.7, cuerpo));
+  const flor = e.voz(1.3, -0.2);                       // un acorde que solo se oye en la sala
+  e.sobre(flor, fin, 0.3, 0.035, 2.6);
+  for (const n of a.notas) { e.tono('sine', n * 2, fin, fin + 3.2, flor); e.tono('sine', n * 3, fin, fin + 3.2, flor); }
+
+  if (modo === 'entrada') {                            // un destello alto y esperanzado
+    const luz = e.voz(1.5, 0.4);
+    e.sobre(luz, fin + 0.12, 0.5, 0.014, 3.0);
+    e.tono('sine', 587.33, fin + 0.12, fin + 4, luz);
+    e.tono('sine', 880, fin + 0.12, fin + 4, luz);
+  } else if (modo === 'carga') {                       // el latido: un pulso grave por segundo, doble
+    for (let t = 0.25; t < duracion - 0.8; t += 1) {
+      for (const [dt, nivel] of [[0, 0.09], [0.28, 0.055]]) {
+        const g = e.voz(0.5);
+        e.sobre(g, t + dt, 0.006, nivel, 0.16);
+        e.tono('sine', 58, t + dt, t + dt + 0.3, g);
+      }
+    }
+  } else {                                             // salida: el aire se va, como una pantalla que se apaga
+    const aire = e.voz(0.7);
+    e.sobre(aire, fin - 0.02, 0.01, 0.07, 0.9);
+    const f = e.filtro('lowpass', 1400, 0.9, aire);
+    f.frequency.setValueAtTime(1400, fin);
+    f.frequency.exponentialRampToValueAtTime(70, fin + 0.9);
+    e.fuenteRuido(fin - 0.02, fin + 1.0, f);
   }
 
   return ctx.startRendering();

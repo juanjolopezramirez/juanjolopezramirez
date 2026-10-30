@@ -98,3 +98,19 @@
 .dev__opcion:has(input:disabled), .dev__casilla:has(input:disabled) { opacity: .6; cursor: not-allowed; }
 .marca__bajar[hidden] { display: none; }
 @media (forced-colors: active) { .marca__progreso { forced-color-adjust: auto; } }
+
+/* Estaticos | Dinamicos: dos botones juntos (aria-pressed); el elegido va lleno */
+.marca__selector { display: inline-flex; gap: 0; padding: 3px; border: 1px solid var(--raya-fuerte); border-radius: 999px; background: rgb(var(--luz) / .04); justify-self: start; }
+.marca__selector { max-width: 100%; }
+.marca__selector-boton { min-height: 44px; min-width: 7.4rem; padding: 0 1.2rem; text-align: center; border: 0; border-radius: 999px; background: none; font: inherit; font-size: .88rem; color: var(--tiza-2); cursor: pointer; transition: background-color .2s var(--ease), color .2s var(--ease); }
+.marca__selector-boton:hover { color: var(--tiza); }
+.marca__selector-boton[aria-pressed="true"] { background: var(--tiza); color: var(--noche); font-weight: 700; }
+.marca__selector-boton:focus-visible { outline: 2px solid var(--prompt); outline-offset: -3px; }
+.marca__selector-boton[aria-disabled="true"] { opacity: .6; cursor: progress; }
+.marca__grupo { display: grid; gap: 1.4rem; }
+.marca__grupo[hidden] { display: none; }
+/* La miniatura del Tic Tac Toe: papiro y tinta */
+.marca__miniatura[data-vista="papiro"] { background: #D2BC8A; color: #2A1B0E; }
+.marca__miniatura[data-motor="papiro"] .icon { width: 3rem; height: 3rem; }
+@media (prefers-reduced-motion: reduce) { .marca__selector-boton { transition: none; } }
+@media (forced-colors: active) { .marca__selector-boton[aria-pressed="true"] { background: Highlight; color: HighlightText; } .marca__selector { border-color: CanvasText; } }

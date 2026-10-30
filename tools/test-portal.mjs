@@ -617,7 +617,7 @@ const LL = await cargar('src/scripts/portal/animacion/lluvia.js');
 const grabadora = () => {
   const registro = [];
   const ctx = new Proxy({}, {
-    get: (o, k) => (k === 'createRadialGradient' ? (...a) => { registro.push(k + JSON.stringify(a)); return { addColorStop: (...b) => registro.push('stop' + JSON.stringify(b)) }; }
+    get: (o, k) => ((k === 'createRadialGradient' || k === 'createLinearGradient') ? (...a) => { registro.push(k + JSON.stringify(a)); return { addColorStop: (...b) => registro.push('stop' + JSON.stringify(b)) }; }
       : (...a) => registro.push(String(k) + JSON.stringify(a))),
     set: (o, k, v) => { registro.push(String(k) + '=' + (typeof v === 'object' ? 'objeto' : v)); return true; }
   });
@@ -666,7 +666,11 @@ ok('Animaciones: las opciones son pares (H.264), el 4K es 3840×2160 y cada una 
   }
   assert.equal(new Set(AN.ANIMACIONES.map((a) => a.id)).size, AN.ANIMACIONES.length);
   assert.equal(new Set(AN.ANIMACIONES.map((a) => a.semilla)).size, AN.ANIMACIONES.length, 'cada una, su semilla');
-  for (const a of AN.ANIMACIONES) { assert.ok(a.nombre && a.linea && ['entrada', 'carga', 'salida'].includes(a.modo) && ['logo', 'mem', 'tav'].includes(a.letra), a.id); }
+  for (const a of AN.ANIMACIONES) {
+    assert.ok(a.nombre && a.linea && ['lluvia', 'papiro'].includes(a.motor) && ['noche', 'papiro'].includes(a.vista) && a.vistaSegundos > 0, a.id);
+    if (a.motor === 'lluvia') assert.ok(['entrada', 'carga', 'salida'].includes(a.modo) && ['logo', 'mem', 'tav'].includes(a.letra), a.id);
+    else assert.ok(ICONS[a.icono], a.id + ': su icono');
+  }
   const v = es.panel.marca.video;
   for (const f of AN.FORMATOS) assert.ok(v.formatos[f.id], f.id);
   for (const c of AN.CALIDADES) assert.ok(v.calidades[c.id], c.id);
@@ -708,7 +712,7 @@ ok('Animaciones: cancelar corta en cualquier fase, un codificador atascado se co
   assert.match(v, /const PLAZO_MS = \d+;/);
   const plazo = Number((v.match(/const PLAZO_MS = (\d+);/) || [])[1]);
   assert.ok(plazo >= 10000 && plazo <= 60000, 'plazo razonable: ' + plazo);
-  for (const llamada of ['fuente.add(', 'sintetizar(', 'fuenteAudio.add(', 'output.finalize(']) {
+  for (const llamada of ['fuente.add(', 'sonido(', 'fuenteAudio.add(', 'output.finalize(']) {
     assert.ok(v.includes('esperar(' + llamada), llamada + ' pasa por esperar()');
   }
   assert.match(v, /await esperar\(output\.finalize\(\), senal\);\s*if \(senal && senal\.aborted\) throw new Error\('cancelado'\)/);
@@ -738,6 +742,95 @@ ok('Animaciones: la ficha nace apagada, se bloquea mientras trabaja, avisa sin l
   assert.match(js, /fieldset|FIELDSET/);
   assert.match(js, /this\.control\.abort\(\)/);
   assert.match(leer('src/scripts/portal/panel/dev/Marca.js'), /this\.cargaVideo \|\|= import\('\.\/MarcaVideo\.js'\)/);      // una sola carga y una sola ficha, aunque se pulse dos veces
+});
+const PA = await cargar('src/scripts/portal/animacion/papiro.js');
+const papiroRastro = (semilla, duracionMs = 6000, cuadros = 120) => {
+  const { ctx, registro } = grabadora();
+  const lienzoDe = () => ({ getContext: () => ctx });
+  const sim = PA.crearPapiro({ ancho: 1280, alto: 720, azar: LL.crearAzar(semilla), duracionMs, escala: 1, lienzoDe });
+  for (let n = 0; n < cuadros; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
+  return { huella: crypto.createHash('sha1').update(registro.join('|')).digest('hex'), llamadas: registro.length, sim };
+};
+ok('Papiro: el mismo juego sale igual con la misma semilla, el trazo se dibuja de verdad, y el juego cabe en el video mas corto', () => {
+  const a = papiroRastro(21), b = papiroRastro(21), c = papiroRastro(22);
+  assert.equal(a.huella, b.huella, 'misma semilla, mismo dibujo');
+  assert.notEqual(a.huella, c.huella, 'otra semilla, otra mano');
+  assert.ok(a.llamadas > 2000, 'dibuja: ' + a.llamadas);
+  /* 4 lineas de la rejilla + 3 X de dos trazos + 2 O + la raya que gana = 13 trazos */
+  const ev = a.sim.eventos;
+  assert.equal(ev.length, 4 + 3 * 2 + 2 + 1);
+  assert.equal(ev.filter((e) => e.ganadora).length, 1);
+  assert.ok(ev[ev.length - 1].ganadora, 'la ultima es la raya roja');
+  for (const e of ev) assert.ok(e.t1 > e.t0 && e.t0 >= 0, 'trazo con sentido');
+  for (const dur of [4000, 6000, 10000]) {
+    const sim = PA.crearPapiro({ ancho: 1280, alto: 720, azar: LL.crearAzar(21), duracionMs: dur, escala: 1, lienzoDe: () => ({ getContext: () => grabadora().ctx }) });
+    const ultimo = sim.eventos[sim.eventos.length - 1].t1;
+    assert.ok(ultimo <= dur - PA.PAPIRO.SALE_MS + 1, `${dur} ms: el juego acaba (${Math.round(ultimo)}) antes del desvanecido`);
+    assert.ok(sim.velocidad >= 1);
+  }
+  /* la partida es legal: X gana por la columna 1-4-7 y las casillas no se repiten */
+  const J = PA.PAPIRO.JUGADAS;
+  assert.equal(new Set(J.map((j) => j.casilla)).size, J.length);
+  assert.deepEqual(J.map((j) => j.quien), ['X', 'O', 'X', 'O', 'X']);
+  const x = J.filter((j) => j.quien === 'X').map((j) => j.casilla);
+  assert.deepEqual(PA.PAPIRO.GANADORA.filter((c) => x.includes(c)), PA.PAPIRO.GANADORA);
+});
+ok('Papiro: el juego empieza cuando acaba la entrada, la muestra enseña casi todo, y dibujar NO gasta azar', () => {
+  const anim = AN.ANIMACIONES.find((a) => a.id === 'tres-en-raya');
+  const nuevo = (dur, azar = LL.crearAzar(21)) => PA.crearPapiro({ ancho: 1280, alto: 720, azar, duracionMs: dur, escala: 1, lienzoDe: () => ({ getContext: () => grabadora().ctx }) });
+  for (const dur of [4000, 6000, 10000]) {
+    const ev = nuevo(dur).eventos;
+    assert.ok(ev[0].t0 >= PA.PAPIRO.ENTRA_MS, `${dur} ms: el primer trazo (${Math.round(ev[0].t0)}) llega despues de la entrada`);
+    assert.ok(ev[ev.length - 1].t1 <= dur - PA.PAPIRO.SALE_MS + 1, `${dur} ms: el ultimo acaba antes del desvanecido`);
+  }
+  assert.ok(nuevo(6000).eventos.at(-1).t1 <= anim.vistaSegundos * 1000, 'la muestra (a ' + anim.vistaSegundos + ' s) enseña la raya que gana');
+  /* dibujar es puro: ni una llamada al azar (si no, el video cambiaria segun cuantas veces se dibuje) */
+  let usos = 0;
+  const base = LL.crearAzar(21);
+  const sim = nuevo(6000, () => { usos++; return base(); });
+  const antes = usos;
+  const { ctx } = grabadora();
+  for (let n = 0; n < 12; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
+  assert.equal(usos, antes, 'pintar() no llama al azar');
+});
+ok('Lluvia: cada letra llueve en SU color (verde, amarillo, rojo)', () => {
+  const t = leer('src/scripts/portal/animacion/lluvia.js');
+  assert.match(t, /entrada: \{ color: VERDE, brillo: '0,255,102', estela: VERDE \}/);
+  assert.match(t, /carga: \{ color: AMARILLO, brillo: '255,214,10', estela: AMARILLO \}/);
+  assert.match(t, /salida: \{ color: ROJO, brillo: '255,59,59', estela: ROJO \}/);
+});
+ok('Sonido: lo comparte un estudio con sala de eco, compresor y fundidos; sin Math.random; la lluvia y el papiro lo usan', () => {
+  const e = leer('src/scripts/portal/animacion/estudio.js');
+  assert.match(e, /createConvolver\(\)/);
+  assert.match(e, /createDynamicsCompressor\(\)/);
+  assert.match(e, /maestro\.gain\.linearRampToValueAtTime\(0, duracion\)/);   // se va con un fundido
+  for (const f of ['estudio', 'sonido', 'sonidoPapiro', 'papiro']) {
+    const t = leer(`src/scripts/portal/animacion/${f}.js`).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/Math\.random|new Worker|innerHTML|localStorage|sessionStorage|eval\(|createObjectURL/.test(t), f);
+  }
+  assert.match(leer('src/scripts/portal/animacion/sonido.js'), /from '\.\/estudio\.js'/);
+  assert.match(leer('src/scripts/portal/animacion/sonidoPapiro.js'), /from '\.\/estudio\.js'/);
+  const v = leer('src/scripts/portal/animacion/video.js');
+  assert.match(v, /animacion\.motor === 'papiro'/);
+  assert.match(v, /sintetizarPapiro\(\{ duracion, eventos: sim\.eventos/);
+});
+ok('Brand Assets: Estáticos y Dinámicos (dos partes), Let Be con su logo NUEVO y su ícono, y sin el Lazo equivocado ni el Let Be viejo', () => {
+  const html = leer('src/components/portal/dev/EditorMarca.astro');
+  assert.match(html, /role="group" aria-label=\{tx\.grupo\}/);
+  assert.match(html, /data-marca-ver="estaticos" aria-pressed="true"/);
+  assert.match(html, /data-marca-ver="dinamicos" aria-pressed="false"/);
+  assert.match(html, /data-marca-grupo="estaticos"/);
+  assert.match(html, /data-marca-grupo="dinamicos" hidden/);
+  const marca = leer('src/scripts/portal/panel/dev/Marca.js');
+  assert.match(marca, /ver\(grupo\) \{/);
+  assert.match(marca, /this\.ver\('estaticos'\)/);                 // al salir se vuelve a los estaticos
+  for (const k of ['grupo', 'pistaDinamicos']) assert.ok(es.panel.marca[k], k);
+  for (const k of ['estaticos', 'dinamicos']) assert.ok(es.panel.marca.grupos[k], k);
+  const ids = M.ACTIVOS.map((a) => a.id);
+  assert.ok(ids.includes('let-be') && ids.includes('let-be-icono'), 'Let Be: palabra e ícono');
+  assert.ok(!ids.includes('let-be-color') && !fs.existsSync(path.join(raiz, 'public/assets/marca/let-be-color.svg')), 'el Let Be viejo ya no está');
+  assert.ok(!ids.includes('eje-lazo') && !fs.existsSync(path.join(raiz, 'public/assets/fraterni/ejes/lazo.svg')), 'el Lazo equivocado ya no está');
+  assert.ok(AN.ANIMACIONES.some((a) => a.id === 'tres-en-raya' && a.motor === 'papiro'));
 });
 ok('la bitacora: cada paso que se escribe tiene su texto', () => {
   const pasos = ['src/scripts/portal/entrar.js', 'src/scripts/portal/panel.js']

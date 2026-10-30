@@ -21,6 +21,10 @@
    que no se repita ningun id, que cada pieza «uno» SI cambie de color y que no haya marcas de
    clientes. (Ficha de lo «fijo»: Marca.js le esconde los colores.)
 
+   Let Be (2026-10-30): el logo es el NUEVO (la palabra, projects/let-be.svg, y su ícono, avatars/let-be.svg: los de la
+   reestructuracion a «Let Be Develop»). El «Let Be a color» viejo (webIcons/letbeLogo(Color)) se quito.
+   El eje «El Lazo» (Bond) se quito hasta que llegue su archivo correcto (`fraterni Icon/Axis/bondCard.svg` no lo es).
+
    NO entra `mark-icon.svg` («marca en dos tintas»): es la misma marca con un estilo que cambia
    de color segun el tema del sistema, asi que lo que se baja dependeria del computador. La
    pieza «Marca» ya ofrece Iris y Hueso. */
@@ -31,7 +35,7 @@ export const CATEGORIAS = [
   { id: 'letbe', titulo: 'Let Be', linea: 'La casa de ser encontrado.' },
   { id: 'recvid', titulo: 'Recvid', linea: 'La casa de ser recordado.' },
   { id: 'fraterni', titulo: 'Fraterni', linea: 'La casa matriz y sus productos.' },
-  { id: 'ejes', titulo: 'Fraterni · Los cuatro ejes', linea: 'El Centro, el Lazo, la Base y el Entorno.' },
+  { id: 'ejes', titulo: 'Fraterni · Los cuatro ejes', linea: 'El Centro, la Base y el Entorno (falta el Lazo: el archivo que llegó no era el correcto).' },
   { id: 'principios', titulo: 'Fraterni · Los cuatro principios', linea: 'Propósito, carácter, presencia y conciencia.' },
   { id: 'permanentes', titulo: 'Fraterni · Los tres permanentes', linea: 'Fe, esperanza y amor.' },
   { id: 'otros', titulo: 'Otros proyectos', linea: 'Cordillera Unida FC y Nada que demostrar.' }
@@ -50,7 +54,7 @@ export const ACTIVOS = [
 
   /* Let Be */
   { id: 'let-be', categoria: 'letbe', nombre: 'Let Be', ruta: '/assets/projects/let-be.svg', colores: 'uno', vista: 'noche' },
-  { id: 'let-be-color', categoria: 'letbe', nombre: 'Let Be a color', ruta: '/assets/marca/let-be-color.svg', colores: 'fijo', vista: 'hueso' },
+  { id: 'let-be-icono', categoria: 'letbe', nombre: 'Let Be (ícono)', ruta: '/assets/avatars/let-be.svg', colores: 'uno', vista: 'noche' },
 
   /* Recvid */
   { id: 'recvid', categoria: 'recvid', nombre: 'Recvid', ruta: '/assets/projects/recvid.svg', colores: 'uno', vista: 'noche' },
@@ -66,7 +70,6 @@ export const ACTIVOS = [
 
   /* Los cuatro ejes */
   { id: 'eje-centro', categoria: 'ejes', nombre: 'El Centro', ruta: '/assets/fraterni/ejes/centro.svg', colores: 'fijo', vista: 'noche' },
-  { id: 'eje-lazo', categoria: 'ejes', nombre: 'El Lazo', ruta: '/assets/fraterni/ejes/lazo.svg', colores: 'fijo', vista: 'noche' },
   { id: 'eje-base', categoria: 'ejes', nombre: 'La Base', ruta: '/assets/fraterni/ejes/base.svg', colores: 'fijo', vista: 'noche' },
   { id: 'eje-entorno', categoria: 'ejes', nombre: 'El Entorno', ruta: '/assets/fraterni/ejes/entorno.svg', colores: 'fijo', vista: 'noche' },
 
