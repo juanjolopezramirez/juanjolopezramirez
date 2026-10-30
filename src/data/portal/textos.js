@@ -145,12 +145,44 @@ export const PORTAL_TEXTOS = {
         trabajos: { titulo: 'Trabajos', linea: 'Las empresas con las que he trabajado.' },
         libros: { titulo: 'Recursos', linea: 'Lo que subo a Recursos.' },
         camino: { titulo: 'Camino', linea: 'Las etapas de por dónde he caminado.' },
+        marca: { titulo: 'Brand Assets', linea: 'Mis logos e íconos, listos para bajar.' },
         accesos: { titulo: 'Compartir', linea: 'Tú decides quién pasa.' },
         seguridad: { titulo: 'Configuración', linea: 'Un código de tu celular para entrar como admin.' }
       },
       /* La barra de abajo del telefono (como la de una app) y su boton «Más» */
       barra: 'Secciones principales',
       mas: 'Más',
+      /* Brand Assets (panel/dev/Marca.js): elegir una pieza, su color, su fondo y su tamaño, y bajarla */
+      marca: {
+        pista: 'Elige una pieza. Verás cómo queda y la bajas en SVG o en PNG.',
+        volver: 'Elegir otra pieza',
+        piezas: 'piezas',
+        color: 'Color',
+        colorFijo: 'Esta pieza tiene varios colores y sale como está dibujada.',
+        original: 'Como está dibujada',
+        otro: 'Otro color',
+        otroEtiqueta: 'Color (#RRGGBB)',
+        otroAyuda: 'Seis letras o números, por ejemplo #00FF66.',
+        tonos: { verde: 'Verde', blanco: 'Blanco', hueso: 'Hueso', pino: 'Pino', negro: 'Negro', rojo: 'Rojo', amarillo: 'Amarillo', iris: 'Iris' },
+        fondo: 'Fondo',
+        fondos: { transparente: 'Sin fondo', noche: 'Noche', hueso: 'Hueso', blanco: 'Blanco', negro: 'Negro' },
+        margen: 'Con un poco de aire alrededor',
+        formato: 'Formato',
+        formatos: { svg: 'SVG (vectorial, escala sin perder nada)', png: 'PNG (imagen)' },
+        tamano: 'Tamaño del lado más largo (solo para PNG)',
+        preparando: 'Preparando {archivo}…',
+        tamanoPx: '{n} px',
+        bajar: 'Bajar',
+        listo: 'Listo: se bajó {archivo}.',
+        vista: 'Así queda',
+        sinFondo: 'Sin fondo: lo que ves detrás es solo para que se lea.',
+        errores: {
+          archivo: 'No pude abrir esta pieza. Revisa tu internet e intenta otra vez.',
+          imagen: 'No pude dibujar esta pieza.',
+          color: 'Escribe el color con seis letras o números, como #00FF66.',
+          bajar: 'No pude preparar el archivo. Prueba con un tamaño más chico.'
+        }
+      },
       /* Recursos: antes de subir algo, se elige que (libros hoy; videos y escritos, luego) */
       recursos: {
         pregunta: '¿Qué vas a subir?',

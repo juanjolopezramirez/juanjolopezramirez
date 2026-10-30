@@ -133,6 +133,7 @@ function iniciar(raiz) {
   const perezosas = {
     libros: () => import('./panel/dev/EditorLibro.js').then((m) => new m.EditorLibro(raiz, ctx)),
     camino: () => import('./panel/dev/EditorEtapa.js').then((m) => new m.EditorEtapa(raiz, ctx)),
+    marca: () => import('./panel/dev/Marca.js').then((m) => new m.Marca(raiz, ctx)),
     trabajos: () => import('./panel/dev/EditorCasa.js').then((m) => new m.EditorTrabajos(raiz, ctx)),
     proyectos: () => import('./panel/dev/EditorCasa.js').then((m) => new m.EditorProyectos(raiz, ctx))
   };

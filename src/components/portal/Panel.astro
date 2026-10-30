@@ -9,6 +9,7 @@ import { SECCIONES, GRUPOS, MODOS, HECHAS, BARRA, enBarra } from '../../data/por
 import EditorLibro from './dev/EditorLibro.astro';
 import EditorEtapa from './dev/EditorEtapa.astro';
 import EditorCasa from './dev/EditorCasa.astro';
+import EditorMarca from './dev/EditorMarca.astro';
 import '../../styles/portal.css';
 import '../../styles/panel.css';
 import '../../styles/dev.css';
@@ -242,6 +243,7 @@ const seccion = (id) => SECCIONES.find((x) => x.id === id);
           )}
           {(s.id === 'trabajos' || s.id === 'proyectos') && <EditorCasa tx={p.dev} clase={s.id} />}
           {s.id === 'camino' && <EditorEtapa tx={p.dev} />}
+          {s.id === 'marca' && <EditorMarca tx={p.marca} />}
 
           {!hecha(s.id) && (
             <div class="panel__pronto">

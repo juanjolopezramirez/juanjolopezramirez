@@ -1,0 +1,122 @@
+---
+/* Developer-Mode → Brand Assets: la lista de logos e iconos por categoria y, al elegir uno, su
+   ficha para bajarlo (panel/dev/Marca.js). La lista sale del catalogo (data/portal/marca.js):
+   se arma AQUI, al compilar, asi que no hay nada que inyectar con innerHTML.
+
+   Las miniaturas son <img> de los mismos archivos (son decoracion: el nombre va en el texto
+   del boton). Las tres letras en pixeles van en linea (AlefIcono) con su color fijo. */
+import Icon from '../../Icon.astro';
+import AlefIcono from '../AlefIcono.astro';
+import { CATEGORIAS, ACTIVOS, TONOS, FONDOS, TAMANOS } from '../../../data/portal/marca.js';
+import '../../../styles/marca.css';
+
+const { tx } = Astro.props;
+const de = (cat) => ACTIVOS.filter((a) => a.categoria === cat);
+/* Las letras hebreas llevan su idioma (un lector en español no las lee): «Álef (א)» sale como
+   «Álef (» + <span lang="he">א</span> + «)». */
+const HEBREO = /[֐-׿]/;
+const partes = (texto) => texto.split(/([֐-׿]+)/).filter(Boolean).map((t) => ({ t, he: HEBREO.test(t) }));
+---
+<div class="dev marca" data-dev="marca">
+  <p class="panel__aviso" data-aviso role="status" tabindex="-1" hidden></p>
+  <p class="portal__error" data-error role="alert" hidden></p>
+
+  <!-- LA LISTA, por categorias -->
+  <div class="marca__lista" data-marca-lista>
+    <p class="portal__linea">{tx.pista}</p>
+    {CATEGORIAS.map((c) => (
+      <div class="marca__categoria">
+        <h3 class="panel__subtitulo" id={`marca-c-${c.id}`}>{c.titulo} <span class="panel__cuenta">{de(c.id).length}<span class="sr-only"> {tx.piezas}</span></span></h3>
+        <p class="marca__linea">{c.linea}</p>
+        <ul class="marca__rejilla" role="list" aria-labelledby={`marca-c-${c.id}`}>
+          {de(c.id).map((a) => (
+            <li>
+              {/* aria-disabled hasta que Marca.js carga y le pone el clic (si no, se veria viva y no haria nada) */}
+              <button class="marca__pieza" type="button" data-marca-abrir={a.id} aria-disabled="true">
+                <span class="marca__miniatura" data-vista={a.vista} data-letra={a.letra}>
+                  {a.letra
+                    ? <AlefIcono nombre={a.letra} />
+                    : <img src={a.ruta} alt="" loading="lazy" decoding="async" />}
+                </span>
+                <span class="marca__nombre">{partes(a.nombre).map((p) => (p.he ? <span lang="he">{p.t}</span> : p.t))}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <!-- LA FICHA de la pieza elegida: como queda, y sus opciones -->
+  <div class="marca__ficha" data-marca-ficha hidden>
+    <button class="panel__volver" type="button" data-marca-volver><Icon id="pliegue" /><span>{tx.volver}</span></button>
+    <h3 class="panel__subtitulo marca__titulo" tabindex="-1" data-marca-titulo></h3>
+    <p class="marca__linea" data-marca-categoria></p>
+
+    <div class="marca__cuerpo">
+    <div class="marca__izquierda">
+    <div class="marca__vista" data-marca-caja data-fondo="noche">
+      {/* Marca.js le pone la pieza al abrirla; mientras, un SVG vacio (nunca un cuadro roto) */}
+      <img class="marca__imagen" data-marca-imagen alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%2F%3E" />
+    </div>
+    <p class="marca__nota" data-marca-sinfondo>{tx.sinFondo}</p>
+    </div>
+
+    <form class="dev__form marca__form" data-marca-form novalidate>
+      <fieldset class="dev__grupo" data-marca-color>
+        <legend class="portal__etiqueta">{tx.color}</legend>
+        <div class="dev__casillas">
+          <label class="dev__casilla"><input type="radio" name="color" value="original" checked /><span>{tx.original}</span></label>
+          {TONOS.map((t) => (
+            <label class="dev__casilla">
+              <input type="radio" name="color" value={t.id} />
+              <span class="marca__muestra" data-tono={t.id} aria-hidden="true"></span><span>{tx.tonos[t.id]}</span>
+            </label>
+          ))}
+          <label class="dev__casilla"><input type="radio" name="color" value="otro" /><span>{tx.otro}</span></label>
+        </div>
+        <div class="dev__campo" data-marca-otro hidden>
+          <label class="portal__etiqueta" for="marca-hex">{tx.otroEtiqueta}</label>
+          <input class="portal__entrada dev__mono dev__corto" id="marca-hex" name="hex" maxlength="7" autocomplete="off" spellcheck="false" aria-describedby="marca-hex-ayuda" />
+          <p class="portal__ayuda" id="marca-hex-ayuda">{tx.otroAyuda}</p>
+          <p class="portal__error" id="marca-hex-error" data-marca-hex-error role="alert" hidden></p>
+        </div>
+      </fieldset>
+      <p class="marca__nota" data-marca-fijo hidden>{tx.colorFijo}</p>
+
+      <fieldset class="dev__grupo">
+        <legend class="portal__etiqueta">{tx.fondo}</legend>
+        <div class="dev__casillas">
+          {FONDOS.map((f, i) => (
+            <label class="dev__casilla">
+              <input type="radio" name="fondo" value={f.id} checked={i === 0} />
+              {f.hex && <span class="marca__muestra" data-fondo-muestra={f.id} aria-hidden="true"></span>}<span>{tx.fondos[f.id]}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label class="dev__casilla"><input type="checkbox" name="margen" /><span>{tx.margen}</span></label>
+
+      <fieldset class="dev__grupo">
+        <legend class="portal__etiqueta">{tx.formato}</legend>
+        <div class="dev__opciones">
+          <label class="dev__opcion"><input type="radio" name="formato" value="svg" checked /><span class="dev__opcion-nombre">{tx.formatos.svg}</span></label>
+          <label class="dev__opcion"><input type="radio" name="formato" value="png" /><span class="dev__opcion-nombre">{tx.formatos.png}</span></label>
+        </div>
+        <div class="dev__campo">
+          <label class="portal__etiqueta" for="marca-tamano">{tx.tamano}</label>
+          <select class="portal__entrada dev__select dev__corto" id="marca-tamano" name="tamano" disabled>
+            {TAMANOS.map((n) => <option value={n} selected={n === 1024}>{tx.tamanoPx.replace('{n}', n)}</option>)}
+          </select>
+        </div>
+      </fieldset>
+
+      <div class="dev__acciones">
+        <button class="portal__boton marca__bajar" type="submit" data-marca-bajar>{tx.bajar}</button>
+      </div>
+      <p class="portal__error" data-marca-bajar-error role="alert" hidden></p>
+      <p class="marca__hecho" data-marca-hecho role="status"></p>
+    </form>
+    </div>
+  </div>
+</div>

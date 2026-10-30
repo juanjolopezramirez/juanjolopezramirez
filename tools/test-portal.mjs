@@ -498,6 +498,117 @@ ok('salir: la ת se ve SALIDA_MS (<= 600) EN PARALELO con el cierre real, y 0 co
   assert.ok(es.panel.saliendo, 'el texto «Saliendo…»');
   assert.ok(typeof es.panel.saliendo === 'string' && !es.panel.saliendo.includes('?'));
 });
+console.log('Brand Assets');
+const M = await cargar('src/data/portal/marca.js');
+const SV = await cargar('src/scripts/portal/marca/svg.js');
+const raizPublic = (ruta) => path.join(raiz, 'public', ruta);
+ok('Brand Assets: cada pieza existe, tiene su categoria y nombre, y lo «fijo» no ofrece colores; sin marcas de clientes ni iconos de la web', () => {
+  assert.equal(new Set(M.ACTIVOS.map((a) => a.id)).size, M.ACTIVOS.length, 'ids repetidos');
+  const cats = new Set(M.CATEGORIAS.map((c) => c.id));
+  assert.equal(cats.size, M.CATEGORIAS.length);
+  for (const c of M.CATEGORIAS) assert.ok(c.titulo && c.linea && M.ACTIVOS.some((a) => a.categoria === c.id), 'categoria vacia: ' + c.id);
+  for (const a of M.ACTIVOS) {
+    assert.ok(cats.has(a.categoria), a.id);
+    assert.ok(a.nombre && /^[a-z0-9-]+$/.test(a.id), a.id);
+    assert.ok(['uno', 'fijo'].includes(a.colores), a.id);
+    assert.ok(['noche', 'hueso'].includes(a.vista), a.id);
+    assert.ok(!!a.ruta !== !!a.letra, a.id + ': o ruta o letra');
+    if (a.ruta) {
+      assert.ok(fs.existsSync(raizPublic(a.ruta)), 'no existe ' + a.ruta);
+      const svg = fs.readFileSync(raizPublic(a.ruta), 'utf8');
+      assert.ok(SV.esSeguro(svg), a.ruta + ' no es un SVG seguro');
+      assert.ok(SV.leerCaja(svg), a.ruta + ' sin caja');
+    } else assert.ok(['logo', 'mem', 'tav'].includes(a.letra), a.id);
+    if (a.base) assert.ok(SV.colorValido(a.base), a.id);
+    /* una pieza «uno» SI cambia de color; una con un estilo por tema (como mark-icon) no entra */
+    const texto = a.ruta ? fs.readFileSync(raizPublic(a.ruta), 'utf8') : fs.readFileSync(path.join(raiz, 'src/assets/alef', (a.letra === 'logo' ? 'logo' : a.letra) + '.svg'), 'utf8');
+    if (a.colores === 'uno') assert.ok(SV.recolorar(texto, '#123456').includes('#123456'), a.id + ': «uno» pero no tiene nada que recolorar');
+    assert.ok(!/prefers-color-scheme/.test(texto), a.id + ': su color cambiaria segun el tema del sistema');
+  }
+  /* solo los proyectos: nada de clientes, redes ni banderas */
+  const rutas = M.ACTIVOS.map((a) => a.ruta || '').join(' ');
+  assert.ok(!/partners|icons\/|flag-|instagram|mini-logo/.test(rutas), 'solo logos de sus proyectos');
+  assert.ok(M.TONOS.every((t) => SV.colorValido(t.hex)) && M.FONDOS.every((f) => f.hex === null || SV.colorValido(f.hex)));
+  assert.ok(M.TAMANOS.every((n) => n <= M.TAMANO_MAX) && M.TAMANO_MAX <= 4096);
+  for (const t of M.TONOS) assert.ok(es.panel.marca.tonos[t.id], t.id);
+  for (const f of M.FONDOS) assert.ok(es.panel.marca.fondos[f.id], f.id);
+  for (const k of ['svg', 'png']) assert.ok(es.panel.marca.formatos[k], k);
+  assert.ok(es.panel.marca.tamanoPx.includes('{n}'));
+});
+ok('Brand Assets: recolorar, fondo, margen y medida (las piezas puras)', () => {
+  const svg = '<svg width="10" height="20" viewBox="0 0 10 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0L10 20" fill="white" fill-rule="evenodd"/><path d="M1 1" stroke="currentColor"/><path d="M2 2" fill="none"/></svg>';
+  const r = SV.recolorar(svg, '#FF3B3B');
+  assert.equal((r.match(/fill="#FF3B3B"/g) || []).length, 1);
+  assert.match(r, /stroke="#FF3B3B"/);
+  assert.match(r, /fill-rule="evenodd"/, 'no toca fill-rule');
+  assert.equal((r.match(/fill="none"/g) || []).length, 2, '«none» se queda');
+  assert.throws(() => SV.recolorar(svg, 'rojo'));
+  assert.throws(() => SV.recolorar(svg, '#FF3B3B" onload="x'));
+  assert.equal(SV.normalizarColor(' 00ff66 '), '#00ff66');
+  assert.equal(SV.normalizarColor('nada'), 'nada');
+  const caja = SV.leerCaja(svg);
+  assert.deepEqual(caja, { x: 0, y: 0, w: 10, h: 20 });
+  const f = SV.conFondo(svg, caja, '#050806', 0.1);
+  assert.deepEqual(f.caja, { x: -2, y: -2, w: 14, h: 24 });
+  assert.match(f.svg, /<svg viewBox="-2 -2 14 24"[^>]*>/);
+  assert.ok(!/ width="10"| height="20"/.test(f.svg.match(/<svg\b[^>]*>/)[0]), 'quita el ancho y alto de siempre');
+  assert.match(f.svg, /<rect x="-2" y="-2" width="14" height="24" fill="#050806"\/>/);
+  assert.ok(!/<rect/.test(SV.conFondo(svg, caja, null).svg), 'sin fondo, sin rect');
+  assert.throws(() => SV.conFondo(svg, caja, 'azul'));
+  assert.deepEqual(SV.medidasPara(caja, 1000), { w: 500, h: 1000 });
+  assert.deepEqual(SV.medidasPara(caja, 99999), { w: 2048, h: 4096 }, 'tope de 4096');
+  assert.equal(SV.conMedida('<svg viewBox="0 0 1 1">', 5.4, 8.6), '<svg width="5" height="9" preserveAspectRatio="none" viewBox="0 0 1 1">', 'el fondo llena el lienzo aunque se redondee');
+  assert.equal(SV.mejorFondo('#000000'), 'hueso'); assert.equal(SV.mejorFondo('#263B28'), 'hueso');
+  assert.equal(SV.mejorFondo('#FFFFFF'), 'noche'); assert.equal(SV.mejorFondo('#00FF66'), 'noche'); assert.equal(SV.mejorFondo('nada'), 'noche');
+  assert.deepEqual(SV.leerCaja('<svg width="100%" height="50%">'), null, 'un ancho en % no sirve para medir');
+  assert.equal(SV.nombreDeArchivo({ id: 'Let Be', color: 'original', fondo: 'transparente', lado: 512, formato: 'svg' }), 'let-be.svg');
+  assert.equal(SV.nombreDeArchivo({ id: 'mem', color: '#FFD60A', fondo: 'noche', lado: 1024, formato: 'png' }), 'mem-ffd60a-sobre-noche-1024px.png');
+  assert.ok(!/[^a-z0-9.-]/.test(SV.nombreDeArchivo({ id: '../x', color: '"><b>', fondo: '/', lado: 1, formato: 'png' })));
+});
+ok('Brand Assets: un SVG con guiones, enlaces, imagenes o cosas de afuera NO se pinta ni se baja', () => {
+  const bien = (t) => assert.ok(SV.esSeguro(t), t);
+  const mal = (t) => assert.ok(!SV.esSeguro(t), String(t).slice(0, 60));
+  bien('<svg viewBox="0 0 1 1"><defs><clipPath id="a"><rect/></clipPath></defs><path clip-path="url(#a)" d="M0 0"/></svg>');
+  bien('<svg viewBox="0 0 1 1"><style>.a{fill:#fff}</style><path class="a" d="M0 0"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><script>alert(1)</script></svg>');
+  mal('<svg viewBox="0 0 1 1" onload="x()"><path d="M0 0"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><a href="https://x.com"><path d="M0 0"/></a></svg>');
+  mal('<svg viewBox="0 0 1 1"><image href="https://x.com/a.png"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><foreignObject><div/></foreignObject></svg>');
+  mal('<svg viewBox="0 0 1 1"><use href="#a"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><path fill="url(https://x.com/a)" d="M0 0"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><style>@import "https://x.com/a.css";</style></svg>');
+  mal('<svg xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><svg:script>alert(1)</svg:script></svg>');
+  mal('<svg viewBox="0 0 1 1"><path style="fill:u&#114;l(https://x.com)" d="M0 0"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><style>@\\69mport "https://x.com"</style></svg>');
+  mal('<svg viewBox="0 0 1 1"><style>a{background:image-set("https://x.com/a.png" 1x)}</style></svg>');
+  mal('<svg viewBox="0 0 1 1"><animate attributeName="href" values="https://x.com"/></svg>');
+  mal('<svg viewBox="0 0 1 1"><feImage href="https://x.com/a.png"/></svg>');
+  mal('<html><body>no soy un svg</body></html>');
+  mal('');
+  mal(null);
+  mal('<svg viewBox="0 0 1 1">' + 'x'.repeat(2_100_000) + '</svg>');
+});
+ok('Brand Assets: la seccion esta en Developer-Mode, va a «Más» en el telefono y lo suyo no usa almacenamiento ni innerHTML', () => {
+  const sec = S.SECCIONES.find((x) => x.id === 'marca');
+  assert.ok(sec && sec.grupo === 'dev' && sec.admin && ICONS[sec.icono], 'seccion marca');
+  assert.ok(S.HECHAS.includes('marca'));
+  assert.ok(!S.enBarra('marca'), 'la barra del telefono esta llena a 4: «Brand Assets» sale en «Más»');
+  assert.equal(es.panel.secciones.marca.titulo, 'Brand Assets');
+  for (const k of ['pista', 'volver', 'color', 'colorFijo', 'original', 'otro', 'otroEtiqueta', 'otroAyuda', 'fondo', 'margen', 'formato', 'tamano', 'preparando', 'bajar', 'listo', 'vista', 'sinFondo', 'piezas']) assert.ok(es.panel.marca[k], k);
+  for (const k of ['archivo', 'imagen', 'color', 'bajar']) assert.ok(es.panel.marca.errores[k], k);
+  assert.ok(es.panel.marca.listo.includes('{archivo}'));
+  assert.match(leer('src/components/portal/Panel.astro'), /s\.id === 'marca' && <EditorMarca tx=\{p\.marca\} \/>/);
+  assert.match(leer('src/scripts/portal/panel.js'), /marca: \(\) => import\('\.\/panel\/dev\/Marca\.js'\)/);
+  for (const f of ['src/scripts/portal/panel/dev/Marca.js', 'src/scripts/portal/marca/svg.js']) {
+    assert.ok(!/localStorage|sessionStorage|innerHTML|insertAdjacentHTML|eval\(|new Function|document\.write/.test(leer(f)), f);
+  }
+  /* los archivos que se bajan se sueltan: nada de direcciones temporales que se queden */
+  assert.match(leer('src/scripts/portal/panel/dev/Marca.js'), /URL\.revokeObjectURL/);
+  const html = leer('src/components/portal/dev/EditorMarca.astro');
+  assert.ok(!/\sstyle=|\son[a-z]+=/.test(html), 'sin style= ni manejadores en linea (la politica de seguridad)');
+  assert.ok(!/src="https?:/.test(html), 'las miniaturas son del propio sitio');
+});
 ok('la bitacora: cada paso que se escribe tiene su texto', () => {
   const pasos = ['src/scripts/portal/entrar.js', 'src/scripts/portal/panel.js']
     .flatMap((f) => [...leer(f).matchAll(/log\.paso\('(\w+)'\)/g)].map((m) => m[1]));

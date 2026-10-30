@@ -1,0 +1,91 @@
+/* =============================================================
+   BRAND ASSETS (components/portal/dev/EditorMarca.astro, panel/dev/Marca.js)
+
+   La lista de piezas por categoria (miniaturas en un cuadro con su propio fondo, porque lo
+   blanco no se ve sobre el hueso ni lo oscuro sobre la noche) y la ficha de una
+   pieza: su vista previa y sus opciones (que reutilizan dev.css: dev__grupo, dev__casilla…).
+   Los colores de las muestras y de los fondos son LOS DE LA MARCA, fijos: son lo que se baja,
+   no un tema del panel.
+   ============================================================= */
+
+.marca { display: grid; gap: 1.4rem; max-width: 46rem; }
+.marca__lista, .marca__ficha { display: grid; gap: 1.4rem; }
+.marca__lista[hidden], .marca__ficha[hidden] { display: none; }
+.marca__categoria { display: grid; gap: .55rem; }
+.marca__categoria .panel__subtitulo { margin: 0; }
+.marca__linea { margin: 0; font-size: .84rem; color: var(--tiza-2); }
+.marca__nota { margin: 0; font-size: .82rem; color: var(--tiza-2); }
+.marca__nota[hidden] { display: none; }
+
+/* La rejilla: tarjetas con la miniatura arriba y el nombre debajo (44px de alto como minimo) */
+.marca__rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(8.6rem, 100%), 1fr)); gap: .6rem; list-style: none; margin: 0; padding: 0; }
+.marca__pieza {
+  display: grid; grid-template-rows: auto auto; gap: .5rem; width: 100%; height: 100%;
+  padding: .5rem; text-align: start; font: inherit; color: var(--tiza); cursor: pointer;
+  border: 1px solid var(--raya-fuerte); border-radius: 14px; background: rgb(var(--luz) / .04);
+  transition: background-color .2s var(--ease), border-color .2s var(--ease);
+}
+.marca__pieza:hover { background: rgb(var(--luz) / .09); }
+.marca__pieza:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+/* Hasta que carga el modulo de la seccion las piezas no responden: se ven apagadas */
+.marca__pieza[aria-disabled="true"] { opacity: .6; cursor: progress; }
+.marca__pieza[aria-busy="true"] { cursor: progress; }
+.marca__nombre { font-size: .84rem; line-height: 1.25; overflow-wrap: anywhere; }
+
+.marca__miniatura {
+  display: grid; place-items: center; aspect-ratio: 4 / 3; padding: .7rem; border-radius: 10px;
+  background: #0B110D; overflow: hidden;
+}
+.marca__miniatura[data-vista="hueso"] { background: #F1EFE9; }
+.marca__miniatura img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.marca__miniatura .alef-icono { height: 3.1rem; }
+.marca__miniatura[data-letra="logo"] .alef-icono { color: #00FF66; }
+.marca__miniatura[data-letra="mem"] .alef-icono { color: #FFD60A; }
+.marca__miniatura[data-letra="tav"] .alef-icono { color: #FF3B3B; }
+
+/* La ficha */
+.marca__titulo { margin: 0; font-size: 1.15rem; }
+.marca__titulo:focus-visible { outline: 2px solid var(--prompt); outline-offset: 4px; border-radius: 4px; }
+.marca__vista {
+  display: grid; place-items: center; margin: 0; padding: 1.4rem; min-height: 14rem;
+  border: 1px solid var(--raya-fuerte); border-radius: 16px; background: #0B110D;
+}
+.marca__vista[data-fondo="hueso"] { background: #F1EFE9; }
+.marca__vista[data-fondo="noche"] { background: #050806; }
+.marca__vista[data-fondo="blanco"] { background: #FFFFFF; }
+.marca__vista[data-fondo="negro"] { background: #000000; }
+.marca__imagen { display: block; max-width: 100%; max-height: 16rem; width: auto; height: auto; }
+/* La vista a un lado y las opciones al otro (en pantalla ancha, la vista se queda a la vista) */
+.marca__cuerpo { display: grid; gap: 1.2rem; }
+.marca__izquierda { display: grid; gap: .5rem; align-content: start; }
+@media (min-width: 1024px) {
+  .marca__cuerpo { grid-template-columns: 17rem minmax(0, 1fr); align-items: start; }
+  .marca__izquierda { position: sticky; top: 0; }
+  .marca__vista { min-height: 12rem; padding: 1rem; }
+}
+.marca__form { max-width: 100%; }
+.marca__bajar { width: auto; min-width: 12rem; }
+.marca__hecho { margin: 0; min-height: 1.4em; font-size: .88rem; color: var(--tiza); }
+
+/* Las muestras de color (adorno: el nombre va al lado) */
+.marca__muestra { flex: none; width: 1.05rem; height: 1.05rem; border-radius: 50%; border: 1px solid rgb(var(--luz) / .5); }
+.marca__muestra[data-tono="verde"] { background: #00FF66; }
+.marca__muestra[data-tono="blanco"] { background: #FFFFFF; }
+.marca__muestra[data-tono="hueso"] { background: #F1EFE9; }
+.marca__muestra[data-tono="pino"] { background: #263B28; }
+.marca__muestra[data-tono="negro"] { background: #000000; }
+.marca__muestra[data-tono="rojo"] { background: #FF3B3B; }
+.marca__muestra[data-tono="amarillo"] { background: #FFD60A; }
+.marca__muestra[data-tono="iris"] { background: #7D9B4E; }
+.marca__muestra[data-fondo-muestra="noche"] { background: #050806; }
+.marca__muestra[data-fondo-muestra="hueso"] { background: #F1EFE9; }
+.marca__muestra[data-fondo-muestra="blanco"] { background: #FFFFFF; }
+.marca__muestra[data-fondo-muestra="negro"] { background: #000000; }
+
+@media (prefers-reduced-motion: reduce) { .marca__pieza { transition: none; } }
+@media (forced-colors: active) {
+  .marca__pieza, .marca__vista { border: 1px solid CanvasText; }
+  /* Las piezas se ven sobre SU fondo (noche u hueso), no sobre el que ponga el sistema */
+  .marca__miniatura, .marca__vista { forced-color-adjust: none; }
+  .marca__muestra { forced-color-adjust: none; border-color: CanvasText; }
+}
