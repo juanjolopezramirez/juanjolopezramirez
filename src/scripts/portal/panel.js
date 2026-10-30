@@ -17,7 +17,7 @@
 import { abrirBackend } from './backend.js';
 import { bitacora, fondoQuieto, modoFondo } from './carga.js';
 import { anclaValida, codigoValido, idiomaDe, rutaPortal } from './estado.js';
-import { idsPara, inicioPara } from '../../data/portal/secciones.js';
+import { idsPara, inicioPara, inicioDeModo, modoDe, modoPara } from '../../data/portal/secciones.js';
 import { Menu } from './panel/Menu.js';
 import { Accesos } from './panel/Accesos.js';
 import { Seguridad } from './panel/Seguridad.js';
@@ -108,8 +108,19 @@ function iniciar(raiz) {
     get yo() { return yo; },
     get ocupado() { return ocupado; }
   };
+  /* LOS DOS MODOS (solo el admin). La ultima seccion de cada uno, en memoria: el boton te
+     devuelve a donde estabas en el otro modo. Pulsarlo cambia la direccion (asi «atrás» lo
+     deshace) y el foco se queda en el boton. */
+  const ultimaDe = { self: '', dev: '' };
+  let porBoton = false;
   const menu = new Menu(raiz.querySelector('[data-riel]'), {
-    enfocar: (id) => { const t = raiz.querySelector(`[data-titulo="${id}"]`); if (t) t.focus(); }
+    enfocar: (id) => { const t = raiz.querySelector(`[data-titulo="${id}"]`); if (t) t.focus(); },
+    alCambiarModo: () => {
+      if (!esAdmin) return;
+      const otro = menu.modo === 'dev' ? 'self' : 'dev';
+      porBoton = true;
+      window.location.hash = '#' + (ultimaDe[otro] || inicioDeModo(otro));
+    }
   });
   const secciones = { accesos: new Accesos(raiz, ctx), seguridad: new Seguridad(raiz, ctx) };
   /* Los editores de Developer-Mode se bajan la primera vez que el admin entra a su seccion:
@@ -252,14 +263,24 @@ function iniciar(raiz) {
     irA(anclaValida(window.location.hash, ids) || inicioPara(esAdmin), libre);
     if (!abierto) {
       abierto = true;
-      window.addEventListener('hashchange', () => irA(anclaValida(window.location.hash, ids) || inicioPara(esAdmin), true));
+      window.addEventListener('hashchange', () => {
+        const deBoton = porBoton;
+        porBoton = false;
+        irA(anclaValida(window.location.hash, ids) || inicioPara(esAdmin), !deBoton, deBoton);
+      });
     }
   }
 
-  function irA(id, foco) {
+  function irA(id, foco, deBoton = false) {
     raiz.querySelectorAll('[data-seccion]').forEach((s) => { s.hidden = s.dataset.seccion !== id; });
     const t = raiz.querySelector(`[data-titulo="${id}"]`);
     const sec = p.secciones && hay(p.secciones, id) ? p.secciones[id] : null;
+    /* El modo lo dice la seccion (Acceso se queda en el que estabas) */
+    if (esAdmin) {
+      const modo = modoPara(id, menu.modo);
+      menu.mostrarModo(modo, deBoton);
+      if (modoDe(id)) ultimaDe[modo] = id;
+    }
     menu.marcar(id, sec ? sec.titulo : '');
     /* La ruta de la barra de la terminal: ~/panel/<seccion>. */
     const ruta = raiz.querySelector('[data-ruta-actual]');

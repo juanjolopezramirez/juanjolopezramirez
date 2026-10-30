@@ -208,11 +208,16 @@ await ok('los otros nombres de books.py (ALIAS) tampoco valen: taparian el PDF d
 });
 await ok('RepositorioMemoria: algo NUEVO con un id que ya existe no lo pisa', async () => {
   const repo = new R.RepositorioMemoria(Libro);
-  assert.ok((await repo.guardar(new Libro(libroBueno()), { nuevo: true })).ok);
+  assert.ok((await repo.guardarBorrador(new Libro(libroBueno()), { nuevo: true })).ok);
   const otro = new Libro({ ...libroBueno(), titulo: { es: 'Otro libro' } });
-  assert.equal((await repo.guardar(otro, { nuevo: true })).error, 'repetido');
-  assert.equal((await repo.leer('libertad')).fila.titulo.es, 'Libertad', 'el de antes sigue igual');
-  assert.ok((await repo.guardar(otro)).ok, 'editarlo (no nuevo) si lo cambia');
+  assert.equal((await repo.guardarBorrador(otro, { nuevo: true })).error, 'repetido');
+  const [e] = (await repo.listar()).entradas;
+  assert.equal(e.actual.titulo.es, 'Libertad', 'el de antes sigue igual');
+  assert.ok((await repo.guardarBorrador(otro)).ok, 'editarlo (no nuevo) si lo cambia');
+  /* Y uno publicado tambien ocupa su nombre */
+  const pub = new R.RepositorioMemoria(Libro);
+  assert.ok((await pub.publicar(new Libro(libroBueno()))).ok);
+  assert.equal((await pub.guardarBorrador(otro, { nuevo: true })).error, 'repetido');
 });
 await ok('seccion, tipo, grosor y tono: solo de sus listas', () => {
   assert.ok(tieneError(new Libro({ ...libroBueno(), seccion: 'nada' }).validar(), 'seccion'));
@@ -249,6 +254,21 @@ await ok('rutas: Libro sabe donde va su PDF y su lomo', () => {
   assert.ok(Libro.esLomoDe('lomos/libertad.es-a1b2c3.png', 'libertad', 'es') && !Libro.esLomoDe('lomos/libertad.es.png', 'libertad', 'es'));
   assert.ok(Libro.esLomoDe('lomos/libertad-a1b2c3.png', 'libertad', 'todos') && !Libro.esLomoDe('lomos/libertad.en-a1b2c3.png', 'libertad', 'es'));
   assert.equal(Libro.rutaPdf('../x', 'es'), null);
+  /* El PDF con su trozo al azar (008): el de un borrador no pisa el del libro publicado */
+  assert.equal(Libro.rutaPdf('libertad', 'es', 'a1b2c3'), 'libros/libertad/es-a1b2c3.pdf');
+  assert.equal(Libro.rutaPdf('libertad', 'es', 'MAL'), null);
+  assert.ok(Libro.esPdfDe('libros/libertad/es-a1b2c3.pdf', 'libertad', 'es') && Libro.esPdfDe('libros/libertad/es.pdf', 'libertad', 'es'));
+  assert.ok(!Libro.esPdfDe('libros/libertad/en-a1b2c3.pdf', 'libertad', 'es') && !Libro.esPdfDe('libros/otro/es-a1b2c3.pdf', 'libertad', 'es'));
+  assert.ok(new Libro({ ...libroBueno(), pdf: { es: 'libros/libertad/es-a1b2c3.pdf' } }).validar().ok);
+});
+await ok('a medias: un BORRADOR perdona lo que falta, pero no lo que esta mal', () => {
+  const medio = new Libro({ id: 'libertad', idiomaOriginal: 'es', seccion: libroBueno().seccion, tipo: libroBueno().tipo, titulo: { es: 'Libertad' } });
+  assert.ok(!medio.validar().ok, 'para publicar le falta el PDF');
+  const b = medio.validar({ borrador: true });
+  assert.ok(b.ok, JSON.stringify(b.errores));
+  assert.ok(b.faltan.some((x) => x.campo === 'pdf'), 'y dice lo que falta');
+  assert.ok(!new Libro({ ...libroBueno(), pdf: { es: '../secreto.pdf' } }).validar({ borrador: true }).ok, 'una ruta ajena, ni en borrador');
+  assert.ok(!new Libro({ ...libroBueno(), id: '' }).validar({ borrador: true }).ok, 'sin nombre corto no hay donde guardarlo');
 });
 await ok('ida y vuelta: deFila(aFila()) es el mismo libro; los campos de la base van en snake_case', () => {
   const l = new Libro(libroBueno());
@@ -272,6 +292,12 @@ const casaBuena = () => ({
   role: { es: 'Una casa nueva' }, blurb: { es: 'Lo que hace.' }, tags: ['comunidad'],
   logo: { src: 'casas/nueva-casa/logo.png', w: 400, h: 200, scale: 1 },
   works: [{ title: { es: 'Identidad' }, year: '2025', href: 'https://ejemplo.com' }]
+});
+await ok('a medias: una casa con una imagen AUN sin subir se guarda de borrador, pero no se publica', () => {
+  const conImagen = (src) => new Trabajo({ ...casaBuena(), cuerpo: { es: { bloques: [{ tipo: 'imagen', alt: 'Un logo', ...(src ? { src } : {}) }] } } });
+  assert.ok(conImagen().validar({ borrador: true }).ok, 'el borrador perdona la imagen que falta');
+  assert.ok(!conImagen().validar().ok, 'para publicar, hace falta');
+  assert.ok(!conImagen('https://evil.com/x.png').validar().ok, 'una ruta ajena se vacia y tampoco se publica');
 });
 await ok('Trabajo y Proyecto son Casas, cada una con su clase', () => {
   const t = new Trabajo(casaBuena());
@@ -548,35 +574,52 @@ await ok('nada hostil sale: ni javascript:, ni HTML, ni etiquetas fuera de la li
 });
 
 console.log('Repositorio.js · guardar y leer');
-await ok('RepositorioMemoria: guardar valida primero; lo invalido no se guarda', async () => {
+await ok('RepositorioMemoria: un borrador valida primero; lo invalido no se guarda', async () => {
   const repo = new R.RepositorioMemoria(Libro);
-  const malo = await repo.guardar(new Libro({ ...libroBueno(), id: 'MAL' }));
+  const malo = await repo.guardarBorrador(new Libro({ ...libroBueno(), id: 'MAL' }));
   assert.equal(malo.error, 'invalido');
   assert.ok(malo.errores.length);
-  const bueno = await repo.guardar(new Libro(libroBueno()));
-  assert.ok(bueno.ok);
-  const lista = await repo.listar();
-  assert.equal(lista.filas.length, 1);
-  assert.ok(lista.filas[0] instanceof Libro);
-  assert.equal((await repo.leer('libertad')).fila.titulo.es, 'Libertad');
-  assert.equal((await repo.leer('nada')).fila, null);
+  assert.ok((await repo.guardarBorrador(new Libro(libroBueno()))).ok);
+  const { entradas } = await repo.listar();
+  assert.equal(entradas.length, 1);
+  assert.ok(entradas[0] instanceof R.Entrada && entradas[0].actual instanceof Libro);
+  assert.equal(entradas[0].estado, 'borrador');
+  assert.equal(repo.filas.size, 0, 'un borrador NO entra en la tabla que lee la web');
 });
-await ok('RepositorioMemoria: un Trabajo no pisa a un Proyecto con el mismo id', async () => {
-  const proyectos = new R.RepositorioMemoria(Proyecto);
-  assert.ok((await proyectos.guardar(new Proyecto(casaBuena()))).ok);
-  const trabajos = new R.RepositorioMemoria(Trabajo);
-  trabajos.filas = proyectos.filas;                       // la misma tabla
-  assert.equal((await trabajos.guardar(new Trabajo(casaBuena()))).error, 'repetido');
+await ok('RepositorioMemoria: un Trabajo no pisa a un Proyecto con el mismo id (ni su borrador)', async () => {
+  const compartido = { filas: new Map(), borradores: new Map() };
+  const proyectos = new R.RepositorioMemoria(Proyecto, compartido);
+  const trabajos = new R.RepositorioMemoria(Trabajo, compartido);
+  assert.ok((await proyectos.guardarBorrador(new Proyecto(casaBuena()))).ok);
+  assert.equal((await trabajos.guardarBorrador(new Trabajo(casaBuena()))).error, 'repetido');
+  assert.ok((await proyectos.publicar(new Proyecto(casaBuena()))).ok);
+  assert.equal((await trabajos.publicar(new Trabajo(casaBuena()))).error, 'repetido');
+  assert.equal((await trabajos.listar()).entradas.length, 0, 'cada uno ve solo los suyos');
 });
-await ok('RepositorioMemoria: publicar y borrar', async () => {
+await ok('RepositorioMemoria: publicar, cambiar sin tocar la web, quitar, descartar y borrar', async () => {
   const repo = new R.RepositorioMemoria(Etapa);
-  await repo.guardar(new Etapa({ id: 'a', cuando: '2026', idiomaOriginal: 'es', titulo: { es: 'A' }, texto: { es: 'B' } }));
-  assert.equal((await repo.leer('a')).fila.publicado, false, 'todo nace borrador');
-  assert.ok((await repo.publicar('a', true)).ok);
-  assert.equal((await repo.leer('a')).fila.publicado, true);
+  const etapa = (titulo) => new Etapa({ id: 'a', cuando: '2026', idiomaOriginal: 'es', titulo: { es: titulo }, texto: { es: 'B' } });
+  const estado = async () => (await repo.listar()).entradas[0];
+  assert.equal((await repo.publicar(new Etapa({ id: 'a', idiomaOriginal: 'es' }))).error, 'invalido', 'a medias no se publica');
+  await repo.guardarBorrador(etapa('A'));
+  assert.equal((await estado()).estado, 'borrador');
+  assert.ok((await repo.publicar(etapa('A'))).ok);
+  assert.equal((await estado()).estado, 'publicado');
+  assert.equal(repo.borradores.size, 0, 'al publicar, su borrador se va');
+  /* Cambiarlo: la web sigue con lo publicado hasta volver a publicar */
+  await repo.guardarBorrador(etapa('A cambiada'));
+  let e = await estado();
+  assert.equal(e.estado, 'cambios');
+  assert.equal(e.enBase.titulo.es, 'A');
+  assert.equal(e.actual.titulo.es, 'A cambiada');
+  assert.ok((await repo.descartar('a')).ok);
+  assert.equal((await estado()).actual.titulo.es, 'A', 'descartar vuelve a lo publicado');
+  assert.ok((await repo.quitarDeLaWeb('a')).ok);
+  assert.equal((await estado()).estado, 'fuera');
   assert.ok((await repo.borrar('a')).ok);
-  assert.equal((await repo.listar()).filas.length, 0);
-  assert.equal((await repo.publicar('nada', true)).error, 'noExiste');
+  assert.equal((await repo.listar()).entradas.length, 0);
+  assert.equal((await repo.quitarDeLaWeb('nada')).error, 'noExiste');
+  assert.equal((await repo.descartar('nada')).error, 'noExiste');
 });
 await ok('RepositorioSupabase: la tabla sale de la clase, y un error de la base es una clave, no una excepcion', async () => {
   const llamadas = [];
@@ -595,9 +638,37 @@ await ok('RepositorioSupabase: la tabla sale de la clase, y un error de la base 
   const repo = new R.RepositorioSupabase(falsa, Libro);
   const r = await repo.listar();
   assert.equal(llamadas[0], 'biblioteca');
+  assert.ok(llamadas.includes('borradores'), 'la lista junta lo publicado y los borradores');
   assert.ok(r.error && typeof r.error === 'string');
-  const g = await repo.guardar(new Libro(libroBueno()));
-  assert.ok(g.error);
+  const g = await repo.guardarBorrador(new Libro(libroBueno()));
+  assert.equal(g.error, 'permiso');
+  const p = await repo.publicar(new Libro(libroBueno()));
+  assert.equal(p.error, 'permiso');
+});
+await ok('RepositorioSupabase: un borrador va a «borradores» y publicar a su tabla (y borra el borrador)', async () => {
+  const hechas = [];
+  const falsa = {
+    from(t) {
+      const q = {
+        select() { return q; }, order() { return q; }, eq() { return q; },
+        maybeSingle: async () => ({ data: null, error: null }),
+        insert: async (fila) => { hechas.push(['insert', t, fila]); return { error: null }; },
+        upsert: async (fila) => { hechas.push(['upsert', t, fila]); return { error: null }; },
+        delete() { hechas.push(['delete', t]); return q; },
+        then: (r) => r({ data: [], error: null })
+      };
+      return q;
+    }
+  };
+  const repo = new R.RepositorioSupabase(falsa, Libro);
+  assert.ok((await repo.guardarBorrador(new Libro({ ...libroBueno(), pdf: {} }), { nuevo: true })).ok);
+  assert.deepEqual(hechas.map((h) => h.slice(0, 2)), [['insert', 'borradores']]);
+  assert.equal(hechas[0][2].tabla, 'biblioteca');
+  assert.equal(hechas[0][2].fila.publicado, false);
+  hechas.length = 0;
+  assert.ok((await repo.publicar(new Libro(libroBueno()))).ok);
+  assert.deepEqual(hechas.map((h) => h.slice(0, 2)), [['upsert', 'biblioteca'], ['delete', 'borradores']]);
+  assert.equal(hechas[0][2].publicado, true);
 });
 
 console.log('lo publicado no se sube al repositorio');

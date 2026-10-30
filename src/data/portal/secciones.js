@@ -20,9 +20,10 @@
    archivo NUEVO supabase/007_….sql). */
 export const GRUPOS = ['miembros', 'self', 'dev', 'acceso'];
 
-/* Los grupos que se pliegan (el acordeon del menu). «miembros» tiene una sola
-   entrada y no lleva boton: lo dice la entrada. */
-export const PLEGABLES = ['self', 'dev', 'acceso'];
+/* LOS DOS MODOS, como un tema claro y uno oscuro: un boton cambia de uno a otro y con el
+   cambian las secciones de la barra y el aspecto del panel. «acceso» esta en los dos
+   (abajo); «miembros» no es de ninguno (un miembro no tiene modos). */
+export const MODOS = ['self', 'dev'];
 
 export const SECCIONES = [
   { id: 'inicio', grupo: 'miembros', admin: false, soloMiembros: true },
@@ -50,3 +51,15 @@ export const idsPara = (esAdmin) => SECCIONES
 
 /* Donde abre el panel si la direccion no dice otra cosa. */
 export const inicioPara = (esAdmin) => (esAdmin ? 'hoy' : 'inicio');
+
+/* El modo de una seccion ('self' | 'dev'), o null si es de los dos (acceso) o de ninguno. */
+export const modoDe = (id) => {
+  const s = SECCIONES.find((x) => x.id === id);
+  return s && MODOS.includes(s.grupo) ? s.grupo : null;
+};
+/* La primera seccion de un modo (a donde va el boton la primera vez). */
+export const inicioDeModo = (modo) => (SECCIONES.find((s) => s.grupo === modo) || {}).id || 'hoy';
+
+/* El modo en que queda el panel al llegar a `id`: el de la seccion; si es de los dos
+   (acceso), el que ya tenia; si no tenia, Self-Mode. */
+export const modoPara = (id, previo) => modoDe(id) || (MODOS.includes(previo) ? previo : 'self');

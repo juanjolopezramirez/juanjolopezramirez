@@ -238,20 +238,53 @@ ok('Self-Mode y Developer-Mode: el admin entra en «Hoy» y NO ve el test; el mi
   assert.equal(de('self')[0], 'hoy');
   for (const id of ['proyectos', 'trabajos', 'libros', 'camino']) assert.ok(de('dev').includes(id), id);
   assert.deepEqual(de('acceso'), ['accesos', 'seguridad']);
-  assert.ok(S.PLEGABLES.every((g) => S.GRUPOS.includes(g)) && !S.PLEGABLES.includes('miembros'));
+  assert.deepEqual(S.MODOS, ['self', 'dev']);
   for (const s of S.SECCIONES) assert.ok(!(s.admin && s.soloMiembros), s.id);
 });
-ok('el menu es un acordeon accesible: boton con aria-expanded y aria-controls, lista con hidden, sin guardar nada', () => {
+ok('los dos modos: la seccion dice el modo; Acceso se queda en el que estabas; al llegar sin nada, Self-Mode', () => {
+  assert.equal(S.modoDe('libros'), 'dev');
+  assert.equal(S.modoDe('hoy'), 'self');
+  assert.equal(S.modoDe('accesos'), null);
+  assert.equal(S.modoDe('inicio'), null);
+  assert.equal(S.modoPara('libros', 'self'), 'dev');
+  assert.equal(S.modoPara('accesos', 'dev'), 'dev');
+  assert.equal(S.modoPara('seguridad', ''), 'self');
+  assert.equal(S.modoPara('__proto__', 'raro'), 'self');
+  assert.equal(S.inicioDeModo('self'), 'hoy');
+  assert.equal(S.modoDe(S.inicioDeModo('dev')), 'dev');
+});
+ok('el boton de los modos: un boton de verdad con aria-pressed, nombre fijo y solo para el admin; Acceso al final de la barra', () => {
   const panel = leer('src/components/portal/Panel.astro');
-  assert.match(panel, /<button class="panel__grupo-boton" type="button" id=\{`g-\$\{g\}`\} aria-expanded="false" aria-controls=\{`gl-\$\{g\}`\} data-acordeon/);
-  assert.match(panel, /<ul class="panel__enlaces" id=\{`gl-\$\{g\}`\}/);
-  assert.match(panel, /data-menu-boton/);
-  assert.match(panel, /aria-controls="panel-menu"/);
+  assert.match(panel, /<button class="panel__modo" type="button" aria-pressed="false" data-modo-boton data-solo-admin/);
+  assert.match(panel, /aria-live="polite" data-modo-voz/);
+  assert.match(panel, /data-modo-grupo=\{MODOS\.includes\(g\) \? g : undefined\}/);
+  assert.equal(S.GRUPOS[S.GRUPOS.length - 1], 'acceso', 'Acceso se pinta el ultimo (abajo)');
   const menu = leer('src/scripts/portal/panel/Menu.js');
-  assert.match(menu, /setAttribute\('aria-expanded', String\(abierto\)\)/);
-  assert.match(menu, /lista\.hidden = !abierto/);
+  assert.match(menu, /setAttribute\('aria-pressed', String\(modo === 'dev'\)\)/);
+  assert.match(menu, /document\.documentElement\.dataset\.modo = modo/);
   assert.match(menu, /e\.key !== 'Escape'/);
   assert.match(menu, /setAttribute\('aria-current', 'true'\)/);
+  /* De dia nada se mueve: el fondo se para */
+  assert.match(leer('src/scripts/portal/fondo.js'), /const quieto = \(\) => reducir\.matches \|\| pausado \|\| deDia\(\)/);
+});
+ok('el panel cabe en la pantalla (sin scroll de pagina) y vuelve al scroll de siempre en una pantalla muy baja', () => {
+  const css = leer('src/styles/panel.css');
+  assert.match(css, /html:has\(\.panel\), html:has\(\.panel\) body \{ height: 100%; overflow: hidden; \}/);
+  assert.match(css, /height: 100dvh/);
+  assert.match(css, /@media \(max-height: 30rem\)/);
+});
+ok('Self-Mode de dia: el texto se lee (4.5:1) y los bordes y el foco se ven (3:1) sobre el hueso; sin oro', () => {
+  const t = leer('src/styles/terminal.css');
+  const self = t.slice(t.indexOf('[data-modo="self"] .pagina--noche {'));
+  const val = (n) => (self.match(new RegExp(`--${n}: (#[0-9A-Fa-f]{6})`)) || [])[1];
+  const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const con = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const hueso = '#F1EFE9';
+  assert.ok(con('#263B28', hueso) >= 4.5, 'tiza (pino)');
+  assert.ok(con(val('tiza-2'), hueso) >= 4.5, 'tiza-2 ' + val('tiza-2'));
+  assert.ok(con(val('prompt'), hueso) >= 3, 'prompt ' + val('prompt'));
+  assert.ok(!/--ring|#C08A2E|#9A6A1F/i.test(self.slice(0, 2000)), 'nada de oro');
+  assert.match(self, /--mono: var\(--sans\)/);
 });
 const guionesPanel = ['src/scripts/portal/panel.js', ...fs.readdirSync(path.join(raiz, 'src/scripts/portal/panel')).filter((f) => f.endsWith('.js')).map((f) => 'src/scripts/portal/panel/' + f)];
 ok('el panel: las claves de textos que usan panel.js y sus secciones existen', () => {
@@ -530,6 +563,31 @@ ok('007: Developer-Mode escribe solo el admin, lo publicado lo lee cualquiera, y
   /* Las mismas secciones reservadas que el modelo (Casa.RESERVADOS) */
   for (const s of ['work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status']) assert.ok(t.includes(`'${s}'`), s);
   for (const f of ['rutas_validas', 'claves_de_idioma']) assert.match(t, new RegExp(`function public\\.${f}\\([^)]*\\)[\\s\\S]*?immutable\\s+set search_path = ''`), f);
+});
+ok('008: los borradores los ve y los toca SOLO el admin; nadie sin entrar llega a ellos', () => {
+  const t = sinComentarioSql(sql['008_borradores.sql']);
+  assert.match(t, /create table if not exists public\.borradores/);
+  assert.match(t, /alter table public\.borradores enable row level security/);
+  assert.match(t, /revoke all on table public\.borradores from anon, authenticated/);
+  assert.ok(!/grant[^;]*on table public\.borradores to[^;]*anon/.test(t), 'anon no tiene nada');
+  assert.match(t, /create policy borradores_todo_el_admin on public\.borradores\s+for all to authenticated\s+using \(\(select public\.es_admin\(\)\)\)\s+with check \(\(select public\.es_admin\(\)\)\)/);
+  assert.match(t, /tabla\s+text not null check \(tabla in \('biblioteca', 'casas', 'etapas'\)\)/);
+  assert.match(t, /octet_length\(fila::text\) <= 2500000/, 'un borrador no puede ser enorme');
+  assert.ok(!/drop table/i.test(t), 'nada se borra');
+  /* La web sigue leyendo solo lo publicado: el PDF que baja es el de un libro publicado */
+  assert.match(t, /"alef_libros_leer_publicados"[\s\S]*?where b\.publicado/);
+  assert.match(t, /function public\.pdf_de_libro\([^)]*\)[\s\S]*?immutable\s+set search_path = ''/);
+  /* Y el modelo pide lo mismo que la base: PDF con o sin su trozo al azar */
+  assert.match(t, /\(-\[a-z0-9\]\{6,16\}\)\?\\\.pdf\$/);
+  /* Cada borrador con la forma de su tabla, y una casa no cambia de clase */
+  assert.match(t, /add constraint borradores_clase_check\s+check \(\(tabla = 'casas'\) = \(clase is not null\)\)/);
+  assert.match(t, /create trigger casas_clase_fija before update on public\.casas/);
+  /* Volver a pegar 007 despues de 008 no deshace el trozo al azar: las dos dicen lo mismo */
+  const pdf = (s) => (s.match(/create or replace function public\.pdf_de_libro[\s\S]*?\$\$;/) || [''])[0];
+  const leerPdf = (s) => (s.match(/create policy "alef_libros_leer_publicados"[\s\S]*?\);/) || [''])[0];
+  const siete = sinComentarioSql(sql['007_desarrollo.sql']);
+  assert.ok(pdf(t) && pdf(t) === pdf(siete), 'pdf_de_libro igual en 007 y 008');
+  assert.ok(leerPdf(t) && leerPdf(t) === leerPdf(siete), 'la regla de leer los PDF igual en 007 y 008');
 });
 ok('el codigo de la app: seis numeros, y cada error de Supabase tiene su texto', () => {
   for (const b of ['123456', '123 456', ' 000000 ']) assert.ok(E.codigoValido(b), b);

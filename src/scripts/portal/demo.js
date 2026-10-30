@@ -68,7 +68,7 @@ export function abrirDemo() {
   ];
   /* Developer-Mode: un repositorio en memoria por tipo (las casas comparten filas) */
   const repos = new Map();
-  const filasDeCasas = new Map();
+  const casasCompartidas = { filas: new Map(), borradores: new Map() };
   const subidos = new Map();               // ruta → archivo (solo en memoria)
 
   return {
@@ -217,9 +217,8 @@ export function abrirDemo() {
     contenido: {
       repositorio(Tipo) {
         const clave = Tipo.tabla + ':' + (Tipo.clase || '');
-        if (!repos.has(clave)) repos.set(clave, new RepositorioMemoria(Tipo));
-        /* Trabajos y Proyectos comparten tabla, como en la base */
-        if (Tipo.clase) repos.get(clave).filas = filasDeCasas;
+        /* Trabajos y Proyectos comparten tabla (y borradores), como en la base */
+        if (!repos.has(clave)) repos.set(clave, new RepositorioMemoria(Tipo, Tipo.clase ? casasCompartidas : null));
         return repos.get(clave);
       },
       async subir(ruta, archivo) {

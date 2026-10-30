@@ -61,9 +61,17 @@ export class Libro extends TipoDeContenido {
 
   static idValido(id) { return typeof id === 'string' && ID.test(id) && !RESERVADOS.has(id) && !DEL_CODIGO.has(id); }
 
-  /* Donde va cada archivo en el almacen. null si el id o el idioma no sirven. */
-  static rutaPdf(id, lang) {
-    return typeof id === 'string' && ID.test(id) && idiomaValido(lang) ? `libros/${id}/${lang}.pdf` : null;
+  /* Donde va cada archivo en el almacen. null si el id o el idioma no sirven. Con `sufijo`
+     (un trozo al azar), el PDF de un borrador no pisa el del libro publicado (008). */
+  static rutaPdf(id, lang, sufijo) {
+    if (typeof id !== 'string' || !ID.test(id) || !idiomaValido(lang)) return null;
+    if (sufijo === undefined) return `libros/${id}/${lang}.pdf`;
+    return SUFIJO.test(sufijo) ? `libros/${id}/${lang}-${sufijo}.pdf` : null;
+  }
+  /* ¿Es `ruta` un PDF de este libro en ese idioma? (con o sin su trozo al azar) */
+  static esPdfDe(ruta, id, lang) {
+    const m = typeof ruta === 'string' && ruta.match(/^libros\/([a-z][a-z0-9]*)\/([a-z]{2})(?:-([a-z0-9]{6,16}))?\.pdf$/);
+    return !!m && m[1] === id && m[2] === lang;
   }
   /* El lomo lleva al final un trozo al azar (`sufijo`): el cajon de las imagenes es
      publico, y el lomo de un BORRADOR no debe poder adivinarse («lomos/libertad.png»).
@@ -95,7 +103,7 @@ export class Libro extends TipoDeContenido {
 
     for (const [l, ruta] of Object.entries(this.pdf)) {
       if (!rutaAlmacen(ruta, ['pdf'])) e('pdf', 'ruta');
-      else if (ruta !== Libro.rutaPdf(this.id, l)) e('pdf', 'ajeno');
+      else if (!Libro.esPdfDe(ruta, this.id, l)) e('pdf', 'ajeno');
     }
     for (const [l, ruta] of Object.entries(this.lomo)) {
       if (!rutaAlmacen(ruta, EXT_LOMO)) e('lomo', 'ruta');

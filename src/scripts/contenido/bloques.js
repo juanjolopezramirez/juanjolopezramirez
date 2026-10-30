@@ -113,7 +113,9 @@ export class Imagen extends Bloque {
     this.ia = d.ia === true;
   }
   revisar(r) {
-    if (!this.src) r.errores.push({ campo: 'src', clave: 'ruta' });
+    /* Sin ruta es «falta» (una ruta mala ya se vacio en el constructor): un borrador puede
+       tener la imagen aun sin elegir o sin subir; para publicar, hace falta */
+    if (!this.src) r.errores.push({ campo: 'src', clave: 'falta' });
     /* Quien no ve la imagen la oye: sin texto alternativo, solo si es de adorno */
     if (!this.alt && !this.decorativa) r.errores.push({ campo: 'alt', clave: 'falta' });
   }

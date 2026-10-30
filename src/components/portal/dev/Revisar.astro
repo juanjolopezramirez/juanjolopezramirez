@@ -1,0 +1,21 @@
+---
+/* El ultimo paso: como esta cada paso (listo, o lo que falta) con «Cambiar» para ir a el, y
+   lo que se hace con todo: publicar, quitar de la web, descartar los cambios o borrar.
+   Lo llena panel/dev/EditorContenido.js → pintarRevisar (todo con textContent). */
+import Paso from './Paso.astro';
+
+const { pre, tx } = Astro.props;
+---
+<Paso pre={pre} id="revisar" tx={tx}>
+  <p class="dev__revisar-estado" data-revisar-estado></p>
+  <ul class="dev__resumen" role="list" data-resumen></ul>
+  <div class="dev__acciones">
+    <button class="portal__boton" type="button" data-dev-publicar
+            data-publicar={tx.publicar} data-cambios={tx.publicarCambios}>{tx.publicar}</button>
+    <button class="portal__boton portal__boton--suave" type="button" data-dev-quitar hidden>{tx.despublicar}</button>
+    <button class="portal__boton portal__boton--suave" type="button" data-dev-descartar
+            data-seguro={tx.descartarSeguro} hidden>{tx.descartar}</button>
+    <button class="portal__boton portal__boton--suave dev__borrar" type="button" data-dev-borrar
+            data-seguro={tx.borrarSeguro} hidden>{tx.borrar}</button>
+  </div>
+</Paso>

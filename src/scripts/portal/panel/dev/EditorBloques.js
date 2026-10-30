@@ -205,6 +205,7 @@ export class EditorBloques {
     const nuevo = this.vista({ tipo: tipo === 'subtitulo' ? 'titulo' : tipo, nivel: tipo === 'subtitulo' ? 3 : 2 });
     if (this.reemplazar) this.reemplazar.replaceWith(nuevo);
     else this.lista.appendChild(nuevo);
+    this.cambio();
     this.cerrarMenu(false);
     this.pintarVacio();
     this.enfocar(nuevo);
@@ -265,6 +266,7 @@ export class EditorBloques {
     const otro = paso < 0 ? v.previousElementSibling : v.nextElementSibling;
     if (!otro || !otro.dataset.bloque) { this.decir(paso < 0 ? this.tx.arriba : this.tx.abajo); return; }
     if (paso < 0) otro.before(v); else otro.after(v);
+    this.cambio();
     const b = v.querySelector(`:scope > .bed__barra .bed__accion:nth-of-type(${paso < 0 ? 1 : 2})`);
     if (b) b.focus();
     const todas = this.vistas();
@@ -273,10 +275,14 @@ export class EditorBloques {
   quitar(v) {
     const vecino = v.previousElementSibling || v.nextElementSibling;
     v.remove();
+    this.cambio();
     this.pintarVacio();
     this.decir(this.tx.quitado);
     if (vecino && vecino.dataset.bloque) this.enfocar(vecino, true); else this.botonAnadir.focus();
   }
+  /* Añadir, mover y quitar no escriben en ningun campo: se avisa a quien edita (EditorCasa
+     lo usa para saber que hay cambios sin guardar) */
+  cambio() { if (this.op.alCambiar) this.op.alCambiar(); }
   campo(sub, etiqueta, control, extra) {
     const id = control.id || unico(sub);
     control.id = id;

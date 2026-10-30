@@ -82,7 +82,10 @@ function iniciar(lienzo) {
   const reducir = matchMedia('(prefers-reduced-motion: reduce)');
   /* `?quieto=1`: vienes del portal con el fondo en pausa (entrar.js lo pone al ir al panel). */
   let pausado = new URLSearchParams(window.location.search).get('quieto') === '1';
-  const quieto = () => reducir.matches || pausado;
+  /* En Self-Mode (el panel de dia, <html data-modo="self">) no hay fondo que mover: el
+     papel esta quieto y el lienzo no gasta nada (panel/Menu.js avisa con «alef:modo») */
+  const deDia = () => document.documentElement.dataset.modo === 'self';
+  const quieto = () => reducir.matches || pausado || deDia();
   let ancho = 0, alto = 0, paso = PASO_ANCHO, celdas = [];
   let px = -9999, py = -9999, ultimo = 0, pedido = 0, antes = 0;
   const signoDe = (col, fila) => SIGNOS[(col * 7 + fila * 13 + ((col * fila) % 5)) % SIGNOS.length];
@@ -254,13 +257,15 @@ function iniciar(lienzo) {
     if (conLogo) { logoP = 1; fuerza = 1; cargaDesde = -ESPERA_CARGA; }
   }
   document.addEventListener('alef:fondo', (e) => { aplicar(e.detail && e.detail.modo, e.detail && e.detail.logo); arrancar(); });
+  /* Cambiar de modo del panel: de dia se para (cuadro() ve quieto() y no pide otro), de noche vuelve */
+  document.addEventListener('alef:modo', () => { reflejar(); arrancar(); });
 
   /* El boton de pausa: solo tiene sentido si algo se mueve */
   const boton = document.querySelector('[data-fondo-pausa]');
   function reflejar() {
     html.classList.toggle('fondo-quieto', pausado);
     if (!boton) return;
-    boton.hidden = reducir.matches;
+    boton.hidden = reducir.matches || deDia();          // de dia nada se mueve: no hay nada que pausar
     const nombre = pausado ? boton.dataset.seguir : boton.dataset.pausar;
     boton.setAttribute('aria-label', nombre);
     boton.title = nombre;

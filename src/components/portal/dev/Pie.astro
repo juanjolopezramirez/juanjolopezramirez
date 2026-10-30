@@ -1,0 +1,15 @@
+---
+/* Debajo de cada paso: ir al anterior o al siguiente, guardar el borrador (en cualquier
+   paso, aunque falten cosas) y cerrar. Cerrar con cambios sin guardar pide otra pulsacion. */
+const { tx } = Astro.props;
+---
+<p class="portal__error" data-error-form role="alert" hidden></p>
+{/* Lo que salio bien («Borrador guardado…»): se ve aqui y se dice en voz alta, sin mover el foco */}
+<p class="dev__hecho" data-hecho hidden></p>
+<div class="dev__acciones dev__pie">
+  <button class="portal__boton portal__boton--suave" type="button" data-dev-anterior>{tx.anterior}</button>
+  <button class="portal__boton" type="button" data-dev-siguiente>{tx.siguiente}</button>
+  <button class="portal__boton portal__boton--suave" type="submit">{tx.guardar}</button>
+  <button class="portal__boton portal__boton--suave dev__cerrar" type="button" data-dev-cerrar
+          data-seguro={tx.cerrarSeguro} data-voz={tx.cerrarVoz}>{tx.cerrar}</button>
+</div>

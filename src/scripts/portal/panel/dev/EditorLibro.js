@@ -5,8 +5,9 @@
      · el LOMO: al elegir el PNG se mide AQUI, antes de subirlo, contra la regla de su
        grosor (contenido/medidas.js), y se pinta de pie en un estante pequeño. Si no
        encaja, no se guarda y se dice que medida debe tener;
-     · las rutas del almacen salen del id (Libro.rutaPdf / rutaLomo): el lomo con un
-       trozo al azar, porque el cajon de imagenes es publico y un borrador no se adivina. */
+     · las rutas del almacen salen del id (Libro.rutaPdf / rutaLomo), con un trozo al azar:
+       el lomo, porque el cajon de imagenes es publico y un borrador no se adivina; el PDF,
+       para que el de un borrador no pise el del libro ya publicado. */
 import { EditorContenido } from './EditorContenido.js';
 import { Libro } from '../../../contenido/Libro.js';
 import { LOMOS, GROSORES } from '../../../contenido/medidas.js';
@@ -61,13 +62,14 @@ export class EditorLibro extends EditorContenido {
     };
   }
 
-  /* Las subidas pendientes y sus rutas (deterministas: salen del id y del idioma) */
+  /* Las subidas pendientes y sus rutas (salen del id y del idioma, con un trozo al azar:
+     el PDF nuevo de un borrador no pisa el del libro publicado, que la web sigue usando) */
   preparar(datos) {
     const f = this.form;
     const subidas = [];
     const pdf = (lang, input) => {
       const archivo = input && input.files && input.files[0];
-      const ruta = Libro.rutaPdf(datos.id, lang);
+      const ruta = Libro.rutaPdf(datos.id, lang, this.sufijo());
       if (!archivo || !ruta) return;
       datos.pdf[lang] = ruta;
       subidas.push({ ruta, archivo });
@@ -127,9 +129,9 @@ export class EditorLibro extends EditorContenido {
     this.$('[data-lomo-medida]').textContent = '';
     this.$('[data-estante]').hidden = true;
   }
-  abrir(obj) {
-    super.abrir(obj);
-    if (!obj) {
+  abrir(entrada) {
+    super.abrir(entrada);
+    if (!entrada) {
       this.$('[data-pdf-ya]').hidden = true;
       this.$('[data-lomo-ya]').hidden = true;
       this.lomoRevision = null;

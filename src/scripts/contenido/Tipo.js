@@ -58,11 +58,18 @@ export class TipoDeContenido {
   /* Las reglas de cada hija. */
   revisar() {}
 
-  validar() {
+  /* `borrador`: lo que se guarda A MEDIAS (008, la tabla borradores). Lo que falta se perdona
+     (se pide al publicar); lo que esta, tiene que estar BIEN: un enlace peligroso, una ruta
+     ajena o un id que no vale no se guardan ni en un borrador. */
+  validar({ borrador = false } = {}) {
     const r = resultado();
     if (!idiomaValido(this.idiomaOriginal)) r.errores.push({ campo: 'idiomaOriginal', clave: 'falta' });
     r.errores.push(...this.ia.validar(this.idiomaOriginal).errores);
     this.revisar(r);
+    if (borrador) {
+      r.faltan = r.errores.filter((x) => x.clave === 'falta');
+      r.errores = r.errores.filter((x) => x.clave !== 'falta' || x.campo === 'id');
+    }
     return cerrar(r);
   }
 

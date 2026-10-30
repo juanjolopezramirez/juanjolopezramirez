@@ -4,7 +4,7 @@ import BarraTerminal from './BarraTerminal.astro';
 import AlefIcono from './AlefIcono.astro';
 import Campo from './Campo.astro';
 import { tp, jsonSeguro } from '../../data/portal/textos.js';
-import { SECCIONES, GRUPOS, PLEGABLES, HECHAS } from '../../data/portal/secciones.js';
+import { SECCIONES, GRUPOS, MODOS, HECHAS } from '../../data/portal/secciones.js';
 import EditorLibro from './dev/EditorLibro.astro';
 import EditorEtapa from './dev/EditorEtapa.astro';
 import EditorCasa from './dev/EditorCasa.astro';
@@ -70,44 +70,47 @@ const hecha = (id) => HECHAS.includes(id);
 
     <div class="panel__cuerpo" data-marco hidden>
 
-    <!-- EL MENU, un acordeon: Self-Mode, Developer-Mode y Acceso se pliegan; se abre solo el
-         grupo de la seccion en que estas (panel/Menu.js). En el telefono todo cabe detras de
-         un boton «Menú» que dice donde estas y se cierra al elegir. Nada se guarda. -->
+    <!-- EL MENU. Dos modos, como un tema claro y uno oscuro (lo pidio el fundador el
+         2026-10-27): el boton de arriba cambia de Self-Mode (de dia, papel) a Developer-Mode
+         (de noche, la terminal) y con el cambian las secciones de la barra y el aspecto del
+         panel. «Acceso» (Quién entra, Seguridad) esta abajo en los dos. En el telefono, las
+         secciones van detras de un boton «Menú» que dice donde estas. panel/Menu.js.
+         Nada se guarda: el modo lo dice la direccion (#libros es Developer-Mode). -->
     <div class="panel__riel" data-riel>
+      <button class="panel__modo" type="button" aria-pressed="false" data-modo-boton data-solo-admin
+              data-aviso-self={p.modos.ahoraSelf} data-aviso-dev={p.modos.ahoraDev}>
+        <span class="sr-only">{p.modos.nombre}</span>
+        {/* En el telefono, «Self · Dev»: los nombres enteros no dejan sitio al «Menú» */}
+        <span class="panel__modo-lado panel__modo-lado--self" aria-hidden="true"><span class="panel__modo-largo">{p.grupos.self}</span><span class="panel__modo-corto">{p.modos.corto.self}</span></span>
+        <span class="panel__modo-lado panel__modo-lado--dev" aria-hidden="true"><span class="panel__modo-largo">{p.grupos.dev}</span><span class="panel__modo-corto">{p.modos.corto.dev}</span></span>
+      </button>
+      <p class="sr-only" aria-live="polite" data-modo-voz></p>
+
       <button class="panel__menu-boton" type="button" aria-expanded="false" aria-controls="panel-menu" data-menu-boton>
         <span class="panel__menu-nombre">{p.menuBoton}</span><span class="sr-only">, </span>
         <span class="panel__menu-actual" data-menu-actual></span>
         <Icon id="pliegue" />
       </button>
       <nav class="panel__menu" id="panel-menu" aria-label={p.menu} data-menu>
-        {GRUPOS.map((g) => {
-          const plegable = PLEGABLES.includes(g);
-          return (
-            <div class="panel__grupo" data-grupo={g}
-                 data-solo-admin={g === 'miembros' ? undefined : ''}
-                 data-solo-miembros={g === 'miembros' ? '' : undefined}>
-              {plegable && (
-                <button class="panel__grupo-boton" type="button" id={`g-${g}`} aria-expanded="false" aria-controls={`gl-${g}`} data-acordeon={g}>
-                  <span class="panel__grupo-nombre"><span class="panel__prompt" aria-hidden="true">// </span>{p.grupos[g]}</span>
-                  <Icon id="pliegue" />
-                </button>
-              )}
-              <ul class="panel__enlaces" id={`gl-${g}`} role="list"
-                  aria-labelledby={plegable ? `g-${g}` : undefined}
-                  aria-label={plegable ? undefined : p.grupos[g]}
-                  hidden={plegable}>
-                {SECCIONES.filter((s) => s.grupo === g).map((s) => (
-                  <li>
-                    <a class:list={['panel__enlace', { 'panel__enlace--pronto': !hecha(s.id) }]} href={`#${s.id}`} data-nav={s.id}>
-                      <span>{p.secciones[s.id].titulo}</span>
-                      {!hecha(s.id) && <span class="panel__marca-pronto"><span class="sr-only">, </span>{p.prontoCorto}</span>}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+        {GRUPOS.map((g) => (
+          <div class:list={['panel__grupo', `panel__grupo--${g}`]} data-grupo={g}
+               data-modo-grupo={MODOS.includes(g) ? g : undefined}
+               data-solo-admin={g === 'miembros' ? undefined : ''}
+               data-solo-miembros={g === 'miembros' ? '' : undefined}>
+            {/* El nombre de Acceso se ve (esta en los dos modos); el de un modo, no: ya lo dice el boton de arriba */}
+            {g === 'acceso' && <p class="panel__grupo-nombre" id={`g-${g}`} aria-hidden="true"><span class="panel__prompt">// </span>{p.grupos[g]}</p>}
+            <ul class="panel__enlaces" id={`gl-${g}`} role="list" aria-label={p.grupos[g]}>
+              {SECCIONES.filter((s) => s.grupo === g).map((s) => (
+                <li>
+                  <a class:list={['panel__enlace', { 'panel__enlace--pronto': !hecha(s.id) }]} href={`#${s.id}`} data-nav={s.id}>
+                    <span>{p.secciones[s.id].titulo}</span>
+                    {!hecha(s.id) && <span class="panel__marca-pronto"><span class="sr-only">, </span>{p.prontoCorto}</span>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <button class="panel__salir" type="button" data-salir><Icon id="salir" /><span>{p.salir}</span></button>

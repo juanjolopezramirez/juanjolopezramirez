@@ -8,6 +8,11 @@
    las dos secciones viven en la misma pagina. */
 import Actualizar from './Actualizar.astro';
 import UsoIA from './UsoIA.astro';
+import Ruta from './Ruta.astro';
+import Paso from './Paso.astro';
+import Revisar from './Revisar.astro';
+import Pie from './Pie.astro';
+import { ETAPAS } from '../../../data/portal/etapas.js';
 import { IDIOMAS } from '../../../scripts/contenido/comun.js';
 
 const { tx, clase } = Astro.props;
@@ -32,7 +37,9 @@ const ruta = clase === 'trabajos' ? 'work' : 'projects';
   <form class="dev__form dev__form--ancho" data-dev-form hidden novalidate aria-labelledby={`dev-${clase}-titulo`}>
     <h3 class="panel__subtitulo" id={`dev-${clase}-titulo`} tabindex="-1" data-dev-titulo
         data-nuevo={k.tituloNuevo} data-editar={k.tituloEditar}>{k.tituloNuevo}</h3>
+    <Ruta pre={pre} etapas={ETAPAS.casas} tx={tx} />
 
+    <Paso pre={pre} id="basico" tx={tx}>
     <div class="dev__campo" data-campo="idiomaOriginal">
       <label class="portal__etiqueta" for={`${pre}-idioma`}>{tx.idioma}</label>
       <select class="portal__entrada dev__select" id={`${pre}-idioma`} name="idiomaOriginal">
@@ -63,8 +70,10 @@ const ruta = clase === 'trabajos' ? 'work' : 'projects';
       <input class="portal__entrada" id={`${pre}-tags`} name="etiquetas" maxlength="400" autocomplete="off" aria-describedby={`${pre}-tags-ayuda`} />
       <p class="portal__ayuda" id={`${pre}-tags-ayuda`}>{tx.etiquetasAyuda}</p>
     </div>
+    </Paso>
 
     {/* Las tres imagenes: se miden aqui antes de subirlas y se ven en pequeño */}
+    <Paso pre={pre} id="imagenes" tx={tx}>
     {[
       { campo: 'logo', nombre: 'logo', accept: 'image/png,image/webp,.png,.webp', titulo: c.logo, ayuda: c.logoAyuda, boton: c.elegirLogo },
       { campo: 'avatar', nombre: 'avatar', accept: 'image/png,image/webp,.png,.webp', titulo: c.avatar, ayuda: c.avatarAyuda, boton: c.elegirAvatar },
@@ -85,18 +94,25 @@ const ruta = clase === 'trabajos' ? 'work' : 'projects';
         <p class="dev__medida" id={`${pre}-${x.nombre}-medida`} data-medida aria-live="polite"></p>
       </div>
     ))}
+    </Paso>
 
+    <Paso pre={pre} id="hice" tx={tx}>
     <fieldset class="dev__grupo" data-campo="works">
       <legend class="portal__etiqueta">{c.trabajos2}</legend>
       <div class="dev__trabajos" data-trabajos></div>
       <button class="portal__boton portal__boton--suave dev__mas" type="button" data-otro-trabajo>{c.otroTrabajo}</button>
     </fieldset>
+    </Paso>
 
+    <Paso pre={pre} id="idiomas" tx={tx}>
     <div class="dev__versiones" data-versiones></div>
     <button class="portal__boton portal__boton--suave dev__mas" type="button" data-dev-version>{tx.otraVersion}</button>
 
-    <section class="dev__pagina" aria-labelledby={`${pre}-pagina-titulo`} data-campo="cuerpo">
-      <h4 class="dev__pagina-titulo" id={`${pre}-pagina-titulo`}>{c.pagina}</h4>
+    <UsoIA prefijo={pre} tx={tx.ia} />
+    </Paso>
+
+    <Paso pre={pre} id="pagina" tx={tx}>
+    <section class="dev__pagina" aria-label={c.pagina} data-campo="cuerpo">
       <p class="portal__ayuda">{c.paginaLinea}</p>
       <div class="dev__campo dev__pagina-idioma">
         <label class="portal__etiqueta" for={`${pre}-pagina-idioma`}>{c.paginaIdioma}</label>
@@ -104,18 +120,10 @@ const ruta = clase === 'trabajos' ? 'work' : 'projects';
       </div>
       <div class="bed" data-bloques></div>
     </section>
+    </Paso>
 
-    <UsoIA prefijo={pre} tx={tx.ia} />
-
-    <p class="portal__error" data-error-form role="alert" hidden></p>
-    <div class="dev__acciones">
-      <button class="portal__boton" type="submit">{tx.guardar}</button>
-      <button class="portal__boton portal__boton--suave" type="button" data-dev-publicar
-              data-publicar={tx.publicar} data-despublicar={tx.despublicar} hidden>{tx.publicar}</button>
-      <button class="portal__boton portal__boton--suave dev__borrar" type="button" data-dev-borrar
-              data-borrar={tx.borrar} data-seguro={tx.borrarSeguro} hidden>{tx.borrar}</button>
-      <button class="portal__boton portal__boton--suave" type="button" data-dev-cerrar>{tx.cerrar}</button>
-    </div>
+    <Revisar pre={pre} tx={tx} />
+    <Pie tx={tx} />
   </form>
 
   <template data-plantilla="version-casa">

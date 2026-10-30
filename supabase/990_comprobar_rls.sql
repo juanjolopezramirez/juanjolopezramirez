@@ -1,7 +1,7 @@
 -- ÁLEF · 990 · Comprobar que las reglas están puestas
 --
 -- Solo LEE: no cambia nada. Pégalo en Supabase → SQL Editor → Run después de
--- 001..006 (y de la semilla). El editor enseña el resultado de la ÚLTIMA
+-- 001..008 (y de la semilla). El editor enseña el resultado de la ÚLTIMA
 -- consulta; si quieres ver las otras, córrelas una a una (selecciona y Run).
 --
 -- Cómo leerlo:
@@ -24,6 +24,12 @@
 --  11. «es_admin_pide_codigo»      true una vez aplicado 006 (antes, false).
 --  12. «Admins sin dispositivo»    DEBE salir vacía una vez aplicado 006.
 --  13. «Reglas que leen admins»    DEBE salir vacía: todo pasa por es_admin().
+--  Tras 008 (borradores):
+--  15. «Borradores»                rls true, anon_lee false, una regla del admin (ALL).
+--  16. «Regla del PDF»             solo biblioteca_pdf_check.
+--  17. «pdf_de_libro»              true, true, false, false.
+--  18. «entiende_el_azar»          true.
+--  19. «casas_clase_fija»          una fila.
 --  Los Advisors de Supabase (Security) avisarán, y está bien, de las 4 funciones
 --  «security definer» que un usuario con sesión puede ejecutar (es_admin,
 --  esta_aprobado, decidir_acceso, reclamar_invitacion): es a propósito y cada una
@@ -118,3 +124,27 @@ select schemaname, tablename, policyname
   from pg_policies
  where coalesce(qual, '') || coalesce(with_check, '') ~ 'admins'
    and not (schemaname = 'public' and tablename = 'admins');
+
+-- 15. Borradores (008): rls true, anon_lee false, 1 regla borradores_todo_el_admin:ALL
+select c.relrowsecurity as rls, has_table_privilege('anon', c.oid, 'SELECT') as anon_lee,
+       (select string_agg(policyname || ':' || cmd, ', ') from pg_policies
+         where schemaname = 'public' and tablename = 'borradores') as reglas
+  from pg_class c where c.oid = 'public.borradores'::regclass;
+
+-- 16. La regla del PDF de biblioteca (DEBE salir solo biblioteca_pdf_check)
+select conname from pg_constraint
+ where conrelid = 'public.biblioteca'::regclass and contype = 'c'
+   and pg_get_constraintdef(oid) like '%pdf_de_libro%';
+
+-- 17. pdf_de_libro con trozo al azar (DEBE: true, true, false, false)
+select public.pdf_de_libro('libro', '{"es":"libros/libro/es.pdf"}'),
+       public.pdf_de_libro('libro', '{"es":"libros/libro/es-abc123.pdf"}'),
+       public.pdf_de_libro('libro', '{"es":"libros/otro/es-abc123.pdf"}'),
+       public.pdf_de_libro('libro', '{"es":"libros/libro/en-abc123.pdf"}');
+
+-- 18. La regla de leer PDF entiende el trozo al azar (DEBE decir true)
+select qual like '%split_part(split_part%' as entiende_el_azar
+  from pg_policies where schemaname = 'storage' and policyname = 'alef_libros_leer_publicados';
+
+-- 19. Una casa no cambia de clase (DEBE salir 1 fila: casas_clase_fija)
+select tgname from pg_trigger where tgrelid = 'public.casas'::regclass and tgname = 'casas_clase_fija';

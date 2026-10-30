@@ -52,7 +52,9 @@ as $$
      and coalesce((select bool_and(k ~ '^[a-z]{2}$' or (extra <> '' and k = extra)) from jsonb_object_keys(j) as k), true);
 $$;
 
--- ¿Cada PDF de un libro es el SUYO, en su idioma? { es: 'libros/<id>/es.pdf' }
+-- ¿Cada PDF de un libro es el SUYO, en su idioma? { es: 'libros/<id>/es.pdf' } o, desde
+-- 008, con su trozo al azar: 'libros/<id>/es-<azar>.pdf'. 008 la define IGUAL: volver a
+-- pegar este archivo no la deshace. El «case» mira el idioma ANTES de ponerlo en el patrón.
 create or replace function public.pdf_de_libro(libro text, pdf jsonb)
 returns boolean
 language sql
@@ -60,7 +62,10 @@ immutable
 set search_path = ''
 as $$
   select jsonb_typeof(pdf) = 'object'
-     and coalesce((select bool_and(coalesce(e.value = 'libros/' || libro || '/' || e.key || '.pdf', false))
+     and libro ~ '^[a-z][a-z0-9]{0,39}$'
+     and coalesce((select bool_and(case when e.key ~ '^[a-z]{2}$'
+                                        then e.value ~ ('^libros/' || libro || '/' || e.key || '(-[a-z0-9]{6,16})?\.pdf$')
+                                        else false end)
                      from jsonb_each_text(pdf) as e), true);
 $$;
 
@@ -224,9 +229,9 @@ create policy "alef_libros_leer_publicados" on storage.objects
     and exists (
       select 1 from public.biblioteca b
        where b.publicado
-         -- el nombre dentro del cajón es «<id>/<idioma>.pdf», SIN «libros/» delante
-         -- (src/scripts/contenido/Almacen.js → ubicacion)
+         -- el nombre dentro del cajón es «<id>/<idioma>[-<azar>].pdf», SIN «libros/» delante
+         -- (src/scripts/contenido/Almacen.js → ubicacion). Igual que en 008.
          and b.id = (storage.foldername(objects.name))[1]
-         and b.pdf ->> split_part(storage.filename(objects.name), '.', 1) = 'libros/' || objects.name
+         and b.pdf ->> split_part(split_part(storage.filename(objects.name), '.', 1), '-', 1) = 'libros/' || objects.name
     )
   );

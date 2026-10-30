@@ -1,0 +1,19 @@
+---
+/* Los pasos de un formulario, arriba y en orden (panel/dev/Asistente.js): el de ahora lleva
+   aria-current="step" y uno con algo que revisar lo dice tambien en palabras. Se puede ir a
+   cualquiera, sin perder lo escrito. */
+const { pre, etapas, tx } = Astro.props;
+---
+<nav class="dev__ruta" aria-label={tx.pasos}>
+  <ol class="dev__ruta-lista" role="list">
+    {etapas.map((e, i) => (
+      <li class="dev__ruta-paso">
+        <button class="dev__ruta-boton" type="button" data-ir-etapa={e} aria-controls={`${pre}-etapa-${e}`}>
+          <span class="dev__ruta-n" aria-hidden="true">{i + 1}</span>
+          <span class="dev__ruta-nombre">{tx.etapas[e]}</span>
+          <span class="sr-only" data-ruta-error hidden>({tx.conError})</span>
+        </button>
+      </li>
+    ))}
+  </ol>
+</nav>

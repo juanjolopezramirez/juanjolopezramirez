@@ -118,6 +118,13 @@ export const PORTAL_TEXTOS = {
       menu: 'Secciones',
       /* El boton que abre el menu en el telefono; al lado va la seccion en que estas */
       menuBoton: 'Menú',
+      /* El boton de los dos modos: su nombre no cambia (lo dice «pulsado» o no) */
+      modos: {
+        nombre: 'Developer-Mode',
+        corto: { self: 'Self', dev: 'Dev' },
+        ahoraSelf: 'Ahora estás en Self-Mode.',
+        ahoraDev: 'Ahora estás en Developer-Mode.'
+      },
       salir: 'Salir',
       sinJavascript: 'Para entrar hace falta JavaScript.',
       problema: 'No pude conectar. Revisa tu internet e intenta otra vez.',
@@ -151,20 +158,45 @@ export const PORTAL_TEXTOS = {
           linea: 'Lo publicado sale en la web cuando la vuelves a armar. Se abre GitHub: pulsa «Run workflow» y en unos minutos está.',
           boton: 'Actualizar la web'
         },
-        borrador: 'Borrador',
-        enLaWeb: 'Publicado',
+        /* Lo que dice cada fila de la lista (contenido/Repositorio.js → Entrada.estado) */
+        estados: { borrador: 'Borrador', publicado: 'Publicado', cambios: 'Publicado · con cambios', fuera: 'Fuera de la web' },
         editar: 'Editar',
         cerrar: 'Cerrar',
-        guardar: 'Guardar',
+        cerrarSeguro: 'Cerrar sin guardar',
+        cerrarVoz: 'Hay cambios sin guardar. Pulsa otra vez para cerrar sin guardarlos.',
+        guardar: 'Guardar borrador',
+        anterior: 'Anterior',
+        siguiente: 'Siguiente',
         publicar: 'Publicar',
+        publicarCambios: 'Publicar los cambios',
         despublicar: 'Quitar de la web',
+        descartar: 'Descartar los cambios',
+        descartarSeguro: 'Pulsa otra vez para descartar',
         borrar: 'Borrar',
         borrarSeguro: 'Pulsa otra vez para borrar',
-        guardado: 'Guardado. Sigue siendo un borrador hasta que lo publiques.',
-        guardadoPublicado: 'Guardado. Para verlo en la web, actualízala.',
+        guardado: 'Borrador guardado. La web no cambia hasta que lo publiques.',
+        guardadoCambios: 'Borrador guardado. La web sigue con lo publicado hasta que vuelvas a publicar.',
         publicado: 'Publicado. Para verlo en la web, actualízala.',
         despublicado: 'Ya no está publicado. Al actualizar la web, se quita.',
+        descartado: 'Cambios descartados. Queda lo publicado.',
         borrado: 'Borrado.',
+        /* Los formularios van por pasos (data/portal/etapas.js); el ultimo es «Revisar» */
+        pasos: 'Pasos',
+        pasoDe: 'Paso {n} de {total}: ',
+        conError: 'tiene algo que revisar',
+        etapas: {
+          basico: 'Lo básico', pdf: 'El PDF', lomo: 'El lomo', idiomas: 'Idiomas', revisar: 'Revisar',
+          etapa: 'La etapa', imagenes: 'Imágenes', hice: 'Lo que hice', pagina: 'Su página'
+        },
+        revisar: {
+          ahora: 'Ahora: {estado}.',
+          todoListo: 'Todo listo para publicar.',
+          faltaAlgo: 'Para publicar, completa lo marcado.',
+          listo: 'Listo.',
+          falta: 'Falta: {campos}.',
+          mal: 'Revisa: {campos}.',
+          cambiar: 'Cambiar'
+        },
         revisa: 'Revisa lo marcado.',
         revisaN: 'Revisa lo marcado: {n} campos.',
         enOtroIdioma: '{idioma}, bloque {n}: {texto}',

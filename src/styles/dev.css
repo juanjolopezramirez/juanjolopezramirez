@@ -11,13 +11,16 @@
 
 .dev { display: grid; gap: 1.2rem; align-content: start; min-width: 0; }
 .dev .portal__boton { width: auto; }
+/* El «↵» dice «esto hace Enter»: en los editores, Enter guarda el borrador; Siguiente y
+   Publicar no lo llevan */
+.dev .portal__boton:not([type="submit"])::after { content: none; }
 
 /* «Actualizar la web»: una franja tranquila, no un aviso */
 .dev__actualizar {
   display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.2rem;
   padding: .9rem 1rem;
   border: 1px solid var(--raya); border-radius: 14px;
-  background: rgb(241 239 233 / .025);
+  background: rgb(var(--luz) / .025);
 }
 .dev__actualizar-linea { flex: 1 1 18rem; margin: 0; font-size: .84rem; line-height: 1.5; color: var(--tiza-2); }
 .dev__actualizar-boton { flex: none; min-height: 44px; text-decoration: none; }
@@ -26,13 +29,81 @@
 .dev__barra[hidden] { display: none; }
 .panel__lista[hidden], .panel__vacio[hidden] { display: none; }
 
-/* La fila de la lista: «Borrador» o «Publicado» (el texto lo dice; el borde acompaña) */
+/* La fila de la lista: «Borrador», «Publicado», «Publicado · con cambios» o «Fuera de la
+   web» (el texto lo dice; el borde acompaña: discontinuo lo que no esta en la web) */
 .dev__estado {
   display: inline-flex; align-items: center; min-height: 28px; padding: 0 .65rem;
   border: 1px dashed var(--raya-fuerte); border-radius: 999px;
   font-family: var(--mono); font-size: .76rem; color: var(--tiza-2); white-space: nowrap;
 }
-.dev__estado--web { border-style: solid; border-color: rgb(169 196 127 / .55); color: var(--prompt); }
+.dev__estado[data-estado="publicado"], .dev__estado[data-estado="cambios"] { border-style: solid; border-color: rgb(var(--prompt-rgb) / .55); color: var(--prompt); }
+
+/* ---- Los pasos: la ruta arriba (1 Lo básico · 2 El PDF …), un paso cada vez ---- */
+.dev__ruta-lista {
+  display: flex; flex-wrap: wrap; gap: .35rem;
+  margin: 0; padding: 0; list-style: none;
+}
+.dev__ruta-boton {
+  display: inline-flex; align-items: center; gap: .5rem;
+  min-height: 40px; padding: 0 .8rem 0 .4rem;
+  border: 1px solid var(--raya); border-radius: 999px;
+  background: none; color: var(--tiza-2);
+  font: inherit; font-size: .84rem; cursor: pointer;
+  transition: background-color .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease);
+}
+.dev__ruta-boton:hover { background: rgb(var(--luz) / .05); color: var(--tiza); }
+.dev__ruta-boton:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.dev__ruta-n {
+  display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  border: 1px solid var(--raya-fuerte);
+  font-family: var(--mono); font-size: .74rem; font-variant-numeric: tabular-nums;
+}
+.dev__ruta-boton[aria-current="step"] { border-color: rgb(var(--luz) / .5); background: rgb(var(--luz) / .07); color: var(--tiza); font-weight: 600; }
+.dev__ruta-boton[aria-current="step"] .dev__ruta-n { background: var(--tiza); border-color: var(--tiza); color: var(--consola); }
+/* Un paso con algo que revisar: su numero lleva un punto rojo encima (una FORMA, no solo un
+   color) y las palabras «tiene algo que revisar», para quien no ve */
+.dev__ruta-n { position: relative; }
+.dev__ruta-boton--error .dev__ruta-n { border-color: var(--alerta); }
+.dev__ruta-boton--error .dev__ruta-n::after {
+  content: ""; position: absolute; top: -3px; right: -3px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--alerta); box-shadow: 0 0 0 2px var(--consola);
+}
+.dev__ruta-boton--error { color: var(--tiza); }
+
+.dev__paso { display: grid; gap: 1.15rem; min-width: 0; }
+.dev__paso[hidden] { display: none; }
+.dev__paso-titulo {
+  margin: 0; font-family: var(--mono); font-size: .8rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--tiza-2);
+}
+.dev__paso-titulo:focus { outline: none; }
+/* Con el teclado, una raya a la izquierda dice «aqui estas» al llegar a un paso */
+.dev__paso-titulo:focus-visible { box-shadow: -.7rem 0 0 -.5rem var(--prompt); }
+.dev__paso-titulo { scroll-margin-top: 1rem; }
+[data-modo="self"] .dev__paso-titulo { font-family: var(--sans); }
+
+/* «Revisar»: un paso por fila, con lo que le falta y «Cambiar» */
+.dev__revisar-estado { margin: 0; font-size: .92rem; line-height: 1.5; color: var(--tiza); }
+.dev__resumen { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.dev__resumen-fila {
+  display: flex; align-items: center; justify-content: space-between; gap: .8rem 1rem; flex-wrap: wrap;
+  padding: .7rem .9rem; border: 1px solid var(--raya); border-radius: 12px;
+}
+.dev__resumen-texto { display: grid; gap: .15rem; min-width: 0; flex: 1 1 14rem; }
+.dev__resumen-paso { margin: 0; font-size: .92rem; font-weight: 600; color: var(--tiza); }
+.dev__resumen-dice { display: flex; gap: .5rem; align-items: baseline; margin: 0; font-size: .84rem; line-height: 1.45; color: var(--tiza-2); }
+.dev__resumen-dice::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
+.dev__resumen-fila[data-listo="no"] .dev__resumen-dice { color: var(--tiza); }
+.dev__resumen-fila[data-listo="no"] .dev__resumen-dice::before { background: var(--alerta); }
+
+/* Debajo de cada paso: Anterior · Siguiente · Guardar borrador … Cerrar (a la derecha) */
+.dev__pie { border-top: 1px solid var(--raya); padding-top: 1rem; }
+.dev__pie .dev__cerrar { margin-inline-start: auto; }
+/* «Borrador guardado», al lado de los botones donde se esta mirando */
+.dev__hecho { display: flex; gap: .5rem; align-items: baseline; margin: 0; font-size: .86rem; line-height: 1.45; color: var(--tiza); }
+.dev__hecho::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
+.dev__hecho[hidden] { display: none; }
 .panel__fila .panel__acciones { align-items: center; }
 
 /* ---- El editor ---- */
@@ -43,7 +114,7 @@
 .dev__corto { max-width: 9rem; }
 .dev__ruta { font-family: var(--mono); color: var(--tiza); overflow-wrap: anywhere; }
 .dev__select { appearance: auto; cursor: pointer; }
-.dev__select option { background: #0B110D; color: var(--tiza); }
+.dev__select option { background: var(--consola); color: var(--tiza); }
 
 /* Un grupo de opciones (tipo, grosor, lo que hizo la IA, una version en otro idioma) */
 .dev__grupo {
@@ -63,8 +134,8 @@
   cursor: pointer;
   transition: background-color .2s var(--ease), border-color .2s var(--ease);
 }
-.dev__opcion:hover { background: rgb(241 239 233 / .05); }
-.dev__opcion:has(input:checked) { border-color: rgb(241 239 233 / .5); background: rgb(241 239 233 / .07); }
+.dev__opcion:hover { background: rgb(var(--luz) / .05); }
+.dev__opcion:has(input:checked) { border-color: rgb(var(--luz) / .5); background: rgb(var(--luz) / .07); }
 .dev__opcion:has(input:focus-visible) { outline: 2px solid var(--prompt); outline-offset: 2px; }
 .dev__opcion-nombre { font-size: .92rem; color: var(--tiza); }
 .dev__opcion-medida { font-family: var(--mono); font-size: .78rem; color: var(--tiza-2); font-variant-numeric: tabular-nums; text-align: end; }
@@ -82,12 +153,12 @@
 .dev__elegir-boton {
   display: inline-flex; align-items: center; min-height: 44px; padding: 0 1rem;
   border: 1px solid var(--raya-fuerte); border-radius: 12px;
-  background: rgb(241 239 233 / .03); color: var(--tiza);
+  background: rgb(var(--luz) / .03); color: var(--tiza);
   font-family: var(--mono); font-size: .84rem; font-weight: 700;
   transition: background-color .2s var(--ease), border-color .2s var(--ease);
 }
 .dev__elegir-nombre { min-width: 0; font-size: .84rem; color: var(--tiza-2); overflow-wrap: anywhere; }
-.dev__elegir:hover .dev__elegir-boton { background: rgb(241 239 233 / .08); border-color: rgb(241 239 233 / .5); }
+.dev__elegir:hover .dev__elegir-boton { background: rgb(var(--luz) / .08); border-color: rgb(var(--luz) / .5); }
 .dev__elegir:has(.dev__archivo:focus-visible) .dev__elegir-boton { outline: 2px solid var(--prompt); outline-offset: 2px; }
 .dev__elegir:has(.dev__archivo[aria-invalid="true"]) .dev__elegir-boton { border-color: rgb(255 59 59 / .6); }
 
@@ -96,10 +167,10 @@
   display: flex; align-items: flex-end; justify-content: center;
   width: max-content; min-width: 9rem; padding: .9rem 1.4rem 0;
   border-bottom: 3px solid var(--raya-fuerte); border-radius: 12px 12px 2px 2px;
-  background: linear-gradient(to top, rgb(241 239 233 / .05), transparent 70%);
+  background: linear-gradient(to top, rgb(var(--luz) / .05), transparent 70%);
 }
 .dev__estante[hidden] { display: none; }
-.dev__lomo { display: block; height: 240px; width: auto; border-radius: 2px; box-shadow: 0 14px 20px -12px rgb(0 0 0 / .8), inset 0 0 0 1px rgb(0 0 0 / .25); }
+.dev__lomo { display: block; height: 240px; width: auto; border-radius: 2px; box-shadow: 0 14px 20px -12px rgb(var(--sombra-rgb) / .8), inset 0 0 0 1px rgb(var(--sombra-rgb) / .25); }
 .dev__medida { margin: 0; font-size: .84rem; line-height: 1.45; color: var(--tiza); font-variant-numeric: tabular-nums; }
 .dev__medida:empty { display: none; }
 .dev__medida::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: .5rem; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
@@ -125,7 +196,7 @@
 .dev__muestra {
   display: flex; align-items: center; justify-content: center;
   width: max-content; max-width: 100%; padding: .9rem 1.2rem;
-  border: 1px solid var(--raya); border-radius: 12px; background: #050806;
+  border: 1px solid var(--raya); border-radius: 12px; background: var(--noche);
 }
 .dev__muestra[hidden] { display: none; }
 .dev__muestra canvas { display: block; max-width: 100%; height: auto; }
@@ -139,8 +210,7 @@
 }
 
 /* «Su página»: el editor de bloques, en su propia caja */
-.dev__pagina { display: grid; gap: .8rem; padding: 1.1rem 1rem 1.2rem; border: 1px solid var(--raya-fuerte); border-radius: 16px; background: rgb(241 239 233 / .02); }
-.dev__pagina-titulo { margin: 0; font-family: var(--mono); font-weight: 700; font-size: 1rem; color: var(--tiza); }
+.dev__pagina { display: grid; gap: .8rem; padding: 1.1rem 1rem 1.2rem; border: 1px solid var(--raya-fuerte); border-radius: 16px; background: rgb(var(--luz) / .02); }
 .dev__pagina-idioma { max-width: 18rem; }
 
 /* ---- El editor de bloques (panel/dev/EditorBloques.js) ---- */
@@ -153,10 +223,10 @@
   display: grid; gap: .55rem;
   padding: .55rem .8rem .8rem;
   border: 1px solid var(--raya); border-radius: 12px;
-  background: rgb(241 239 233 / .02);
+  background: rgb(var(--luz) / .02);
   transition: border-color .2s var(--ease);
 }
-.bed__bloque:focus-within { border-color: rgb(241 239 233 / .4); }
+.bed__bloque:focus-within { border-color: rgb(var(--luz) / .4); }
 /* La barra del bloque: su tipo y sus acciones; tranquila hasta que se trabaja en el */
 .bed__barra { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .3rem; }
 .bed__tipo { flex: 1; min-width: 6rem; font-family: var(--mono); font-size: .72rem; letter-spacing: .04em; text-transform: lowercase; color: var(--tiza-2); }
@@ -167,7 +237,7 @@
   border-radius: 8px; font: inherit; font-family: var(--mono); font-size: .76rem; color: var(--tiza-2);
   cursor: pointer; transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.bed__accion:hover { background: rgb(241 239 233 / .07); color: var(--tiza); }
+.bed__accion:hover { background: rgb(var(--luz) / .07); color: var(--tiza); }
 .bed__accion:focus-visible { outline: 2px solid var(--prompt); outline-offset: 1px; }
 .bed__cuerpo { display: grid; gap: .6rem; min-width: 0; }
 
@@ -215,7 +285,7 @@
 .bed__menu {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .35rem;
   padding: .6rem; border: 1px solid var(--raya-fuerte); border-radius: 14px;
-  background: #0B110D; box-shadow: 0 18px 40px -20px rgb(0 0 0 / .9);
+  background: var(--consola); box-shadow: 0 18px 40px -20px rgb(var(--sombra-rgb) / .9);
 }
 .bed__menu[hidden] { display: none; }
 .bed__opcion {
@@ -223,7 +293,7 @@
   min-height: 48px; padding: .45rem .7rem; border-radius: 10px;
   font: inherit; color: var(--tiza); cursor: pointer;
 }
-.bed__opcion:hover, .bed__opcion:focus-visible { background: rgb(241 239 233 / .08); outline: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--prompt); }
+.bed__opcion:hover, .bed__opcion:focus-visible { background: rgb(var(--luz) / .08); outline: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--prompt); }
 .bed__opcion-nombre { font-family: var(--mono); font-size: .86rem; font-weight: 700; }
 .bed__opcion-linea { font-size: .76rem; color: var(--tiza-2); }
 
@@ -239,4 +309,4 @@
 
 /* Las cajas de los campos, un poco mas marcadas que en la tarjeta de entrar: aqui hay
    muchos campos seguidos y el borde tiene que distinguirse del fondo (3:1) */
-.dev .portal__entrada:not([aria-invalid="true"]):not(:focus-visible), .dev__opcion, .dev__elegir-boton { border-color: rgb(241 239 233 / .45); }
+.dev .portal__entrada:not([aria-invalid="true"]):not(:focus-visible), .dev__opcion, .dev__elegir-boton { border-color: rgb(var(--luz) / .45); }

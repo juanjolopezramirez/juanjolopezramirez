@@ -42,18 +42,21 @@ class EditorCasa extends EditorContenido {
       alElegirImagen: (id, archivo) => this.pendientes.set(id, archivo),
       cargarImagen: (ruta) => this.cargarImagen(ruta),
       decir: (texto) => this.decir(texto),
+      alCambiar: () => { this.sucio = true; },
       ningunArchivo: this.tx.ningunArchivo,
       enlaceMalo: this.tx.errores && this.tx.errores.enlace
     });
     for (const campo of ['logo', 'avatar', 'banner']) f.elements[campo].addEventListener('change', () => this.medir(campo));
     this.$('[data-otro-trabajo]').addEventListener('click', () => {
       const t = this.agregarTrabajo();
+      this.sucio = true;
       t.querySelector('input').focus();
     });
     f.addEventListener('click', (e) => {
       const b = e.target.closest ? e.target.closest('[data-quitar-trabajo]') : null;
       if (!b || !f.contains(b)) return;
       b.closest('[data-trabajo]').remove();
+      this.sucio = true;
       this.$('[data-otro-trabajo]').focus();
     });
     /* Los idiomas de la pagina son el original y los de cada version */
@@ -262,8 +265,8 @@ class EditorCasa extends EditorContenido {
     return subidas;
   }
 
-  async guardar() {
-    const bien = await super.guardar();
+  async guardar(como) {
+    const bien = await super.guardar(como);
     /* Lo que se subio bien ya no esta pendiente: la ruta queda en el documento guardado */
     if (bien && this.actual) {
       for (const doc of Object.values(this.actual.cuerpo)) {
@@ -281,7 +284,8 @@ class EditorCasa extends EditorContenido {
   }
 
   /* ---- De una casa guardada al formulario ----------------------------------------------------- */
-  abrir(obj) {
+  abrir(entrada) {
+    const obj = entrada ? entrada.actual : null;
     this.imagenes = {};
     this.pendientes = new Map();
     this.docs = obj ? Object.fromEntries(Object.entries(obj.cuerpo).map(([l, d]) => [l, d.aJSON()])) : {};
@@ -294,8 +298,9 @@ class EditorCasa extends EditorContenido {
       caja.querySelector('[data-muestra]').hidden = true;
       caja.querySelector('[data-ya]').hidden = true;
     }
-    super.abrir(obj);
+    super.abrir(entrada);
     this.pintarIdiomasPagina();
+    this.sucio = false;                       // pintar los idiomas de la pagina no es un cambio suyo
   }
   poner(c) {
     const f = this.form;

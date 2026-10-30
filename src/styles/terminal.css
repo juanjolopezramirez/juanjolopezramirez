@@ -38,13 +38,66 @@
   --alef-blanco: #FFFFFF;
   --alef-rojo: #FF3B3B;
   --alerta: var(--alef-rojo);
-  --raya: rgb(241 239 233 / .12);
-  --raya-fuerte: rgb(241 239 233 / .3);
+  /* LOS CANALES (r g b) de los colores que se usan con transparencia en portal.css,
+     panel.css y dev.css: `rgb(var(--luz) / .05)`. Son la llave de los dos temas del panel:
+     de noche la «luz» es tiza (un velo claro sobre lo oscuro); en Self-Mode, de dia, es
+     pino (un velo oscuro sobre el papel). Ver «Self-Mode» abajo. */
+  --luz: 241 239 233;
+  --prompt-rgb: 169 196 127;
+  --brillo-rgb: 125 155 78;
+  --tiza-2-rgb: 167 176 165;
+  --consola-rgb: 11 17 13;
+  --noche-rgb: 5 8 6;
+  --sombra-rgb: 0 0 0;
+  --raya: rgb(var(--luz) / .12);
+  --raya-fuerte: rgb(var(--luz) / .3);
   --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   background-color: var(--noche);
   color-scheme: dark;
 }
-.pagina--noche ::selection { background: rgb(169 196 127 / .35); color: var(--tiza); }
+.pagina--noche ::selection { background: rgb(var(--prompt-rgb) / .35); color: var(--tiza); }
+
+/* ---- SELF-MODE: EL PANEL DE DIA (2026-10-27) ----------------------------------------
+   El panel tiene dos modos, como un tema claro y uno oscuro (panel/Menu.js pone
+   <html data-modo="self|dev">). Developer-Mode es la terminal de noche de arriba. Self-Mode
+   es el papel: hueso de fondo, tinta pino, los titulos en Young Serif y el resto en
+   Bricolage (las letras de dia de la casa), y NADA que se mueva (fondo.js se para y la lava
+   se esconde). Se queda lo que dice «esto es The Alef Code»: la ventana redonda y su barra.
+   Sin oro. Contraste medido sobre el hueso (#F1EFE9):
+     tiza     pino #263B28   10.5:1   todo lo que se lee
+     tiza-2   #4B5A4D         6.3:1   etiquetas, ayudas
+     prompt   #55702F         4.9:1   el › y el aro del foco
+     raya-fuerte pino al 60%  ~3.3:1  los bordes de las cajas (3:1)
+   Un miembro no tiene modos: sigue de noche. */
+html[data-modo="self"] { background: #E6E3DA; color-scheme: light; }
+[data-modo="self"] .pagina--noche {
+  --noche: #E6E3DA;
+  --noche-rgb: 230 227 218;
+  --consola: var(--bone);
+  --consola-rgb: 241 239 233;
+  --consola-alta: #E9E6DE;
+  --tiza: var(--pine);
+  --tiza-2: #4B5A4D;
+  --tiza-2-rgb: 75 90 77;
+  --prompt: #55702F;
+  --prompt-rgb: 85 112 47;
+  --brillo-rgb: 85 112 47;
+  --luz: 38 59 40;
+  --sombra-rgb: 38 59 40;
+  --raya: rgb(38 59 40 / .14);
+  --raya-fuerte: rgb(38 59 40 / .6);
+  --alef-verde: var(--pine);
+  --alef-blanco: var(--pine);
+  --alerta: #C62828;                      /* el rojo de noche, sobre hueso, se queda en 3:1; este da 5:1 */
+  --mono: var(--sans);                   /* de dia, las letras de la casa; de noche, la de terminal */
+  background-color: var(--noche);
+  color-scheme: light;
+}
+[data-modo="self"] .fondo { display: none; }
+[data-modo="self"] .terminal { font-family: var(--sans); }
+/* El cambio de modo se funde (y es inmediato si se pide menos movimiento) */
+.pagina--noche, .pagina--noche .panel__marco { transition: background-color .2s var(--ease), color .2s var(--ease); }
+@media (prefers-reduced-motion: reduce) { .pagina--noche, .pagina--noche .panel__marco { transition: none; } }
 
 /* La capa de la interfaz: encima del fondo, que vive dentro (z-index -1) */
 .terminal { position: relative; isolation: isolate; color: var(--tiza); font-family: var(--mono); }

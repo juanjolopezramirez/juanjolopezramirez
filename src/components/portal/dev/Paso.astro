@@ -1,0 +1,9 @@
+---
+/* Un paso de un formulario (panel/dev/Asistente.js lo enseña y esconde). Su titulo recibe
+   el foco al llegar. */
+const { pre, id, tx } = Astro.props;
+---
+<section class="dev__paso" id={`${pre}-etapa-${id}`} data-etapa={id} aria-labelledby={`${pre}-etapa-${id}-t`} hidden>
+  <h4 class="dev__paso-titulo" id={`${pre}-etapa-${id}-t`} tabindex="-1">{tx.etapas[id]}</h4>
+  <slot />
+</section>

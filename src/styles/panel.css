@@ -14,10 +14,20 @@
    persona entro y esta aprobada.
    ============================================================= */
 
+/* EL PANEL CABE EN LA PANTALLA (lo pidio el fundador: «nada de scroll», salvo en lo que es
+   una tabla). La pagina no se mueve; dentro, solo se mueven las listas, el contenido de una
+   seccion que no cabe y la hoja de «Su página». En una pantalla muy baja (o con mucho zoom)
+   vuelve el scroll de siempre: si no, no se podria leer (WCAG 1.4.10). */
+html:has(.panel), html:has(.panel) body { height: 100%; overflow: hidden; }
 .panel {
   position: relative; isolation: isolate; z-index: 1;
-  min-height: 100svh;
-  padding: clamp(1rem, 4vh, 2.2rem) var(--gutter) 2.5rem;
+  display: grid; height: 100dvh;
+  padding: clamp(.5rem, 2.4vh, 1.6rem) var(--gutter);
+}
+@media (max-height: 30rem) {
+  html:has(.panel), html:has(.panel) body { height: auto; overflow: visible; }
+  .panel { height: auto; min-height: 100dvh; }
+  .panel__marco, .panel__cuerpo, .panel__hoja { height: auto; overflow: visible; }
 }
 .panel__cargando { text-align: center; padding-block: 4rem; }
 .panel__cargando[hidden], .panel__problema[hidden], .panel__cuerpo[hidden] { display: none; }
@@ -40,14 +50,14 @@
 .panel__alta {
   display: grid; gap: .8rem; justify-items: start;
   padding: 1.2rem; border: 1px solid var(--raya); border-radius: 14px;
-  background: rgb(241 239 233 / .03);
+  background: rgb(var(--luz) / .03);
 }
 /* El QR lo da Supabase en negro sobre transparente: va sobre un cuadro blanco para que la camara lo lea */
 .panel__qr:empty { display: none; }
 .panel__qr img { display: block; width: 180px; height: 180px; padding: 10px; border-radius: 12px; background: #fff; }
 .panel__secreto {
   margin: 0; padding: .5rem .75rem; border-radius: 10px;
-  background: rgb(5 8 6 / .6); border: 1px solid var(--raya);
+  background: rgb(var(--noche-rgb) / .6); border: 1px solid var(--raya);
   font-family: var(--mono); font-size: .9rem; letter-spacing: .08em; word-break: break-all;
   user-select: all; color: var(--tiza);
 }
@@ -57,65 +67,79 @@
 
 .panel__marco {
   width: min(100%, 72rem); margin-inline: auto;
-  display: grid; grid-template-columns: minmax(0, 1fr);
-  background: rgb(11 17 13 / .78);
+  height: 100%; min-height: 0; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+  background: rgb(var(--consola-rgb) / .78);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   backdrop-filter: blur(18px) saturate(1.2);
   border: 1px solid var(--raya);
   border-radius: 20px;
-  box-shadow: 0 40px 90px -30px rgb(0 0 0 / .85), 0 30px 80px -40px rgb(125 155 78 / .35);
+  box-shadow: 0 40px 90px -30px rgb(var(--sombra-rgb) / .85), 0 30px 80px -40px rgb(var(--brillo-rgb) / .35);
 }
 /* El cuerpo: el riel y la hoja (nace `hidden` hasta que el servidor dice que si) */
-.panel__cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); }
+.panel__cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
 /* Al abrirse, se enciende como una pantalla de tubo: un punto, una raya de luz, y la
    pantalla entera (panel.js pone y quita la clase; con el fondo quieto no la pone).
    Es la vuelta de la que se apago en el portal al entrar (portal.css). */
 .panel__cuerpo.is-encendiendo { animation: tubo-encender .5s cubic-bezier(.16, 1, .3, 1) both; }   /* tubo-encender: terminal.css */
 @media (prefers-reduced-motion: reduce) { .panel__cuerpo.is-encendiendo { animation: none; } }
 @media (min-width: 1024px) {
-  .panel__marco { grid-template-rows: auto 1fr; min-height: 40rem; }
-  .panel__cuerpo { grid-template-columns: 15.5rem minmax(0, 1fr); }
+  .panel__cuerpo { grid-template-columns: 15.5rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 }
 
-/* ---- El riel: el menu en acordeon (panel/Menu.js) ----
-   Tres grupos que se pliegan (Self-Mode, Developer-Mode, Acceso). Cerrado, un grupo es
-   una sola linea: «// Self-Mode» y su pliegue. Abierto, sus secciones cuelgan de una raya
-   fina, como carpetas de un arbol. Lo que aun dice «pronto» va mas apagado. */
+/* ---- El riel: los dos modos y sus secciones (panel/Menu.js) ----
+   Arriba, el boton de los modos (Self · Dev), como el de un tema claro y uno oscuro. En
+   medio, las secciones del modo en que estas (las del otro llevan `hidden`). Abajo, fijos
+   en los dos modos, «// Acceso» (Quién entra, Seguridad) y «Salir». Lo que aun dice
+   «pronto» va mas apagado. En el telefono: una fila con «Menú · <seccion>», el boton de
+   modos y Salir; las secciones se abren debajo. */
 .panel__riel {
-  display: grid; gap: .8rem; align-content: start;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "boton salir" "menu menu";
-  padding: .9rem 1rem 1rem;
+  display: grid; gap: .7rem; align-content: start; min-height: 0;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "boton modo salir" "menu menu menu";
+  padding: .7rem .9rem;
   border-bottom: 1px solid var(--raya);
 }
 .panel__menu-boton { grid-area: boton; }
-.panel__menu { grid-area: menu; display: grid; gap: .15rem; align-content: start; }
+.panel__modo { grid-area: modo; }
+.panel__menu { grid-area: menu; display: flex; flex-direction: column; gap: .15rem; min-height: 0; }
 .panel__riel > .panel__salir { grid-area: salir; align-self: center; }
 
-.panel__grupo { display: grid; }
-.panel__grupo + .panel__grupo { margin-top: .2rem; }
-.panel__grupo-boton {
-  display: flex; align-items: center; gap: .6rem;
-  width: 100%; min-height: 44px; padding: 0 .7rem;
-  border-radius: 10px;
-  font: inherit; font-size: .84rem; letter-spacing: .01em; text-align: start;
-  color: var(--tiza-2); cursor: pointer;
+/* El boton de los modos: una pastilla con los dos lados; el del modo en que estas, lleno.
+   Su nombre para el lector no cambia («Developer-Mode», pulsado o no). */
+.panel__modo {
+  display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
+  min-height: 44px; padding: 3px;
+  border: 1px solid var(--raya-fuerte); border-radius: 999px;
+  background: rgb(var(--luz) / .04);
+  font: inherit; font-size: .76rem; letter-spacing: .01em; cursor: pointer;
+}
+.panel__modo[hidden] { display: none; }
+.panel__modo-lado {
+  display: grid; place-items: center; padding: 0 .75rem;
+  border-radius: 999px; color: var(--tiza-2); white-space: nowrap;
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
-.panel__grupo-nombre { flex: 1; }
+.panel__modo[aria-pressed="false"] .panel__modo-lado--self,
+.panel__modo[aria-pressed="true"] .panel__modo-lado--dev { background: var(--tiza); color: var(--noche); font-weight: 700; }
+.panel__modo:hover .panel__modo-lado:not(:is([aria-pressed="false"] .panel__modo-lado--self, [aria-pressed="true"] .panel__modo-lado--dev)) { color: var(--tiza); }
+.panel__modo:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.panel__modo-corto { display: none; }
+@media (max-width: 1023px) {
+  .panel__modo-largo { display: none; }
+  .panel__modo-corto { display: inline; }
+}
+
+.panel__grupo { display: grid; }
+.panel__grupo[hidden] { display: none; }
+/* Acceso va al fondo de la barra, en los dos modos */
+.panel__grupo--acceso { margin-top: auto; padding-top: .7rem; border-top: 1px solid var(--raya); }
+.panel__grupo-nombre { margin: 0 0 .2rem; padding: 0 .7rem; font-size: .74rem; letter-spacing: .02em; color: var(--tiza-2); }
 /* Las marcas de terminal (// › ·) son de mirar: el lector de pantalla no las lee
    (aria-hidden en el HTML; en CSS, el texto alternativo vacio tras la «/»). */
 .panel__prompt { color: var(--prompt); }
-.panel__grupo-boton .icon { flex: none; width: 1.05rem; height: 1.05rem; opacity: .7; transition: rotate .2s var(--ease), opacity .2s var(--ease); }
-.panel__grupo-boton:hover { background: rgb(241 239 233 / .05); color: var(--tiza); }
-.panel__grupo-boton:hover .icon { opacity: 1; }
-.panel__grupo-boton[aria-expanded="true"] { color: var(--tiza); }
-.panel__grupo-boton[aria-expanded="true"] .icon { rotate: 180deg; opacity: 1; }
 
-.panel__enlaces { display: grid; gap: .1rem; list-style: none; margin: .1rem 0 .5rem; padding: 0; }
-.panel__enlaces[hidden] { display: none; }
-/* Las secciones de un grupo plegable cuelgan de su raya */
-.panel__grupo-boton + .panel__enlaces { margin-left: 1.05rem; padding-left: .5rem; border-left: 1px solid var(--raya); }
+.panel__enlaces { display: grid; gap: .1rem; list-style: none; margin: 0; padding: 0; }
 .panel__enlace {
   display: flex; align-items: center; gap: .5rem;
   width: 100%; min-height: 44px; padding: 0 .7rem;
@@ -123,25 +147,24 @@
   color: var(--tiza-2); text-decoration: none; font-size: .86rem;
   transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
 }
-.panel__enlace:hover { background: rgb(241 239 233 / .06); color: var(--tiza); }
-.panel__enlace[aria-current="true"] { background: rgb(241 239 233 / .1); color: var(--tiza); }
+.panel__enlace:hover { background: rgb(var(--luz) / .06); color: var(--tiza); }
+.panel__enlace[aria-current="true"] { background: rgb(var(--luz) / .1); color: var(--tiza); }
 .panel__enlace[aria-current="true"]::before { content: "›"; content: "›" / ""; color: var(--prompt); }
 /* Lo que aun no se llena: mas apagado y con su «pronto», para que no parezca igual
-   que lo que ya funciona (el texto lo dice; el color solo acompaña). El «pronto» va
-   en tiza-2 entero, sin transparencia: sobre la lava verde tiene que seguir leyendose. */
-.panel__enlace--pronto { color: rgb(167 176 165 / .85); }
+   que lo que ya funciona (el texto lo dice; el color solo acompaña). */
+.panel__enlace--pronto { color: rgb(var(--tiza-2-rgb) / .85); }
 .panel__marca-pronto { margin-left: auto; padding-left: .6rem; font-size: .75rem; color: var(--tiza-2); }
-.panel__enlace:focus-visible, .panel__salir:focus-visible, .panel__grupo-boton:focus-visible, .panel__menu-boton:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.panel__enlace:focus-visible, .panel__salir:focus-visible, .panel__menu-boton:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
 
 /* El boton «Menú» del telefono: dice donde estas («Menú · Hoy») y abre el menu debajo */
 .panel__menu-boton {
-  display: flex; align-items: center; gap: .55rem;
-  min-height: 48px; padding: 0 .9rem;
+  display: flex; align-items: center; gap: .55rem; min-width: 0;
+  min-height: 44px; padding: 0 .8rem;
   border: 1px solid var(--raya-fuerte); border-radius: 12px;
-  font: inherit; font-size: .9rem; text-align: start; color: var(--tiza); cursor: pointer;
+  font: inherit; font-size: .88rem; text-align: start; color: var(--tiza); cursor: pointer;
   transition: background-color .2s var(--ease), border-color .2s var(--ease);
 }
-.panel__menu-boton:hover { background: rgb(241 239 233 / .05); }
+.panel__menu-boton:hover { background: rgb(var(--luz) / .05); }
 .panel__menu-boton[hidden] { display: none; }
 .panel__menu-nombre { color: var(--tiza-2); }
 .panel__menu-actual { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
@@ -151,10 +174,22 @@
 @media (max-width: 1023px) {
   /* Cerrado, el menu no ocupa nada; quien tiene una sola seccion (un miembro) lo ve siempre */
   .panel__riel:not(.is-menu-abierto):not(.is-solo) .panel__menu { display: none; }
-  .panel__riel.is-solo { grid-template-areas: "menu salir"; }
+  .panel__riel.is-solo { grid-template-areas: "menu menu salir"; }
+  /* Abierto, el menu no empuja mas que lo que cabe: sus secciones se mueven por dentro */
+  .panel__riel.is-menu-abierto .panel__menu { max-height: 55dvh; overflow: auto; overscroll-behavior: contain; }
+}
+/* En el telefono, «Salir» es su icono (el nombre lo sigue oyendo el lector): asi cabe la seccion */
+@media (max-width: 599px) {
+  .panel__riel > .panel__salir { min-width: 44px; justify-content: center; }
+  .panel__riel > .panel__salir span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (max-width: 379px) {
+  .panel__modo-lado { padding: 0 .5rem; }
+  .panel__menu-nombre { display: none; }
+  .panel__menu-actual:not(:empty)::before { content: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .panel__grupo-boton, .panel__grupo-boton .icon, .panel__menu-boton, .panel__menu-boton .icon, .panel__salir { transition: none; }
+  .panel__modo-lado, .panel__menu-boton, .panel__menu-boton .icon, .panel__salir, .panel__enlace { transition: none; }
 }
 
 .panel__salir {
@@ -169,17 +204,34 @@
 
 @media (min-width: 1024px) {
   .panel__riel {
-    padding: 1.4rem .8rem; grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 1fr auto; grid-template-areas: "menu" "salir";
+    padding: 1.1rem .8rem 1rem; gap: .9rem;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "modo" "menu" "salir";
     border-bottom: 0; border-right: 1px solid var(--raya);
   }
   /* En la pantalla grande el menu siempre esta: el boton del telefono sobra */
   .panel__menu-boton { display: none; }
+  /* Las secciones se mueven por dentro si no caben; Acceso sigue abajo */
+  .panel__menu { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
   .panel__riel > .panel__salir { justify-self: start; padding-inline: .7rem; }
 }
+/* ---- Self-Mode, de dia (terminal.css tiene los colores): papel sin vidrio, una sombra
+   suave de pino y los titulos en Young Serif ---- */
+[data-modo="self"] .panel__marco {
+  background: var(--bone);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 30px 70px -44px rgb(38 59 40 / .45), 0 2px 0 rgb(38 59 40 / .04);
+}
+[data-modo="self"] .panel__titulo { font-family: var(--serif); font-weight: 400; letter-spacing: -.01em; }
+[data-modo="self"] .panel__subtitulo { font-family: var(--sans); font-weight: 600; }
 
 /* ---- La hoja ---- */
-.panel__hoja { padding: clamp(1.4rem, 5vw, 2.6rem); display: grid; gap: 1.4rem; align-content: start; min-width: 0; }
+/* La hoja ocupa lo que queda y, si una seccion no cabe, se mueve ELLA (no la pagina) */
+.panel__hoja {
+  padding: clamp(1rem, 3.6vw, 2.2rem); display: grid; gap: 1.2rem; align-content: start; min-width: 0; min-height: 0;
+  overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+  scrollbar-width: thin; scrollbar-color: rgb(var(--luz) / .3) transparent;
+}
 .panel__seccion { display: grid; gap: 1rem; align-content: start; max-width: 46rem; }
 .panel__seccion[hidden] { display: none; }
 .panel__titulo {
@@ -199,10 +251,10 @@
   display: grid; gap: .35rem; align-content: start; height: 100%;
   padding: 1.1rem 1.2rem;
   border: 1px solid var(--raya-fuerte); border-radius: 14px;
-  background: rgb(241 239 233 / .03); color: var(--tiza); text-decoration: none;
+  background: rgb(var(--luz) / .03); color: var(--tiza); text-decoration: none;
   transition: background-color .2s var(--ease), border-color .2s var(--ease), box-shadow .25s var(--ease);
 }
-.panel__puerta:hover { background: rgb(241 239 233 / .07); border-color: rgb(241 239 233 / .5); box-shadow: 0 16px 34px -18px rgb(125 155 78 / .5); }
+.panel__puerta:hover { background: rgb(var(--luz) / .07); border-color: rgb(var(--luz) / .5); box-shadow: 0 16px 34px -18px rgb(var(--brillo-rgb) / .5); }
 .panel__puerta-titulo { font-family: var(--mono); font-weight: 700; font-size: 1.02rem; line-height: 1.25; }
 .panel__puerta-titulo::after { content: " →"; color: var(--prompt); font-weight: 400; }
 .panel__puerta-linea { font-size: .86rem; color: var(--tiza-2); }
@@ -218,8 +270,8 @@
 .panel__aviso {
   display: flex; gap: .6rem; align-items: baseline;
   margin: 0; padding: .7rem .9rem;
-  border: 1px solid rgb(169 196 127 / .4); border-radius: 12px;
-  background: rgb(169 196 127 / .08);
+  border: 1px solid rgb(var(--prompt-rgb) / .4); border-radius: 12px;
+  background: rgb(var(--prompt-rgb) / .08);
   font-size: .88rem; color: var(--tiza);
 }
 .panel__aviso::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
@@ -237,7 +289,7 @@
 .panel__fila {
   display: grid; gap: .8rem; padding: .95rem 1rem;
   border: 1px solid var(--raya); border-radius: 14px;
-  background: rgb(241 239 233 / .025);
+  background: rgb(var(--luz) / .025);
 }
 @media (min-width: 640px) {
   .panel__fila { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
@@ -258,9 +310,9 @@
   font-family: var(--mono); font-size: .84rem; font-weight: 700; cursor: pointer;
   transition: background-color .2s var(--ease), box-shadow .2s var(--ease);
 }
-.panel__boton:hover { box-shadow: 0 0 0 4px rgb(241 239 233 / .12); }
+.panel__boton:hover { box-shadow: 0 0 0 4px rgb(var(--luz) / .12); }
 .panel__boton--suave { background: transparent; color: var(--tiza); border-color: var(--raya-fuerte); font-weight: 500; }
-.panel__boton--suave:hover { background: rgb(241 239 233 / .08); box-shadow: none; }
+.panel__boton--suave:hover { background: rgb(var(--luz) / .08); box-shadow: none; }
 .panel__boton[aria-busy="true"] { opacity: .55; cursor: progress; }
 .panel__boton:focus-visible, .panel__puerta:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
 

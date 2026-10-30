@@ -53,14 +53,14 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
   position: relative;
   width: min(100%, 31rem); max-height: 100%; min-height: 0;
   display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
-  background: rgb(11 17 13 / .74);
+  background: rgb(var(--consola-rgb) / .74);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   backdrop-filter: blur(18px) saturate(1.2);
   border: 1px solid var(--raya);
   border-radius: 20px;
   box-shadow:
-    0 40px 90px -30px rgb(0 0 0 / .85),
-    0 18px 40px -24px rgb(0 0 0 / .7);
+    0 40px 90px -30px rgb(var(--sombra-rgb) / .85),
+    0 18px 40px -24px rgb(var(--sombra-rgb) / .7);
   overflow: hidden;
 }
 
@@ -197,13 +197,13 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
 }
 .portal__boton { background: var(--tiza); color: var(--noche); font-weight: 700; }
 .portal__boton::after { content: "↵" / ""; font-weight: 400; opacity: .55; }   /* «/ \"\"»: el lector de pantalla no lo lee */
-.portal__boton:hover { box-shadow: 0 0 0 4px rgb(241 239 233 / .12), 0 12px 30px -12px rgb(169 196 127 / .55); }
+.portal__boton:hover { box-shadow: 0 0 0 4px rgb(var(--luz) / .12), 0 12px 30px -12px rgb(var(--prompt-rgb) / .55); }
 .portal__boton--suave, .portal__google {
-  background: rgb(241 239 233 / .03); color: var(--tiza);
+  background: rgb(var(--luz) / .03); color: var(--tiza);
   border-color: var(--raya-fuerte);
 }
 .portal__boton--suave::after { content: none; }
-.portal__boton--suave:hover, .portal__google:hover { background: rgb(241 239 233 / .08); border-color: rgb(241 239 233 / .5); box-shadow: none; }
+.portal__boton--suave:hover, .portal__google:hover { background: rgb(var(--luz) / .08); border-color: rgb(var(--luz) / .5); box-shadow: none; }
 .portal__google .icon { width: 1.15rem; height: 1.15rem; flex: none; }
 .portal__boton:active, .portal__google:active { scale: .985; }
 .portal__boton:focus-visible, .portal__google:focus-visible { outline: 2px solid var(--prompt); outline-offset: 3px; }
@@ -226,19 +226,19 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
   flex: 1; min-width: 0;
   min-height: 48px; padding: .7rem 1rem;
   border: 1px solid var(--raya-fuerte); border-radius: 12px;
-  background: rgb(241 239 233 / .04); color: var(--tiza);
+  background: rgb(var(--luz) / .04); color: var(--tiza);
   caret-color: var(--prompt);
   font-family: var(--mono); font-size: 1rem;       /* 16px o mas: el iPhone no hace zoom al tocar */
   transition: border-color .2s var(--ease), background-color .2s var(--ease), box-shadow .2s var(--ease);
 }
-.portal__entrada:hover { border-color: rgb(241 239 233 / .45); }
+.portal__entrada:hover { border-color: rgb(var(--luz) / .45); }
 .portal__entrada--texto { resize: vertical; min-height: 5.5rem; line-height: 1.5; }
 .portal__caja--ojo .portal__entrada { padding-right: 3.2rem; }
 .portal__entrada:focus-visible {
   outline: none;
   border-color: var(--tiza);
-  background: rgb(241 239 233 / .07);
-  box-shadow: 0 0 0 3px rgb(169 196 127 / .4);
+  background: rgb(var(--luz) / .07);
+  box-shadow: 0 0 0 3px rgb(var(--prompt-rgb) / .4);
 }
 .portal__entrada[aria-invalid="true"] { border-color: var(--alerta); }
 .portal__entrada:-webkit-autofill {
@@ -293,7 +293,7 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
   padding: .7rem clamp(1.2rem, 5vw, 2rem);
   border-top: 1px solid var(--raya);
-  background: rgb(5 8 6 / .35);
+  background: rgb(var(--noche-rgb) / .35);
 }
 @media (min-width: 860px) {
   .portal__escribeme { display: grid; justify-content: stretch; gap: .6rem; padding: 1.1rem 2.2rem 1.3rem; }
@@ -308,7 +308,7 @@ html:has(.portal) body { min-height: 0; height: 100vh; height: 100dvh; overflow:
   transition: background-color .2s var(--ease), border-color .2s var(--ease);
 }
 .portal__canal .icon { width: 1.05rem; height: 1.05rem; }
-.portal__canal:hover { background: rgb(241 239 233 / .08); border-color: rgb(241 239 233 / .5); }
+.portal__canal:hover { background: rgb(var(--luz) / .08); border-color: rgb(var(--luz) / .5); }
 .portal__canal:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
 
 /* ---- Pantallas bajas: se aprietan los espacios para que todo quepa ---- */
