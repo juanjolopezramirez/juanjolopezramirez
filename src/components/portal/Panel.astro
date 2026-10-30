@@ -2,9 +2,10 @@
 import Icon from '../Icon.astro';
 import BarraTerminal from './BarraTerminal.astro';
 import AlefIcono from './AlefIcono.astro';
+import IconoSeccion from './IconoSeccion.astro';
 import Campo from './Campo.astro';
 import { tp, jsonSeguro } from '../../data/portal/textos.js';
-import { SECCIONES, GRUPOS, MODOS, HECHAS } from '../../data/portal/secciones.js';
+import { SECCIONES, GRUPOS, MODOS, HECHAS, BARRA, enBarra } from '../../data/portal/secciones.js';
 import EditorLibro from './dev/EditorLibro.astro';
 import EditorEtapa from './dev/EditorEtapa.astro';
 import EditorCasa from './dev/EditorCasa.astro';
@@ -17,8 +18,9 @@ import '../../styles/dev.css';
    La misma terminal que la entrada (Tarjeta.astro), mas grande, sobre
    layouts/Terminal.astro: la barra (BarraTerminal.astro) con el logo, el
    nombre, la ruta (~/panel/hoy) y la pausa del fondo, el menu a la izquierda como un
-   acordeon (Self-Mode, Developer-Mode, Acceso) y la seccion a la derecha. En el
-   telefono, el menu va arriba detras de un solo boton «Menú».
+   acordeon (Self-Mode, Developer-Mode, Acceso) y la seccion a la derecha. Cada opcion
+   lleva su icono. En el telefono el menu es el de una app: una barra abajo con las
+   secciones del modo y un quinto boton «Más» que abre el resto (panel/Menu.js).
 
    TODO (menos la barra) NACE ESCONDIDO (`hidden`) hasta que panel.js comprueba, con el SERVIDOR,
    que la persona entro y esta aprobada; si no, la manda de vuelta al portal.
@@ -32,6 +34,7 @@ const { lang } = Astro.props;
 const x = tp(lang);
 const p = x.panel;
 const hecha = (id) => HECHAS.includes(id);
+const seccion = (id) => SECCIONES.find((x) => x.id === id);
 ---
 <section class="panel" id="panel" data-panel data-idioma={lang} aria-labelledby="panel-nombre"
          lang={lang !== 'es' ? 'es' : undefined}>
@@ -73,27 +76,23 @@ const hecha = (id) => HECHAS.includes(id);
     <!-- EL MENU. Dos modos, como un tema claro y uno oscuro (lo pidio el fundador el
          2026-10-27): el boton de arriba cambia de Self-Mode (de dia, papel) a Developer-Mode
          (de noche, la terminal) y con el cambian las secciones de la barra y el aspecto del
-         panel. «Acceso» (Quién entra, Seguridad) esta abajo en los dos. En el telefono, las
-         secciones van detras de un boton «Menú» que dice donde estas. panel/Menu.js.
+         panel. «Acceso» (Compartir, Configuración) esta abajo en los dos. En el telefono, este
+         menu es la hoja que abre «Más» (las secciones de la barra de abajo no se repiten
+         aqui). panel/Menu.js.
          Nada se guarda: el modo lo dice la direccion (#libros es Developer-Mode). -->
     <div class="panel__riel" data-riel>
       <button class="panel__modo" type="button" aria-pressed="false" data-modo-boton data-solo-admin
               data-aviso-self={p.modos.ahoraSelf} data-aviso-dev={p.modos.ahoraDev}>
         <span class="sr-only">{p.modos.nombre}</span>
-        {/* En el telefono, «Self · Dev»: los nombres enteros no dejan sitio al «Menú» */}
+        {/* En el telefono, «Self · Dev»: los nombres enteros no dejan sitio en la fila de arriba */}
         <span class="panel__modo-lado panel__modo-lado--self" aria-hidden="true"><span class="panel__modo-largo">{p.grupos.self}</span><span class="panel__modo-corto">{p.modos.corto.self}</span></span>
         <span class="panel__modo-lado panel__modo-lado--dev" aria-hidden="true"><span class="panel__modo-largo">{p.grupos.dev}</span><span class="panel__modo-corto">{p.modos.corto.dev}</span></span>
       </button>
       <p class="sr-only" aria-live="polite" data-modo-voz></p>
 
-      <button class="panel__menu-boton" type="button" aria-expanded="false" aria-controls="panel-menu" data-menu-boton>
-        <span class="panel__menu-nombre">{p.menuBoton}</span><span class="sr-only">, </span>
-        <span class="panel__menu-actual" data-menu-actual></span>
-        <Icon id="pliegue" />
-      </button>
       <nav class="panel__menu" id="panel-menu" aria-label={p.menu} data-menu>
         {GRUPOS.map((g) => (
-          <div class:list={['panel__grupo', `panel__grupo--${g}`]} data-grupo={g}
+          <div class:list={['panel__grupo', `panel__grupo--${g}`, { 'panel__grupo--en-barra': SECCIONES.filter((s) => s.grupo === g).every((s) => enBarra(s.id)) }]} data-grupo={g}
                data-modo-grupo={MODOS.includes(g) ? g : undefined}
                data-solo-admin={g === 'miembros' ? undefined : ''}
                data-solo-miembros={g === 'miembros' ? '' : undefined}>
@@ -101,9 +100,10 @@ const hecha = (id) => HECHAS.includes(id);
             {g === 'acceso' && <p class="panel__grupo-nombre" id={`g-${g}`} aria-hidden="true"><span class="panel__prompt">// </span>{p.grupos[g]}</p>}
             <ul class="panel__enlaces" id={`gl-${g}`} role="list" aria-label={p.grupos[g]}>
               {SECCIONES.filter((s) => s.grupo === g).map((s) => (
-                <li>
+                <li class:list={{ 'panel__item--barra': enBarra(s.id) }}>
                   <a class:list={['panel__enlace', { 'panel__enlace--pronto': !hecha(s.id) }]} href={`#${s.id}`} data-nav={s.id}>
-                    <span>{p.secciones[s.id].titulo}</span>
+                    <IconoSeccion icono={s.icono} />
+                    <span class="panel__enlace-nombre">{p.secciones[s.id].titulo}</span>
                     {!hecha(s.id) && <span class="panel__marca-pronto"><span class="sr-only">, </span>{p.prontoCorto}</span>}
                   </a>
                 </li>
@@ -206,7 +206,33 @@ const hecha = (id) => HECHAS.includes(id);
             </div>
           )}
 
-          {s.id === 'libros' && <EditorLibro tx={p.dev} />}
+          {s.id === 'libros' && (
+            <div class="panel__recursos" data-recursos>
+              {/* Primero se elige que se va a subir. Hoy solo funciona el libro; el video y el
+                  escrito se ven apagados y con su «Pronto» (panel/Recursos.js abre el editor). */}
+              <div class="panel__elegir" data-recursos-elegir>
+                <h3 class="panel__subtitulo" id="recursos-pregunta" tabindex="-1">{p.recursos.pregunta}</h3>
+                <ul class="panel__elecciones" role="list" aria-labelledby="recursos-pregunta">
+                  <li><button class="panel__eleccion" type="button" data-recursos-abrir="libro">
+                    <Icon id="book" />
+                    <span class="panel__eleccion-titulo">{p.recursos.tipos.libro.titulo}</span>
+                    <span class="panel__eleccion-linea">{p.recursos.tipos.libro.linea}</span>
+                  </button></li>
+                  {[['video', 'play'], ['escrito', 'pluma']].map(([t, icono]) => (
+                    <li><div class="panel__eleccion panel__eleccion--pronto">
+                      <Icon id={icono} />
+                      <span class="panel__eleccion-titulo">{p.recursos.tipos[t].titulo}<span class="sr-only">, </span><span class="panel__marca-pronto">{p.recursos.pronto}</span></span>
+                      <span class="panel__eleccion-linea">{p.recursos.tipos[t].linea}</span>
+                    </div></li>
+                  ))}
+                </ul>
+              </div>
+              <div class="panel__recurso" data-recursos-libro hidden>
+                <button class="panel__volver" type="button" data-recursos-volver><Icon id="pliegue" /><span>{p.recursos.volver}</span></button>
+                <EditorLibro tx={p.dev} />
+              </div>
+            </div>
+          )}
           {(s.id === 'trabajos' || s.id === 'proyectos') && <EditorCasa tx={p.dev} clase={s.id} />}
           {s.id === 'camino' && <EditorEtapa tx={p.dev} />}
 
@@ -219,6 +245,31 @@ const hecha = (id) => HECHAS.includes(id);
         </section>
       ))}
     </div>
+
+    <!-- LA BARRA DE ABAJO (solo en el telefono; en la pantalla grande no se ve y no existe para
+         el lector). Una sola lista: las secciones de cada modo (el modo que no es se esconde
+         con `hidden`, panel/Menu.js) y «Más», que abre el menu de arriba como una hoja. Es del
+         admin: un miembro solo tiene «Inicio» y no necesita barra. -->
+    <nav class="panel__barra" aria-label={p.barra} data-barra data-solo-admin>
+      <ul class="panel__tabs" role="list">
+        {MODOS.map((m) => BARRA[m].map((id) => (
+          <li class="panel__tab-item" data-modo-grupo={m}>
+            <a class="panel__tab" href={`#${id}`} data-nav={id}>
+              <IconoSeccion icono={seccion(id).icono} />
+              <span class="panel__tab-nombre">{p.secciones[id].titulo}</span>
+            </a>
+          </li>
+        )))}
+        <li class="panel__tab-item">
+          <button class="panel__tab panel__tab--mas" type="button" aria-expanded="false" aria-controls="panel-menu" data-menu-boton>
+            <Icon id="more" />
+            <span class="panel__tab-nombre">{p.mas}</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+    <!-- El velo: al tocarlo fuera de la hoja de «Más», esta se cierra (no es un boton para el lector) -->
+    <div class="panel__velo" data-velo aria-hidden="true"></div>
     </div>
   </div>
 

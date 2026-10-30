@@ -40,7 +40,7 @@ Caminemos ──► Álef (portal)
               ya aprobado ──► Panel (/es/portal/panel/)
                  ├─ Inicio: «Dar el primer paso» (el test) y «Cuadremos un rato»
                  ├─ Tú (solo admin): Escribir · Libros · Proyectos · Trabajos · Videos
-                 ├─ Quién entra (solo admin): aprobar, rechazar, invitar
+                 ├─ Compartir (solo admin): aprobar, rechazar, invitar
                  └─ Solo para mí (solo admin): Diario · Hábitos · Crecimiento
 ```
 
@@ -55,7 +55,7 @@ Caminemos ──► Álef (portal)
 |---|---|
 | Tarjeta de entrada (entrar, pedir acceso, olvidé mi contraseña, contraseña nueva, pendiente, rechazado) | Lista |
 | Panel con todas sus secciones | Lista (las secciones existen) |
-| «Quién entra»: ver esperando, aprobar, rechazar, quitar acceso, invitar | Lista y probada en demo |
+| «Compartir»: ver esperando, aprobar, rechazar, quitar acceso, invitar | Lista y probada en demo |
 | Escribir blog, Libros, Proyectos, Trabajos, Videos | **Existen y dicen «Pronto»**. Las tablas ya están en la base (`002`). Falta la pantalla de cada una cuando me expliques la estructura |
 | Diario, Hábitos, Crecimiento (privados) | **Existen y dicen «Pronto»**. Tablas ya creadas (`003`) |
 | Textos | Solo en español. En los otros cuatro idiomas sale el español hasta que los apruebes |
@@ -152,7 +152,7 @@ Con los datos básicos (correo y perfil) Google **no pide verificación**. Mient
 ### F. Hacerte admin (la única forma que existe)
 1. Abre `http://localhost:4321/es/portal/` y pulsa **Continuar con Google** con la cuenta de Google que va a ser la de admin. Vas a ver «Tu solicitud llegó»: **es lo esperado**.
 2. En `supabase/` copia `900_semilla_admin.ejemplo.sql` a `900_semilla_admin.sql` (esa copia queda fuera de GitHub), cambia `TU_CORREO_AQUI` por tu correo, pégala en el SQL Editor y pulsa **Run**. Al final debe decir **admins = 1**.
-3. Recarga el portal: ya entras al panel y ves «Quién entra».
+3. Recarga el portal: ya entras al panel y ves «Compartir».
 4. Pega `990_comprobar_rls.sql` en el SQL Editor y córrelo consulta por consulta (selecciona una y Run). Los resultados dicen cómo leerlos (arriba del archivo). Si algo sale distinto a lo que dice, me lo cuentas.
 
 ### F2. El código de tu celular (solo para tu cuenta de admin)
@@ -181,8 +181,8 @@ Cómo se configura: Supabase → **Authentication** → SMTP (guía oficial: sup
 
 ## 6. Cómo se da el acceso
 
-- **Alguien pide acceso** (Google o correo) → queda **esperando** → lo ves en *Quién entra* con su nombre, correo y motivo → **Aprobar** o **Rechazar**.
-- **Tú invitas** (*Quién entra → Invitar*): escribes su correo. Cuando esa persona entre **con Google con ese mismo correo**, queda aprobada sola. (Con correo y contraseña **no** se aprueba sola, aunque esté invitada: la apruebas tú. Es a propósito: es la única forma de que nadie robe una invitación.)
+- **Alguien pide acceso** (Google o correo) → queda **esperando** → lo ves en *Compartir* con su nombre, correo y motivo → **Aprobar** o **Rechazar**.
+- **Tú invitas** (*Compartir → Invitar*): escribes su correo. Cuando esa persona entre **con Google con ese mismo correo**, queda aprobada sola. (Con correo y contraseña **no** se aprueba sola, aunque esté invitada: la apruebas tú. Es a propósito: es la única forma de que nadie robe una invitación.)
 - Solo existe **un** admin y se crea **solo por SQL** (paso F). Desde la web nadie puede hacerse admin ni cambiar su propio estado.
 - Si rechazas a alguien, ve «Por ahora no puedo abrirte» y tu contacto.
 
@@ -212,7 +212,7 @@ Cuando me expliques la estructura de cada sección, se construye una a una (Escr
 | Dice «No pude conectar» | La URL está mal escrita, el proyecto está pausado, o no hay internet |
 | Google vuelve con un error | Falta la dirección en **Redirect URLs** (C) o el *redirect URI* en Google Cloud (D) |
 | Entras con Google y quedas «esperando» siendo tú | Falta el paso F (la semilla) |
-| «Quién entra» sale vacío siendo tú admin | Falta el paso F, o entraste con otro correo |
+| «Compartir» sale vacío siendo tú admin | Falta el paso F, o entraste con otro correo |
 | El correo de confirmación no llega | SMTP de fábrica (sección 5) |
 | La API dice *permission denied* en una tabla nueva | A propósito: las tablas nuevas no regalan permisos; falta su `grant` (ver `001`) |
 

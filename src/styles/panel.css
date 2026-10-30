@@ -6,9 +6,9 @@
    acordeon («// Self-Mode», «// Developer-Mode», «// Acceso»); a la derecha la seccion. Valen las
    mismas excepciones aprobadas para el portal (terminal.css las enumera:
    esquinas redondas, la lava, la letra mono, el nombre en ingles, los tonos) y la misma regla: nada de
-   oro. El menu es un acordeon (Self-Mode, Developer-Mode, Acceso). En el telefono el riel
-   pasa arriba y el menu se esconde detras de un boton «Menú» (nada de barras que se
-   deslicen de lado).
+   oro. El menu es un acordeon (Self-Mode, Developer-Mode, Acceso) con un icono por seccion.
+   En el telefono es el de una app: una barra abajo con las secciones del modo y «Más»
+   (nada de barras que se deslicen de lado).
 
    Todo menos la barra nace con `hidden` y panel.js lo abre cuando el servidor confirma que la
    persona entro y esta aprobada.
@@ -89,19 +89,20 @@ html:has(.panel), html:has(.panel) body { height: 100%; overflow: hidden; }
 
 /* ---- El riel: los dos modos y sus secciones (panel/Menu.js) ----
    Arriba, el boton de los modos (Self · Dev), como el de un tema claro y uno oscuro. En
-   medio, las secciones del modo en que estas (las del otro llevan `hidden`). Abajo, fijos
-   en los dos modos, «// Acceso» (Quién entra, Seguridad) y «Salir». Lo que aun dice
-   «pronto» va mas apagado. En el telefono: una fila con «Menú · <seccion>», el boton de
-   modos y Salir; las secciones se abren debajo. */
+   medio, las secciones del modo en que estas (las del otro llevan `hidden`), cada una con su
+   icono. Abajo, fijos en los dos modos, «// Acceso» (Compartir, Configuración) y «Salir». Lo
+   que aun dice «pronto» va mas apagado.
+   En el TELEFONO el menu es el de una app: arriba una fila delgada (modos y Salir), abajo la
+   barra con las secciones del modo y «Más», y «Más» abre este mismo menu como una hoja que
+   sube desde la barra (solo con lo que la barra no trae). */
 .panel__riel {
   display: grid; gap: .7rem; align-content: start; min-height: 0;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-areas: "boton modo salir" "menu menu menu";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "modo salir";
   padding: .7rem .9rem;
   border-bottom: 1px solid var(--raya);
 }
-.panel__menu-boton { grid-area: boton; }
-.panel__modo { grid-area: modo; }
+.panel__modo { grid-area: modo; justify-self: start; }
 .panel__menu { grid-area: menu; display: flex; flex-direction: column; gap: .15rem; min-height: 0; }
 .panel__riel > .panel__salir { grid-area: salir; align-self: center; }
 
@@ -141,55 +142,116 @@ html:has(.panel), html:has(.panel) body { height: 100%; overflow: hidden; }
 
 .panel__enlaces { display: grid; gap: .1rem; list-style: none; margin: 0; padding: 0; }
 .panel__enlace {
-  display: flex; align-items: center; gap: .5rem;
+  display: flex; align-items: center; gap: .65rem;
   width: 100%; min-height: 44px; padding: 0 .7rem;
   border: 1px solid transparent; border-radius: 10px;
   color: var(--tiza-2); text-decoration: none; font-size: .86rem;
   transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
 }
 .panel__enlace:hover { background: rgb(var(--luz) / .06); color: var(--tiza); }
-.panel__enlace[aria-current="true"] { background: rgb(var(--luz) / .1); color: var(--tiza); }
-.panel__enlace[aria-current="true"]::before { content: "›"; content: "›" / ""; color: var(--prompt); }
+.panel__enlace[aria-current="true"] { background: rgb(var(--luz) / .1); color: var(--tiza); font-weight: 600; box-shadow: inset 3px 0 0 var(--prompt); }
+/* El icono de cada seccion: adorno (aria-hidden), del color del texto; en la que estas, del color del prompt.
+   La א del logo (AlefIcono) se mide en alto, los de linea en cuadro. */
+.panel__enlace .icon, .panel__tab .icon { flex: none; width: 1.2rem; height: 1.2rem; }
+.panel__icono--alef { flex: none; width: auto; height: 1.2rem; }
+.panel__enlace[aria-current="true"] :is(.icon, .panel__icono),
+.panel__tab:is([aria-current="true"], .is-activo, [aria-expanded="true"]) :is(.icon, .panel__icono) { color: var(--prompt); }
 /* Lo que aun no se llena: mas apagado y con su «pronto», para que no parezca igual
    que lo que ya funciona (el texto lo dice; el color solo acompaña). */
 .panel__enlace--pronto { color: rgb(var(--tiza-2-rgb) / .85); }
 .panel__marca-pronto { margin-left: auto; padding-left: .6rem; font-size: .75rem; color: var(--tiza-2); }
-.panel__enlace:focus-visible, .panel__salir:focus-visible, .panel__menu-boton:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.panel__enlace:focus-visible, .panel__salir:focus-visible, .panel__tab:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
 
-/* El boton «Menú» del telefono: dice donde estas («Menú · Hoy») y abre el menu debajo */
-.panel__menu-boton {
-  display: flex; align-items: center; gap: .55rem; min-width: 0;
-  min-height: 44px; padding: 0 .8rem;
-  border: 1px solid var(--raya-fuerte); border-radius: 12px;
-  font: inherit; font-size: .88rem; text-align: start; color: var(--tiza); cursor: pointer;
-  transition: background-color .2s var(--ease), border-color .2s var(--ease);
-}
-.panel__menu-boton:hover { background: rgb(var(--luz) / .05); }
-.panel__menu-boton[hidden] { display: none; }
-.panel__menu-nombre { color: var(--tiza-2); }
-.panel__menu-actual { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
-.panel__menu-actual:not(:empty)::before { content: "· "; content: "· " / ""; color: var(--prompt); font-weight: 400; }
-.panel__menu-boton .icon { flex: none; width: 1.1rem; height: 1.1rem; transition: rotate .2s var(--ease); }
-.panel__menu-boton[aria-expanded="true"] .icon { rotate: 180deg; }
+/* La barra de abajo y el velo: solo del telefono */
+.panel__barra, .panel__velo { display: none; }
+
+/* TELEFONO Y TABLETA (menos de 1024px): una app. Sin tarjeta redonda, de borde a borde, y
+   respetando las zonas del telefono (la muesca de arriba, la raya de gestos de abajo). */
 @media (max-width: 1023px) {
-  /* Cerrado, el menu no ocupa nada; quien tiene una sola seccion (un miembro) lo ve siempre */
-  .panel__riel:not(.is-menu-abierto):not(.is-solo) .panel__menu { display: none; }
-  .panel__riel.is-solo { grid-template-areas: "menu menu salir"; }
-  /* Abierto, el menu no empuja mas que lo que cabe: sus secciones se mueven por dentro */
-  .panel__riel.is-menu-abierto .panel__menu { max-height: 55dvh; overflow: auto; overscroll-behavior: contain; }
+  .panel { padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  .panel__marco { width: 100%; border: 0; border-radius: 0; }
+  .panel__cuerpo {
+    --barra-alto: calc(3.9rem + env(safe-area-inset-bottom));
+    position: relative; grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  /* La barra: las secciones del modo (una sola lista; la del otro modo va `hidden`) y «Más».
+     Siempre 5 como mucho: 4 secciones y «Más». */
+  .panel__barra {
+    display: block; grid-row: 3; position: relative; z-index: 4;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--raya);
+    background: rgb(var(--consola-rgb) / .94);
+  }
+  .panel__tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: .15rem; list-style: none; margin: 0; padding: .3rem .4rem; }
+  .panel__tab-item { min-width: 0; }
+  .panel__tab-item[hidden] { display: none; }
+  .panel__tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .22rem;
+    width: 100%; min-height: 52px; padding: .35rem .1rem;
+    border: 0; border-radius: 12px; background: none;
+    /* La letra de la web y no la mono: cinco columnas en 320px no dejan sitio a la ancha */
+    color: var(--tiza-2); text-decoration: none; font: inherit; font-family: var(--sans); font-size: .72rem; line-height: 1.1; cursor: pointer;
+    transition: background-color .2s var(--ease), color .2s var(--ease);
+  }
+  .panel__tab .icon { width: 1.4rem; height: 1.4rem; }
+  .panel__tab .panel__icono--alef { height: 1.4rem; }
+  .panel__tab-nombre { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+  /* La que esta abierta no se dice solo con color: raya arriba y letra mas gruesa */
+  .panel__tab:is([aria-current="true"], .is-activo, [aria-expanded="true"]) { background: rgb(var(--luz) / .1); color: var(--tiza); font-weight: 700; box-shadow: inset 0 3px 0 var(--prompt); }
+
+  /* La fila de arriba: los modos y Salir (el menu ya no vive aqui; es la hoja de «Más») */
+  .panel__riel { padding: .5rem .9rem; }
+  .panel__riel.is-solo { grid-template-areas: "menu salir"; }
+
+  /* La hoja de «Más»: el menu de siempre, subiendo desde la barra. Solo trae lo que la barra no
+     trae. (Quien tiene una sola seccion, un miembro, no tiene barra y ve su menu en la fila.) */
+  .panel__riel:not(.is-solo) .panel__menu {
+    position: absolute; z-index: 3;
+    inset-inline: .6rem; bottom: calc(var(--barra-alto) + .4rem);
+    max-height: min(60dvh, 24rem); overflow: auto; overscroll-behavior: contain;
+    padding: .5rem; gap: .15rem;
+    border: 1px solid var(--raya-fuerte); border-radius: 16px;
+    background: rgb(var(--consola-rgb) / .98);
+    box-shadow: 0 20px 50px -20px rgb(var(--sombra-rgb) / .9);
+    visibility: hidden; opacity: 0; transform: translateY(.6rem);
+    transition: opacity .18s var(--ease), transform .18s var(--ease), visibility 0s linear .18s;
+  }
+  .panel__cuerpo.is-menu-abierto .panel__riel:not(.is-solo) .panel__menu {
+    visibility: visible; opacity: 1; transform: none; transition-delay: 0s;
+  }
+  .panel__riel:not(.is-solo) .panel__grupo--en-barra,
+  .panel__riel:not(.is-solo) .panel__item--barra { display: none; }
+  .panel__riel:not(.is-solo) .panel__grupo--acceso { margin-top: 0; padding-top: 0; border-top: 0; }
+
+  /* El velo: oscurece lo de atras mientras la hoja esta abierta; tocarlo la cierra */
+  .panel__cuerpo.is-menu-abierto .panel__velo {
+    display: block; position: absolute; z-index: 2;
+    inset: 0 0 var(--barra-alto) 0;
+    background: rgb(var(--sombra-rgb) / .45);
+  }
 }
-/* En el telefono, «Salir» es su icono (el nombre lo sigue oyendo el lector): asi cabe la seccion */
+/* Una ventana baja (el telefono de lado): la pagina vuelve a moverse y la barra se queda abajo
+   de la pantalla, no al final de la pagina. Sin el vidrio borroso del marco: con el, lo
+   «fixed» de dentro se mediria contra el marco y no contra la pantalla. */
+@media (max-width: 1023px) and (max-height: 30rem) {
+  .panel__marco { -webkit-backdrop-filter: none; backdrop-filter: none; overflow: visible; }
+  .panel__barra { position: sticky; bottom: 0; }
+  .panel__riel:not(.is-solo) .panel__menu { position: fixed; }
+  .panel__cuerpo.is-menu-abierto .panel__velo { position: fixed; }
+}
+/* En el telefono, «Salir» es su icono (el nombre lo sigue oyendo el lector): asi cabe la fila */
 @media (max-width: 599px) {
   .panel__riel > .panel__salir { min-width: 44px; justify-content: center; }
   .panel__riel > .panel__salir span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-width: 379px) {
   .panel__modo-lado { padding: 0 .5rem; }
-  .panel__menu-nombre { display: none; }
-  .panel__menu-actual:not(:empty)::before { content: none; }
+  .panel__tab { font-size: .66rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .panel__modo-lado, .panel__menu-boton, .panel__menu-boton .icon, .panel__salir, .panel__enlace { transition: none; }
+  .panel__modo-lado, .panel__salir, .panel__enlace, .panel__tab { transition: none; }
+  .panel__riel:not(.is-solo) .panel__menu { transition: none; }      /* misma fuerza que la regla de la hoja: si no, gana ella */
 }
 
 .panel__salir {
@@ -209,12 +271,43 @@ html:has(.panel), html:has(.panel) body { height: 100%; overflow: hidden; }
     grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "modo" "menu" "salir";
     border-bottom: 0; border-right: 1px solid var(--raya);
   }
-  /* En la pantalla grande el menu siempre esta: el boton del telefono sobra */
-  .panel__menu-boton { display: none; }
+  .panel__modo { justify-self: stretch; }
   /* Las secciones se mueven por dentro si no caben; Acceso sigue abajo */
   .panel__menu { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
   .panel__riel > .panel__salir { justify-self: start; padding-inline: .7rem; }
 }
+
+/* ---- Recursos: antes de subir algo, se elige QUE (panel/Recursos.js) ---- */
+.panel__recursos { display: grid; gap: 1rem; }
+.panel__elegir[hidden], .panel__recurso[hidden] { display: none; }
+.panel__elegir { display: grid; gap: .9rem; }
+.panel__elecciones { display: grid; gap: .7rem; grid-template-columns: minmax(0, 1fr); list-style: none; margin: 0; padding: 0; }
+@media (min-width: 640px) { .panel__elecciones { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.panel__eleccion {
+  display: grid; gap: .3rem; align-content: start; justify-items: start; width: 100%; height: 100%;
+  padding: 1rem; text-align: start; font: inherit; color: var(--tiza);
+  border: 1px solid var(--raya-fuerte); border-radius: 14px; background: rgb(var(--luz) / .04);
+}
+button.panel__eleccion { cursor: pointer; transition: background-color .2s var(--ease), border-color .2s var(--ease); }
+button.panel__eleccion:hover { background: rgb(var(--luz) / .09); }
+button.panel__eleccion:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.panel__eleccion .icon { width: 1.7rem; height: 1.7rem; color: var(--prompt); margin-bottom: .25rem; }
+.panel__eleccion-titulo { display: flex; align-items: baseline; gap: .5rem; width: 100%; font-weight: 700; font-size: .95rem; }
+.panel__eleccion-linea { font-size: .8rem; color: var(--tiza-2); }
+/* Lo que aun no se puede subir: apagado, con borde de rayas y su «Pronto» (el texto lo dice) */
+.panel__eleccion--pronto { border-style: dashed; background: none; color: var(--tiza-2); }
+.panel__eleccion--pronto .icon { color: var(--tiza-2); }
+.panel__eleccion--pronto .panel__marca-pronto { padding-left: 0; font-weight: 400; }
+.panel__volver {
+  display: inline-flex; align-items: center; gap: .4rem; justify-self: start;
+  min-height: 44px; padding: 0 .6rem 0 .3rem; font: inherit; font-size: .84rem; color: var(--tiza-2);
+  background: none; border: 0; border-radius: 8px; cursor: pointer;
+}
+.panel__volver .icon { width: 1.05rem; height: 1.05rem; rotate: 90deg; }
+.panel__volver:hover { color: var(--tiza); }
+.panel__volver:focus-visible { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.panel__recurso { display: grid; gap: .6rem; }
+
 /* ---- Self-Mode, de dia (terminal.css tiene los colores): papel sin vidrio, una sombra
    suave de pino y los titulos en Young Serif ---- */
 [data-modo="self"] .panel__marco {
@@ -320,7 +413,12 @@ html:has(.panel), html:has(.panel) body { height: 100%; overflow: hidden; }
   .panel__puerta, .panel__enlace, .panel__boton { transition: none; }
 }
 @media (forced-colors: active) {
-  .panel__marco, .panel__enlace, .panel__boton, .panel__puerta, .panel__aviso, .panel__fila, .panel__menu-boton { border: 1px solid CanvasText; }
-  .panel__enlace[aria-current="true"] { background: Highlight; color: HighlightText; }
-  .panel__grupo-boton[aria-expanded="true"] { outline: 1px solid CanvasText; }
+  .panel__marco, .panel__enlace, .panel__boton, .panel__puerta, .panel__aviso, .panel__fila, .panel__eleccion { border: 1px solid CanvasText; }
+  .panel__enlace[aria-current="true"],
+  .panel__tab:is([aria-current="true"], .is-activo, [aria-expanded="true"]) { background: Highlight; color: HighlightText; }
+  .panel__tab:is([aria-current="true"], .is-activo, [aria-expanded="true"]) :is(.icon, .panel__icono),
+  .panel__enlace[aria-current="true"] :is(.icon, .panel__icono) { color: HighlightText; }
+  .panel__eleccion--pronto { border-style: dashed; color: GrayText; }
+  .panel__barra, .panel__riel .panel__menu { border: 1px solid CanvasText; background: Canvas; }
+  .panel__velo { background: none; }
 }

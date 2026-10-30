@@ -1,10 +1,10 @@
 /* Las secciones del panel de «The Alef Code» (/[lang]/portal/panel/).
 
    DOS CASAS para el admin (lo pidio el fundador el 2026-10-27):
-     · Self-Mode: su vida personal y profesional. Es donde EL entra («Hoy»).
+     · Self-Mode: su vida personal y profesional (Álef, Mi Día, Tablero). Es donde EL entra.
      · Developer-Mode: lo que cambia la pagina publica (Proyectos, Trabajos,
-       los libros de Recursos, Sobre el camino; luego Escribir y Videos).
-     · Acceso: quien entra y el codigo del celular.
+       Recursos —libros hoy; videos y escritos luego, todo en una sola seccion—, Camino).
+     · Acceso: Compartir (quien entra) y Configuración (el codigo del celular).
    Los miembros aprobados ven solo «Inicio» (el primer paso y Cuadremos). El admin
    NO lo ve: su primer paso no es el test.
 
@@ -25,21 +25,32 @@ export const GRUPOS = ['miembros', 'self', 'dev', 'acceso'];
    (abajo); «miembros» no es de ninguno (un miembro no tiene modos). */
 export const MODOS = ['self', 'dev'];
 
+/* `icono`: el dibujo de la seccion (data/icons.js), o 'alef' = la א del logo (AlefIcono).
+   Los nombres que se ven (textos.js) cambiaron el 2026-10-30 y los `id` se quedaron:
+   «Álef» es `hoy`, «Recursos» es `libros`, «Compartir» es `accesos`, «Configuración» es
+   `seguridad`. Asi no se rompen los enlaces (#libros) ni la base. */
 export const SECCIONES = [
-  { id: 'inicio', grupo: 'miembros', admin: false, soloMiembros: true },
-  { id: 'hoy', grupo: 'self', admin: true },
-  { id: 'diario', grupo: 'self', admin: true },
-  { id: 'habitos', grupo: 'self', admin: true },
-  { id: 'crecimiento', grupo: 'self', admin: true },
-  { id: 'proyectos', grupo: 'dev', admin: true },
-  { id: 'trabajos', grupo: 'dev', admin: true },
-  { id: 'libros', grupo: 'dev', admin: true },
-  { id: 'camino', grupo: 'dev', admin: true },
-  { id: 'escribir', grupo: 'dev', admin: true },
-  { id: 'videos', grupo: 'dev', admin: true },
-  { id: 'accesos', grupo: 'acceso', admin: true },
-  { id: 'seguridad', grupo: 'acceso', admin: true }
+  { id: 'inicio', grupo: 'miembros', admin: false, soloMiembros: true, icono: 'casa' },
+  { id: 'hoy', grupo: 'self', admin: true, icono: 'alef' },
+  { id: 'diario', grupo: 'self', admin: true, icono: 'sun' },
+  { id: 'tablero', grupo: 'self', admin: true, icono: 'tablero' },
+  { id: 'proyectos', grupo: 'dev', admin: true, icono: 'wrench' },
+  { id: 'trabajos', grupo: 'dev', admin: true, icono: 'maletin' },
+  { id: 'libros', grupo: 'dev', admin: true, icono: 'book' },
+  { id: 'camino', grupo: 'dev', admin: true, icono: 'route' },
+  { id: 'accesos', grupo: 'acceso', admin: true, icono: 'compartir' },
+  { id: 'seguridad', grupo: 'acceso', admin: true, icono: 'ajustes' }
 ];
+
+/* LA BARRA DE ABAJO DEL TELEFONO (como la de una app): las secciones de cada modo que van
+   como boton propio. Siempre son 4 o menos, y el quinto boton es «Más», que abre el resto
+   (Compartir y Configuración). Asi la barra nunca pasa de 5. */
+export const BARRA = {
+  self: ['hoy', 'diario', 'tablero'],
+  dev: ['proyectos', 'trabajos', 'libros', 'camino']
+};
+export const BARRA_MAX = 4;
+export const enBarra = (id) => Object.values(BARRA).some((ids) => ids.includes(id));
 
 /* Las que tienen su pantalla hecha; el resto enseña «Pronto». */
 export const HECHAS = ['inicio', 'accesos', 'seguridad', 'libros', 'camino', 'trabajos', 'proyectos'];

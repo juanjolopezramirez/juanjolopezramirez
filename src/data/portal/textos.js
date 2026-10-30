@@ -116,8 +116,6 @@ export const PORTAL_TEXTOS = {
       cargando: 'Un momento…',
       saludo: 'Hola',
       menu: 'Secciones',
-      /* El boton que abre el menu en el telefono; al lado va la seccion en que estas */
-      menuBoton: 'Menú',
       /* El boton de los dos modos: su nombre no cambia (lo dice «pulsado» o no) */
       modos: {
         nombre: 'Developer-Mode',
@@ -138,18 +136,29 @@ export const PORTAL_TEXTOS = {
       },
       secciones: {
         inicio: { titulo: 'Inicio', linea: 'Esto es lo que puedes hacer aquí.' },
-        hoy: { titulo: 'Hoy', linea: 'Mi vida personal y profesional, en un solo lugar.' },
-        diario: { titulo: 'Diario', linea: 'Lo que escribo para mí.' },
-        habitos: { titulo: 'Hábitos', linea: 'Lo que repito para crecer.' },
-        crecimiento: { titulo: 'Crecimiento', linea: 'A dónde voy y cómo voy.' },
+        hoy: { titulo: 'Álef', linea: 'Mi vida personal y profesional, en un solo lugar.' },
+        diario: { titulo: 'Mi Día', linea: 'Lo que escribo para mí, cada día.' },
+        tablero: { titulo: 'Tablero', linea: 'Cómo va cada parte de mi vida.' },
         proyectos: { titulo: 'Proyectos', linea: 'Lo que estoy construyendo.' },
         trabajos: { titulo: 'Trabajos', linea: 'Las empresas con las que he trabajado.' },
-        libros: { titulo: 'Libros', linea: 'Los libros de Recursos.' },
-        camino: { titulo: 'Sobre el camino', linea: 'Las etapas de por dónde he caminado.' },
-        escribir: { titulo: 'Escribir', linea: 'Las entradas del blog.' },
-        videos: { titulo: 'Videos', linea: 'Los videos, públicos o solo para miembros.' },
-        accesos: { titulo: 'Quién entra', linea: 'Tú decides quién pasa.' },
-        seguridad: { titulo: 'Seguridad', linea: 'Un código de tu celular para entrar como admin.' }
+        libros: { titulo: 'Recursos', linea: 'Lo que subo a Recursos.' },
+        camino: { titulo: 'Camino', linea: 'Las etapas de por dónde he caminado.' },
+        accesos: { titulo: 'Compartir', linea: 'Tú decides quién pasa.' },
+        seguridad: { titulo: 'Configuración', linea: 'Un código de tu celular para entrar como admin.' }
+      },
+      /* La barra de abajo del telefono (como la de una app) y su boton «Más» */
+      barra: 'Secciones principales',
+      mas: 'Más',
+      /* Recursos: antes de subir algo, se elige que (libros hoy; videos y escritos, luego) */
+      recursos: {
+        pregunta: '¿Qué vas a subir?',
+        volver: 'Elegir otra cosa',
+        pronto: 'Pronto',
+        tipos: {
+          libro: { titulo: 'Libro', linea: 'Un PDF con su lomo y su portada.' },
+          video: { titulo: 'Video', linea: 'Públicos o solo para miembros.' },
+          escrito: { titulo: 'Escrito', linea: 'Una entrada para el blog.' }
+        }
       },
       /* Developer-Mode: los editores de Libros y de Sobre el camino (panel/dev/*.js) */
       dev: {

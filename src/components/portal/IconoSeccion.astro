@@ -1,0 +1,15 @@
+---
+import Icon from '../Icon.astro';
+import AlefIcono from './AlefIcono.astro';
+
+/* EL ICONO DE UNA SECCION DEL PANEL (el menu de la izquierda y la barra del telefono).
+
+   Es adorno: va con aria-hidden y el nombre de la seccion lo dice el texto de al lado.
+   `icono` viene de data/portal/secciones.js: 'alef' es la א del logo (en pixeles,
+   dibujada por el fundador) y el resto, un dibujo de linea de data/icons.js. Si un dia
+   dibuja los de cada seccion, se cambian aqui y en ningun otro sitio. */
+const { icono } = Astro.props;
+---
+{icono === 'alef'
+  ? <AlefIcono nombre="logo" class="panel__icono panel__icono--alef" />
+  : <Icon id={icono} />}

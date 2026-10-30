@@ -27,6 +27,7 @@ const leer = (ruta) => fs.readFileSync(path.join(raiz, ruta), 'utf8');
 const E = await cargar('src/scripts/portal/estado.js');
 const T = await cargar('src/data/portal/textos.js');
 const S = await cargar('src/data/portal/secciones.js');
+const { ICONS } = await cargar('src/data/icons.js');
 
 let n = 0;
 let mal = 0;
@@ -266,6 +267,55 @@ ok('el boton de los modos: un boton de verdad con aria-pressed, nombre fijo y so
   assert.match(menu, /setAttribute\('aria-current', 'true'\)/);
   /* De dia nada se mueve: el fondo se para */
   assert.match(leer('src/scripts/portal/fondo.js'), /const quieto = \(\) => reducir\.matches \|\| pausado \|\| deDia\(\)/);
+});
+ok('los iconos: cada seccion tiene el suyo (data/icons.js, o la א del logo) y el menu lo pinta', () => {
+  for (const sec of S.SECCIONES) assert.ok(sec.icono === 'alef' || ICONS[sec.icono], sec.id + ' → ' + sec.icono);
+  const panel = leer('src/components/portal/Panel.astro');
+  assert.match(panel, /<IconoSeccion icono=\{s\.icono\} \/>/);
+  const ico = leer('src/components/portal/IconoSeccion.astro');
+  assert.ok(!/titulo=/.test(ico), 'adorno: sin titulo, el nombre lo dice el texto de al lado');
+  for (const k of ['casa', 'tablero', 'maletin', 'pluma', 'compartir', 'ajustes']) assert.match(ICONS[k], /aria-hidden="true"/, k);
+});
+ok('la barra del telefono (como una app): 5 botones como mucho —4 secciones y «Más»—, cada modo con las suyas', () => {
+  assert.ok(S.BARRA_MAX + 1 <= 5);
+  assert.deepEqual(Object.keys(S.BARRA), S.MODOS);
+  for (const m of S.MODOS) {
+    const ids = S.BARRA[m];
+    assert.ok(ids.length >= 1 && ids.length <= S.BARRA_MAX, m + ': ' + ids.length);
+    assert.equal(new Set(ids).size, ids.length, m + ' repetidos');
+    for (const id of ids) {
+      assert.equal(S.modoDe(id), m, id + ' no es de ' + m);
+      assert.ok(S.idsPara(true).includes(id) && !S.idsPara(false).includes(id), id + ' es del admin');
+    }
+  }
+  /* «Más» nunca queda vacio: Acceso (Compartir, Configuración) no esta en la barra */
+  for (const id of ['accesos', 'seguridad']) assert.ok(!S.enBarra(id), id);
+  const panel = leer('src/components/portal/Panel.astro');
+  assert.match(panel, /<nav class="panel__barra" aria-label=\{p\.barra\} data-barra data-solo-admin>/);   // un miembro no tiene barra
+  assert.match(panel, /aria-expanded="false" aria-controls="panel-menu" data-menu-boton/);
+  assert.match(panel, /data-velo aria-hidden="true"/);
+  for (const k of ['barra', 'mas']) assert.ok(es.panel[k], k);
+});
+ok('la barra y la hoja de «Más»: zonas seguras del telefono, Escape cierra, lo de atras queda inert y todo se suelta al cerrar', () => {
+  const css = leer('src/styles/panel.css');
+  assert.match(css, /env\(safe-area-inset-bottom\)/);
+  assert.match(css, /env\(safe-area-inset-top\)/);
+  assert.ok(!/display:\s*contents/.test(css), 'sin display:contents: ya escondio la hoja del escritorio una vez');
+  assert.match(css, /prefers-reduced-motion: reduce\) \{[^}]*\.panel__tab[^}]*\}\s*\.panel__riel:not\(\.is-solo\) \.panel__menu \{ transition: none; \}/);   // misma fuerza que la regla de la hoja
+  assert.match(css, /max-height: 30rem\) \{\s*\.panel__marco \{[^}]*backdrop-filter: none[^}]*\}\s*\.panel__barra \{ position: sticky; bottom: 0; \}/);   // telefono de lado: la barra no queda al final de la pagina
+  const menu = leer('src/scripts/portal/panel/Menu.js');
+  assert.match(menu, /hoja\.inert = abierto/);
+  assert.match(menu, /olvidar\(\) \{\s+this\.abrirEnTelefono\(false\);/);      // salir tambien suelta lo de atras
+  assert.ok(!/localStorage|sessionStorage|innerHTML/.test(menu));
+});
+ok('Recursos: primero se elige que subir; hoy solo el libro, y el video y el escrito dicen «Pronto»', () => {
+  const panel = leer('src/components/portal/Panel.astro');
+  assert.match(panel, /data-recursos-abrir="libro"/);
+  assert.equal((panel.match(/data-recursos-abrir=/g) || []).length, 1, 'solo el libro abre algo');
+  assert.match(panel, /panel__eleccion--pronto/);
+  assert.deepEqual(Object.keys(es.panel.recursos.tipos), ['libro', 'video', 'escrito']);
+  assert.ok(es.panel.recursos.pregunta.split('?').length === 2, 'UNA sola pregunta');
+  for (const id of ['escribir', 'videos', 'habitos', 'crecimiento']) assert.ok(!S.IDS.includes(id), id + ' ya no es una opcion del menu');
 });
 ok('el panel cabe en la pantalla (sin scroll de pagina) y vuelve al scroll de siempre en una pantalla muy baja', () => {
   const css = leer('src/styles/panel.css');

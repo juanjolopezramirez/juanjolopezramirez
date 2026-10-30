@@ -19,6 +19,7 @@ import { bitacora, fondoQuieto, modoFondo } from './carga.js';
 import { anclaValida, codigoValido, idiomaDe, rutaPortal } from './estado.js';
 import { idsPara, inicioPara, inicioDeModo, modoDe, modoPara } from '../../data/portal/secciones.js';
 import { Menu } from './panel/Menu.js';
+import { Recursos } from './panel/Recursos.js';
 import { Accesos } from './panel/Accesos.js';
 import { Seguridad } from './panel/Seguridad.js';
 import { errorEnForm, limpiarForm } from './panel/formulario.js';
@@ -114,6 +115,7 @@ function iniciar(raiz) {
   const ultimaDe = { self: '', dev: '' };
   let porBoton = false;
   const menu = new Menu(raiz.querySelector('[data-riel]'), {
+    ambito: raiz.querySelector('[data-marco]'),
     enfocar: (id) => { const t = raiz.querySelector(`[data-titulo="${id}"]`); if (t) t.focus(); },
     alCambiarModo: () => {
       if (!esAdmin) return;
@@ -123,6 +125,8 @@ function iniciar(raiz) {
     }
   });
   const secciones = { accesos: new Accesos(raiz, ctx), seguridad: new Seguridad(raiz, ctx) };
+  /* Recursos: la eleccion de que subir (los libros salen por `perezosas.libros`) */
+  const recursos = new Recursos(raiz);
   /* Los editores de Developer-Mode se bajan la primera vez que el admin entra a su seccion:
      un miembro, o el admin en Self-Mode, no carga su codigo. */
   const perezosas = {
@@ -274,14 +278,13 @@ function iniciar(raiz) {
   function irA(id, foco, deBoton = false) {
     raiz.querySelectorAll('[data-seccion]').forEach((s) => { s.hidden = s.dataset.seccion !== id; });
     const t = raiz.querySelector(`[data-titulo="${id}"]`);
-    const sec = p.secciones && hay(p.secciones, id) ? p.secciones[id] : null;
     /* El modo lo dice la seccion (Acceso se queda en el que estabas) */
     if (esAdmin) {
       const modo = modoPara(id, menu.modo);
       menu.mostrarModo(modo, deBoton);
       if (modoDe(id)) ultimaDe[modo] = id;
     }
-    menu.marcar(id, sec ? sec.titulo : '');
+    menu.marcar(id);
     /* La ruta de la barra de la terminal: ~/panel/<seccion>. */
     const ruta = raiz.querySelector('[data-ruta-actual]');
     if (ruta) ruta.textContent = `~/panel/${id}`;
@@ -307,6 +310,7 @@ function iniciar(raiz) {
     raiz.querySelectorAll('[data-cuenta]').forEach((c) => { c.textContent = ''; });
     if (elCodigo) elCodigo.hidden = true;
     Object.values(secciones).forEach((s) => s.olvidar());
+    recursos.olvidar();
     menu.olvidar();
     raiz.querySelectorAll('[data-titulo="inicio"], [data-titulo="hoy"]').forEach((saludo) => {
       const id = saludo.dataset.titulo;
