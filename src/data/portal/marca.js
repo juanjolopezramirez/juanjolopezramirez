@@ -23,7 +23,7 @@
 
    Let Be (2026-10-30): el logo es el NUEVO (la palabra, projects/let-be.svg, y su ícono, avatars/let-be.svg: los de la
    reestructuracion a «Let Be Develop»). El «Let Be a color» viejo (webIcons/letbeLogo(Color)) se quito.
-   El eje «El Lazo» (Bond) se quito hasta que llegue su archivo correcto (`fraterni Icon/Axis/bondCard.svg` no lo es).
+   El eje «El Lazo» (Bond) volvio con su archivo correcto (`fraterni Icon/Axis/bondIcon.svg`); el primero que llego (bondCard.svg) no lo era.
 
    NO entra `mark-icon.svg` («marca en dos tintas»): es la misma marca con un estilo que cambia
    de color segun el tema del sistema, asi que lo que se baja dependeria del computador. La
@@ -35,7 +35,7 @@ export const CATEGORIAS = [
   { id: 'letbe', titulo: 'Let Be', linea: 'La casa de ser encontrado.' },
   { id: 'recvid', titulo: 'Recvid', linea: 'La casa de ser recordado.' },
   { id: 'fraterni', titulo: 'Fraterni', linea: 'La casa matriz y sus productos.' },
-  { id: 'ejes', titulo: 'Fraterni · Los cuatro ejes', linea: 'El Centro, la Base y el Entorno (falta el Lazo: el archivo que llegó no era el correcto).' },
+  { id: 'ejes', titulo: 'Fraterni · Los cuatro ejes', linea: 'El Centro, el Lazo, la Base y el Entorno.' },
   { id: 'principios', titulo: 'Fraterni · Los cuatro principios', linea: 'Propósito, carácter, presencia y conciencia.' },
   { id: 'permanentes', titulo: 'Fraterni · Los tres permanentes', linea: 'Fe, esperanza y amor.' },
   { id: 'otros', titulo: 'Otros proyectos', linea: 'Cordillera Unida FC y Nada que demostrar.' }
@@ -70,6 +70,7 @@ export const ACTIVOS = [
 
   /* Los cuatro ejes */
   { id: 'eje-centro', categoria: 'ejes', nombre: 'El Centro', ruta: '/assets/fraterni/ejes/centro.svg', colores: 'fijo', vista: 'noche' },
+  { id: 'eje-lazo', categoria: 'ejes', nombre: 'El Lazo', ruta: '/assets/fraterni/ejes/lazo.svg', colores: 'fijo', vista: 'noche' },
   { id: 'eje-base', categoria: 'ejes', nombre: 'La Base', ruta: '/assets/fraterni/ejes/base.svg', colores: 'fijo', vista: 'noche' },
   { id: 'eje-entorno', categoria: 'ejes', nombre: 'El Entorno', ruta: '/assets/fraterni/ejes/entorno.svg', colores: 'fijo', vista: 'noche' },
 

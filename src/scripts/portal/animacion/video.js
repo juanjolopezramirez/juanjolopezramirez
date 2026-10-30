@@ -18,7 +18,8 @@
 import { FPS, AUDIO, CALIDADES, DURACIONES, FORMATOS, medidasDeSalida } from '../../../data/portal/animaciones.js';
 import { crearAzar, crearLluvia, leerLetra, TIPOGRAFIAS } from './lluvia.js';
 import { sintetizar } from './sonido.js';
-import { crearPapiro } from './papiro.js';
+import { crearPapiro, prepararCapas } from './papiro.js';
+import { comoDireccion, esSeguro } from '../marca/svg.js';
 import { sintetizarPapiro } from './sonidoPapiro.js';
 import logoAlef from '../../../assets/alef/logo.svg?raw';
 import memSvg from '../../../assets/alef/mem.svg?raw';
@@ -86,14 +87,45 @@ export async function capacidades() {
 export const estimarMB = (calidad, duracion, conSonido) =>
   Math.max(0.1, ((calidad.bps + (conSonido ? AUDIO.bps : 0)) * duracion) / 8 / 1_048_576);
 
+/* Los dibujos del fundador (los SVG del Tic Tac Toe): se piden al propio sitio una vez, se comprueban y se
+   guardan; y se dibujan en una imagen lista para pintar. */
+const textos = new Map();
+const texto = async (url) => {
+  if (!textos.has(url)) {
+    const r = await fetch(url, { credentials: 'same-origin' });
+    if (!r.ok) throw new Error('lienzo');
+    const t = await r.text();
+    if (!esSeguro(t)) throw new Error('lienzo');
+    textos.set(url, t);
+  }
+  return textos.get(url);
+};
+const cargarImagen = (svg) => new Promise((ok, mal) => {
+  const img = new Image();
+  img.onload = () => ok(img);
+  img.onerror = () => mal(new Error('lienzo'));
+  img.src = comoDireccion(svg);
+});
+/* Las piezas ya dibujadas a una medida se guardan (la muestra y el video a la misma medida no las rehacen) */
+let ultimasCapas = { clave: '', capas: null };
+async function capasDe(formato, k) {
+  const clave = `${formato.id}|${k}`;
+  if (ultimasCapas.clave !== clave) {
+    ultimasCapas = { clave: '', capas: null };           // suelta la anterior antes de armar otra (memoria)
+    ultimasCapas = { clave, capas: await prepararCapas({ ancho: formato.ancho, alto: formato.alto, escala: k, lienzoDe, cargarImagen, texto }) };
+  }
+  return ultimasCapas.capas;
+}
+
 /* El motor de una animacion: lo que dibuja (`sim`: avanzar(dt) y pintar(ctx)), lo que anota de
    cada cuadro para el sonido (`muestra`) y como se hace el sonido (`sonido`). Hay dos: la lluvia
    con una letra y el papiro con el Tic Tac Toe. `k` es cuanto se escala lo logico (para el papel). */
-function fabricar(animacion, formato, duracionMs, k) {
+async function fabricar(animacion, formato, duracionMs, k) {
   const azar = crearAzar(animacion.semilla);
   const semillaSonido = animacion.semilla ^ SEMILLA_SONIDO;
   if (animacion.motor === 'papiro') {
-    const sim = crearPapiro({ ancho: formato.ancho, alto: formato.alto, azar, duracionMs, escala: k, lienzoDe });
+    const capas = await capasDe(formato, k);
+    const sim = crearPapiro({ ancho: formato.ancho, alto: formato.alto, azar, duracionMs, escala: k, lienzoDe, capas });
     return {
       sim, muestra: () => null,
       sonido: (duracion) => sintetizarPapiro({ duracion, eventos: sim.eventos, azar: crearAzar(semillaSonido) })
@@ -121,7 +153,7 @@ export async function pintarFotograma({ animacion, formato, lienzo, ancho, segun
   if (!ctx) throw new Error('lienzo');
   ctx.setTransform(k, 0, 0, k, 0, 0);
   /* (la muestra se arma como un video de 6 s en el papiro, y sin desvanecido al final en la lluvia) */
-  const { sim } = fabricar(animacion, formato, animacion.motor === 'papiro' ? 6000 : segundos * 1000 + 5000, k);
+  const { sim } = await fabricar(animacion, formato, animacion.motor === 'papiro' ? 6000 : segundos * 1000 + 5000, k);
   const dt = 1000 / FPS;
   const cuadros = Math.round(segundos * FPS);
   for (let n = 0; n < cuadros; n++) {
@@ -143,7 +175,7 @@ export async function exportarVideo({ animacion, formato, calidad, duracion, con
   const lienzo = lienzoDe(salida.w, salida.h);
   const ctx = lienzo.getContext('2d', { alpha: false });
   if (!ctx) throw new Error('lienzo');
-  const { sim, muestra, sonido } = fabricar(animacion, formato, duracion * 1000, salida.k);
+  const { sim, muestra, sonido } = await fabricar(animacion, formato, duracion * 1000, salida.k);
 
   if (!DURACIONES.includes(duracion)) throw new Error('video');       // solo las duraciones de la lista
   const total = Math.round(duracion * FPS);

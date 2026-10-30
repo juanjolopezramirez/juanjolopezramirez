@@ -15,7 +15,7 @@ export const ANIMACIONES = [
   { id: 'lluvia-alef', nombre: 'Lluvia con la Álef (א)', linea: 'Al entrar: cae la lluvia verde y la letra se descifra.', motor: 'lluvia', modo: 'entrada', letra: 'logo', vista: 'noche', semilla: 7, vistaSegundos: 3.1 },
   { id: 'lluvia-mem', nombre: 'Lluvia con la Mem (מ)', linea: 'Al cargar: llueve en amarillo, el barrido late y la letra se descifra.', motor: 'lluvia', modo: 'carga', letra: 'mem', vista: 'noche', semilla: 11, vistaSegundos: 3.1 },
   { id: 'lluvia-tav', nombre: 'Lluvia con la Tav (ת)', linea: 'Al salir: llueve en rojo y la letra se descifra.', motor: 'lluvia', modo: 'salida', letra: 'tav', vista: 'noche', semilla: 13, vistaSegundos: 3.1 },
-  { id: 'tres-en-raya', nombre: 'Tic Tac Toe en papiro', linea: 'Un juego de tres en raya dibujado a mano sobre papiro, con el sonido de la pluma.', motor: 'papiro', icono: 'tablero', vista: 'papiro', semilla: 21, vistaSegundos: 4.8 }
+  { id: 'el-juego-que-el-amor-ya-gano', nombre: 'El juego que el amor ya ganó', linea: 'Un tres en raya sobre papiro con la corona, los clavos, la moneda y la cruz. Al final, el amor.', motor: 'papiro', icono: 'tablero', vista: 'papiro', semilla: 21, vistaSegundos: 5.0 }
 ];
 
 /* La forma de la pantalla. `ancho` y `alto` son el tamaño LOGICO sobre el que se dibuja la

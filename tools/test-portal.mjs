@@ -744,46 +744,41 @@ ok('Animaciones: la ficha nace apagada, se bloquea mientras trabaja, avisa sin l
   assert.match(leer('src/scripts/portal/panel/dev/Marca.js'), /this\.cargaVideo \|\|= import\('\.\/MarcaVideo\.js'\)/);      // una sola carga y una sola ficha, aunque se pulse dos veces
 });
 const PA = await cargar('src/scripts/portal/animacion/papiro.js');
-const papiroRastro = (semilla, duracionMs = 6000, cuadros = 120) => {
+/* Capas de mentira (una por componente): lo unico que el movimiento necesita es su caja y algo que dibujar */
+const capasFalsas = () => Object.fromEntries(PA.COMPONENTES.map((c, i) => [c.id, { lienzo: { nombre: c.id }, x: 100 + i * 10, y: 80 + i * 5, w: 300, h: 200 }]));
+const papiroRastro = (semilla, duracionMs = 6000, cuadros = 140) => {
   const { ctx, registro } = grabadora();
   const lienzoDe = () => ({ getContext: () => ctx });
-  const sim = PA.crearPapiro({ ancho: 1280, alto: 720, azar: LL.crearAzar(semilla), duracionMs, escala: 1, lienzoDe });
+  const sim = PA.crearPapiro({ ancho: 1280, alto: 720, azar: LL.crearAzar(semilla), duracionMs, escala: 1, lienzoDe, capas: capasFalsas() });
   for (let n = 0; n < cuadros; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
-  return { huella: crypto.createHash('sha1').update(registro.join('|')).digest('hex'), llamadas: registro.length, sim };
+  return { huella: crypto.createHash('sha1').update(registro.join('|')).digest('hex'), llamadas: registro.length, sim, registro };
 };
-ok('Papiro: el mismo juego sale igual con la misma semilla, el trazo se dibuja de verdad, y el juego cabe en el video mas corto', () => {
+ok('«El juego que el amor ya ganó»: usa SUS dibujos (el tablero, cinco piezas y los corazones), en ese orden, y sale igual con la misma semilla', () => {
+  assert.deepEqual(PA.COMPONENTES.map((c) => c.id), ['tablero', 'clavos', 'moneda', 'lanza', 'corona', 'cruz', 'corazones']);
+  assert.deepEqual(PA.GUION.map((g) => g.capa), PA.COMPONENTES.map((c) => c.id), 'el guion pone cada cosa, en orden');
+  for (const c of PA.COMPONENTES) assert.ok(fs.existsSync(path.join(raiz, 'public', c.url)), 'falta ' + c.url);
+  for (const g of PA.GUION) assert.ok(g.t1 > g.t0 && g.t0 >= 0);
+  assert.ok(PA.GUION.every((g, i) => i === 0 || g.t0 > PA.GUION[i - 1].t0), 'en orden de tiempo');
+  assert.ok(PA.LATIDOS.every((b) => b >= PA.GUION.at(-1).t0), 'los latidos son de los corazones, despues de que aparecen');
   const a = papiroRastro(21), b = papiroRastro(21), c = papiroRastro(22);
   assert.equal(a.huella, b.huella, 'misma semilla, mismo dibujo');
-  assert.notEqual(a.huella, c.huella, 'otra semilla, otra mano');
-  assert.ok(a.llamadas > 2000, 'dibuja: ' + a.llamadas);
-  /* 4 lineas de la rejilla + 3 X de dos trazos + 2 O + la raya que gana = 13 trazos */
-  const ev = a.sim.eventos;
-  assert.equal(ev.length, 4 + 3 * 2 + 2 + 1);
-  assert.equal(ev.filter((e) => e.ganadora).length, 1);
-  assert.ok(ev[ev.length - 1].ganadora, 'la ultima es la raya roja');
-  for (const e of ev) assert.ok(e.t1 > e.t0 && e.t0 >= 0, 'trazo con sentido');
-  for (const dur of [4000, 6000, 10000]) {
-    const sim = PA.crearPapiro({ ancho: 1280, alto: 720, azar: LL.crearAzar(21), duracionMs: dur, escala: 1, lienzoDe: () => ({ getContext: () => grabadora().ctx }) });
-    const ultimo = sim.eventos[sim.eventos.length - 1].t1;
-    assert.ok(ultimo <= dur - PA.PAPIRO.SALE_MS + 1, `${dur} ms: el juego acaba (${Math.round(ultimo)}) antes del desvanecido`);
-    assert.ok(sim.velocidad >= 1);
-  }
-  /* la partida es legal: X gana por la columna 1-4-7 y las casillas no se repiten */
-  const J = PA.PAPIRO.JUGADAS;
-  assert.equal(new Set(J.map((j) => j.casilla)).size, J.length);
-  assert.deepEqual(J.map((j) => j.quien), ['X', 'O', 'X', 'O', 'X']);
-  const x = J.filter((j) => j.quien === 'X').map((j) => j.casilla);
-  assert.deepEqual(PA.PAPIRO.GANADORA.filter((c) => x.includes(c)), PA.PAPIRO.GANADORA);
+  assert.notEqual(a.huella, c.huella, 'otra semilla, otro papel');
+  assert.ok(a.llamadas > 1500, 'dibuja el papel y las piezas: ' + a.llamadas);
+  /* cada pieza se dibuja: al final del video las siete capas han salido (el ultimo cuadro esta en el desvanecido) */
+  const vistas = a.registro.filter((r) => r.startsWith('drawImage')).length;
+  assert.ok(vistas >= 7 * 20, 'las capas se dibujan cuadro a cuadro: ' + vistas);
 });
-ok('Papiro: el juego empieza cuando acaba la entrada, la muestra enseña casi todo, y dibujar NO gasta azar', () => {
-  const anim = AN.ANIMACIONES.find((a) => a.id === 'tres-en-raya');
-  const nuevo = (dur, azar = LL.crearAzar(21)) => PA.crearPapiro({ ancho: 1280, alto: 720, azar, duracionMs: dur, escala: 1, lienzoDe: () => ({ getContext: () => grabadora().ctx }) });
+ok('«El juego que el amor ya ganó»: el juego empieza al acabar la entrada, cabe en 4, 6 y 10 s, la muestra lo enseña casi entero, y dibujar NO gasta azar', () => {
+  const anim = AN.ANIMACIONES.find((a) => a.id === 'el-juego-que-el-amor-ya-gano');
+  const nuevo = (dur, azar = LL.crearAzar(21)) => PA.crearPapiro({ ancho: 1280, alto: 720, azar, duracionMs: dur, escala: 1, lienzoDe: () => ({ getContext: () => grabadora().ctx }), capas: capasFalsas() });
   for (const dur of [4000, 6000, 10000]) {
     const ev = nuevo(dur).eventos;
-    assert.ok(ev[0].t0 >= PA.PAPIRO.ENTRA_MS, `${dur} ms: el primer trazo (${Math.round(ev[0].t0)}) llega despues de la entrada`);
-    assert.ok(ev[ev.length - 1].t1 <= dur - PA.PAPIRO.SALE_MS + 1, `${dur} ms: el ultimo acaba antes del desvanecido`);
+    assert.equal(ev.length, PA.GUION.length + PA.LATIDOS.length);
+    assert.ok(ev[0].t0 >= PA.PAPIRO.ENTRA_MS, `${dur} ms: lo primero (${Math.round(ev[0].t0)}) llega despues de la entrada`);
+    const ultimo = Math.max(...ev.map((e) => e.t1));
+    assert.ok(ultimo <= dur - PA.PAPIRO.SALE_MS + 1, `${dur} ms: lo ultimo (${Math.round(ultimo)}) acaba antes del desvanecido`);
   }
-  assert.ok(nuevo(6000).eventos.at(-1).t1 <= anim.vistaSegundos * 1000, 'la muestra (a ' + anim.vistaSegundos + ' s) enseña la raya que gana');
+  assert.ok(Math.max(...nuevo(6000).eventos.map((e) => e.t1)) <= anim.vistaSegundos * 1000 + 700, 'la muestra enseña los corazones');
   /* dibujar es puro: ni una llamada al azar (si no, el video cambiaria segun cuantas veces se dibuje) */
   let usos = 0;
   const base = LL.crearAzar(21);
@@ -792,6 +787,17 @@ ok('Papiro: el juego empieza cuando acaba la entrada, la muestra enseña casi to
   const { ctx } = grabadora();
   for (let n = 0; n < 12; n++) { sim.avanzar(1000 / 30); sim.pintar(ctx); }
   assert.equal(usos, antes, 'pintar() no llama al azar');
+  /* la geometria: el cuadrado de 1080 queda centrado y ampliado */
+  const g = PA.geometria(1280, 720);
+  assert.ok(Math.abs(g.ox + 540 * g.e - 640) < 1e-6 && Math.abs(g.oy + 540 * g.e - 360) < 1e-6, 'centrado');
+});
+ok('«El juego que el amor ya ganó»: el papel es CLARO (el primero salio oscuro) y se entra y sale desde el color del papel', () => {
+  const t = leer('src/scripts/portal/animacion/papiro.js');
+  const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  for (const hex of (t.match(/addColorStop\([\d.]+, '(#[0-9A-F]{6})'\)/g) || []).map((m) => m.match(/#[0-9A-F]{6}/)[0])) assert.ok(lum(hex) > 0.5, 'papel claro: ' + hex + ' ' + lum(hex).toFixed(2));
+  const velo = (t.match(/const VELO = '(#[0-9A-F]{6})'/) || [])[1];
+  assert.ok(velo && lum(velo) > 0.7, 'se entra desde el papel, no desde lo oscuro: ' + velo);
+  assert.match(t, /macizo: true/);                                    // los corazones vienen casi transparentes (.13): se pintan macizos
 });
 ok('Lluvia: cada letra llueve en SU color (verde, amarillo, rojo)', () => {
   const t = leer('src/scripts/portal/animacion/lluvia.js');
@@ -829,8 +835,8 @@ ok('Brand Assets: Estáticos y Dinámicos (dos partes), Let Be con su logo NUEVO
   const ids = M.ACTIVOS.map((a) => a.id);
   assert.ok(ids.includes('let-be') && ids.includes('let-be-icono'), 'Let Be: palabra e ícono');
   assert.ok(!ids.includes('let-be-color') && !fs.existsSync(path.join(raiz, 'public/assets/marca/let-be-color.svg')), 'el Let Be viejo ya no está');
-  assert.ok(!ids.includes('eje-lazo') && !fs.existsSync(path.join(raiz, 'public/assets/fraterni/ejes/lazo.svg')), 'el Lazo equivocado ya no está');
-  assert.ok(AN.ANIMACIONES.some((a) => a.id === 'tres-en-raya' && a.motor === 'papiro'));
+  assert.ok(ids.includes('eje-lazo') && fs.readFileSync(path.join(raiz, 'public/assets/fraterni/ejes/lazo.svg'), 'utf8').includes('#E6C829'), 'El Lazo: el archivo correcto (bondIcon.svg, una tarjeta)');
+  assert.ok(AN.ANIMACIONES.some((a) => a.id === 'el-juego-que-el-amor-ya-gano' && a.motor === 'papiro'));
 });
 ok('la bitacora: cada paso que se escribe tiene su texto', () => {
   const pasos = ['src/scripts/portal/entrar.js', 'src/scripts/portal/panel.js']
