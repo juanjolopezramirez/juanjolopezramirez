@@ -154,6 +154,7 @@ export class Taller extends Seccion {
   async crear(f) {
     const titulo = f.elements.titulo.value.trim();
     if (!titulo) { this.error('invalido'); return; }
+    if (!this.be || !this.be.taller) { this.avisar(this.tx.sinBase); return; }
     const obra = new Obra({ titulo, pagina: new ConfigPagina({}).aDatos() });
     const r = await this.be.taller.crearObra(obra.aDatos());
     if (r.error) { this.error(r.error); return; }

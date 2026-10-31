@@ -1379,6 +1379,9 @@ ok('Taller: esta en Developer-Mode, va a «Más» en el telefono, y Tiptap, pdf.
   }
   assert.ok(!/from '\.\/panel\/dev\/Taller/.test(leer('src/scripts/portal/panel.js')), 'solo se carga al abrirlo');
 });
+ok('Taller: el backend de verdad y el de prueba lo tienen en el mismo lugar, `be.taller`', () => {
+  for (const f of ['src/scripts/portal/real.js', 'src/scripts/portal/demo.js']) assert.match(leer(f), /^ {4}taller: /m, `${f}: debe ir al primer nivel`);
+});
 ok('Taller: versiones exactas, y la hoja no esta en el mapa del sitio ni la encuentran los buscadores', () => {
   const pq = JSON.parse(leer('package.json'));
   for (const n of ['@tiptap/core', '@tiptap/pm', '@tiptap/starter-kit', '@tiptap/extension-text-style', 'pagedjs', 'pdfjs-dist']) {

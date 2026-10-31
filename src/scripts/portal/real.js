@@ -303,6 +303,27 @@ export async function abrirReal(cfg, lang) {
       }
     },
 
+    /* Developer-Mode → Taller (supabase/012): solo el admin. Sus archivos van al cajon privado «taller». */
+    taller: Object.assign(Object.create(new RepositorioTallerSupabase(sb)), {
+      async subir(ruta, archivo) {
+        const r = await revisarArchivo(ruta, archivo);
+        if (r.error) return r;
+        if (r.donde.cajon !== 'taller') return { error: 'archivoRuta' };
+        try {
+          const { error } = await sb.storage.from('taller').upload(r.donde.nombre, archivo, { contentType: r.donde.mime, upsert: false });
+          return error ? { error: 'subida' } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async bajar(ruta) {
+        const donde = ubicacion(ruta);
+        if (!donde || donde.cajon !== 'taller') return { error: 'archivoRuta' };
+        try {
+          const { data, error } = await sb.storage.from('taller').download(donde.nombre);
+          return error || !data ? { error: 'red' } : { ok: true, blob: data };
+        } catch (e) { return { error: 'red' }; }
+      }
+    }),
+
     /* ---- Self-Mode → Tablero (supabase/009): solo el admin, solo lo suyo (RLS: user_id y es_admin() con
        aal2). Todo devuelve `{ ok }` o `{ error }` y el texto del servidor no sale nunca. ---- */
     tablero: {
@@ -359,26 +380,6 @@ export async function abrirReal(cfg, lang) {
        reglas (src/scripts/contenido/). ---- */
     contenido: {
       repositorio: (Tipo) => new RepositorioSupabase(sb, Tipo),
-      /* Developer-Mode → Taller (supabase/012): solo el admin. Sus archivos van al cajon privado «taller». */
-      taller: Object.assign(Object.create(new RepositorioTallerSupabase(sb)), {
-        async subir(ruta, archivo) {
-          const r = await revisarArchivo(ruta, archivo);
-          if (r.error) return r;
-          if (r.donde.cajon !== 'taller') return { error: 'archivoRuta' };
-          try {
-            const { error } = await sb.storage.from('taller').upload(r.donde.nombre, archivo, { contentType: r.donde.mime, upsert: false });
-            return error ? { error: 'subida' } : { ok: true };
-          } catch (e) { return { error: 'red' }; }
-        },
-        async bajar(ruta) {
-          const donde = ubicacion(ruta);
-          if (!donde || donde.cajon !== 'taller') return { error: 'archivoRuta' };
-          try {
-            const { data, error } = await sb.storage.from('taller').download(donde.nombre);
-            return error || !data ? { error: 'red' } : { ok: true, blob: data };
-          } catch (e) { return { error: 'red' }; }
-        }
-      }),
       /* Sube `archivo` a la `ruta` del almacen (Almacen.js dice en que cajon y con que
          nombre). Antes, aqui mismo: que sea del tipo que dice ser (sus primeros bytes), que
          no pase su tope y que la ruta sea una de las conocidas. */
