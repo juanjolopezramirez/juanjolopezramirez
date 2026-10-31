@@ -30,6 +30,9 @@
 --  17. «pdf_de_libro»              true, true, false, false.
 --  18. «entiende_el_azar»          true.
 --  19. «casas_clase_fija»          una fila.
+--  Tras 009 (tablero):
+--  20. «Tablero»                   dos filas (lecturas y piedras): rls true, anon_lee false, una regla
+--                                  tablero_*_solo_lo_mio:ALL cada una.
 --  Los Advisors de Supabase (Security) avisarán, y está bien, de las 4 funciones
 --  «security definer» que un usuario con sesión puede ejecutar (es_admin,
 --  esta_aprobado, decidir_acceso, reclamar_invitacion): es a propósito y cada una
@@ -148,3 +151,10 @@ select qual like '%split_part(split_part%' as entiende_el_azar
 
 -- 19. Una casa no cambia de clase (DEBE salir 1 fila: casas_clase_fija)
 select tgname from pg_trigger where tgrelid = 'public.casas'::regclass and tgname = 'casas_clase_fija';
+
+-- 20. El tablero (009): 2 filas, rls true, anon_lee false, 1 regla «_solo_lo_mio:ALL» cada una
+select c.relname as tabla, c.relrowsecurity as rls, has_table_privilege('anon', c.oid, 'SELECT') as anon_lee,
+       (select string_agg(policyname || ':' || cmd, ', ') from pg_policies
+         where schemaname = 'public' and tablename = c.relname) as reglas
+  from pg_class c where c.oid in ('public.tablero_lecturas'::regclass, 'public.tablero_piedras'::regclass)
+ order by 1;

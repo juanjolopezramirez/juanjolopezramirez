@@ -450,6 +450,61 @@ export const PORTAL_TEXTOS = {
           textoLargo: 'Es largo para una etapa: mejor una o dos frases.'
         }
       },
+      /* El Tablero de Fraterni (Self-Mode; panel/Tablero.js). Una vez por semana: ¿cargué mi cruz? */
+      tablero: {
+        anterior: 'Semana anterior',
+        siguiente: 'Semana siguiente',
+        estaSemana: 'Esta semana',
+        semanaDel: 'Semana del {fecha}',
+        ruedaAlt: 'La rueda de la vida de Fraterni: cuatro ejes, doce áreas y sesenta dominios',
+        ayudaRueda: 'Elige un dominio. Con las flechas te mueves de uno en uno.',
+        lista: 'O elígelo de la lista',
+        listaVacia: 'Elegir un dominio…',
+        sinElegir: 'Elige un dominio en la rueda.',
+        estados: { cargue: 'Cargué mi cruz', noCargue: 'No cargué mi cruz', sin: 'Sin revisar' },
+        resumen: '{c} con la cruz cargada · {n} sin cargarla · {s} por revisar',
+        ficha: {
+          mide: 'Mide:',
+          pregunta: '¿Cargaste tu cruz en esto esta semana?',
+          cargue: 'Cargué mi cruz',
+          noCargue: 'No cargué mi cruz',
+          sin: 'Sin revisar',
+          nota: '¿Qué moviste?',
+          notaAyuda: 'Lo que hiciste o lo que no, y qué aprendiste. Hasta 500 letras.',
+          guardar: 'Guardar',
+          guardado: 'Guardado.',
+          cerrar: 'Cerrar',
+          historial: 'Las últimas semanas',
+          historialVacio: 'Todavía no hay semanas anteriores.',
+          historialCargando: 'Buscando las semanas…',
+          semana: 'Semana del {fecha}',
+          sinNota: 'Sin nota.',
+          donde: '{eje} · {area}'
+        },
+        dios: {
+          titulo: 'Dios, en el centro de todo',
+          linea: 'Él es amor. Sostiene los cuatro ejes, las doce áreas y los sesenta dominios: por eso la cruz está en medio.'
+        },
+        piedras: {
+          titulo: 'La piedra angular de cada eje',
+          linea: 'Cambia con la etapa y con la persona. Por ejemplo, en el Lazo puede ser tu pareja o tus padres.',
+          cargando: 'Buscando…',
+          ninguna: 'Sin elegir todavía',
+          desde: 'Desde el {fecha}',
+          anteriores: 'Las de antes',
+          campo: 'Piedra angular de {eje}',
+          ejemplo: 'Por ejemplo: Mis padres',
+          cambiar: 'Cambiar',
+          cambiada: 'Listo: ahora es «{piedra}».'
+        },
+        principios: { titulo: 'Los cuatro principios', linea: 'No son casillas: pasan por las sesenta.' },
+        permanentes: { titulo: 'Los tres permanentes', linea: 'Tampoco son casillas. El Amor es el filtro final sobre todo el tablero.' },
+        errores: {
+          cargar: 'No pude traer esta semana. Revisa tu internet e intenta otra vez.',
+          guardar: 'No se guardó. Lo que escribiste sigue aquí: intenta otra vez.',
+          piedra: 'No pude cambiar la piedra. Intenta otra vez.'
+        }
+      },
       pronto: 'Pronto. Esta sección ya existe y está lista para llenarse.',
       prontoCorto: 'pronto',
       privado: 'Nadie más lo ve: solo se abre con tu cuenta.',
@@ -547,6 +602,8 @@ export const PORTAL_TEXTOS = {
       archivoTipo: 'El archivo no es del tipo que dice ser.',
       redCambio: 'Cambiaste de red a mitad. Empieza otra vez desde la misma conexión.',
       faltaCodigo: 'Para esto hace falta el código de tu app. Sal y vuelve a entrar.',
+      tableroSemana: 'Esa semana no vale. Recarga la página.',
+      tableroPiedraVacia: 'Escribe quién o qué es tu piedra angular.',
       generico: 'Algo no salió bien. Intenta otra vez.'
     }
   }

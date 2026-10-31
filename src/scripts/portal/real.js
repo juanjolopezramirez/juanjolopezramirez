@@ -15,6 +15,8 @@ import { claveDeError, codigoValido, correoValido, errorDeClave, idiomaDe, limpi
 import { RepositorioSupabase } from '../contenido/Repositorio.js';
 import { revisarArchivo } from './archivos.js';
 import { ubicacion } from '../contenido/Almacen.js';
+import { SEMANAS_HISTORIA, validarLectura, validarPiedra } from './tablero.js';
+import { IDS_DOMINIOS } from '../../data/portal/tablero.js';
 
 const ESTADOS = ['pendiente', 'aprobado', 'rechazado'];
 const sinAngulos = (t) => t.replace(/[<>]/g, '');
@@ -296,6 +298,57 @@ export async function abrirReal(cfg, lang) {
         try {
           const { error } = await sb.from('invitaciones').delete().eq('correo', String(correo).toLowerCase());
           return error ? { error: 'generico' } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      }
+    },
+
+    /* ---- Self-Mode → Tablero (supabase/009): solo el admin, solo lo suyo (RLS: user_id y es_admin() con
+       aal2). Todo devuelve `{ ok }` o `{ error }` y el texto del servidor no sale nunca. ---- */
+    tablero: {
+      async lecturas(semana) {
+        const v = validarLectura({ semana, clave: IDS_DOMINIOS[0], cargue: true });
+        if (v.error) return v;
+        try {
+          const { data, error } = await sb.from('tablero_lecturas').select('clave,cargue,nota').eq('semana', semana).limit(100);
+          return error ? { error: claveDeError(error) } : { ok: true, filas: data || [] };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async historial(clave) {
+        if (!IDS_DOMINIOS.includes(clave)) return { error: 'generico' };
+        try {
+          const { data, error } = await sb.from('tablero_lecturas').select('semana,cargue,nota').eq('clave', clave)
+            .order('semana', { ascending: false }).limit(SEMANAS_HISTORIA);
+          return error ? { error: claveDeError(error) } : { ok: true, filas: data || [] };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async marcar(lectura) {
+        const v = validarLectura(lectura);
+        if (v.error) return v;
+        try {
+          const { error } = await sb.from('tablero_lecturas').upsert(v.valor, { onConflict: 'user_id,semana,clave' });
+          return error ? { error: claveDeError(error) } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async quitar(semana, clave) {
+        const v = validarLectura({ semana, clave, cargue: true });
+        if (v.error) return v;
+        try {
+          const { error } = await sb.from('tablero_lecturas').delete().eq('semana', semana).eq('clave', clave);
+          return error ? { error: claveDeError(error) } : { ok: true };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async piedras() {
+        try {
+          const { data, error } = await sb.from('tablero_piedras').select('eje,piedra,desde').order('desde', { ascending: false }).limit(200);
+          return error ? { error: claveDeError(error) } : { ok: true, filas: data || [] };
+        } catch (e) { return { error: 'red' }; }
+      },
+      async ponerPiedra(p) {
+        const v = validarPiedra(p);
+        if (v.error) return v;
+        try {
+          const { error } = await sb.from('tablero_piedras').upsert(v.valor, { onConflict: 'user_id,eje,desde' });
+          return error ? { error: claveDeError(error) } : { ok: true };
         } catch (e) { return { error: 'red' }; }
       }
     },

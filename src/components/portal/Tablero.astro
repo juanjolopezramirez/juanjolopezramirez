@@ -1,0 +1,178 @@
+---
+/* SELF-MODE → TABLERO: la rueda de la vida de Fraterni (panel/Tablero.js le da vida).
+
+   Cuatro ejes, cada uno un cuarto de la rueda; doce áreas, cada una un tercio de su cuarto; sesenta
+   dominios, cada uno un anillo. Todo se dibuja AQUÍ, al compilar (src/scripts/portal/tablero.js calcula
+   cada sector), así que la rueda existe aunque el script tarde: lo que hace el script es leer la semana,
+   pintar el estado de cada dominio y guardar. En medio, la cruz: Dios, de quien sale todo.
+
+   Cada dominio es un botón (path con role="button"); entre ellos se va con las flechas (un solo punto de
+   tabulación para toda la rueda). Los colores de cada eje van por CLASE (styles/tablero.css): la política de
+   seguridad no deja estilos puestos a mano. */
+import { EJES, PRINCIPIOS, PERMANENTES, FICHAS, RUEDA, DOMINIOS } from '../../data/portal/tablero.js';
+import { sectoresDeLaRueda } from '../../scripts/portal/tablero.js';
+
+const { tx } = Astro.props;
+const sectores = sectoresDeLaRueda();
+const por = new Map(DOMINIOS.map((d) => [d.id, d]));
+const eje = new Map(EJES.map((e) => [e.id, e]));
+const area = new Map(EJES.flatMap((e) => e.areas.map((a) => [a.id, a])));
+const medio = RUEDA.centro;
+const lado = RUEDA.hueco * 1.5;
+---
+<div class="tab" data-tablero>
+  <p class="panel__aviso" data-aviso role="status" tabindex="-1" hidden></p>
+  <p class="portal__error" data-error role="alert" hidden></p>
+
+  <div class="tab__semana">
+    <button class="portal__boton portal__boton--suave tab__paso" type="button" data-tab-semana="-1">{tx.anterior}</button>
+    <p class="tab__semana-texto" data-tab-semana-texto tabindex="-1" aria-live="polite"></p>
+    <button class="portal__boton portal__boton--suave tab__paso" type="button" data-tab-semana="1">{tx.siguiente}</button>
+  </div>
+
+  <div class="tab__cuerpo">
+    <figure class="tab__rueda">
+      <svg class="tab__svg" viewBox={`0 0 ${RUEDA.lado} ${RUEDA.lado}`} role="group" aria-label={tx.ruedaAlt} data-tab-rueda>
+        <defs>
+          <pattern id="tab-rayas" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect class="tab__rayas-fondo" width="8" height="8" />
+            <line class="tab__rayas-linea" x1="0" y1="0" x2="0" y2="8" />
+          </pattern>
+        </defs>
+        {sectores.map((s) => {
+          const d = por.get(s.id);
+          return (
+            <path class={`tab__celda tab__celda--${s.eje}`} d={s.d} role="button" tabindex="-1"
+                  data-clave={s.id} data-estado="sin" aria-label={`${d.nombre}, ${area.get(s.area).nombre}, ${eje.get(s.eje).nombre}`} />
+          );
+        })}
+        <path class="tab__elegido" data-tab-elegido d="" fill="none" aria-hidden="true" />
+        <path class="tab__foco" data-tab-foco d="" fill="none" aria-hidden="true" />
+        <image class="tab__dios" href={FICHAS.cargue} x={medio - lado / 2} y={medio - (lado * 0.72) / 2} width={lado} height={lado * 0.72} aria-hidden="true" />
+        <circle class="tab__aro" cx={medio} cy={medio} r={RUEDA.hueco - 4} fill="none" aria-hidden="true" />
+      </svg>
+      <div class="dev__campo tab__lista">
+        <label class="portal__etiqueta" for="tab-lista">{tx.lista}</label>
+        <select class="portal__entrada dev__select" id="tab-lista" data-tab-lista>
+          <option value="">{tx.listaVacia}</option>
+          {EJES.map((e) => e.areas.map((a) => (
+            <optgroup label={`${e.nombre} · ${a.nombre}`}>
+              {a.dominios.map((d) => <option value={d.id}>{d.nombre}</option>)}
+            </optgroup>
+          )))}
+        </select>
+      </div>
+      <figcaption class="portal__nota tab__leyenda">
+        <span class="tab__clave tab__clave--cargue">{tx.estados.cargue}</span>
+        <span class="tab__clave tab__clave--no">{tx.estados.noCargue}</span>
+        <span class="tab__clave tab__clave--sin">{tx.estados.sin}</span>
+        <span class="tab__ayuda">{tx.ayudaRueda}</span>
+      </figcaption>
+    </figure>
+
+    <div class="tab__lado">
+      <p class="tab__resumen" data-tab-resumen aria-live="polite"></p>
+
+      <!-- La ficha de un dominio: se abre al elegirlo en la rueda -->
+      <form class="tab__ficha" data-tab-ficha hidden novalidate aria-labelledby="tab-ficha-titulo">
+        <h3 class="panel__subtitulo" id="tab-ficha-titulo" tabindex="-1" data-tab-ficha-titulo></h3>
+        <p class="tab__donde" data-tab-ficha-donde></p>
+        <p class="tab__mide"><span class="tab__mide-rotulo">{tx.ficha.mide}</span> <span data-tab-ficha-mide></span></p>
+
+        <fieldset class="tab__pregunta">
+          <legend class="portal__etiqueta">{tx.ficha.pregunta}</legend>
+          <div class="tab__fichas">
+            <label class="tab__ficha-opcion">
+              <input type="radio" name="estado" value="cargue" />
+              <img src={FICHAS.cargue} alt="" width="46" height="33" loading="lazy" decoding="async" />
+              <span>{tx.ficha.cargue}</span>
+            </label>
+            <label class="tab__ficha-opcion">
+              <input type="radio" name="estado" value="no-cargue" />
+              <img src={FICHAS.noCargue} alt="" width="42" height="36" loading="lazy" decoding="async" />
+              <span>{tx.ficha.noCargue}</span>
+            </label>
+            <label class="tab__ficha-opcion tab__ficha-opcion--sin">
+              <input type="radio" name="estado" value="sin" />
+              <span>{tx.ficha.sin}</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="dev__campo">
+          <label class="portal__etiqueta" for="tab-nota">{tx.ficha.nota}</label>
+          <textarea class="portal__entrada tab__nota" id="tab-nota" name="nota" rows="3" maxlength="500" autocomplete="off" aria-describedby="tab-nota-ayuda"></textarea>
+          <p class="portal__ayuda" id="tab-nota-ayuda">{tx.ficha.notaAyuda}</p>
+        </div>
+
+        <p class="portal__error" data-tab-ficha-error role="alert" hidden></p>
+        <p class="panel__aviso" data-tab-ficha-aviso role="status" tabindex="-1" hidden></p>
+        <div class="panel__acciones">
+          <button class="portal__boton panel__boton-solo" type="submit">{tx.ficha.guardar}</button>
+          <button class="portal__boton portal__boton--suave panel__boton-solo" type="button" data-tab-cerrar>{tx.ficha.cerrar}</button>
+        </div>
+
+        <h4 class="panel__subtitulo panel__subtitulo--chico">{tx.ficha.historial}</h4>
+        <ul class="panel__lista tab__historial" role="list" data-tab-historial></ul>
+        <p class="panel__vacio" data-tab-historial-vacio hidden>{tx.ficha.historialVacio}</p>
+      </form>
+      <p class="portal__nota" data-tab-vacio>{tx.sinElegir}</p>
+    </div>
+  </div>
+
+  <section class="tab__bloque" aria-labelledby="tab-dios">
+    <h3 class="panel__subtitulo" id="tab-dios">{tx.dios.titulo}</h3>
+    <p class="portal__linea">{tx.dios.linea}</p>
+  </section>
+
+  <section class="tab__bloque" aria-labelledby="tab-piedras">
+    <h3 class="panel__subtitulo" id="tab-piedras">{tx.piedras.titulo}</h3>
+    <p class="portal__linea">{tx.piedras.linea}</p>
+    <ul class="tab__piedras" role="list">
+      {EJES.map((e) => (
+        <li class={`tab__piedra tab__piedra--${e.id}`} data-tab-piedra={e.id}>
+          <img class="tab__piedra-icono" src={e.icono} alt="" width="40" height="40" loading="lazy" decoding="async" />
+          <div class="tab__piedra-texto">
+            <p class="tab__piedra-eje">{e.nombre}</p>
+            <p class="tab__piedra-actual" data-tab-piedra-actual>{tx.piedras.cargando}</p>
+            <p class="tab__piedra-desde" data-tab-piedra-desde></p>
+            <details class="tab__piedra-antes" data-tab-piedra-antes hidden>
+              <summary>{tx.piedras.anteriores}</summary>
+              <ul class="panel__lista" role="list" data-tab-piedra-lista></ul>
+            </details>
+          </div>
+          <form class="tab__piedra-form" data-tab-piedra-form novalidate>
+            <label class="portal__etiqueta" for={`tab-p-${e.id}`}>{tx.piedras.campo.replace('{eje}', e.nombre)}</label>
+            <div class="tab__piedra-fila">
+              <input class="portal__entrada" id={`tab-p-${e.id}`} name="piedra" type="text" maxlength="80" autocomplete="off" placeholder={tx.piedras.ejemplo} />
+              <button class="portal__boton portal__boton--suave" type="submit">{tx.piedras.cambiar}</button>
+            </div>
+            <p class="portal__error" data-tab-piedra-error role="alert" hidden></p>
+          </form>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="tab__bloque" aria-labelledby="tab-principios">
+    <h3 class="panel__subtitulo" id="tab-principios">{tx.principios.titulo}</h3>
+    <p class="portal__linea">{tx.principios.linea}</p>
+    <ul class="tab__simbolos" role="list">
+      {PRINCIPIOS.map((p) => (
+        <li><img src={p.icono} alt="" width="44" height="44" loading="lazy" decoding="async" />
+          <p class="tab__simbolo-nombre">{p.nombre}</p><p class="tab__simbolo-linea">{p.simbolo}. {p.linea}</p></li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="tab__bloque" aria-labelledby="tab-permanentes">
+    <h3 class="panel__subtitulo" id="tab-permanentes">{tx.permanentes.titulo}</h3>
+    <p class="portal__linea">{tx.permanentes.linea}</p>
+    <ul class="tab__simbolos" role="list">
+      {PERMANENTES.map((p) => (
+        <li><img src={p.icono} alt="" width="44" height="44" loading="lazy" decoding="async" />
+          <p class="tab__simbolo-nombre">{p.nombre}</p><p class="tab__simbolo-linea">{p.simbolo}. {p.linea}</p></li>
+      ))}
+    </ul>
+  </section>
+</div>

@@ -20,6 +20,8 @@
    El formulario de «Pedir acceso» siempre contesta «revisa tu correo». */
 import { codigoValido, correoValido, errorDeClave, limpiar, soloNumeros } from './estado.js';
 import { RepositorioMemoria } from '../contenido/Repositorio.js';
+import { SEMANAS_HISTORIA, semanaDe, sumarSemanas, validarLectura, validarPiedra } from './tablero.js';
+import { IDS_DOMINIOS } from '../../data/portal/tablero.js';
 import { revisarArchivo } from './archivos.js';
 
 const PRESETS = ['entrar', 'pendiente', 'rechazado', 'miembro', 'admin', 'admin2fa'];
@@ -70,6 +72,14 @@ export function abrirDemo() {
   const repos = new Map();
   const casasCompartidas = { filas: new Map(), borradores: new Map() };
   const subidos = new Map();               // ruta → archivo (solo en memoria)
+  /* Tablero en memoria (como supabase/009): una lectura por semana y dominio, y las piedras con su fecha */
+  const hoy = semanaDe();
+  const lecturas = new Map([
+    [sumarSemanas(hoy, -1) + '|identity', { semana: sumarSemanas(hoy, -1), clave: 'identity', cargue: true, nota: 'Dije que no a una reunión que no era mía.' }],
+    [sumarSemanas(hoy, -1) + '|sleep', { semana: sumarSemanas(hoy, -1), clave: 'sleep', cargue: false, nota: 'Me dormí tarde tres noches.' }],
+    [hoy + '|identity', { semana: hoy, clave: 'identity', cargue: true, nota: '' }]
+  ]);
+  const piedras = [{ eje: 'bond', piedra: 'Mis padres', desde: '2026-01-05' }];
 
   return {
     modo: 'demo',
@@ -208,6 +218,44 @@ export function abrirDemo() {
         await espera(200);
         const i = invitaciones.findIndex((x) => x.correo === correo);
         if (i >= 0) invitaciones.splice(i, 1);
+        return { ok: true };
+      }
+    },
+
+    /* Tablero en memoria: la misma forma que el de verdad (real.js), con las mismas validaciones */
+    tablero: {
+      async lecturas(semana) {
+        await espera(150);
+        const v = validarLectura({ semana, clave: IDS_DOMINIOS[0], cargue: true });
+        if (v.error) return v;
+        return { ok: true, filas: [...lecturas.values()].filter((l) => l.semana === semana).map(({ clave, cargue, nota }) => ({ clave, cargue, nota })) };
+      },
+      async historial(clave) {
+        await espera(120);
+        if (!IDS_DOMINIOS.includes(clave)) return { error: 'generico' };
+        return { ok: true, filas: [...lecturas.values()].filter((l) => l.clave === clave).sort((a, b) => (a.semana < b.semana ? 1 : -1)).slice(0, SEMANAS_HISTORIA).map(({ semana, cargue, nota }) => ({ semana, cargue, nota })) };
+      },
+      async marcar(lectura) {
+        await espera(200);
+        const v = validarLectura(lectura);
+        if (v.error) return v;
+        lecturas.set(v.valor.semana + '|' + v.valor.clave, v.valor);
+        return { ok: true };
+      },
+      async quitar(semana, clave) {
+        await espera(150);
+        const v = validarLectura({ semana, clave, cargue: true });
+        if (v.error) return v;
+        lecturas.delete(semana + '|' + clave);
+        return { ok: true };
+      },
+      async piedras() { await espera(120); return { ok: true, filas: piedras.map((p) => ({ ...p })) }; },
+      async ponerPiedra(p) {
+        await espera(200);
+        const v = validarPiedra(p);
+        if (v.error) return v;
+        const i = piedras.findIndex((x) => x.eje === v.valor.eje && x.desde === v.valor.desde);
+        if (i >= 0) piedras[i] = v.valor; else piedras.push(v.valor);
         return { ok: true };
       }
     },

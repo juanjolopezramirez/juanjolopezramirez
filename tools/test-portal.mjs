@@ -618,6 +618,158 @@ ok('Brand Assets: la seccion esta en Developer-Mode, va a «Más» en el telefon
   assert.ok(!/\sstyle=|\son[a-z]+=/.test(html), 'sin style= ni manejadores en linea (la politica de seguridad)');
   assert.ok(!/src="https?:/.test(html), 'las miniaturas son del propio sitio');
 });
+console.log('Tablero de Fraterni');
+const TB = await cargar('src/data/portal/tablero.js');
+const TM = await cargar('src/scripts/portal/tablero.js');
+ok('Tablero: 4 ejes × 3 áreas × 5 dominios = 60, sin repetidos, con sus dibujos, y lo que no son casillas aparte', () => {
+  assert.equal(TB.EJES.length, 4);
+  assert.deepEqual(TB.EJES.map((e) => e.id).sort(), ['base', 'bond', 'center', 'terrain']);
+  for (const e of TB.EJES) {
+    assert.equal(e.areas.length, 3, e.id + ' tiene 3 areas');
+    assert.match(e.color, /^#[0-9A-F]{6}$/);
+    assert.ok(fs.existsSync(path.join(raiz, 'public', e.icono)), 'falta ' + e.icono);
+    for (const a of e.areas) {
+      assert.equal(a.dominios.length, 5, `${e.id}/${a.id} tiene 5 dominios`);
+      for (const d of a.dominios) assert.ok(d.nombre && d.mide && /^[a-z]+(-[a-z]+)*$/.test(d.id), d.id);
+    }
+  }
+  assert.equal(TB.DOMINIOS.length, 60);
+  assert.equal(new Set(TB.IDS_DOMINIOS).size, 60, 'ningun dominio repetido');
+  assert.equal(new Set(TB.EJES.flatMap((e) => e.areas.map((a) => a.id))).size, 12, 'doce areas distintas');
+  /* los colores son los que dibujo el fundador (bridgeDiagram/4cornerstone.svg) */
+  assert.deepEqual(Object.fromEntries(TB.EJES.map((e) => [e.id, e.color])), { center: '#4E5B35', bond: '#B68915', terrain: '#A80E0E', base: '#2D4962' });
+  /* el Amor y los principios NO son casillas */
+  for (const noCasilla of ['amor', 'fe', 'esperanza', 'proposito', 'caracter', 'presencia', 'conciencia', 'love']) assert.ok(!TB.IDS_DOMINIOS.includes(noCasilla), noCasilla);
+  assert.equal(TB.PRINCIPIOS.length, 4); assert.equal(TB.PERMANENTES.length, 3);
+  for (const x of [...TB.PRINCIPIOS, ...TB.PERMANENTES]) assert.ok(fs.existsSync(path.join(raiz, 'public', x.icono)), 'falta ' + x.icono);
+  for (const f of Object.values(TB.FICHAS)) assert.ok(fs.existsSync(path.join(raiz, 'public', f)), 'falta ' + f);
+  for (const f of Object.values(TB.FICHAS)) assert.match(fs.readFileSync(path.join(raiz, 'public', f), 'utf8'), /^<svg/, f);
+});
+ok('Tablero: la rueda — 60 sectores distintos dentro del circulo, cada eje en su cuarto', () => {
+  const s = TM.sectoresDeLaRueda();
+  assert.equal(s.length, 60);
+  assert.equal(new Set(s.map((x) => x.d)).size, 60, 'ninguna forma repetida');
+  assert.deepEqual(s.map((x) => x.id), TB.IDS_DOMINIOS, 'en el orden del catalogo');
+  for (const x of s) {
+    assert.match(x.d, /^M[-\d. ]+A[-\d. ]+L[-\d. ]+A[-\d. ]+Z$/, x.id);
+    const dist = Math.hypot(x.mx - TB.RUEDA.centro, x.my - TB.RUEDA.centro);
+    assert.ok(dist > TB.RUEDA.hueco && dist < TB.RUEDA.borde, `${x.id} cae en el anillo (${dist})`);
+  }
+  /* cuartos: el Centro arriba a la izquierda, el Lazo arriba a la derecha, el Entorno abajo a la derecha, la Base abajo a la izquierda */
+  const cuarto = (id) => { const m = s.filter((x) => x.eje === id); const cx = m.reduce((t, x) => t + x.mx, 0) / m.length - 360, cy = m.reduce((t, x) => t + x.my, 0) / m.length - 360; return [Math.sign(cx), Math.sign(cy)]; };
+  assert.deepEqual(cuarto('center'), [-1, -1]); assert.deepEqual(cuarto('bond'), [1, -1]);
+  assert.deepEqual(cuarto('terrain'), [1, 1]); assert.deepEqual(cuarto('base'), [-1, 1]);
+  /* los 5 anillos de cada area van de adentro hacia afuera */
+  for (const e of TB.EJES) for (const a of e.areas) {
+    const r = s.filter((x) => x.area === a.id).map((x) => Math.hypot(x.mx - 360, x.my - 360));
+    assert.ok(r.every((v, i) => i === 0 || v > r[i - 1]), a.id + ' crece hacia afuera');
+  }
+});
+ok('Tablero: la base solo acepta estos 60 (SQL 009 idéntico al catálogo), es del admin y nada se sale', () => {
+  const sql = leer('supabase/009_tablero.sql');
+  const sinComentario = sql.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+  const lista = (sinComentario.match(/clave\s+text not null check \(clave in \(([^)]*)\)\)/) || [])[1];
+  assert.ok(lista, 'la lista de dominios');
+  assert.deepEqual(lista.match(/'([a-z-]+)'/g).map((x) => x.slice(1, -1)), TB.IDS_DOMINIOS, 'la lista del SQL es la del catalogo, en orden');
+  assert.match(sinComentario, /eje\s+text not null check \(eje in \('center', 'bond', 'terrain', 'base'\)\)/);
+  assert.match(sinComentario, /semana\s+date not null check \(extract\(isodow from semana\) = 1\)/, 'la semana es un lunes');
+  assert.match(sinComentario, /unique \(user_id, semana, clave\)/);
+  assert.match(sinComentario, /unique \(user_id, eje, desde\)/);
+  /* las reglas nuevas, con nombre y fuera de create table: se ponen aunque la tabla ya exista y volver a pegar no falla */
+  for (const c of ['tablero_lecturas_semana_rango', 'tablero_piedras_desde_rango', 'tablero_piedras_no_vacia']) {
+    assert.match(sinComentario, new RegExp(`drop constraint if exists ${c};`), 'borra ' + c);
+    assert.match(sinComentario, new RegExp(`add constraint ${c}`), 'pone ' + c);
+  }
+  assert.match(sinComentario, /btrim\(piedra\) <> ''/);
+  assert.ok(sinComentario.includes(`date '${TM.FECHA_MIN}'`) && sinComentario.includes(`date '${TM.FECHA_MAX}'`), 'los limites del SQL son los del modelo');
+  assert.match(sinComentario, /array\['tablero_lecturas', 'tablero_piedras'\]/);
+  assert.match(sinComentario, /revoke all on table public\.%I from anon, authenticated/);
+  assert.match(sinComentario, /user_id = \(select auth\.uid\(\)\) and \(select public\.es_admin\(\)\)/g);
+  assert.ok(!/drop table|truncate|esta_aprobado|to anon/i.test(sinComentario), 'nada destructivo ni abierto');
+  assert.match(leer('supabase/990_comprobar_rls.sql'), /tablero_lecturas/);
+  assert.ok(leer('supabase/003_privado.sql').includes('diario_solo_lo_mio') || /_solo_lo_mio/.test(leer('supabase/003_privado.sql')), '003 no se toca');
+});
+ok('Tablero: semanas (lunes, hora local) y lo que se manda a la base', () => {
+  /* las cuentas de semana no dependen de la zona de quien las hace (Bogota no cambia la hora; Madrid y Auckland, si) */
+  const TZ0 = process.env.TZ;
+  try {
+    for (const tz of ['America/Bogota', 'Europe/Madrid', 'Pacific/Auckland', 'America/Los_Angeles']) {
+      process.env.TZ = tz;
+      assert.equal(TM.lunesDe('2026-10-30'), '2026-10-26', tz);
+      assert.equal(TM.lunesDe('2026-11-01'), '2026-10-26', tz);
+      assert.equal(TM.sumarSemanas('2026-03-23', 1), '2026-03-30', tz + ' (cambio de hora en marzo)');
+      assert.equal(TM.sumarSemanas('2026-10-26', 1), '2026-11-02', tz + ' (cambio de hora en octubre/noviembre)');
+      assert.equal(TM.semanaDe(new Date(2026, 9, 25, 23, 59)), '2026-10-19', tz);
+    }
+  } finally { if (TZ0 === undefined) delete process.env.TZ; else process.env.TZ = TZ0; }
+  assert.equal(TM.lunesDe('2026-10-30'), '2026-10-26');            // viernes → su lunes
+  assert.equal(TM.lunesDe('2026-10-26'), '2026-10-26');
+  assert.equal(TM.lunesDe('2026-11-01'), '2026-10-26');            // domingo → el lunes de antes
+  assert.equal(TM.lunesDe('2026-03-01'), '2026-02-23');            // cruza de mes
+  assert.equal(TM.lunesDe('2027-01-01'), '2026-12-28');            // cruza de año
+  assert.equal(TM.lunesDe('2024-03-03'), '2024-02-26');            // año bisiesto
+  assert.equal(TM.sumarSemanas('2026-10-26', 1), '2026-11-02');
+  assert.equal(TM.sumarSemanas('2026-10-26', -9), '2026-08-24');
+  assert.equal(TM.sumarSemanas('2026-03-23', 1), '2026-03-30');    // por el cambio de hora no se corre un dia
+  assert.equal(TM.semanaDe(new Date(2026, 9, 25, 23, 59)), '2026-10-19');   // domingo de noche, hora local: sigue siendo la semana del 19
+  assert.equal(TM.semanaDe(new Date(2026, 9, 26, 0, 1)), '2026-10-26');
+  assert.ok(TM.esLunes('2026-10-26') && !TM.esLunes('2026-10-27') && !TM.esLunes('2026-02-30') && !TM.esLunes('hoy'));
+  const bien = { semana: '2026-10-26', clave: 'identity', cargue: true, nota: '  ok​ ' };
+  assert.deepEqual(TM.validarLectura(bien), { ok: true, valor: { semana: '2026-10-26', clave: 'identity', cargue: true, nota: 'ok' } });
+  assert.equal(TM.validarLectura({ ...bien, semana: '2026-10-27' }).error, 'tableroSemana');
+  assert.equal(TM.validarLectura({ ...bien, clave: 'amor' }).error, 'generico', 'el Amor no es casilla');
+  assert.equal(TM.validarLectura({ ...bien, semana: '1999-12-27' }).error, 'tableroSemana', 'antes de lo que la base acepta');
+  assert.equal(TM.validarLectura({ ...bien, semana: '2100-01-04' }).error, 'tableroSemana', 'despues de lo que la base acepta');
+  assert.equal(TM.validarLectura({ ...bien, semana: TM.FECHA_MIN }).ok, true);
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'x', desde: '1999-01-01' }).error, 'tableroSemana');
+  assert.equal(TM.validarLectura({ ...bien, cargue: 'si' }).error, 'generico', 'solo cargue o no cargue: sin medios');
+  assert.equal(TM.validarLectura({ ...bien, cargue: 2 }).error, 'generico');
+  assert.equal(TM.validarLectura({ ...bien, nota: 'x'.repeat(900) }).valor.nota.length, TM.NOTA_MAX);
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: ' Mis padres ', desde: '2026-10-30' }).valor.piedra, 'Mis padres');
+  assert.equal(TM.validarPiedra({ eje: 'dios', piedra: 'x', desde: '2026-10-30' }).error, 'generico');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: '  ', desde: '2026-10-30' }).error, 'tableroPiedraVacia');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'x', desde: 'ayer' }).error, 'tableroSemana');
+  for (const k of ['tableroSemana', 'tableroPiedraVacia']) assert.ok(es.panel && T.tp('es').errores[k], k);
+});
+ok('Tablero: resumen por eje y piedra angular vigente con su historia', () => {
+  const r = TM.resumen([{ clave: 'identity', cargue: true }, { clave: 'paradigms', cargue: false }, { clave: 'sleep', cargue: true }]);
+  assert.deepEqual(r.center, { cargue: 1, noCargue: 1, sinRevisar: 13, total: 15 });
+  assert.deepEqual(r.terrain, { cargue: 1, noCargue: 0, sinRevisar: 14, total: 15 });
+  assert.deepEqual(r.todo, { cargue: 2, noCargue: 1, sinRevisar: 57, total: 60 });
+  const p = TM.piedrasDe([
+    { eje: 'bond', piedra: 'Mi pareja', desde: '2025-02-01' }, { eje: 'bond', piedra: 'Mis padres', desde: '2026-01-05' },
+    { eje: 'bond', piedra: 'Del futuro', desde: '2099-01-01' }, { eje: 'base', piedra: 'Mi oficio', desde: '2026-03-01' }
+  ], '2026-10-30');
+  assert.equal(p.bond.actual.piedra, 'Mis padres', 'la vigente es la mas reciente sin pasarse de hoy');
+  assert.deepEqual(p.bond.anteriores.map((x) => x.piedra), ['Mi pareja']);
+  assert.equal(p.center.actual, null);
+  assert.equal(p.base.actual.piedra, 'Mi oficio');
+});
+ok('Tablero: el panel, el backend real y el de prueba tienen la misma forma, y nada de HTML escrito a mano ni almacenamiento', async () => {
+  assert.ok(S.HECHAS.includes('tablero'));
+  assert.match(leer('src/scripts/portal/panel.js'), /tablero: \(\) => import\('\.\/panel\/Tablero\.js'\)/);
+  assert.match(leer('src/components/portal/Panel.astro'), /s\.id === 'tablero' && <Tablero/);
+  const real = leer('src/scripts/portal/real.js'), demo = leer('src/scripts/portal/demo.js'), back = leer('src/scripts/portal/backend.js');
+  for (const m of ['lecturas', 'historial', 'marcar', 'quitar', 'piedras', 'ponerPiedra']) {
+    assert.match(real, new RegExp(`async ${m}\\(`), 'real: ' + m);
+    assert.match(demo, new RegExp(`async ${m}\\(`), 'demo: ' + m);
+    assert.ok(back.includes(m + '('), 'backend.js documenta ' + m);
+  }
+  const js = leer('src/scripts/portal/panel/Tablero.js').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/innerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.write|eval\(|new Function|Math\.random/.test(js), 'Tablero.js');
+  const astro = leer('src/components/portal/Tablero.astro');
+  assert.ok(!/ style=|set:html|<script/.test(astro), 'sin estilos puestos a mano, sin set:html, sin script');
+  /* todos los textos que usa existen */
+  const tx = T.tp('es').panel.tablero;
+  for (const m of js.matchAll(/this\.tx\.([a-zA-Z]+)(?:\.([a-zA-Z]+))?/g)) {
+    assert.ok(m[1] in tx, 'tx.' + m[1]);
+    if (m[2] && typeof tx[m[1]] === 'object') assert.ok(m[2] in tx[m[1]], `tx.${m[1]}.${m[2]}`);
+  }
+  for (const m of astro.matchAll(/\btx\.([a-zA-Z]+)(?:\.([a-zA-Z]+))?/g)) {
+    assert.ok(m[1] in tx, 'astro tx.' + m[1]);
+    if (m[2] && typeof tx[m[1]] === 'object') assert.ok(m[2] in tx[m[1]], `astro tx.${m[1]}.${m[2]}`);
+  }
+});
 console.log('Animaciones en video');
 const AN = await cargar('src/data/portal/animaciones.js');
 const LL = await cargar('src/scripts/portal/animacion/lluvia.js');

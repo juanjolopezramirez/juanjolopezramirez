@@ -55,7 +55,7 @@ export const BARRA_MAX = 4;
 export const enBarra = (id) => Object.values(BARRA).some((ids) => ids.includes(id));
 
 /* Las que tienen su pantalla hecha; el resto enseña «Pronto». */
-export const HECHAS = ['inicio', 'accesos', 'seguridad', 'libros', 'camino', 'trabajos', 'proyectos', 'marca'];
+export const HECHAS = ['inicio', 'accesos', 'seguridad', 'libros', 'camino', 'trabajos', 'proyectos', 'marca', 'tablero'];
 
 export const IDS = SECCIONES.map((s) => s.id);
 export const idsPara = (esAdmin) => SECCIONES

@@ -1,0 +1,122 @@
+/* =============================================================
+   EL TABLERO DE FRATERNI (Self-Mode → Tablero; components/portal/Tablero.astro)
+
+   La rueda de la vida: cuatro ejes (un cuarto cada uno), doce áreas, sesenta dominios (un anillo cada
+   uno). Cada dominio tiene TRES estados, y ninguno se distingue solo por el color (WCAG 1.4.1):
+     sin revisar       el contorno y un relleno casi vacio
+     cargué mi cruz    relleno entero del color del eje
+     no cargué mi cruz relleno gris y contorno de rayas
+   El color de cada eje es el que dibujo el fundador (bridgeDiagram/4cornerstone.svg): Centro verde
+   olivo, Lazo dorado, Entorno rojo, Base azul. Van como CLASES (la politica de seguridad no deja
+   estilos puestos a mano). El contorno de cada celda usa el color del texto, que cambia con el tema
+   (noche o dia), asi la forma se ve siempre aunque el dorado se acerque al hueso.
+   ============================================================= */
+.tab { display: grid; gap: 1.6rem; }
+.tab[hidden] { display: none; }
+
+/* ---- La semana ---- */
+.tab__semana { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .6rem; }
+.tab__semana-texto { margin: 0; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tab__paso { min-height: 44px; width: auto; padding-inline: 1rem; }
+@media (max-width: 34rem) { .tab__semana { grid-template-columns: 1fr 1fr; } .tab__semana-texto { grid-column: 1 / -1; grid-row: 1; } }
+.tab__paso:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---- La rueda y su lado ---- */
+.tab__cuerpo { display: grid; gap: 1.4rem; align-items: start; }
+@media (min-width: 62rem) { .tab__cuerpo { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } }
+.tab__rueda { margin: 0; display: grid; gap: .7rem; justify-items: center; }
+.tab__svg { width: min(100%, 34rem); height: auto; display: block; overflow: visible; }
+
+.tab__celda {
+  --eje: var(--tiza-2);
+  fill: color-mix(in srgb, var(--eje) 14%, transparent);
+  stroke: var(--tiza); stroke-opacity: .7; stroke-width: 1.2;
+  cursor: pointer;
+  transition: fill .2s ease, stroke-opacity .2s ease;
+}
+.tab__celda--center { --eje: #4E5B35; }
+.tab__celda--bond { --eje: #B68915; }
+.tab__celda--terrain { --eje: #A80E0E; }
+.tab__celda--base { --eje: #2D4962; }
+.tab__celda[data-estado="cargue"] { fill: var(--eje); stroke-opacity: .9; }
+.tab__celda[data-estado="no-cargue"] { fill: url(#tab-rayas); stroke-opacity: .85; stroke-dasharray: 5 3; }
+.tab__rayas-fondo { fill: color-mix(in srgb, var(--tiza) 10%, transparent); }
+.tab__rayas-linea { stroke: var(--tiza); stroke-opacity: .55; stroke-width: 2.6; }
+.tab__celda:hover { stroke-opacity: 1; }
+.tab__celda:focus { outline: none; }
+/* El foco y la eleccion son dibujos APARTE, puestos al final (si no, los vecinos pintados despues tapan la mitad del aro) */
+.tab__foco { stroke: var(--prompt); stroke-width: 6; stroke-linejoin: round; pointer-events: none; }
+.tab__elegido { stroke: var(--tiza); stroke-width: 4; stroke-linejoin: round; pointer-events: none; }
+.tab__lista { width: min(100%, 34rem); }
+.tab__dios { pointer-events: none; }
+.tab__aro { stroke: var(--tiza); stroke-opacity: .5; stroke-width: 1.5; pointer-events: none; }
+
+.tab__leyenda { display: flex; flex-wrap: wrap; gap: .4rem 1rem; justify-content: center; margin: 0; }
+.tab__clave { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; }
+.tab__clave::before { content: ""; width: .9rem; height: .9rem; border-radius: 3px; border: 1.5px solid var(--tiza); box-sizing: border-box; }
+.tab__clave--cargue::before { background: var(--tiza); }
+.tab__clave--no::before { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--tiza) 55%, transparent) 0 2px, transparent 2px 5px); border-style: dashed; }
+.tab__clave--sin::before { background: transparent; opacity: .6; }
+.tab__ayuda { flex-basis: 100%; text-align: center; color: var(--tiza-2); font-size: .82rem; }
+
+/* ---- Lo de al lado: resumen y ficha ---- */
+.tab__lado { display: grid; gap: .9rem; align-content: start; }
+.tab__resumen { margin: 0; font-size: .92rem; color: var(--tiza-2); min-height: 1.4em; }
+.tab__ficha { display: grid; gap: .9rem; padding: 1rem 1.1rem; border: 1px solid var(--raya-fuerte); border-radius: 12px; background: var(--consola-alta); }
+.tab__ficha[hidden], .tab__lado [hidden] { display: none; }
+.tab__ficha .panel__subtitulo:focus { outline: none; }
+.tab__donde { margin: -.5rem 0 0; font-size: .85rem; color: var(--tiza-2); }
+.tab__mide { margin: 0; line-height: 1.5; }
+.tab__mide-rotulo { font-weight: 700; }
+.tab__pregunta { border: 0; margin: 0; padding: 0; display: grid; gap: .5rem; min-width: 0; }
+.tab__fichas { display: grid; gap: .5rem; }
+.tab__ficha-opcion {
+  display: flex; align-items: center; gap: .7rem; min-height: 52px; padding: .45rem .8rem;
+  border: 1.5px solid var(--raya-fuerte); border-radius: 10px; cursor: pointer; background: transparent;
+}
+.tab__ficha-opcion input { flex: none; width: 1.15rem; height: 1.15rem; accent-color: var(--prompt); }
+.tab__ficha-opcion img { flex: none; height: 2.1rem; width: auto; object-fit: contain; }
+.tab__ficha-opcion:has(input:checked) { border-color: var(--tiza); background: color-mix(in srgb, var(--tiza) 9%, transparent); font-weight: 600; }
+.tab__ficha-opcion:has(input:focus-visible) { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.tab__nota { resize: vertical; min-height: 5.5rem; }
+.tab__historial { gap: .55rem; }
+.tab__semana-fila { padding-left: .8rem; border-left: 2px solid var(--raya-fuerte); }
+.tab__semana-fila p { margin: 0; }
+.tab__semana-fila-estado { font-weight: 600; font-size: .9rem; }
+.tab__semana-fila-nota { font-size: .86rem; color: var(--tiza-2); }
+
+/* ---- Bloques de abajo ---- */
+.tab__bloque { display: grid; gap: .6rem; padding-top: 1.1rem; border-top: 1px solid var(--raya); }
+.tab__piedras { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; }
+@media (min-width: 48rem) { .tab__piedras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tab__piedra { display: grid; grid-template-columns: auto 1fr; gap: .4rem .8rem; padding: .9rem 1rem; border: 1px solid var(--raya-fuerte); border-radius: 12px; border-left-width: 6px; }
+.tab__piedra--center { border-left-color: #4E5B35; }
+.tab__piedra--bond { border-left-color: #B68915; }
+.tab__piedra--terrain { border-left-color: #A80E0E; }
+.tab__piedra--base { border-left-color: #2D4962; }
+.tab__piedra-icono { width: 40px; height: 40px; object-fit: contain; }
+.tab__piedra-texto { min-width: 0; }
+.tab__piedra-texto p { margin: 0; }
+.tab__piedra-eje { font-size: .8rem; color: var(--tiza-2); }
+.tab__piedra-actual { font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
+.tab__piedra-desde { font-size: .82rem; color: var(--tiza-2); }
+.tab__piedra-antes { margin-top: .4rem; font-size: .85rem; }
+.tab__piedra-antes summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.tab__piedra-form { grid-column: 1 / -1; display: grid; gap: .35rem; }
+.tab__piedra-fila { display: flex; gap: .5rem; flex-wrap: wrap; }
+.tab__piedra-fila input { flex: 1 1 11rem; min-width: 0; }
+.tab__simbolos { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.tab__simbolos li { display: grid; grid-template-columns: auto 1fr; column-gap: .7rem; align-items: center; }
+.tab__simbolos img { grid-row: span 2; width: 44px; height: 44px; object-fit: contain; }
+.tab__simbolos p { margin: 0; }
+.tab__simbolo-nombre { font-weight: 600; }
+.tab__simbolo-linea { font-size: .84rem; color: var(--tiza-2); }
+
+@media (prefers-reduced-motion: reduce) { .tab__celda { transition: none; } }
+@media (forced-colors: active) {
+  .tab__celda { stroke: CanvasText; fill: Canvas; stroke-opacity: 1; }
+  .tab__celda[data-estado="cargue"] { fill: Highlight; }
+  .tab__celda[data-estado="no-cargue"] { fill: GrayText; }
+  .tab__elegido { stroke: Highlight; stroke-width: 5; }
+  .tab__foco { stroke: CanvasText; stroke-width: 7; }
+}

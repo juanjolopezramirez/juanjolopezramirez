@@ -32,6 +32,14 @@
      listarPerfiles() · decidir(id, estado) · listarInvitaciones() · invitar(correo)
      · borrarInvitacion(correo) · leer(tabla)
 
+   y `tablero`, Self-Mode → Tablero (panel/Tablero.js; supabase/009_tablero.sql; solo el admin):
+     lecturas(semana)            { ok, filas: [{ clave, cargue, nota }] } | { error }   (semana = su lunes, «2026-10-26»)
+     historial(clave)            { ok, filas: [{ semana, cargue, nota }] } | { error }  (las ultimas 12, la mas nueva primero)
+     marcar({ semana, clave, cargue, nota })   { ok } | { error }   («cargue» true = cargué mi cruz, false = no la cargué)
+     quitar(semana, clave)       { ok } | { error }   (vuelve a «sin revisar»)
+     piedras()                   { ok, filas: [{ eje, piedra, desde }] } | { error }
+     ponerPiedra({ eje, piedra, desde })   { ok } | { error }
+
    y `contenido`, Developer-Mode (panel/dev/*.js):
      repositorio(Tipo)           listar · leer · guardar · publicar · borrar (src/scripts/contenido/Repositorio.js)
      subir(ruta, archivo)        { ok } | { error }  (archivos.js lo revisa antes: tipo, tope, ruta)
