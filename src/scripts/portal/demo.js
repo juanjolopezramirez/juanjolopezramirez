@@ -79,7 +79,7 @@ export function abrirDemo() {
     [sumarSemanas(hoy, -1) + '|sleep', { semana: sumarSemanas(hoy, -1), clave: 'sleep', cargue: false, nota: 'Me dormí tarde tres noches.' }],
     [hoy + '|identity', { semana: hoy, clave: 'identity', cargue: true, nota: '' }]
   ]);
-  const piedras = [{ eje: 'bond', piedra: 'Mis padres', desde: '2026-01-05' }];
+  const piedras = [{ eje: 'bond', piedra: 'root', desde: '2026-01-05' }];     // la piedra angular es un AREA del eje (aqui, La Raíz)
 
   return {
     modo: 'demo',

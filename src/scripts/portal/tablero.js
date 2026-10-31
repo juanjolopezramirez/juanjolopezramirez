@@ -8,7 +8,7 @@
      · lo que se manda a la base (`validarLectura`, `validarPiedra`): el servidor lo vuelve a comprobar
        todo (supabase/009_tablero.sql); esto es cortesia, no seguridad. */
 import { limpiar } from './estado.js';
-import { EJES, IDS_DOMINIOS, INICIO_EJE, RUEDA } from '../../data/portal/tablero.js';
+import { EJES, IDS_DOMINIOS, INICIO_EJE, RUEDA, areaDe } from '../../data/portal/tablero.js';
 
 /* Los limites de la base (supabase/009_tablero.sql): una semana fuera de ellos jamas se podria guardar */
 export const FECHA_MIN = '2020-01-06';
@@ -68,6 +68,28 @@ export function sectoresDeLaRueda() {
   return salida;
 }
 
+/* LOS TRES NIVELES de la rueda (cada uno se dibuja distinto, para que se vea que son ejes, areas y dominios):
+     · los 4 CUARTOS (ejes): el contorno grueso, del color del eje;
+     · las 12 AREAS: un tercio de su cuarto, con su contorno medio;
+     · los 60 DOMINIOS: los anillos de cada area, lo mas fino.
+   Y la PIEDRA ANGULAR de un eje es una de SUS tres areas: ahi va una clave de arco (la piedra del medio de un
+   arco) puesta en el borde de la rueda. */
+export function cuartosDeLaRueda() {
+  return EJES.map((e) => ({ eje: e.id, d: sector(RUEDA.hueco, RUEDA.borde, INICIO_EJE[e.id], INICIO_EJE[e.id] + 90) }));
+}
+export function areasDeLaRueda() {
+  const salida = [];
+  for (const eje of EJES) {
+    eje.areas.forEach((area, i) => {
+      const g0 = INICIO_EJE[eje.id] + i * 30, g1 = g0 + 30, gm = g0 + 15;
+      const r0 = RUEDA.borde - 6, r1 = RUEDA.borde + 24;                         // la clave de arco: mas ancha afuera que adentro
+      const [a, b, c, d] = [punto(r0, gm - 4), punto(r1, gm - 7.5), punto(r1, gm + 7.5), punto(r0, gm + 4)];
+      salida.push({ id: area.id, eje: eje.id, d: sector(RUEDA.hueco, RUEDA.borde, g0, g1), clave: `M${n1(a[0])} ${n1(a[1])}L${n1(b[0])} ${n1(b[1])}L${n1(c[0])} ${n1(c[1])}L${n1(d[0])} ${n1(d[1])}Z` });
+    });
+  }
+  return salida;
+}
+
 /* ---- Lo que se manda ----------------------------------------------------------- */
 /** @returns {{ok: true, valor: {semana, clave, cargue, nota}} | {error: string}} */
 export function validarLectura({ semana, clave, cargue, nota }) {
@@ -76,10 +98,13 @@ export function validarLectura({ semana, clave, cargue, nota }) {
   if (typeof cargue !== 'boolean') return { error: 'generico' };
   return { ok: true, valor: { semana, clave, cargue, nota: limpiar(nota == null ? '' : nota, NOTA_MAX) } };
 }
+/* La piedra angular de un eje es UNA DE SUS TRES AREAS (se elige de una lista, no se escribe): su id */
+export const areasDelEje = (eje) => ((EJES.find((e) => e.id === eje) || { areas: [] }).areas).map((a) => a.id);
 export function validarPiedra({ eje, piedra, desde }) {
   if (!EJES.some((e) => e.id === eje)) return { error: 'generico' };
-  const texto = limpiar(typeof piedra === 'string' ? piedra : '', PIEDRA_MAX);
-  if (!texto) return { error: 'tableroPiedraVacia' };
+  if (typeof piedra !== 'string' || !piedra) return { error: 'tableroPiedraVacia' };
+  const texto = piedra;
+  if (!areasDelEje(eje).includes(texto)) return { error: 'generico' };
   if (!esIso(desde) || desde < FECHA_MIN || desde > FECHA_MAX) return { error: 'tableroSemana' };
   return { ok: true, valor: { eje, piedra: texto, desde } };
 }

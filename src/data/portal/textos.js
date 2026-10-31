@@ -487,15 +487,16 @@ export const PORTAL_TEXTOS = {
         },
         piedras: {
           titulo: 'La piedra angular de cada eje',
-          linea: 'Cambia con la etapa y con la persona. Por ejemplo, en el Lazo puede ser tu pareja o tus padres.',
+          linea: 'Es el área que hoy sostiene al eje, y cambia con la etapa y con la persona: en el Lazo puede ser Lo Íntimo o La Raíz (tu pareja o tus padres). Se elige, no se escribe.',
           cargando: 'Buscando…',
           ninguna: 'Sin elegir todavía',
           desde: 'Desde el {fecha}',
           anteriores: 'Las de antes',
           campo: 'Piedra angular de {eje}',
-          ejemplo: 'Por ejemplo: Mis padres',
+          elegir: 'Elegir un área…',
           cambiar: 'Cambiar',
-          cambiada: 'Listo: ahora es «{piedra}».'
+          cambiada: 'Listo: ahora la piedra angular de este eje es «{piedra}».',
+          marca: 'Piedra angular'
         },
         principios: { titulo: 'Los cuatro principios', linea: 'No son casillas: pasan por las sesenta.' },
         permanentes: { titulo: 'Los tres permanentes', linea: 'Tampoco son casillas. El Amor es el filtro final sobre todo el tablero.' },
@@ -603,7 +604,7 @@ export const PORTAL_TEXTOS = {
       redCambio: 'Cambiaste de red a mitad. Empieza otra vez desde la misma conexión.',
       faltaCodigo: 'Para esto hace falta el código de tu app. Sal y vuelve a entrar.',
       tableroSemana: 'Esa semana no vale. Recarga la página.',
-      tableroPiedraVacia: 'Escribe quién o qué es tu piedra angular.',
+      tableroPiedraVacia: 'Elige un área.',
       generico: 'Algo no salió bien. Intenta otra vez.'
     }
   }

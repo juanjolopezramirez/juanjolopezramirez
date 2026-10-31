@@ -85,6 +85,7 @@ export class Tablero extends Seccion {
     this.caja.querySelectorAll('[data-tab-piedra-actual], [data-tab-piedra-desde]').forEach((e) => { e.textContent = ''; });
     this.caja.querySelectorAll('[data-tab-piedra-lista]').forEach((e) => { e.textContent = ''; });
     this.caja.querySelectorAll('[data-tab-piedra-form]').forEach((f) => f.reset());
+    this.caja.querySelectorAll('[data-tab-clave-arco]').forEach((k) => { k.toggleAttribute('hidden', true); });
     this.pintar();
     this.limpiar();
   }
@@ -294,38 +295,49 @@ export class Tablero extends Seccion {
     this.pintarPiedras();
   }
 
+  /* La piedra angular de cada eje es UNA DE SUS TRES AREAS: aqui se dice cual es (con su fecha), se deja
+     elegida en su lista, y la rueda pone una clave de arco en el borde de esa area. */
   pintarPiedras() {
     const por = piedrasDe(this.piedras, fechaLocal(new Date()));
     const tp = this.tx.piedras || {};
+    const nombreArea = (id) => (areaDe(id) || { nombre: '' }).nombre;
+    const vigentes = new Set();
     for (const eje of EJES) {
       const li = this.caja.querySelector(`[data-tab-piedra="${eje.id}"]`);
       if (!li) continue;
       const { actual, anteriores } = por[eje.id];
-      li.querySelector('[data-tab-piedra-actual]').textContent = actual ? actual.piedra : tp.ninguna;
-      li.querySelector('[data-tab-piedra-desde]').textContent = actual ? (tp.desde || '{fecha}').replace('{fecha}', this.fechaCorta(actual.desde)) : '';
+      const valida = actual && eje.areas.some((x) => x.id === actual.piedra) ? actual : null;
+      if (valida) vigentes.add(valida.piedra);
+      li.querySelector('[data-tab-piedra-actual]').textContent = valida ? nombreArea(valida.piedra) : tp.ninguna;
+      li.querySelector('[data-tab-piedra-desde]').textContent = valida ? (tp.desde || '{fecha}').replace('{fecha}', this.fechaCorta(valida.desde)) : '';
+      const select = li.querySelector('select[name="piedra"]');
+      select.value = valida ? valida.piedra : '';
       const det = li.querySelector('[data-tab-piedra-antes]'), lista = li.querySelector('[data-tab-piedra-lista]');
       lista.textContent = '';
-      det.hidden = !anteriores.length;
-      for (const ant of anteriores) {
+      const antes = anteriores.filter((x) => eje.areas.some((y) => y.id === x.piedra));
+      det.hidden = !antes.length;
+      for (const ant of antes) {
         const x = document.createElement('li');
-        x.textContent = `${ant.piedra} · ${(tp.desde || '{fecha}').replace('{fecha}', this.fechaCorta(ant.desde))}`;
+        x.textContent = `${nombreArea(ant.piedra)} · ${(tp.desde || '{fecha}').replace('{fecha}', this.fechaCorta(ant.desde))}`;
         lista.appendChild(x);
       }
     }
+    this.caja.querySelectorAll('[data-tab-clave-arco]').forEach((k) => { k.toggleAttribute('hidden', !vigentes.has(k.getAttribute('data-tab-clave-arco'))); });      // (un <path> SVG no tiene .hidden: es del HTML)
   }
 
   async cambiarPiedra(eje, form) {
     const campo = form.elements.piedra, err = form.querySelector('[data-tab-piedra-error]');
     err.hidden = true;
     const piedra = campo.value;
+    if (!piedra) { err.textContent = this.ctx.textoDe('tableroPiedraVacia'); err.hidden = false; return; }
     const boton = form.querySelector('[type="submit"]');
     await this.ctx.conOcupado(boton, async () => {
       const r = await this.ctx.aTiempo(this.be.ponerPiedra({ eje, piedra, desde: fechaLocal(new Date()) }), ESPERA_MS);
       if (!this.caja.isConnected) return;
       if (!r || r.error) { err.textContent = r && r.error && r.error !== 'red' && r.error !== 'generico' ? this.ctx.textoDe(r.error) : (this.tx.errores || {}).piedra; err.hidden = false; return; }
-      campo.value = '';
       await this.cargarPiedras();
-      this.avisar((this.tx.piedras.cambiada || '').replace('{piedra}', () => piedra.trim()));
+      const area = areaDe(piedra);
+      this.avisar((this.tx.piedras.cambiada || '').replace('{piedra}', () => (area ? area.nombre : '')));
     }, () => { err.textContent = (this.tx.errores || {}).piedra || ''; err.hidden = false; });
   }
 }

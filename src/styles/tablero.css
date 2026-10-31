@@ -48,6 +48,21 @@
 .tab__foco { stroke: var(--prompt); stroke-width: 6; stroke-linejoin: round; pointer-events: none; }
 .tab__elegido { stroke: var(--tiza); stroke-width: 4; stroke-linejoin: round; pointer-events: none; }
 .tab__lista { width: min(100%, 34rem); }
+/* Los NIVELES: el contorno del eje (grueso, de su color), el del area (medio) y el del dominio (fino, el de cada celda) */
+.tab__area { stroke: var(--tiza); stroke-opacity: .75; stroke-width: 2.6; stroke-linejoin: round; pointer-events: none; }
+.tab__cuarto { stroke-width: 6; stroke-linejoin: round; pointer-events: none; }
+.tab__cuarto--center { stroke: #4E5B35; }
+.tab__cuarto--bond { stroke: #B68915; }
+.tab__cuarto--terrain { stroke: #A80E0E; }
+.tab__cuarto--base { stroke: #2D4962; }
+/* La clave de arco: la piedra del medio, puesta en el borde del area que sostiene a su eje */
+.tab__clave-arco { stroke: var(--tiza); stroke-width: 2.6; stroke-linejoin: round; pointer-events: none; }
+.tab__clave-arco[hidden] { display: none; }
+.tab__clave-arco--center { fill: #4E5B35; }
+.tab__clave-arco--bond { fill: #B68915; }
+.tab__clave-arco--terrain { fill: #A80E0E; }
+.tab__clave-arco--base { fill: #2D4962; }
+.tab__rotulo { font: 700 25px var(--sans, system-ui, sans-serif); fill: var(--tiza); pointer-events: none; }
 .tab__dios { pointer-events: none; }
 .tab__aro { stroke: var(--tiza); stroke-opacity: .5; stroke-width: 1.5; pointer-events: none; }
 
@@ -115,6 +130,9 @@
 @media (prefers-reduced-motion: reduce) { .tab__celda { transition: none; } }
 @media (forced-colors: active) {
   .tab__celda { stroke: CanvasText; fill: Canvas; stroke-opacity: 1; }
+  .tab__area, .tab__cuarto { stroke: CanvasText; }
+  .tab__clave-arco { fill: Highlight; stroke: CanvasText; }
+  .tab__rotulo { fill: CanvasText; }
   .tab__celda[data-estado="cargue"] { fill: Highlight; }
   .tab__celda[data-estado="no-cargue"] { fill: GrayText; }
   .tab__elegido { stroke: Highlight; stroke-width: 5; }

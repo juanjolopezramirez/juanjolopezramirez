@@ -665,6 +665,23 @@ ok('Tablero: la rueda — 60 sectores distintos dentro del circulo, cada eje en 
     assert.ok(r.every((v, i) => i === 0 || v > r[i - 1]), a.id + ' crece hacia afuera');
   }
 });
+ok('Tablero: tres niveles en la rueda (cuartos, areas, dominios) y la clave de arco en el area de la piedra', () => {
+  const cu = TM.cuartosDeLaRueda(), ar = TM.areasDeLaRueda();
+  assert.deepEqual(cu.map((x) => x.eje), TB.EJES.map((e) => e.id));
+  assert.equal(ar.length, 12);
+  assert.deepEqual(ar.map((x) => x.id), TB.EJES.flatMap((e) => e.areas.map((a) => a.id)));
+  for (const a of ar) { assert.match(a.d, /^M[-\d. ]+A[-\d. ]+L[-\d. ]+A[-\d. ]+Z$/, a.id); assert.match(a.clave, /^M[-\d. ]+(L[-\d. ]+){3}Z$/, a.id + ' (la clave de arco son 4 puntos)'); }
+  assert.equal(new Set(ar.map((x) => x.clave)).size, 12, 'cada area, su clave de arco');
+  const astro = leer('src/components/portal/Tablero.astro'), css = leer('src/styles/tablero.css');
+  for (const clase of ['tab__area', 'tab__cuarto', 'tab__clave-arco', 'tab__rotulo']) { assert.ok(astro.includes(clase) && css.includes('.' + clase), clase); }
+  assert.match(css, /\.tab__clave-arco\[hidden\] \{ display: none; \}/, 'las claves de arco sin elegir no se ven');
+  /* la piedra se elige de una lista de las 3 areas del eje */
+  assert.match(astro, /<select[^>]*name="piedra"/);
+  assert.ok(!/<input[^>]*name="piedra"/.test(astro), 'la piedra no se escribe');
+  const sql10 = leer('supabase/010_tablero_piedra_area.sql');
+  assert.match(sql10, /tablero_piedras_piedra_es_un_area/);
+  for (const e of TB.EJES) assert.ok(sql10.includes(`(eje = '${e.id}' and piedra in (${e.areas.map((x) => `'${x.id}'`).join(', ')}))`), 'SQL 010: las areas de ' + e.id + ' son las del catalogo');
+});
 ok('Tablero: la base solo acepta estos 60 (SQL 009 idéntico al catálogo), es del admin y nada se sale', () => {
   const sql = leer('supabase/009_tablero.sql');
   const sinComentario = sql.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
@@ -721,14 +738,19 @@ ok('Tablero: semanas (lunes, hora local) y lo que se manda a la base', () => {
   assert.equal(TM.validarLectura({ ...bien, semana: '1999-12-27' }).error, 'tableroSemana', 'antes de lo que la base acepta');
   assert.equal(TM.validarLectura({ ...bien, semana: '2100-01-04' }).error, 'tableroSemana', 'despues de lo que la base acepta');
   assert.equal(TM.validarLectura({ ...bien, semana: TM.FECHA_MIN }).ok, true);
-  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'x', desde: '1999-01-01' }).error, 'tableroSemana');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'root', desde: '1999-01-01' }).error, 'tableroSemana');
   assert.equal(TM.validarLectura({ ...bien, cargue: 'si' }).error, 'generico', 'solo cargue o no cargue: sin medios');
   assert.equal(TM.validarLectura({ ...bien, cargue: 2 }).error, 'generico');
   assert.equal(TM.validarLectura({ ...bien, nota: 'x'.repeat(900) }).valor.nota.length, TM.NOTA_MAX);
-  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: ' Mis padres ', desde: '2026-10-30' }).valor.piedra, 'Mis padres');
-  assert.equal(TM.validarPiedra({ eje: 'dios', piedra: 'x', desde: '2026-10-30' }).error, 'generico');
-  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: '  ', desde: '2026-10-30' }).error, 'tableroPiedraVacia');
-  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'x', desde: 'ayer' }).error, 'tableroSemana');
+  /* la piedra angular de un eje es UNA DE SUS TRES AREAS: se elige, no se escribe */
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'root', desde: '2026-10-30' }).valor.piedra, 'root');
+  for (const e of TB.EJES) assert.deepEqual(TM.areasDelEje(e.id), e.areas.map((a) => a.id));
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'essence', desde: '2026-10-30' }).error, 'generico', 'un area de otro eje no vale');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'Mis padres', desde: '2026-10-30' }).error, 'generico', 'texto libre no vale');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'identity', desde: '2026-10-30' }).error, 'generico', 'un dominio no es un area');
+  assert.equal(TM.validarPiedra({ eje: 'dios', piedra: 'root', desde: '2026-10-30' }).error, 'generico');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: '', desde: '2026-10-30' }).error, 'tableroPiedraVacia');
+  assert.equal(TM.validarPiedra({ eje: 'bond', piedra: 'root', desde: 'ayer' }).error, 'tableroSemana');
   for (const k of ['tableroSemana', 'tableroPiedraVacia']) assert.ok(es.panel && T.tp('es').errores[k], k);
 });
 ok('Tablero: resumen por eje y piedra angular vigente con su historia', () => {
