@@ -111,7 +111,7 @@ export function enlaceSeguro(valor) {
    Toda ruta de un archivo subido empieza por una de estas carpetas y sigue con nombres
    sencillos (minusculas, cifras, punto o guion; nunca «..» ni «//»). `exts` dice que
    extensiones valen ahi: un SVG subido NO entra nunca (puede llevar codigo). */
-export const CARPETAS = ['libros', 'lomos', 'portadas', 'casas', 'bloques'];
+export const CARPETAS = ['libros', 'lomos', 'portadas', 'casas', 'bloques', 'taller'];
 const RUTA = new RegExp(`^(${CARPETAS.join('|')})(/[a-z0-9]+(?:[.-][a-z0-9]+)*)+$`);
 export function rutaAlmacen(ruta, exts) {
   if (typeof ruta !== 'string' || ruta.length > 200 || !RUTA.test(ruta)) return false;

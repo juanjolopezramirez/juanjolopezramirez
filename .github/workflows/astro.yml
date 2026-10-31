@@ -31,6 +31,8 @@ jobs:
     env:
       PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+      # Ningun paquete corre codigo al instalarse, tampoco en el `npm install` que hace la accion de Astro
+      NPM_CONFIG_IGNORE_SCRIPTS: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,6 +52,10 @@ jobs:
           npm ci --no-audit --no-fund --ignore-scripts
           node tools/traer-contenido.mjs
 
+      # Las piezas de pdf.js que usa el Taller: se copian de node_modules a public/vendor.
+      - name: Copy pdf.js files
+        run: node tools/copiar-pdfjs.mjs
+
       # Los libros de las palabras: los PDF de books/ se convierten aqui en
       # paginas para el flipbook (tools/books.py). Asi en el repo solo van
       # los PDF, y lo publicado siempre corresponde al PDF subido.
@@ -68,6 +74,7 @@ jobs:
         run: |
           node tools/test-portal.mjs
           node tools/test-contenido.mjs
+          node tools/test-taller.mjs
 
       # Astro 7.4 pide Node 22.23.4 o mas; 24 es el que se probo en local.
       - name: Install, build, and upload Site

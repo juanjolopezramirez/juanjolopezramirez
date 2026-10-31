@@ -1,0 +1,159 @@
+/* =============================================================
+   EL TALLER (Developer-Mode → Taller; components/portal/dev/Taller.astro)
+
+   La noche del portal por fuera y papel blanco en el editor: lo que se escribe se ve como se va a
+   leer. La llave nunca depende solo del color: amarilla, subrayada a puntos y con sus { }.
+   ============================================================= */
+.panel__seccion:has(.taller) { max-width: none; }
+.taller { display: grid; gap: 1rem; min-width: 0; }
+.tal-fila { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.tal-fila--ancha { gap: .8rem 1.2rem; }
+.tal-fila .portal__entrada { flex: 1 1 14rem; min-width: 0; }
+.taller .portal__boton { width: auto; }
+.tal-crear { display: grid; gap: .4rem; max-width: 34rem; }
+.tal-obras { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; max-width: 34rem; }
+.tal-obra { width: 100%; min-height: 48px; padding: .6rem .9rem; text-align: left; font: inherit; color: inherit; background: transparent; border: 1px solid var(--raya-fuerte); border-radius: 10px; cursor: pointer; }
+.tal-obra:hover { border-color: var(--tiza); }
+
+.tal-obra-vista { display: grid; gap: .8rem; min-width: 0; }
+.tal-obra-vista[hidden], .tal-lista[hidden] { display: none; }
+.tal-cabeza { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.tal-cabeza__titulo { flex: 1 1 16rem; min-width: 0; }
+.tal-cabeza__titulo input { width: 100%; font-weight: 600; }
+.tal-estado { margin: 0; min-width: 8rem; font-size: .85rem; color: var(--tiza-2); }
+.tal-estado[data-estado="red"], .tal-estado[data-estado="conflicto"], .tal-estado[data-estado="permiso"] { color: var(--tiza); font-weight: 700; }
+.tal-avance { margin: 0; font-size: .85rem; color: var(--tiza-2); min-height: 1.2em; }
+.tal-conflicto { display: grid; gap: .5rem; padding: .8rem 1rem; border: 2px solid var(--tiza); border-radius: 10px; }
+.tal-conflicto[hidden] { display: none; }
+.tal-conflicto p { margin: 0; }
+.tal-celular { display: none; }
+
+.tal-cuerpo { display: grid; gap: 1rem; align-items: start; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.tal-lado { display: grid; gap: .6rem; min-width: 0; }
+.tal-capitulos { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.tal-cap { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .15rem; }
+.tal-cap__nombre { min-height: 36px; padding: .25rem .5rem; text-align: left; font: inherit; font-size: .9rem; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; overflow-wrap: anywhere; }
+.tal-cap__nombre[aria-current] { border-color: var(--tiza); font-weight: 700; }
+.tal-cap__mover { width: 30px; color: inherit; background: transparent; border: 0; cursor: pointer; }
+.tal-cap__mover:disabled { opacity: .3; cursor: default; }
+.tal-plegable { border-top: 1px solid var(--raya); padding-top: .5rem; }
+.tal-plegable summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: .4rem; font-weight: 600; }
+.tal-plegable summary::before { content: "▸"; }
+.tal-plegable[open] summary::before { content: "▾"; }
+.tal-pagina, .tal-copias { display: grid; gap: .55rem; margin-top: .4rem; }
+.tal-pagina label, .tal-b-panel label, .tal-etiqueta-en-linea { display: grid; gap: .15rem; font-size: .82rem; min-width: 0; }
+.tal-pagina fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.tal-pagina legend { font-size: .82rem; font-weight: 600; padding: 0; margin-bottom: .2rem; }
+.tal-pagina .portal__entrada { width: 100%; min-height: 36px; padding: .25rem .45rem; font-size: .9rem; }
+.tal-doble { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.tal-marca { display: flex !important; gap: .45rem; align-items: center; font-size: .86rem; min-height: 32px; }
+.tal-versiones { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; font-size: .82rem; }
+.tal-versiones li { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; justify-content: space-between; }
+
+.tal-medio { display: grid; gap: .5rem; min-width: 0; }
+.tal-cap-titulo input { width: 100%; font-weight: 600; }
+.tal-barra { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; gap: .25rem; padding: .35rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 10px; }
+.tal-b { min-height: 34px; min-width: 34px; padding: 0 .5rem; display: inline-flex; align-items: center; justify-content: center; font: inherit; font-size: .84rem; color: inherit; background: transparent; border: 1px solid var(--raya); border-radius: 7px; cursor: pointer; }
+.tal-b option { color: #111; background: #fff; }
+.tal-b--bold { font-weight: 800; } .tal-b--italic { font-style: italic; } .tal-b--underline { text-decoration: underline; } .tal-b--strike { text-decoration: line-through; }
+select.tal-b, .tal-b--num, .tal-b--color { border-color: rgb(var(--luz) / .45); }
+.tal-b:focus-visible, .tal-b--num:focus-within, .tal-b--color:focus-within { outline: 2px solid var(--prompt); outline-offset: 1px; }
+.tal-b [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
+select.tal-b { max-width: 9rem; }
+.tal-b[aria-pressed="true"] { background: var(--tiza); color: var(--consola-alta); border-color: var(--tiza); font-weight: 700; }
+.tal-b--num input { width: 3.6rem; font: inherit; color: inherit; background: transparent; border: 0; text-align: center; }
+.tal-b--color { padding: 0 .25rem; }
+.tal-b--color input { width: 26px; height: 26px; padding: 0; background: transparent; border: 0; cursor: pointer; }
+.tal-b-mas { position: relative; }
+.tal-b-mas summary { list-style: none; }
+.tal-b-mas summary::-webkit-details-marker { display: none; }
+.tal-b-panel { position: absolute; z-index: 4; top: calc(100% + 4px); left: 0; width: 17rem; max-width: 80vw; display: grid; gap: .5rem; padding: .7rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 10px; }
+.tal-simbolos { max-height: 18rem; overflow: auto; }
+.tal-simbolos__grupo { margin: 0; font-size: .75rem; color: var(--tiza-2); }
+.tal-simbolos__fila { display: flex; flex-wrap: wrap; gap: .15rem; }
+.tal-simbolos__fila button { width: 30px; height: 30px; font-size: 1rem; color: inherit; background: transparent; border: 1px solid var(--raya); border-radius: 6px; cursor: pointer; }
+
+/* El papel es blanco aunque el panel sea de noche: el foco de la terminal no se veria encima */
+.tal-papel { --prompt: #1a4f8a; min-height: 26rem; padding: 2rem clamp(1rem, 4vw, 3rem); background: #fff; color: #111; border-radius: 8px; font: 12pt/1.55 "Young Serif", Georgia, serif; }
+.tal-texto { outline: none; min-height: 22rem; }
+.tal-texto:focus-visible { outline: 2px solid var(--prompt); outline-offset: 10px; border-radius: 2px; }
+.tal-texto p { margin: 0 0 .6em; }
+.tal-texto h1 { font-size: 1.5em; margin: 1em 0 .4em; }
+.tal-texto h2 { font-size: 1.25em; margin: 1em 0 .4em; }
+.tal-texto h3 { font-size: 1.1em; margin: 1em 0 .4em; }
+.tal-texto blockquote { margin: 1em; padding-left: 1em; border-left: 3px solid #888; font-style: italic; }
+.tal-texto a { color: #1a4f8a; }
+.tal-texto .ProseMirror-selectednode { outline: 3px solid #1a4f8a; outline-offset: 2px; }
+.tal-texto .capital::first-letter { initial-letter: 3; font-weight: 700; margin-right: .06em; }
+.llave { background: #FFE36B; color: #111; border-bottom: 2px dotted #111; border-radius: 2px; padding: 0 1px; }
+.tal-llaves { margin: 0; font-size: .85rem; color: var(--tiza-2); overflow-wrap: anywhere; }
+.tal-llaves[hidden] { display: none; }
+.tal-columnas { display: grid; gap: 1rem; margin: 1em 0; }
+.tal-columna { min-width: 0; padding: .4rem; outline: 1px dashed #bbb; }
+.tal-imagen { margin: 1em 0; display: grid; gap: .4rem; }
+.tal-imagen img { display: block; max-width: 100%; height: auto; }
+.tal-imagen__campos { display: flex; flex-wrap: wrap; gap: .4rem; font: 12px system-ui, sans-serif; }
+.tal-imagen__campos label { display: grid; gap: .1rem; }
+.tal-imagen__campos input { width: 9rem; padding: .15rem .3rem; border: 1px solid #999; border-radius: 4px; }
+.tal-pieza { margin: 1em 0; padding: .6rem; display: grid; gap: .4rem; background: #eee; border: 1px solid #999; border-radius: 6px; font: 13px system-ui, sans-serif; }
+.tal-pieza__cabeza { margin: 0; font-weight: 600; }
+.tal-pieza__tira { display: flex; gap: .3rem; overflow-x: auto; }
+.tal-pieza__tira img { height: 120px; background: #fff; border: 1px solid #bbb; }
+.tal-pieza .portal__boton { color: #111; border-color: #555; justify-self: start; }
+
+.tal-vista { display: grid; gap: .5rem; min-width: 0; }
+.tal-vista[hidden] { display: none; }
+.tal-paginas { margin: 0; flex: 1; font-size: .85rem; color: var(--tiza-2); }
+.tal-marco { width: 100%; height: min(78vh, 56rem); background: #3b3f46; border: 1px solid var(--raya-fuerte); border-radius: 8px; }
+
+.tal-revision { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--raya-fuerte); border-radius: 12px; background: var(--consola-alta); }
+.tal-revision[hidden] { display: none; }
+.tal-revision__cabeza { display: flex; justify-content: space-between; gap: .6rem; align-items: center; }
+.tal-revision__cabeza h3 { margin: 0; overflow-wrap: anywhere; }
+.tal-avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; font-size: .9rem; }
+.tal-avisos li::before { content: "▸ "; }
+.tal-etiqueta-en-linea select { min-height: 36px; }
+.tal-hojas { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); }
+.tal-hoja { margin: 0; display: grid; gap: .5rem; align-content: start; min-width: 0; }
+.tal-hoja figcaption { display: grid; gap: .4rem; font-size: .85rem; }
+.tal-hoja figcaption p { margin: 0; font-weight: 600; }
+.tal-hoja figcaption label { display: grid; gap: .15rem; }
+.tal-lienzo { position: relative; background: #fff; touch-action: auto; user-select: none; overflow: hidden; }
+.tal-lienzo--marcar { cursor: crosshair; touch-action: none; }
+.tal-lienzo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.tal-segura { position: absolute; border: 2px dashed #111; box-shadow: 0 0 0 2px #fff; pointer-events: none; }
+.tal-segura span { position: absolute; top: 2px; left: 2px; padding: 0 4px; background: #fff; color: #111; font: 700 11px system-ui, sans-serif; }
+.tal-sin-segura .tal-segura { display: none; }
+.tal-zona { position: absolute; display: flex; align-items: flex-start; padding: 2px 4px; background: rgb(255 227 107 / .75); border: 2px solid #111; box-shadow: 0 0 0 2px #fff; color: #111; font: 700 11px system-ui, sans-serif; overflow: hidden; pointer-events: none; }
+.tal-zonas { display: grid; gap: .4rem; }
+.tal-zona-fila { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .3rem; margin: 0; padding: .4rem; border: 1px solid var(--raya); border-radius: 8px; min-width: 0; }
+.tal-zona-fila legend { font-size: .8rem; padding: 0 .3rem; }
+.tal-zona-fila input { width: 100%; min-height: 32px; padding: .1rem .25rem; color: inherit; background: transparent; border: 1px solid var(--raya-fuerte); border-radius: 5px; }
+.tal-zona-fila button { grid-column: 1 / -1; justify-self: start; }
+.tal-aviso { margin: 0; font-size: .82rem; }
+.tal-aviso:empty { display: none; }
+.tal-ayuda { margin: 0; font-size: .82rem; color: var(--tiza-2); }
+.tal-ayuda[hidden], .tal-pieza-dice[hidden] { display: none; }
+.tal-pieza-dice { margin: 0; padding: .6rem .8rem; border: 2px solid var(--tiza); border-radius: 8px; }
+/* Los avisos se quedan a la vista aunque se este al final del libro */
+.taller > [data-error], .taller > [data-aviso] { position: sticky; top: 0; z-index: 6; background: var(--consola-alta); }
+.panel__hoja:has(.taller) { scroll-padding-top: 13rem; }
+
+@media (min-width: 64rem) {
+  .tal-cuerpo { grid-template-columns: 15rem minmax(0, 1fr); }
+  .taller--vista .tal-cuerpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .taller--vista .tal-lado { display: none; }
+}
+/* El celular se conoce por el dedo y no por el ancho: quien amplia la pantalla sigue escribiendo */
+@media (hover: none) and (pointer: coarse) {
+  .tal-celular { display: block; }
+  .tal-barra { display: none; }
+}
+@media (max-width: 63.99rem) {
+  .tal-barra { position: static; }
+  .taller--vista .tal-medio { display: none; }
+}
+@media (forced-colors: active) {
+  .llave { background: Mark; color: MarkText; border-bottom-color: MarkText; }
+  .tal-b[aria-pressed="true"] { background: Highlight; color: HighlightText; }
+}

@@ -219,3 +219,15 @@ Cuando me expliques la estructura de cada sección, se construye una a una (Escr
 ---
 
 *Preparado con el equipo ECC: planificador (plan), database-reviewer y security-reviewer (SQL), code-reviewer, security-reviewer y a11y-architect (código y pantallas).*
+
+## El Taller (Developer-Mode → Taller)
+
+Donde se escriben los libros. Saca el PDF desde el navegador; ese PDF se sube en «Recursos», como siempre.
+
+- **Tablas:** `supabase/012_taller.sql`. Solo el admin, con su código. El cajón `taller` es privado.
+- **Comprobar:** `supabase/990_comprobar_rls.sql`, consultas 21 a 23.
+- **Paquetes:** `@tiptap/*`, `pagedjs` y `pdfjs-dist`, con versión exacta. Solo se bajan al abrir el Taller.
+- **Archivos de pdf.js:** `tools/copiar-pdfjs.mjs` los deja en `public/vendor/`, que no se sube al repositorio.
+- **Un bloque nuevo** debe traer datos, web, PDF, editor y pruebas. Si falta una, `tools/revisar-tipos-taller.mjs` para la compilación.
+- **Sacar PDF:** en la ventana de imprimir, elige «Guardar como PDF», márgenes «Predeterminados» y activa «Gráficos de fondo».
+- **Borrar o reemplazar un diseño** no borra sus archivos del cajón: las copias los pueden necesitar.

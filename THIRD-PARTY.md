@@ -13,6 +13,14 @@ Lo que se baja con la web y no es nuestro. Las versiones exactas están en `pack
 - Se usa **sin modificar**. Si algún día se cambia un archivo suyo, ese archivo cambiado tiene que
   publicarse también bajo MPL-2.0.
 
+## Taller de libros (solo en el panel, nunca para quien lee la web)
+
+- `@tiptap/*` 3.32.2 y ProseMirror (MIT): el editor. https://github.com/ueberdosis/tiptap
+- `pagedjs` 0.4.3 (MIT): las paginas y el indice. Su ultima version es de 2024: va aislado en
+  `src/scripts/portal/taller-hoja/Paginador.js` para poder cambiarlo. https://pagedjs.org
+- `pdfjs-dist` 6.4.299 (Apache-2.0): leer los PDF de diseño. Sus archivos de apoyo se copian a
+  `public/vendor/` con `tools/copiar-pdfjs.mjs`. https://github.com/mozilla/pdf.js
+
 ## Otros
 
 - `@supabase/supabase-js` (MIT), `page-flip` (MIT) y `astro` (MIT): ver sus licencias en

@@ -1204,7 +1204,7 @@ ok('cada guion en linea entra por su huella; JSON y guiones de fuera no cuentan;
   assert.equal((script.match(/'sha256-/g) || []).length, 3, 'dos guiones + el manejador de las letras');
   assert.ok(!/unsafe-inline|unsafe-eval|\*/.test(script), script);
   assert.match(meta, /object-src 'none'/);
-  assert.match(meta, /frame-src https:\/\/www\.youtube-nocookie\.com(;|$)/);
+  assert.match(meta, /frame-src 'self' https:\/\/www\.youtube-nocookie\.com(;|$)/);
   assert.match(meta, /base-uri 'self'/);
   assert.match(meta, new RegExp(`connect-src 'self' ${URL_BUENA} ${URL_BUENA.replace('https:', 'wss:')}`));
   assert.ok(r.indexOf('Content-Security-Policy') < r.indexOf('<script>uno()'), 'la politica va antes del primer guion');
@@ -1361,6 +1361,46 @@ ok('la semilla es un ejemplo sin correo real, y las copias con correo no se sube
   assert.match(sql['900_semilla_admin.ejemplo.sql'], /TU_CORREO_AQUI/);
   for (const f of Object.keys(sql)) assert.ok(!/@(gmail|hotmail|outlook|yahoo)\.com/i.test(sql[f]), f);
   assert.match(leer('.gitignore'), /supabase\/900_semilla_admin\.sql/);
+});
+
+console.log('el taller de libros');
+ok('Taller: esta en Developer-Mode, va a «Más» en el telefono, y Tiptap, pdf.js y Paged.js solo entran por su archivo', () => {
+  const sec = S.SECCIONES.find((x) => x.id === 'taller');
+  assert.ok(sec && sec.grupo === 'dev' && sec.admin && ICONS[sec.icono]);
+  assert.ok(S.HECHAS.includes('taller'));
+  assert.ok(!S.enBarra('taller'));
+  assert.match(leer('src/scripts/portal/panel.js'), /taller: \(\) => import\('\.\/panel\/dev\/Taller\.js'\)/);
+  const andar = (d) => fs.readdirSync(path.join(raiz, d), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? andar(`${d}/${e.name}`) : [`${d}/${e.name}`]));
+  const unicos = { '@tiptap/core': 'taller', 'pdfjs-dist': 'Pdf.js', pagedjs: 'Paginador.js' };
+  for (const f of andar('src').filter((x) => /\.(js|astro)$/.test(x))) {
+    const t = leer(f);
+    for (const [pq, donde] of Object.entries(unicos)) if (new RegExp(`from '${pq}|import\\('${pq}`).test(t)) assert.ok(f.includes(donde), `${pq} en ${f}`);
+    if (f.includes('/taller')) assert.ok(!/innerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.write|eval\(|new Function/.test(t), f);
+  }
+  assert.ok(!/from '\.\/panel\/dev\/Taller/.test(leer('src/scripts/portal/panel.js')), 'solo se carga al abrirlo');
+});
+ok('Taller: versiones exactas, y la hoja no esta en el mapa del sitio ni la encuentran los buscadores', () => {
+  const pq = JSON.parse(leer('package.json'));
+  for (const n of ['@tiptap/core', '@tiptap/pm', '@tiptap/starter-kit', '@tiptap/extension-text-style', 'pagedjs', 'pdfjs-dist']) {
+    assert.match(pq.dependencies[n], /^\d+\.\d+\.\d+$/, n);
+    assert.ok(leer('THIRD-PARTY.md').includes(n.split('/')[0]), `${n} en THIRD-PARTY.md`);
+  }
+  assert.match(leer('src/pages/taller-hoja.astro'), /noindex/);
+  assert.ok(!leer('src/pages/sitemap.xml.js').includes('taller'));
+  assert.match(leer('.github/workflows/astro.yml'), /copiar-pdfjs/);
+  assert.match(leer('.github/workflows/astro.yml'), /test-taller/);
+});
+ok('012: todo es solo del admin, nadie sin entrar llega, el cajon es privado y las funciones fijan su ruta', () => {
+  const sql = leer('supabase/012_taller.sql');
+  for (const t of ['taller_obras', 'taller_capitulos', 'taller_piezas', 'taller_versiones']) assert.ok(sql.includes(`'${t}'`), t);
+  assert.match(sql, /enable row level security/);
+  assert.match(sql, /revoke all on table public\.%I from anon, authenticated/);
+  assert.ok(!/grant [^;]* to anon/i.test(sql), 'nada para anon');
+  assert.match(sql, /values \('taller', 'taller', false\)/);
+  assert.equal((sql.match(/create or replace function/g) || []).length, (sql.match(/set search_path = ''/g) || []).length);
+  assert.equal((sql.match(/create policy "alef_taller_admin/g) || []).length, 4);
+  assert.ok(!/security definer/i.test(sql));
+  assert.match(leer('supabase/990_comprobar_rls.sql'), /taller_versiones/);
 });
 
 console.log(`\n${n} bien, ${mal} mal`);

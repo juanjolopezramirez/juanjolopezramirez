@@ -158,3 +158,20 @@ select c.relname as tabla, c.relrowsecurity as rls, has_table_privilege('anon', 
          where schemaname = 'public' and tablename = c.relname) as reglas
   from pg_class c where c.oid in ('public.tablero_lecturas'::regclass, 'public.tablero_piedras'::regclass)
  order by 1;
+
+-- 21. El taller (012): 4 filas, rls true, anon_lee false, 1 regla «_todo_el_admin:ALL» cada una
+select c.relname as tabla, c.relrowsecurity as rls, has_table_privilege('anon', c.oid, 'SELECT') as anon_lee,
+       (select string_agg(policyname || ':' || cmd, ', ') from pg_policies
+         where schemaname = 'public' and tablename = c.relname) as reglas
+  from pg_class c
+ where c.oid in (to_regclass('public.taller_obras'), to_regclass('public.taller_capitulos'),
+                 to_regclass('public.taller_piezas'), to_regclass('public.taller_versiones'))
+ order by 1;
+
+-- 22. El cajon del taller: privado (public false), 50 MB, sus tipos; y 4 reglas
+select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'taller';
+select count(*) as reglas from pg_policies where schemaname = 'storage' and policyname like 'alef_taller_admin_%';
+
+-- 23. Sus disparadores (DEBEN salir 6 filas) y las versiones no se editan (DEBE decir false)
+select tgname from pg_trigger where not tgisinternal and tgname ~ '^taller_.*_(editado|rev)$' order by 1;
+select has_table_privilege('authenticated', 'public.taller_versiones', 'UPDATE') as se_editan;

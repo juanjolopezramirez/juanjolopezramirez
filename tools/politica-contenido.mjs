@@ -20,7 +20,8 @@
      letras     el sitio y fonts.gstatic.com.
      conexiones el sitio y TU proyecto de Supabase (sale de PUBLIC_SUPABASE_URL;
                 sin el, solo el sitio).
-     marcos     solo el reproductor de YouTube sin cookies (los tres videos de
+     marcos     el propio sitio (la vista de paginas del Taller, /taller-hoja/) y el
+                reproductor de YouTube sin cookies (los tres videos de
                 Piezas, que site.js abre al pulsarlos). Si algun dia se mete otra
                 pagina ajena, se añade aqui (MARCOS) o el navegador no la abre.
      objetos    ninguno (object-src 'none'); <base> y formularios solo hacia el sitio.
@@ -38,7 +39,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const MANEJADOR_PERMITIDO = "this.media='all'";
-export const MARCOS = ['https://www.youtube-nocookie.com'];
+export const MARCOS = ["'self'", 'https://www.youtube-nocookie.com'];
 /* El navegador calcula la huella con los saltos de linea ya en LF: aqui igual. */
 const huella = (texto) => `'sha256-${createHash('sha256').update(texto.replace(/\r\n?/g, '\n'), 'utf8').digest('base64')}'`;
 /* Lo que NO se ejecuta (datos). Todo lo demas se trata como guion y lleva su huella. */

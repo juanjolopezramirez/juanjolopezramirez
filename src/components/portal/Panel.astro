@@ -10,10 +10,12 @@ import EditorLibro from './dev/EditorLibro.astro';
 import EditorEtapa from './dev/EditorEtapa.astro';
 import EditorCasa from './dev/EditorCasa.astro';
 import EditorMarca from './dev/EditorMarca.astro';
+import Taller from './dev/Taller.astro';
 import '../../styles/portal.css';
 import '../../styles/panel.css';
 import '../../styles/dev.css';
 import '../../styles/tablero.css';
+import '../../styles/taller.css';
 import Tablero from './Tablero.astro';
 
 /* EL PANEL DE «ÁLEF» (/[lang]/portal/panel/).
@@ -246,6 +248,7 @@ const seccion = (id) => SECCIONES.find((x) => x.id === id);
           {(s.id === 'trabajos' || s.id === 'proyectos') && <EditorCasa tx={p.dev} clase={s.id} />}
           {s.id === 'camino' && <EditorEtapa tx={p.dev} />}
           {s.id === 'marca' && <EditorMarca tx={p.marca} />}
+          {s.id === 'taller' && <Taller tx={p.taller} />}
           {s.id === 'tablero' && <Tablero tx={p.tablero} />}
 
           {!hecha(s.id) && (

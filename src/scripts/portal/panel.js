@@ -134,6 +134,7 @@ function iniciar(raiz) {
     libros: () => import('./panel/dev/EditorLibro.js').then((m) => new m.EditorLibro(raiz, ctx)),
     camino: () => import('./panel/dev/EditorEtapa.js').then((m) => new m.EditorEtapa(raiz, ctx)),
     marca: () => import('./panel/dev/Marca.js').then((m) => new m.Marca(raiz, ctx)),
+    taller: () => import('./panel/dev/Taller.js').then((m) => new m.Taller(raiz, ctx)),
     tablero: () => import('./panel/Tablero.js').then((m) => new m.Tablero(raiz, ctx)),
     trabajos: () => import('./panel/dev/EditorCasa.js').then((m) => new m.EditorTrabajos(raiz, ctx)),
     proyectos: () => import('./panel/dev/EditorCasa.js').then((m) => new m.EditorProyectos(raiz, ctx))
@@ -303,7 +304,8 @@ function iniciar(raiz) {
     const ruta = raiz.querySelector('[data-ruta-actual]');
     if (ruta) ruta.textContent = `~/panel/${id}`;
     if (foco && t) t.focus();
-    seccionDe(id).then((s) => { if (s) s.alEntrar(); }, () => {});
+    /* Si la web cambio mientras estabas aqui, el trozo viejo ya no existe: se dice, no queda en blanco */
+    seccionDe(id).then((s) => { if (s) s.alEntrar(); }, () => problema(p.seccionNoCarga));
   }
 
   /* ---- Salir y reintentar --------------------------------------------------------- */
@@ -325,6 +327,8 @@ function iniciar(raiz) {
       if (t) t.focus();
     }
     modoFondo('salida');
+    /* Lo que una seccion tenga sin guardar se guarda antes de borrar la pagina (el Taller: un libro) */
+    await limite(Promise.allSettled(Object.values(secciones).map((s) => (s.antesDeSalir ? s.antesDeSalir() : null))), 3000);
     /* olvidar() suelta el modo (Self/Dev): se conserva hasta irse, o el papel de dia
        se oscureceria justo antes de salir. */
     const modo = document.documentElement.dataset.modo;

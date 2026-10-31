@@ -2,6 +2,7 @@ node_modules/
 dist/
 .astro/
 public/books/
+public/vendor/
 
 # Variables del portal: son tuyas, no se suben. `.env.example` si se sube.
 .env

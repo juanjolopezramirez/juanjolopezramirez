@@ -32,6 +32,9 @@
      listarPerfiles() · decidir(id, estado) · listarInvitaciones() · invitar(correo)
      · borrarInvitacion(correo) · leer(tabla)
 
+   y `taller`, Developer-Mode → Taller (panel/dev/Taller.js; la forma esta en contenido/taller/Repositorio.js,
+   mas subir(ruta, archivo) y bajar(ruta) del cajon privado; supabase/012_taller.sql; solo el admin)
+
    y `tablero`, Self-Mode → Tablero (panel/Tablero.js; supabase/009_tablero.sql; solo el admin):
      lecturas(semana)            { ok, filas: [{ clave, cargue, nota }] } | { error }   (semana = su lunes, «2026-10-26»)
      historial(clave)            { ok, filas: [{ semana, cargue, nota }] } | { error }  (las ultimas 12, la mas nueva primero)

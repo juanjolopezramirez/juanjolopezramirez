@@ -4,6 +4,7 @@
 
      la ruta que se guarda en la fila   el cajon    el nombre dentro del cajon
      libros/<id>/<idioma>.pdf           libros      <id>/<idioma>.pdf   (SIN «libros/» delante)
+     taller/<obra>/…                    taller      <obra>/…            (privado: solo el admin)
      lomos/…  casas/<id>/…  bloques/…   portadas    la ruta entera
 
    Si el nombre dentro del cajon «libros» llevara «libros/» delante, la regla de 007
@@ -11,7 +12,7 @@
    se podria bajar: por eso la cuenta se hace SOLO aqui. */
 import { rutaAlmacen, CARPETAS } from './comun.js';
 
-const EXTS = { libros: ['pdf'], lomos: ['png'], casas: ['jpg', 'png', 'webp'], bloques: ['jpg', 'png', 'webp'], portadas: ['jpg', 'png', 'webp'] };
+const EXTS = { taller: ['pdf', 'webp', 'jpg', 'png'], libros: ['pdf'], lomos: ['png'], casas: ['jpg', 'png', 'webp'], bloques: ['jpg', 'png', 'webp'], portadas: ['jpg', 'png', 'webp'] };
 /* El tipo de cada extension: lo que se declara al subir (el cajon lo comprueba) */
 export const TIPO_MIME = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
 
@@ -21,6 +22,7 @@ export function ubicacion(ruta) {
   if (!CARPETAS.includes(carpeta) || !rutaAlmacen(ruta, EXTS[carpeta])) return null;
   const mime = TIPO_MIME[ruta.slice(ruta.lastIndexOf('.') + 1)];
   if (carpeta === 'libros') return { cajon: 'libros', nombre: ruta.slice('libros/'.length), mime };
+  if (carpeta === 'taller') return { cajon: 'taller', nombre: ruta.slice('taller/'.length), mime };
   return { cajon: 'portadas', nombre: ruta, mime };
 }
 

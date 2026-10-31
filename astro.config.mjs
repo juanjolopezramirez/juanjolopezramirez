@@ -2,6 +2,10 @@ import { defineConfig } from 'astro/config';
 import { loadEnv } from 'vite';
 import { esClaveSecreta, limpiarUrl, revisarVariables } from './src/scripts/portal/estado.js';
 import { politicaDeContenido } from './tools/politica-contenido.mjs';
+import { revisarTiposTaller } from './tools/revisar-tipos-taller.mjs';
+
+// Cada bloque del libro trae sus cinco partes (datos, web, PDF, editor y pruebas), o nada compila.
+await revisarTiposTaller();
 
 // ---------------------------------------------------------------
 // EL PORTAL «ÁLEF»: las dos variables se revisan ANTES de compilar.

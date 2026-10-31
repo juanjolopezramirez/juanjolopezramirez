@@ -23,6 +23,7 @@ import { RepositorioMemoria } from '../contenido/Repositorio.js';
 import { SEMANAS_HISTORIA, semanaDe, sumarSemanas, validarLectura, validarPiedra } from './tablero.js';
 import { IDS_DOMINIOS } from '../../data/portal/tablero.js';
 import { revisarArchivo } from './archivos.js';
+import { RepositorioTallerMemoria } from '../contenido/taller/Repositorio.js';
 
 const PRESETS = ['entrar', 'pendiente', 'rechazado', 'miembro', 'admin', 'admin2fa'];
 const CODIGO_DEMO = '123456';
@@ -72,6 +73,14 @@ export function abrirDemo() {
   const repos = new Map();
   const casasCompartidas = { filas: new Map(), borradores: new Map() };
   const subidos = new Map();               // ruta → archivo (solo en memoria)
+  const tallerMemoria = new RepositorioTallerMemoria();
+  /* Para ver el aviso de dos pestañas sin abrir dos (este archivo solo existe con `npm run dev`) */
+  window.__simularOtraPestana = () => tallerMemoria.capitulosM.forEach((c) => { c.rev += 1; c.pestana = 'otra'; });
+  tallerMemoria.crearObra({ titulo: 'Libro de prueba', idioma: 'es', pagina: { anchoMm: 148, altoMm: 210, indice: true }, fuentes: [] })
+    .then((r) => tallerMemoria.abrir(r.id)).then((r) => tallerMemoria.guardarCapitulo({
+      ...r.capitulos[0],
+      contenido: { version: 1, doc: { type: 'doc', content: [{ type: 'paragraph', attrs: { capital: true }, content: [{ type: 'text', text: 'Hola, {nombre}. Este libro te habla a ti.' }] }] } }
+    }, 'semilla'));
   /* Tablero en memoria (como supabase/009): una lectura por semana y dominio, y las piedras con su fecha */
   const hoy = semanaDe();
   const lecturas = new Map([
@@ -221,6 +230,17 @@ export function abrirDemo() {
         return { ok: true };
       }
     },
+
+    /* El Taller en memoria: el mismo repositorio de las pruebas */
+    taller: Object.assign(Object.create(tallerMemoria), {
+      async subir(ruta, archivo) {
+        const r = await revisarArchivo(ruta, archivo);
+        if (r.error) return r;
+        subidos.set(ruta, archivo);
+        return { ok: true };
+      },
+      async bajar(ruta) { return subidos.has(ruta) ? { ok: true, blob: subidos.get(ruta) } : { error: 'red' }; }
+    }),
 
     /* Tablero en memoria: la misma forma que el de verdad (real.js), con las mismas validaciones */
     tablero: {

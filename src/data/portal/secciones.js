@@ -40,6 +40,7 @@ export const SECCIONES = [
   { id: 'camino', grupo: 'dev', admin: true, icono: 'route' },
   /* No va en la barra del telefono (esta llena a 4): sale en «Más» */
   { id: 'marca', grupo: 'dev', admin: true, icono: 'palette' },
+  { id: 'taller', grupo: 'dev', admin: true, icono: 'pluma' },
   { id: 'accesos', grupo: 'acceso', admin: true, icono: 'compartir' },
   { id: 'seguridad', grupo: 'acceso', admin: true, icono: 'ajustes' }
 ];
@@ -55,7 +56,7 @@ export const BARRA_MAX = 4;
 export const enBarra = (id) => Object.values(BARRA).some((ids) => ids.includes(id));
 
 /* Las que tienen su pantalla hecha; el resto enseña «Pronto». */
-export const HECHAS = ['inicio', 'accesos', 'seguridad', 'libros', 'camino', 'trabajos', 'proyectos', 'marca', 'tablero'];
+export const HECHAS = ['inicio', 'accesos', 'seguridad', 'libros', 'camino', 'trabajos', 'proyectos', 'marca', 'tablero', 'taller'];
 
 export const IDS = SECCIONES.map((s) => s.id);
 export const idsPara = (esAdmin) => SECCIONES
