@@ -226,8 +226,10 @@ Donde se escriben los libros. Saca el PDF desde el navegador; ese PDF se sube en
 
 - **Tablas:** `supabase/012_taller.sql`. Solo el admin, con su código. El cajón `taller` es privado.
 - **Comprobar:** `supabase/990_comprobar_rls.sql`, consultas 21 a 23.
-- **Paquetes:** `@tiptap/*`, `pagedjs` y `pdfjs-dist`, con versión exacta. Solo se bajan al abrir el Taller.
+- **Paquetes:** `@tiptap/*`, `pdfjs-dist`, `mathlive` y `katex`, con versión exacta. Solo se bajan al abrir el Taller.
 - **Archivos de pdf.js:** `tools/copiar-pdfjs.mjs` los deja en `public/vendor/`, que no se sube al repositorio.
 - **Un bloque nuevo** debe traer datos, web, PDF, editor y pruebas. Si falta una, `tools/revisar-tipos-taller.mjs` para la compilación.
 - **Sacar PDF:** en la ventana de imprimir, elige «Guardar como PDF», márgenes «Predeterminados» y activa «Gráficos de fondo».
+- **Colores:** el papel y la letra de cada libro van en `pagina`; el de un capítulo, en `contenido.papel`; el de una página libre, en su `papel`. Un PDF traído conserva su fondo. «PDF para imprenta» agrega unos 3 mm de color por lado.
+- **Botón:** abre un enlace `https://` o copia un texto. Un PDF no puede copiar: ahí solo se dibuja. El lector web debe copiar con `navigator.clipboard.writeText`, solo al hacer clic, y mostrar antes el texto.
 - **Borrar o reemplazar un diseño** no borra sus archivos del cajón: las copias los pueden necesitar.

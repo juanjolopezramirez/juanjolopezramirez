@@ -15,11 +15,12 @@ Lo que se baja con la web y no es nuestro. Las versiones exactas están en `pack
 
 ## Taller de libros (solo en el panel, nunca para quien lee la web)
 
-- `@tiptap/*` 3.32.2 y ProseMirror (MIT): el editor. https://github.com/ueberdosis/tiptap
-- `pagedjs` 0.4.3 (MIT): las paginas y el indice. Su ultima version es de 2024: va aislado en
-  `src/scripts/portal/taller-hoja/Paginador.js` para poder cambiarlo. https://pagedjs.org
+- `@tiptap/*` 3.32.2 y ProseMirror (MIT): el editor, con exponentes y subíndices. https://github.com/ueberdosis/tiptap
 - `pdfjs-dist` 6.4.299 (Apache-2.0): leer los PDF de diseño. Sus archivos de apoyo se copian a
   `public/vendor/` con `tools/copiar-pdfjs.mjs`. https://github.com/mozilla/pdf.js
+
+- `mathlive` 0.111.1 (MIT): escribir fórmulas. Solo se baja al abrir una. https://mathlive.io
+- `katex` 0.19.1 (MIT): dibujar fórmulas en la hoja y el PDF. https://katex.org
 
 ## Otros
 

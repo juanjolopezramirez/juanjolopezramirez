@@ -26,6 +26,27 @@ export const CASOS = {
     bueno: [{ type: 'columnas', attrs: { anchos: [1, 2] }, content: [{ type: 'columna', content: [{ type: 'paragraph' }] }, { type: 'columna', content: [{ type: 'paragraph' }] }] }],
     hostil: [{ type: 'columnas', attrs: { anchos: ['1fr;background:url(x)', 1e9] }, content: [] }]
   },
+  paginaLibre: {
+    bueno: [{ type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: [
+      { id: 'o-abcd1234', tipo: 'imagen', ruta: 'taller/o/i.webp', x: 10, y: 10, w: 40, h: 30, rot: 12, crop: { l: .1, t: 0, r: .2, b: 0 } },
+      { id: 'o-abcd1235', tipo: 'texto', texto: 'Hola', x: 5, y: 5, w: 50, h: 10, tam: '14pt', color: '#123456' },
+      { id: 'o-abcd1236', tipo: 'zona', nombre: 'Quiz', x: 5, y: 60, w: 50, h: 20 },
+      { id: 'o-abcd1237', tipo: 'boton', texto: 'Copiar', accion: 'copiar', copia: 'Hola', x: 5, y: 80, w: 40, h: 7, fondo: '#123456' }
+    ] } }],
+    hostil: [{ type: 'paginaLibre', attrs: { fondo: 'https://malo.com/x.png', objetos: [
+      { tipo: 'imagen', ruta: 'javascript:x', x: 'a', crop: { l: 9 } }, { tipo: 'script', texto: '<x>' },
+      { tipo: 'texto', texto: '<script>', tam: '1pt;x', color: 'red;x:url(y)', fuente: 'x");}' },
+      { tipo: 'boton', texto: '<b>', accion: 'x', enlace: 'javascript:alert(1)', copia: 5, fondo: 'url(x)' }
+    ] } }]
+  },
+  boton: {
+    bueno: [{ type: 'boton', attrs: { texto: 'Abrir', accion: 'enlace', enlace: 'https://fraterni.co/x', alinear: 'centro', fondo: '#123456' } }, { type: 'boton', attrs: { texto: 'Copiar', accion: 'copiar', copia: 'Un prompt' } }],
+    hostil: [{ type: 'boton', attrs: { texto: 5, accion: 'borrar', enlace: 'javascript:alert(1)', copia: {}, fondo: 'red;x:url(y)', color: 7, alinear: 'url(x)', onclick: 'x' } }]
+  },
+  formula: {
+    bueno: [{ type: 'paragraph', content: [{ type: 'formula', attrs: { tex: '\\frac{a}{b}^2' } }] }, { type: 'formula', attrs: { tex: 'x^2' } }],
+    hostil: [{ type: 'paragraph', content: [{ type: 'formula', attrs: { tex: '\\href{javascript:alert(1)}{x}\u0007', onclick: 'x' } }] }]
+  },
   paginasPdf: {
     bueno: [{ type: 'paginasPdf', attrs: { pieza: 'p-1' } }],
     hostil: [{ type: 'paginasPdf', attrs: { pieza: '../../x' } }]

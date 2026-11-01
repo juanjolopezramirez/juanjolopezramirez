@@ -2,8 +2,10 @@
 
    Todo sale de aqui: la vista previa, el PDF, la zona segura sobre un diseño traido de Figma y
    la resolucion con la que se guardan sus paginas. */
-import { objeto } from '../comun.js';
-import { nombreDeFuente } from './fuentes.js';
+import { objeto, tiene } from '../comun.js';
+import { nombreDeFuente, FUENTES_MAX } from './fuentes.js';
+import { colorValido } from './marcas.js';
+import { RECIENTES_MAX } from './colores.js';
 
 export const LADO_MIN = 50;
 export const LADO_MAX = 420;
@@ -20,6 +22,13 @@ export const TAMANOS = [
 ];
 export const LUGARES_NUMERO = ['pie-centro', 'pie-exterior', 'pie-interior'];
 
+/* El color de cada letra del libro: { fuente: color }. Se lee con `colorDeLetra`: una fuente puede llamarse «constructor» */
+export const colorDeLetra = (c, fuente) => (tiene(c.letras, fuente) ? c.letras[fuente] : '');
+
+function letrasValidas(v) {
+  return Object.fromEntries(Object.entries(objeto(v)).filter(([f, c]) => nombreDeFuente(f) && colorValido(c)).slice(0, FUENTES_MAX).map(([f, c]) => [f, colorValido(c)]));
+}
+
 const mm = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? Math.round(v * pasos) / pasos : siNo);
 
 export class ConfigPagina {
@@ -30,6 +39,11 @@ export class ConfigPagina {
     this.margenes = { sup: mm(m.sup, 0, 150, 20), inf: mm(m.inf, 0, 150, 22), izq: mm(m.izq, 0, 150, 18), der: mm(m.der, 0, 150, 18) };
     this.numeros = { ver: n.ver !== false, lugar: LUGARES_NUMERO.includes(n.lugar) ? n.lugar : 'pie-centro' };
     this.indice = o.indice === true;
+    this.imprenta = o.imprenta === true;
+    this.papel = colorValido(o.papel);
+    this.letras = letrasValidas(o.letras);
+    this.titulos = Object.fromEntries(['t1', 't2', 't3'].map((k) => [k, colorValido(objeto(o.titulos)[k])]));
+    this.colores = (Array.isArray(o.colores) ? o.colores : []).map(colorValido).filter(Boolean).slice(0, RECIENTES_MAX);
     this.cuerpo = {
       fuente: nombreDeFuente(c.fuente) ? c.fuente : 'Young Serif',
       tamanoPt: mm(c.tamanoPt, 4, 72, 11),
@@ -55,6 +69,20 @@ export class ConfigPagina {
     return { sup: p(sup, this.altoMm), inf: p(inf, this.altoMm), izq: p(izq, this.anchoMm), der: p(der, this.anchoMm) };
   }
 
+  /* La hoja en pixeles enteros: asi la pantalla y el PDF cortan cada pagina en la misma palabra. En
+     pantalla un pixel de mas o de menos no se ve; al imprimir, el margen absorbe la fraccion y la hoja
+     sale exacta en milimetros. */
+  enPixeles() {
+    const px = (v) => (v / MM_POR_PULGADA) * 96, r = (v) => Math.round(px(v));
+    const { sup, inf, izq, der } = this.margenes;
+    const W = r(this.anchoMm), H = r(this.altoMm), mt = r(sup), mb = r(inf), ml = r(izq), mr = r(der);
+    const ancho = W - ml - mr, alto = H - mt - mb;
+    const dos = (v) => Math.round(v * 100) / 100;
+    /* El navegador redondea la hoja del PDF a puntos enteros: el margen se calcula sobre esa hoja real */
+    const pts = (v) => Math.round((v / MM_POR_PULGADA) * 72), anchoPt = pts(this.anchoMm), altoPt = pts(this.altoMm);
+    return { W, H, mt, mb, ml, mr, ancho, alto, gap: 28, anchoPt, altoPt, mrImpresion: dos((anchoPt * 96) / 72 - ml - ancho), mbImpresion: dos((altoPt * 96) / 72 - mt - alto) };
+  }
+
   /* Los pixeles que necesita una pagina de este libro: salen del LIBRO, nunca del PDF */
   pxPara(dpi = 300) {
     return {
@@ -64,6 +92,9 @@ export class ConfigPagina {
   }
 
   aDatos() {
-    return { anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: this.indice, cuerpo: { ...this.cuerpo } };
+    return {
+      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: this.indice, cuerpo: { ...this.cuerpo },
+      imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores]
+    };
   }
 }

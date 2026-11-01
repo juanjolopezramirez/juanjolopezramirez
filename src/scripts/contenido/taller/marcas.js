@@ -4,7 +4,7 @@
 import { enlaceSeguro, objeto } from '../comun.js';
 import { nombreDeFuente } from './fuentes.js';
 
-const SIMPLES = new Set(['bold', 'italic', 'underline', 'strike']);
+const SIMPLES = new Set(['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript']);
 
 export function colorValido(v) {
   if (typeof v !== 'string') return '';

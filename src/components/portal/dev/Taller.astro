@@ -1,14 +1,13 @@
 ---
-/* DEVELOPER-MODE → TALLER (panel/dev/Taller.js le da vida). Tres vistas en una caja: la lista de
-   obras, la obra abierta (capitulos, editor y paginas) y la revision de un diseño traido de Figma.
+/* DEVELOPER-MODE → TALLER (panel/dev/Taller.js le da vida). La lista de libros vive en el panel; al abrir
+   uno, `data-tal-mesa` pasa a <body> y ocupa toda la ventana, como Word: cinta arriba, paginas a la
+   izquierda, hojas en el centro, y a la derecha las opciones de lo que se elija.
    Lo escrito por el fundador nunca se pinta aqui: entra con textContent y con los nodos del editor. */
 const { tx } = Astro.props;
 ---
 <div class="taller dev" data-taller>
-  <p class="sr-only" role="status" data-tal-anuncio></p>
   <p class="panel__aviso" data-aviso role="status" tabindex="-1" hidden></p>
   <p class="portal__error" data-error role="alert" hidden></p>
-
   <div class="tal-lista" data-tal-lista>
     <form class="tal-crear" data-tal-crear novalidate>
       <label class="portal__etiqueta" for="tal-titulo-nuevo">{tx.tituloNuevo}</label>
@@ -21,147 +20,172 @@ const { tx } = Astro.props;
     <p class="portal__nota" data-tal-sin-obras hidden>{tx.sinObras}</p>
   </div>
 
-  <div class="tal-obra-vista" data-tal-obra hidden>
-    <header class="tal-cabeza">
-      <button class="portal__boton portal__boton--suave" type="button" data-tal-volver>{tx.volver}</button>
-      <label class="tal-cabeza__titulo"><span class="sr-only">{tx.tituloObra}</span><input class="portal__entrada" data-tal-titulo maxlength="200" autocomplete="off" /></label>
+  <div class="tal-mesa dev" data-tal-mesa lang="es" hidden>
+    <h1 class="sr-only">{tx.tituloVentana}</h1>
+    <p class="sr-only" role="status" data-tal-anuncio></p>
+
+    <header class="tal-tope">
+      <button class="tal-btn" type="button" data-tal-volver>← {tx.volver}</button>
+      <label class="tal-tope__titulo"><span class="sr-only">{tx.tituloObra}</span><input data-tal-titulo maxlength="200" autocomplete="off" /></label>
       <p class="tal-estado" data-tal-estado></p>
-      <button class="portal__boton portal__boton--suave" type="button" data-tal-ver aria-pressed="false">{tx.verPaginas}</button>
-      <button class="portal__boton" type="button" data-tal-imprimir>{tx.sacarPdf}</button>
+      <p class="tal-avance" data-tal-avance></p>
+      <div class="tal-tope__der">
+        <button class="tal-ic" type="button" data-tal-deshacer aria-label={tx.deshacer} title={tx.deshacer}>↶</button>
+        <button class="tal-ic" type="button" data-tal-rehacer aria-label={tx.rehacer} title={tx.rehacer}>↷</button>
+        <button class="tal-btn" type="button" data-tal-libro>{tx.verLibro}</button>
+        <button class="tal-btn tal-btn--fuerte" type="button" data-tal-imprimir>{tx.sacarPdf}</button>
+      </div>
     </header>
-    <p class="tal-celular portal__nota">{tx.celular}</p>
-    <div class="tal-conflicto" data-tal-conflicto tabindex="-1" hidden>
+
+    <p class="tal-celular">{tx.celular}</p>
+    <p class="tal-error" data-tal-error role="alert" hidden></p>
+    <div class="tal-conflicto" data-tal-conflicto tabindex="-1" role="alert" hidden>
       <p>{tx.conflicto}</p>
       <div class="tal-fila">
-        <button class="portal__boton portal__boton--suave" type="button" data-tal-traer>{tx.traerOtro}</button>
-        <button class="portal__boton portal__boton--suave" type="button" data-tal-quedarme>{tx.quedarme}</button>
+        <button class="tal-btn" type="button" data-tal-traer>{tx.traerOtro}</button>
+        <button class="tal-btn" type="button" data-tal-quedarme>{tx.quedarme}</button>
       </div>
     </div>
-    <p class="tal-avance" data-tal-avance></p>
 
-    <div class="tal-cuerpo">
-      <aside class="tal-lado">
-        <h3 class="panel__subtitulo panel__subtitulo--chico">{tx.capitulos}</h3>
-        <ol class="tal-capitulos" data-tal-capitulos></ol>
-        <button class="portal__boton portal__boton--suave" type="button" data-tal-nuevo-cap>{tx.nuevoCapitulo}</button>
+    <div class="tal-cinta" role="toolbar" aria-label={tx.barra} data-tal-cinta>
+      <div class="tal-pestanas">
+        {[['inicio', tx.inicio], ['insertar', tx.insertarTab], ['pagina', tx.pagina], ['copias', tx.copias]].map(([id, t], i) => (
+          <button class="tal-pestana" type="button" data-pestana={id} aria-pressed={i === 0 ? 'true' : 'false'}>{t}</button>
+        ))}
+      </div>
 
-        <details class="tal-plegable">
-          <summary>{tx.pagina}</summary>
-          <form class="tal-pagina" data-tal-pagina novalidate>
-            <label><span>{tx.idioma}</span><select class="portal__entrada" name="idioma"></select></label>
-            <label><span>{tx.tamano}</span><select class="portal__entrada" name="tamano"><option value="">{tx.tamanoOtro}</option></select></label>
-            <div class="tal-doble">
-              <label><span>{tx.anchoMm}</span><input class="portal__entrada" name="anchoMm" type="number" min="50" max="420" step="0.1" /></label>
-              <label><span>{tx.altoMm}</span><input class="portal__entrada" name="altoMm" type="number" min="50" max="420" step="0.1" /></label>
-            </div>
-            <fieldset><legend>{tx.margenes}</legend>
-              <div class="tal-doble">
-                {['sup', 'inf', 'izq', 'der'].map((m) => <label><span>{tx.lados[m]}</span><input class="portal__entrada" name={m} type="number" min="0" max="150" step="0.5" /></label>)}
-              </div>
-            </fieldset>
-            <label><span>{tx.fuenteCuerpo}</span><select class="portal__entrada" name="fuente"></select></label>
-            <div class="tal-doble">
-              <label><span>{tx.tamanoLetra}</span><input class="portal__entrada" name="tamanoPt" type="number" min="4" max="72" step="0.5" /></label>
-              <label><span>{tx.interlinea}</span><input class="portal__entrada" name="interlinea" type="number" min="1" max="3" step="0.05" /></label>
-            </div>
-            <label class="tal-marca"><input name="numerosVer" type="checkbox" /><span>{tx.numeros}</span></label>
-            <label><span>{tx.lugarNumero}</span><select class="portal__entrada" name="lugar">
-              <option value="pie-centro">{tx.lugares.centro}</option>
-              <option value="pie-exterior">{tx.lugares.exterior}</option>
-              <option value="pie-interior">{tx.lugares.interior}</option>
-            </select></label>
-            <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
+      <div class="tal-grupo" data-grupo="inicio">
+        <select class="tal-ctl" data-b-nivel aria-label={tx.nivel}>
+          <option value="p">{tx.niveles.p}</option><option value="1">{tx.niveles.t1}</option><option value="2">{tx.niveles.t2}</option><option value="3">{tx.niveles.t3}</option>
+        </select>
+        <select class="tal-ctl" data-b-fuente aria-label={tx.fuente}><option value="">{tx.fuenteDelLibro}</option></select>
+        <input class="tal-ctl tal-ctl--num" data-b-tamano type="number" min="1" max="999" step="0.5" placeholder="pt" aria-label={tx.tamanoLetra} title={tx.tamanoLetra} />
+        <span data-b-color></span>
+        <span class="tal-sep"></span>
+        {[['bold', 'N', tx.negrita], ['italic', 'I', tx.cursiva], ['underline', 'S', tx.subrayado], ['strike', 'T', tx.tachado]].map(([m, l, n]) => (
+          <button class={`tal-ic tal-ic--${m}`} type="button" data-b-marca={m} aria-pressed="false" aria-label={n} title={n}>{l}</button>
+        ))}
+        <span class="tal-sep"></span>
+        {[['izquierda', '⇤'], ['centro', '↔'], ['derecha', '⇥'], ['justificado', '≡']].map(([a, l]) => (
+          <button class="tal-ic" type="button" data-b-alinear={a} aria-pressed="false" aria-label={tx.alinear[a]} title={tx.alinear[a]}>{l}</button>
+        ))}
+        <span class="tal-sep"></span>
+        <button class="tal-ic" type="button" data-b-marca="bulletList" aria-pressed="false" aria-label={tx.lista} title={tx.lista}>•</button>
+        <button class="tal-ic" type="button" data-b-marca="orderedList" aria-pressed="false" aria-label={tx.listaNum} title={tx.listaNum}>1.</button>
+        <button class="tal-ic" type="button" data-b-marca="blockquote" aria-pressed="false" aria-label={tx.cita} title={tx.cita}>”</button>
+        <span class="tal-sep"></span>
+        <button class="tal-ic" type="button" data-b-marca="superscript" aria-pressed="false" aria-label={tx.exponente} title={tx.exponente}>x²</button>
+        <button class="tal-ic" type="button" data-b-marca="subscript" aria-pressed="false" aria-label={tx.subindice} title={tx.subindice}>x₂</button>
+        <button class="tal-ic tal-ic--texto" type="button" data-b-formula aria-label={tx.formula} title={tx.formulaAyuda}>√x</button>
+        <button class="tal-ic tal-ic--texto" type="button" data-b-capital aria-pressed="false" title={tx.capitalAyuda}>{tx.capital}</button>
+        <button class="tal-ic tal-ic--texto" type="button" data-b-llave title={tx.llaveAyuda}>{'{llave}'}</button>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-ic tal-ic--texto">{tx.simbolos}</summary><div class="tal-b-panel tal-simbolos" data-b-simbolos></div></details>
+      </div>
+
+      <div class="tal-grupo" data-grupo="insertar" hidden>
+        <button class="tal-btn" type="button" data-b-imagen>+ {tx.imagen}</button>
+        <button class="tal-btn" type="button" data-b-pdf>+ {tx.pdf}</button>
+        <button class="tal-btn" type="button" data-insertar="libre">+ {tx.paginaLibre}</button>
+        <button class="tal-btn" type="button" data-insertar="cuadro">+ {tx.objCuadro}</button>
+        <button class="tal-btn" type="button" data-insertar="boton">+ {tx.objBoton}</button>
+        <button class="tal-btn" type="button" data-insertar="zona">+ {tx.objZona}</button>
+        <button class="tal-btn" type="button" data-insertar="capitulo">+ {tx.capitulo}</button>
+        <span class="tal-sep"></span>
+        <button class="tal-btn" type="button" data-b-separador>{tx.separador}</button>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.columnas}</summary>
+          <form class="tal-b-panel" data-b-columnas novalidate>
+            <label><span>{tx.columnasAyuda}</span><input name="anchos" value="1 1" autocomplete="off" /></label>
+            <button class="tal-btn" type="submit">{tx.insertarColumnas}</button>
           </form>
         </details>
-
-        <details class="tal-plegable">
-          <summary>{tx.copias}</summary>
-          <div class="tal-copias">
-            <button class="portal__boton portal__boton--suave" type="button" data-tal-version>{tx.guardarVersion}</button>
-            <ul class="tal-versiones" role="list" data-tal-versiones></ul>
-            <label class="tal-marca"><input type="checkbox" data-tal-con-archivos /><span>{tx.conArchivos}</span></label>
-            <button class="portal__boton portal__boton--suave" type="button" data-tal-bajar>{tx.bajarLibro}</button>
-            <p class="portal__nota portal__nota--chica">{tx.sinImportar}</p>
-          </div>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.enlace}</summary>
+          <form class="tal-b-panel" data-b-enlace novalidate>
+            <label><span>{tx.enlaceAyuda}</span><input name="enlace" type="url" autocomplete="off" /></label>
+            <button class="tal-btn" type="submit">{tx.ponerEnlace}</button>
+          </form>
         </details>
-      </aside>
-
-      <div class="tal-medio">
-        <label class="tal-cap-titulo"><span class="sr-only">{tx.tituloCapitulo}</span><input class="portal__entrada" data-tal-cap-titulo maxlength="300" autocomplete="off" placeholder={tx.tituloCapitulo} /></label>
-        <div class="tal-barra" role="toolbar" aria-label={tx.barra} data-tal-barra>
-          <select class="tal-b" data-b-nivel aria-label={tx.nivel}>
-            <option value="p">{tx.niveles.p}</option><option value="1">{tx.niveles.t1}</option><option value="2">{tx.niveles.t2}</option><option value="3">{tx.niveles.t3}</option>
-          </select>
-          <select class="tal-b" data-b-fuente aria-label={tx.fuente}><option value="">{tx.fuenteDelLibro}</option></select>
-          <label class="tal-b tal-b--num"><span class="sr-only">{tx.tamanoLetra}</span><input data-b-tamano type="number" min="1" max="999" step="0.5" placeholder="pt" /></label>
-          <label class="tal-b tal-b--color"><span class="sr-only">{tx.color}</span><input data-b-color type="color" value="#111111" /></label>
-          {[['bold', 'N', tx.negrita], ['italic', 'I', tx.cursiva], ['underline', 'S', tx.subrayado], ['strike', 'T', tx.tachado]].map(([m, l, n]) => (
-            <button class={`tal-b tal-b--${m}`} type="button" data-b-marca={m} aria-pressed="false" aria-label={n} title={n}>{l}</button>
-          ))}
-          {[['izquierda', '⇤'], ['centro', '↔'], ['derecha', '⇥'], ['justificado', '≡']].map(([a, l]) => (
-            <button class="tal-b" type="button" data-b-alinear={a} aria-pressed="false" aria-label={tx.alinear[a]} title={tx.alinear[a]}>{l}</button>
-          ))}
-          <button class="tal-b" type="button" data-b-capital aria-pressed="false">{tx.capital}</button>
-          <button class="tal-b" type="button" data-b-marca="bulletList" aria-pressed="false" aria-label={tx.lista} title={tx.lista}>•</button>
-          <button class="tal-b" type="button" data-b-marca="orderedList" aria-pressed="false" aria-label={tx.listaNum} title={tx.listaNum}>1.</button>
-          <button class="tal-b" type="button" data-b-marca="blockquote" aria-pressed="false" aria-label={tx.cita} title={tx.cita}>”</button>
-          <button class="tal-b" type="button" data-b-separador aria-label={tx.separador} title={tx.separador}>—</button>
-          <button class="tal-b" type="button" data-b-imagen>{tx.imagen}</button>
-          <input type="file" accept="image/png,image/jpeg,image/webp" data-b-imagen-archivo hidden />
-          <button class="tal-b" type="button" data-b-pdf>{tx.pdf}</button>
-          <input type="file" accept="application/pdf" data-b-pdf-archivo hidden />
-          <details class="tal-b-mas" name="tal-barra"><summary class="tal-b">{tx.columnas}</summary>
-            <form class="tal-b-panel" data-b-columnas novalidate>
-              <label><span>{tx.columnasAyuda}</span><input class="portal__entrada" name="anchos" value="1 1" autocomplete="off" /></label>
-              <button class="portal__boton portal__boton--suave" type="submit">{tx.insertarColumnas}</button>
-            </form>
-          </details>
-          <details class="tal-b-mas" name="tal-barra"><summary class="tal-b">{tx.simbolos}</summary><div class="tal-b-panel tal-simbolos" data-b-simbolos></div></details>
-          <details class="tal-b-mas" name="tal-barra"><summary class="tal-b">{tx.enlace}</summary>
-            <form class="tal-b-panel" data-b-enlace novalidate>
-              <label><span>{tx.enlaceAyuda}</span><input class="portal__entrada" name="enlace" type="url" autocomplete="off" /></label>
-              <button class="portal__boton portal__boton--suave" type="submit">{tx.ponerEnlace}</button>
-            </form>
-          </details>
-          <details class="tal-b-mas" name="tal-barra"><summary class="tal-b">{tx.otraFuente}</summary>
-            <form class="tal-b-panel" data-b-otra novalidate>
-              <label><span>{tx.otraFuenteAyuda}</span><input class="portal__entrada" name="fuente" maxlength="60" autocomplete="off" /></label>
-              <button class="portal__boton portal__boton--suave" type="submit">{tx.usarFuente}</button>
-            </form>
-          </details>
-        </div>
-        <div class="tal-papel" data-tal-editor></div>
-        <p class="tal-llaves" data-tal-llaves hidden></p>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.otraFuente}</summary>
+          <form class="tal-b-panel" data-b-otra novalidate>
+            <label><span>{tx.otraFuenteAyuda}</span><input name="fuente" maxlength="60" autocomplete="off" /></label>
+            <button class="tal-btn" type="submit">{tx.usarFuente}</button>
+          </form>
+        </details>
+        <input type="file" accept="image/png,image/jpeg,image/webp" data-b-imagen-archivo hidden />
+        <input type="file" accept="application/pdf" data-b-pdf-archivo hidden />
       </div>
 
-      <div class="tal-vista" data-tal-vista hidden>
-        <div class="tal-fila">
-          <p class="tal-paginas" data-tal-paginas></p>
-          <button class="portal__boton portal__boton--suave" type="button" data-tal-ver-todo>{tx.verTodo}</button>
-        </div>
-        <iframe class="tal-marco" data-tal-marco title={tx.tituloVista}></iframe>
+      <div class="tal-grupo" data-grupo="pagina" hidden>
+        <form class="tal-pagina" data-tal-pagina novalidate>
+          <label><span>{tx.tamano}</span><select class="tal-ctl" name="tamano"><option value="">{tx.tamanoOtro}</option></select></label>
+          <label><span>{tx.anchoMm}</span><input class="tal-ctl tal-ctl--num" name="anchoMm" type="number" min="50" max="420" step="0.1" /></label>
+          <label><span>{tx.altoMm}</span><input class="tal-ctl tal-ctl--num" name="altoMm" type="number" min="50" max="420" step="0.1" /></label>
+          {['sup', 'inf', 'izq', 'der'].map((m) => <label><span>{tx.lados[m]}</span><input class="tal-ctl tal-ctl--num" name={m} type="number" min="0" max="150" step="0.5" /></label>)}
+          <label><span>{tx.fuenteCuerpo}</span><select class="tal-ctl" name="fuente"></select></label>
+          <label><span>{tx.tamanoLetra}</span><input class="tal-ctl tal-ctl--num" name="tamanoPt" type="number" min="4" max="72" step="0.5" /></label>
+          <label><span>{tx.interlinea}</span><input class="tal-ctl tal-ctl--num" name="interlinea" type="number" min="1" max="3" step="0.05" /></label>
+          <label><span>{tx.idioma}</span><select class="tal-ctl" name="idioma"></select></label>
+          <label class="tal-marca"><input name="numerosVer" type="checkbox" /><span>{tx.numeros}</span></label>
+          <label><span>{tx.lugarNumero}</span><select class="tal-ctl" name="lugar">
+            <option value="pie-centro">{tx.lugares.centro}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
+          </select></label>
+          <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
+          <label class="tal-marca"><input name="imprenta" type="checkbox" /><span>{tx.imprenta}</span></label>
+        </form>
+        <div class="tal-colores" data-tal-colores></div>
+      </div>
+
+      <div class="tal-grupo" data-grupo="copias" hidden>
+        <button class="tal-btn" type="button" data-tal-version>{tx.guardarVersion}</button>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.verCopias}</summary>
+          <div class="tal-b-panel"><ul class="tal-versiones" role="list" data-tal-versiones></ul></div>
+        </details>
+        <label class="tal-marca"><input type="checkbox" data-tal-con-archivos /><span>{tx.conArchivos}</span></label>
+        <button class="tal-btn" type="button" data-tal-bajar>{tx.bajarLibro}</button>
+        <span class="tal-nota">{tx.sinImportar}</span>
       </div>
     </div>
 
-    <div class="tal-revision" data-tal-pieza hidden></div>
+    <div class="tal-cuerpo">
+      <aside class="tal-miniaturas" data-tal-miniaturas aria-label={tx.paginasDelLibro}></aside>
+      <main class="tal-fondo" data-tal-fondo>
+        <div class="tal-lienzo-caja" data-tal-lienzo-caja><div class="tal-lienzo" data-tal-lienzo></div></div>
+      </main>
+      <aside class="tal-panel" data-tal-panel aria-label={tx.opciones} hidden></aside>
+    </div>
+
+    <footer class="tal-pie">
+      <span data-s-pagina></span>
+      <span data-s-palabras></span>
+      <span class="tal-dicho" data-tal-dicho></span>
+      <div class="tal-pie__der">
+        <label class="tal-marca"><input type="checkbox" data-t-segura /><span>{tx.verZonaSegura}</span></label>
+        <span class="tal-sep"></span>
+        <button class="tal-ic" type="button" data-z-menos aria-label={tx.alejar}>−</button>
+        <span class="tal-zoom" data-z-valor>100 %</span>
+        <button class="tal-ic" type="button" data-z-mas aria-label={tx.acercar}>+</button>
+        <button class="tal-btn" type="button" data-z-ajustar>{tx.ajustarZoom}</button>
+      </div>
+    </footer>
+
+    <div class="tal-vista-libro" data-tal-vista-libro role="dialog" aria-modal="true" aria-label={tx.verLibro} hidden>
+      <div class="tal-vl-tope">
+        <button class="tal-btn" type="button" data-vl-cerrar>← {tx.volverEscribir}</button>
+        <button class="tal-ic" type="button" data-vl-ant aria-label={tx.anterior}>‹</button>
+        <span data-vl-dice></span>
+        <button class="tal-ic" type="button" data-vl-sig aria-label={tx.siguiente}>›</button>
+      </div>
+      <div class="tal-vl-escena" data-vl-escena></div>
+    </div>
+
+    <div class="tal-formula" data-tal-formula role="dialog" aria-label={tx.formula} hidden>
+      <p>{tx.formulaAyuda}</p>
+      <div data-fx-campo></div>
+      <div class="tal-fila">
+        <button class="tal-btn tal-btn--fuerte" type="button" data-fx-listo>{tx.listo}</button>
+        <button class="tal-btn" type="button" data-fx-cancelar>{tx.cancelar}</button>
+      </div>
+    </div>
+
+    <iframe class="tal-marco" data-tal-marco title={tx.tituloVista} tabindex="-1" aria-hidden="true"></iframe>
   </div>
-
-  <template data-tal-plantilla="pieza">
-    <header class="tal-revision__cabeza">
-      <h3 class="panel__subtitulo" data-nombre tabindex="-1"></h3>
-      <button class="portal__boton portal__boton--suave" type="button" data-cerrar>{tx.cerrar}</button>
-    </header>
-    <ul class="tal-avisos" role="list" data-avisos></ul>
-    <p class="tal-pieza-dice" data-pieza-dice role="alert" hidden></p>
-    <div class="tal-fila tal-fila--ancha">
-      <label class="tal-marca"><input type="checkbox" data-segura /><span>{tx.verZonaSegura}</span></label>
-      <label class="tal-etiqueta-en-linea"><span>{tx.ajuste}</span><select class="portal__entrada" data-ajuste>
-        <option value="contener">{tx.ajustes.contener}</option><option value="cubrir">{tx.ajustes.cubrir}</option>
-      </select></label>
-      <button class="portal__boton portal__boton--suave" type="button" data-reemplazar>{tx.reemplazar}</button>
-      <input type="file" accept="application/pdf" data-archivo hidden />
-      <button class="portal__boton portal__boton--suave" type="button" data-borrar>{tx.borrar}</button>
-    </div>
-    <div class="tal-hojas" data-paginas></div>
-  </template>
 </div>

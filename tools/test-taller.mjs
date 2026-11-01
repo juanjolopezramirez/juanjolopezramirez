@@ -3,13 +3,19 @@
    Las pruebas de `pruebas-taller.mjs` y la puerta de los cinco requisitos corren aqui tambien. */
 import assert from 'node:assert/strict';
 import { ConfigPagina } from '../src/scripts/contenido/taller/ConfigPagina.js';
+import { contraste, textosPocoVisibles, tintaPara } from '../src/scripts/contenido/taller/colores.js';
+import { POR_NODO } from '../src/scripts/contenido/taller/tipos/indice.js';
 import { Zona } from '../src/scripts/contenido/taller/Zona.js';
 import { Pieza } from '../src/scripts/contenido/taller/Pieza.js';
 import { Obra } from '../src/scripts/contenido/taller/Obra.js';
 import { nombreDeFuente, urlGoogle, listaDeFuentes, FUENTES_MARCA } from '../src/scripts/contenido/taller/fuentes.js';
 import { colorValido, tamanoValido, limpiarMarcas } from '../src/scripts/contenido/taller/marcas.js';
 import { limpiarContenido, cabeEnElCapitulo, llavesDe, aNodos, textoLibro, TOPE_NODOS } from '../src/scripts/contenido/taller/TextoLibro.js';
-import { aHoja, ETIQUETAS_HOJA, ATRIBUTOS_HOJA, ESTILOS_HOJA } from '../src/scripts/contenido/taller/hoja.js';
+import { limpiarObjetos } from '../src/scripts/contenido/taller/tipos/objetos.js';
+import { aHoja, cssLibro, ETIQUETAS_HOJA, ATRIBUTOS_HOJA, ESTILOS_HOJA } from '../src/scripts/contenido/taller/hoja.js';
+import { aVersion2, necesitaMigrar, tituloDe } from '../src/scripts/contenido/taller/Migrar.js';
+import { fueraDeMargen } from '../src/scripts/contenido/taller/tipos/paginaLibre.js';
+import { OPCIONES_KATEX } from '../src/scripts/contenido/taller/tipos/formula.js';
 import { RepositorioTallerMemoria, RepositorioTallerSupabase, decidir } from '../src/scripts/contenido/taller/Repositorio.js';
 import { Autoguardado } from '../src/scripts/portal/panel/dev/taller/Autoguardado.js';
 import { CASOS } from './pruebas-taller.mjs';
@@ -130,20 +136,164 @@ const permitido = (n) => {
 await ok('todos los casos salen solo con etiquetas, atributos y estilos permitidos', () => {
   for (const c of Object.values(CASOS).flatMap((x) => [...x.bueno, ...x.hostil])) aNodos(doc(c), 'pdf').forEach(permitido);
 });
-await ok('el indice, los capitulos, y el arreglo de la letra capital partida', () => {
+await ok('el indice sale con sus numeros, cada capitulo con su ancla, y la caja del texto en pixeles enteros', () => {
   const obra = new Obra({ titulo: 'T', pagina: { indice: true } }).aDatos();
-  const h = aHoja(obra, [{ titulo: 'Uno', contenido: doc(parrafo('a')) }]);
-  assert.match(h.css, /target-counter/);
-  assert.match(h.css, /\.capital\[data-split-from\]::first-letter/);
-  assert.match(h.css, /size: 148mm 210mm/);
+  const h = aHoja(obra, [{ titulo: 'Uno', contenido: doc(parrafo('a')) }], { indice: [{ titulo: 'Uno', pagina: 2, capitulo: 1 }] });
+  assert.match(h.css, /size: 420pt 595pt/);
+  assert.ok(!/target-counter/.test(h.css));
   h.nodos.forEach(permitido);
   assert.ok(JSON.stringify(h.nodos).includes('#cap-1'));
+  assert.equal(h.titulo, 'T');
+  const p = new ConfigPagina({}).enPixeles();
+  assert.deepEqual([p.W, p.H, p.ancho, p.alto], [559, 794, 423, 635]);
+  assert.ok(Math.abs(p.mrImpresion - 69) < .02 && Math.abs(p.mbImpresion - 82.33) < .02, `${p.mrImpresion} ${p.mbImpresion}`);
 });
-await ok('una pagina de diseño sale con su imagen; sin imagen, no sale rota', () => {
-  const pieza = { ajuste: 'contener', paginas: [{ ruta: 'taller/o/p/1.webp', alt: 'Dibujo', texto: '' }] };
-  const con = aNodos(doc({ type: 'paginasPdf', attrs: { pieza: 'p1' } }), 'pdf', { piezas: { p1: pieza }, imagenes: { 'taller/o/p/1.webp': 'data:image/webp;base64,AA' } });
-  assert.equal(con[0].hijos[0].hijos[0].attrs.alt, 'Dibujo');
-  assert.equal(aNodos(doc({ type: 'paginasPdf', attrs: { pieza: 'p1' } }), 'pdf', { piezas: { p1: pieza } })[0].hijos.length, 0);
+await ok('una pagina libre: fondo, recorte que no toca la imagen, y lo raro no pasa', () => {
+  const nodo = (o) => ({ type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: o } });
+  const img = { id: 'o-abcd1234', tipo: 'imagen', ruta: 'taller/o/i.webp', x: 10, y: 10, w: 40, h: 30, rot: 12, crop: { l: .25, t: 0, r: .25, b: 0 } };
+  const imagenes = { 'taller/o/p/1.webp': 'data:image/webp;base64,AA', 'taller/o/i.webp': 'data:image/webp;base64,BB' };
+  const [{ hijos: [h] }] = aNodos(doc(nodo([img])), 'pdf', { imagenes });
+  h.hijos.forEach(permitido);
+  assert.equal(h.hijos.length, 2);
+  assert.equal(h.hijos[1].estilo.transform, 'rotate(12deg)');
+  assert.equal(h.hijos[1].hijos[0].estilo.width, '200%');
+  assert.equal(h.hijos[1].hijos[0].estilo.left, '-50%');
+  const r = limpiarContenido(doc(nodo([{ tipo: 'imagen', ruta: 'https://x.com/a.png', crop: { l: 9, r: 9 } }, { tipo: 'malo' }, { tipo: 'zona', x: 95, w: 50 }])));
+  const o = r.contenido.doc.content[0].attrs.objetos;
+  assert.equal(o.length, 2);
+  assert.equal(o[0].ruta, '');
+  assert.ok(o[0].crop.l + o[0].crop.r < 1);
+  assert.equal(o[1].x + o[1].w, 100);
+  assert.equal(aNodos(doc(nodo([{ tipo: 'zona', id: 'o-abcd1236', x: 1, y: 1, w: 9, h: 9 }])), 'pdf', {})[0].hijos[0].hijos.length, 0);
+});
+await ok('avisa lo que pasa los margenes, sin leer pixeles', () => {
+  const m = new ConfigPagina({}).aPorcentajes();
+  const r = fueraDeMargen({ caja: { x: 2, y: 20, w: 50, h: 50 }, objetos: [{ id: 'a', tipo: 'imagen', x: 80, y: 20, w: 40, h: 10 }, { id: 'b', tipo: 'imagen', x: 20, y: 20, w: 20, h: 10 }, { id: 'c', tipo: 'zona', x: 0, y: 0, w: 100, h: 100 }] }, m);
+  assert.equal(r.fondo, true);
+  assert.deepEqual(r.objetos, ['a']);
+});
+await ok('lo de la version anterior: cada pagina del PDF sale suelta con sus zonas, y el titulo entra al texto', () => {
+  const pieza = { id: 'p1', nombre: 'ahava', pdf: 'taller/o/p/o.pdf', anchoMm: 578, altoMm: 818, ajuste: 'contener', paginas: [
+    { n: 1, ruta: 'taller/o/p/1.webp', texto: 'a', alt: '', caja: null, sangre: false, zonas: [{ id: 'z-abcd1234', nombre: 'Z', x: 1, y: 2, w: 30, h: 40, bloques: [] }] },
+    { n: 2, ruta: 'taller/o/p/2.webp', texto: 'b', alt: '', caja: null, sangre: false, zonas: [] }
+  ] };
+  const v1 = { titulo: 'Uno', contenido: { version: 1, doc: { type: 'doc', content: [parrafo('Hola'), { type: 'paginasPdf', attrs: { pieza: 'p1' } }] } } };
+  assert.equal(necesitaMigrar(v1.contenido), true);
+  const v2 = aVersion2(v1, [pieza]);
+  assert.deepEqual(v2.doc.content.map((n) => n.type), ['heading', 'paragraph', 'paginaLibre', 'paginaLibre']);
+  const limpio = limpiarContenido(v2).contenido;
+  assert.equal(limpio.doc.content[2].attrs.objetos[0].tipo, 'zona');
+  assert.equal(limpio.doc.content[2].attrs.objetos[0].w, 30);
+  assert.equal(necesitaMigrar(limpio), false);
+  assert.equal(tituloDe(limpio.doc), 'Uno');
+});
+
+await ok('si la pieza vieja ya no esta, su bloque se queda: no se borra lo unico que la nombra', () => {
+  const v1 = { titulo: 'Uno', contenido: { version: 1, doc: { type: 'doc', content: [{ type: 'paginasPdf', attrs: { pieza: 'nada' } }] } } };
+  assert.deepEqual(aVersion2(v1, []).doc.content.map((n) => n.type), ['heading', 'paginasPdf']);
+});
+await ok('el titulo viejo solo se omite si el texto ya empieza con ese mismo titulo', () => {
+  const con = (t) => ({ titulo: 'Uno', contenido: { version: 1, doc: { type: 'doc', content: [{ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: t }] }] } } });
+  assert.equal(aVersion2(con('Uno'), []).doc.content.length, 1);
+  assert.equal(aVersion2(con('Otro'), []).doc.content.length, 2);
+});
+await ok('un titulo larguisimo no pasa de lo que admite la base', () => {
+  assert.equal(tituloDe({ type: 'doc', content: [{ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'a'.repeat(900) }] }] }).length, 300);
+});
+await ok('la letra automatica siempre se lee: claro, oscuro y gris medio', () => {
+  for (const p of ['#ffffff', '#111111', '#777777', '#808080', '#2f7bff', '#fbf6e9']) assert.ok(contraste(tintaPara(p), p) >= 4.5, p);
+});
+await ok('el color del libro, de sus titulos y de sus letras vuelve igual; lo raro no entra', () => {
+  const c = new ConfigPagina({ papel: '#1F2A44', letras: { Lora: '#ff0000', 'x"}': '#000000', Otra: 'url(x)' }, titulos: { t1: '#00ff00', t2: 'red' }, colores: ['#123456', 'x'], imprenta: true });
+  const d = new ConfigPagina(c.aDatos());
+  assert.equal(d.papel, '#1f2a44');
+  assert.deepEqual(d.letras, { Lora: '#ff0000' });
+  assert.deepEqual(d.titulos, { t1: '#00ff00', t2: '', t3: '' });
+  assert.deepEqual(d.colores, ['#123456']);
+  assert.equal(d.imprenta, true);
+  assert.ok(new TextEncoder().encode(JSON.stringify(new ConfigPagina({ colores: Array(40).fill('#123456'), letras: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`Fuente${i}`, '#123456'])) }).aDatos())).length < 8000);
+});
+await ok('el papel llega a la hoja: libro, capitulo y pagina libre, y el PDF traido no cambia', () => {
+  const obra = { titulo: 'T', pagina: new ConfigPagina({ papel: '#112233' }).aDatos() };
+  const libre = (a) => ({ type: 'paginaLibre', attrs: a });
+  const limpio = limpiarContenido({ papel: '#445566', doc: { type: 'doc', content: [parrafo('a'), libre({ papel: '#778899' }), libre({ fondo: 'taller/o/p/1.webp', papel: '#778899' }), libre({})] } }).contenido;
+  assert.equal(limpio.papel, '#445566');
+  const h = aHoja(obra, [{ contenido: limpio }]), texto = JSON.stringify(h.nodos);
+  assert.ok(/size: [^;]+; margin: [^;]+; background: #112233/.test(h.css));
+  assert.ok(h.css.includes('@page cap-445566 { background: #445566'));
+  assert.ok(texto.includes('capitulo papel-445566'));
+  for (const c of ['778899', 'ffffff', '445566']) { assert.ok(texto.includes(`pag-libre papel-${c}`), c); assert.ok(h.css.includes(`@page libre-${c}`), c); }
+  assert.ok(!h.css.includes('background: #fff;'));
+  assert.equal(limpiarContenido({ papel: 'url(x)', doc: { type: 'doc', content: [] } }).contenido.papel, undefined);
+});
+await ok('para imprenta el papel crece y la caja del texto no se mueve', () => {
+  const con = (imprenta) => aHoja({ titulo: 'T', pagina: new ConfigPagina({ imprenta }).aDatos() }, [{ contenido: doc(parrafo('a')) }]).css;
+  const medida = (css) => css.match(/size: (\d+)pt (\d+)pt/).slice(1).map(Number);
+  assert.deepEqual(medida(con(true)), medida(con(false)).map((v) => v + 18));
+  assert.ok(con(true).includes('inset: 9pt'));
+});
+await ok('un boton: solo enlaces https, y en el PDF copiar no finge ser enlace', () => {
+  const b = (attrs) => limpiarContenido({ doc: { type: 'doc', content: [{ type: 'boton', attrs }] } }).contenido.doc.content[0];
+  const malos = ['http://a.co', 'javascript:alert(1)', '/ruta', 'mailto:a@b.co', 'https://a.co/"x'];
+  for (const m of malos) assert.equal(b({ enlace: m }).attrs.enlace, '', m);
+  assert.equal(b({ enlace: 'https://a.co/x' }).attrs.enlace, 'https://a.co/x');
+  const pdfDe = (attrs) => POR_NODO.get('boton').pdf(b(attrs));
+  assert.equal(pdfDe({ accion: 'enlace', enlace: 'https://a.co/x', texto: 'Ir' }).tag, 'a');
+  assert.equal(pdfDe({ accion: 'copiar', copia: 'Hola', texto: 'Copiar' }).tag, 'div');
+  assert.equal(pdfDe({ accion: 'enlace', enlace: 'http://a.co', texto: 'Ir' }).tag, 'div');
+  const w = POR_NODO.get('boton').web(b({ accion: 'copiar', copia: 'Hola', texto: 'Copiar' }));
+  assert.equal(w.attrs['data-copiar'], 'Hola');
+  assert.equal(b({ copia: 'x'.repeat(9000), accion: 'copiar' }).attrs.copia.length, 5000);
+  assert.deepEqual(Object.keys(pdfDe({ fondo: '#123456' }).estilo).sort(), ['background-color', 'color']);
+  for (const k of Object.keys(pdfDe({ fondo: '#123456' }).estilo)) assert.ok(ESTILOS_HOJA.has(k), k);
+});
+await ok('lo que copia un boton no lleva caracteres invisibles; el hebreo y los emojis si quedan', () => {
+  const b = (copia) => limpiarContenido({ doc: { type: 'doc', content: [{ type: 'boton', attrs: { accion: 'copiar', copia } }] } }).contenido.doc.content[0].attrs.copia;
+  const ocultos = ['\u202E', '\u2066', '\u200B', '\uFEFF', '\u0007', '\r', String.fromCodePoint(0xE0041), String.fromCodePoint(0xE0100)];
+  assert.equal(b(`a${ocultos.join('')}b`), 'ab');
+  const bueno = 'uno\ndos\ttres \u05D0\u200F \u{1F469}\u200D\u{1F4BB}\uFE0F';
+  assert.equal(b(bueno), bueno);
+  const obj = limpiarObjetos([{ id: 'o-abcd1234', tipo: 'boton', accion: 'copiar', copia: 'a\u202Eb' }]);
+  assert.equal(obj[0].copia, 'ab');
+});
+await ok('una fuente llamada constructor no escribe nada raro en el estilo', () => {
+  const c = new ConfigPagina({ cuerpo: { fuente: 'constructor' } }).aDatos();
+  assert.ok(!cssLibro(c).includes('native code'));
+  assert.ok(!aHoja({ titulo: 'T', pagina: c }, [{ contenido: doc(parrafo('a')) }]).css.includes('native code'));
+});
+await ok('avisa de lo pintado a mano que casi no se ve sobre su hoja', () => {
+  const c = { papel: '#111111', doc: { type: 'doc', content: [
+    { type: 'paragraph', content: [{ type: 'text', text: 'a', marks: [{ type: 'textStyle', attrs: { color: '#222222' } }] }] },
+    { type: 'paginaLibre', attrs: { papel: '#ffffff', objetos: [{ tipo: 'texto', color: '#fefefe' }, { tipo: 'texto', color: '#111111' }, { tipo: 'texto', color: '' }] } }
+  ] } };
+  assert.equal(textosPocoVisibles(c, ''), 2);
+});
+await ok('un salto de linea al final tambien ocupa su renglon', () => {
+  const obra = { titulo: 'T', pagina: new ConfigPagina({ indice: false }).aDatos() };
+  const h = aHoja(obra, [{ contenido: doc({ type: 'paragraph', content: [{ type: 'text', text: 'a' }, { type: 'hardBreak' }] }) }]);
+  assert.equal(JSON.stringify(h.nodos).match(/"tag":"br"/g).length, 2);
+});
+await ok('un renglon vacio ocupa su lugar en la hoja, y una pagina libre empieza en el borde', () => {
+  const obra = { titulo: 'T', pagina: new ConfigPagina({ indice: false }).aDatos() };
+  const h = aHoja(obra, [{ contenido: doc({ type: 'paragraph' }, { type: 'heading', attrs: { level: 2 } }) }]);
+  const texto = JSON.stringify(h.nodos);
+  assert.equal(texto.match(/"tag":"br"/g).length, 2);
+  assert.ok(!/\.pag-libre \{[^}]*margin-left/.test(h.css));
+});
+
+await ok('una formula se guarda como texto y sale marcada para dibujarse; nada de scripts', () => {
+  const r = limpiarContenido(doc({ type: 'paragraph', content: [{ type: 'text', text: 'a ' }, { type: 'formula', attrs: { tex: '\\frac{1}{2}\u0007', x: 1 } }] }));
+  const f = r.contenido.doc.content[0].content[1];
+  assert.deepEqual(f, { type: 'formula', attrs: { tex: '\\frac{1}{2}' } });
+  const [p] = aNodos(r.contenido, 'pdf');
+  p.hijos.forEach(permitido);
+  assert.equal(p.hijos[1].attrs['data-tex'], '\\frac{1}{2}');
+  assert.equal(OPCIONES_KATEX.trust, false);
+  assert.equal(limpiarContenido(r.contenido).contenido.doc.content[0].content[1].attrs.tex.length, 11);
+});
+await ok('exponente y subindice salen como tales', () => {
+  const [p] = aNodos(doc(parrafo('2', [{ type: 'superscript' }])), 'pdf');
+  assert.equal(p.hijos[0].tag, 'sup');
 });
 
 console.log('dos pestañas');

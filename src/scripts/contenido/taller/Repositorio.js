@@ -11,6 +11,7 @@
    escribio: si fui yo (mi guardado anterior llego tarde) se sigue; si fue otra, es un conflicto
    y nunca se sobrescribe en silencio. */
 import { deFila } from '../comun.js';
+import { VERSION_CONTENIDO } from './Migrar.js';
 
 export function decidir(actual, pestana) {
   if (!actual) return { error: 'permiso' };
@@ -18,6 +19,9 @@ export function decidir(actual, pestana) {
 }
 
 const nuevoId = () => crypto.randomUUID();
+const contenidoNuevo = (titulo) => ({ version: VERSION_CONTENIDO, doc: { type: 'doc', content: [
+  { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: titulo }] }, { type: 'paragraph' }
+] } });
 const copiaProfunda = (v) => JSON.parse(JSON.stringify(v));
 const COPIAS_AUTO = 30;
 
@@ -60,7 +64,7 @@ export class RepositorioTallerMemoria {
   async crearCapitulo(obraId, titulo) {
     const id = nuevoId();
     const orden = [...this.capitulosM.values()].filter((c) => c.obraId === obraId).length;
-    const fila = { id, obraId, orden, titulo, contenido: { version: 1, doc: { type: 'doc', content: [{ type: 'paragraph' }] } }, letras: 0, rev: 1, pestana: null };
+    const fila = { id, obraId, orden, titulo, contenido: contenidoNuevo(titulo), letras: 0, rev: 1, pestana: null };
     this.capitulosM.set(id, fila);
     return { ok: true, fila: copiaProfunda(fila) };
   }
@@ -176,7 +180,7 @@ export class RepositorioTallerSupabase {
     const ya = await this.pedir(this.sb.from('taller_capitulos').select('orden').eq('obra_id', obraId).order('orden', { ascending: false }).limit(1));
     if (ya.error) return ya;
     const orden = ya.data.length ? ya.data[0].orden + 1 : 0;
-    const contenido = { version: 1, doc: { type: 'doc', content: [{ type: 'paragraph' }] } };
+    const contenido = contenidoNuevo(titulo);
     const r = await this.pedir(this.sb.from('taller_capitulos').insert({ obra_id: obraId, orden, titulo, contenido }).select('id,obra_id,orden,titulo,contenido,letras,rev').single());
     return r.error ? r : { ok: true, fila: deFila(r.data) };
   }

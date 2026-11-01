@@ -9,13 +9,13 @@
    quita las marcas invisibles que el hebreo y el arabe necesitan para leerse bien. */
 import { bytes, objeto } from '../comun.js';
 import { POR_NODO } from './tipos/indice.js';
-import { limpiarMarcas } from './marcas.js';
+import { colorValido, limpiarMarcas } from './marcas.js';
 import { el, txt } from './tipos/ayuda.js';
+import { VERSION_CONTENIDO } from './Migrar.js';
 
 export const TOPE_BYTES = 3 * 1000 * 1000;
 export const TOPE_NODOS = 50000;
 const PROFUNDIDAD_MAX = 40;
-const VERSION = 1;
 
 /* Quita controles y lo que da la vuelta al texto; conserva ZWJ, ZWNJ, LRM y RLM */
 const QUITAR = /[\u0000-\u0008\u000B-\u001F\u007F‪-‮⁦-⁩﻿]/g;
@@ -65,6 +65,8 @@ function enLinea(lista, cuenta) {
     const o = objeto(n);
     cuenta.nodos++;
     if (o.type === 'hardBreak') { salida.push({ type: 'hardBreak' }); continue; }
+    const fila = POR_NODO.get(o.type);
+    if (fila && fila.enLinea) { salida.push({ type: o.type, attrs: fila.datos(o.type, objeto(o.attrs)) }); continue; }
     const t = o.type === 'text' ? textoLibro(o.text) : soloTexto(o);
     if (o.type !== 'text') cuenta.descartados++;
     if (!t) continue;
@@ -77,11 +79,12 @@ function enLinea(lista, cuenta) {
   return salida;
 }
 
-/* { contenido: { version, doc }, letras, nodos, descartados } */
+/* { contenido: { version, papel?, doc }, letras, nodos, descartados }. `papel` es el color del capitulo. */
 export function limpiarContenido(json) {
   const o = objeto(json), doc = objeto(o.doc || o), cuenta = { nodos: 0, letras: 0, descartados: 0 };
   const hijos = bloques(doc.content, cuenta, 0, false);
-  return { contenido: { version: VERSION, doc: { type: 'doc', content: hijos.length ? hijos : [vacio()] } }, ...cuenta };
+  const papel = colorValido(o.papel);
+  return { contenido: { version: VERSION_CONTENIDO, ...(papel ? { papel } : {}), doc: { type: 'doc', content: hijos.length ? hijos : [vacio()] } }, ...cuenta };
 }
 
 /* ¿Cabe? Si no, no se guarda: nunca se corta un libro */
@@ -108,6 +111,8 @@ function marcado(n) {
     else if (m.type === 'italic') nodo = el('em', '', [nodo]);
     else if (m.type === 'underline') nodo = el('u', '', [nodo]);
     else if (m.type === 'strike') nodo = el('s', '', [nodo]);
+    else if (m.type === 'superscript') nodo = el('sup', '', [nodo]);
+    else if (m.type === 'subscript') nodo = el('sub', '', [nodo]);
     else if (m.type === 'link') nodo = el('a', '', [nodo], { href: m.attrs.href });
     else if (m.type === 'textStyle') {
       const a = m.attrs, estilo = {};

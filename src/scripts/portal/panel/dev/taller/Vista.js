@@ -1,9 +1,5 @@
-/* LA VISTA DE PAGINAS. Es una pagina aparte del sitio (/taller-hoja/) dentro de un marco, para que
-   el paginador no toque los estilos del portal. Se le manda el libro por mensaje, y para cortar
-   un pintado a medias se recarga el marco: mas barato que limpiar lo que ya hizo.
-
-   El marco debe estar a la vista mientras pagina: el paginador avanza con cada cuadro de pantalla
-   y en uno escondido se detiene. Que tarde no es un fallo. */
+/* SACAR EL PDF. Una pagina aparte del sitio (/taller-hoja/) en un marco fuera de la vista: el libro se le
+   manda por mensaje, se arma con el mismo estilo de la mesa, y el navegador abre su ventana de imprimir. */
 const RUTA = '/taller-hoja/';
 const ESPERA_MS = 20000;              // lo que puede tardar la pagina del marco en contestar
 
@@ -22,19 +18,18 @@ export class Vista {
     if (e.source !== this.marco.contentWindow || e.origin !== window.location.origin) return;
     const m = e.data || {};
     if (m.tipo === 'lista') {
-      clearTimeout(this.reloj);
       if (this.pendiente) this.marco.contentWindow.postMessage(this.pendiente, window.location.origin);
     } else if (m.id !== this.numero) return;
-    else if (m.tipo === 'pintada') { this.pendiente = null; this.alPintar(m.paginas, m.id); } else if (m.tipo === 'fallo') { this.pendiente = null; this.alFallar(); }
+    else if (m.tipo === 'pintada') { clearTimeout(this.reloj); this.pendiente = null; this.alPintar(); } else if (m.tipo === 'fallo') { clearTimeout(this.reloj); this.pendiente = null; this.alFallar(); }
   }
 
-  /* { css, nodos, fuentes } */
+  /* { css, nodos, fuentes, titulo, idioma } */
   pintar(hoja) {
     this.numero += 1;
     this.pendiente = { tipo: 'pintar', id: this.numero, ...hoja };
     clearTimeout(this.reloj);
     this.reloj = setTimeout(() => { this.pendiente = null; this.alFallar(); }, ESPERA_MS);
-    if (this.marco.src) this.marco.contentWindow.location.replace(RUTA);
+    if (this.marco.getAttribute('src')) this.marco.contentWindow.location.replace(RUTA);
     else this.marco.src = RUTA;
   }
 

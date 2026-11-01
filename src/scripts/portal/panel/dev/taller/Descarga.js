@@ -28,7 +28,7 @@ export async function bajarLibro({ obra, capitulos, piezas, conArchivos, bajar, 
   let faltan = 0;
   if (conArchivos) {
     const imagenes = capitulos.flatMap((c) => [...rutasDe((c.contenido && c.contenido.doc) || {})]);
-    const rutas = [...new Set([...imagenes, ...piezas.flatMap((p) => [p.pdf, ...p.paginas.map((g) => g.ruta)])].filter(Boolean))];
+    const rutas = [...new Set([...imagenes, ...piezas.flatMap((p) => [p.pdf, ...(p.paginas || []).map((g) => g.ruta)])].filter(Boolean))];
     for (const r of rutas) {
       const b = await bajar(r);
       if (b && b.ok) archivos[r] = await aBase64(b.blob); else faltan++;

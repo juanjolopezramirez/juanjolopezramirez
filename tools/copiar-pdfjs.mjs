@@ -19,11 +19,14 @@ const { version } = JSON.parse(readFileSync(join(origen, 'package.json'), 'utf8'
 const destino = join(raiz, 'public/vendor', `pdfjs-${version}`);
 
 if (!existsSync(join(destino, 'pdf.worker.min.js'))) {
-  rmSync(join(raiz, 'public/vendor'), { recursive: true, force: true });
+  rmSync(join(raiz, 'public/vendor', ''), { recursive: true, force: true });
   mkdirSync(destino, { recursive: true });
   copyFileSync(join(origen, 'build/pdf.worker.min.mjs'), join(destino, 'pdf.worker.min.js'));
   for (const carpeta of ['wasm', 'cmaps', 'standard_fonts', 'iccs']) {
     cpSync(join(origen, carpeta), join(destino, carpeta), { recursive: true, filter: (f) => !/quickjs/.test(f) });
   }
 }
-console.log(`pdf.js ${version} listo en public/vendor/`);
+/* Las letras de MathLive, que tambien se piden por su direccion */
+const letras = join(raiz, 'public/vendor/mathlive/fonts');
+if (!existsSync(letras)) cpSync(join(raiz, 'node_modules/mathlive/fonts'), letras, { recursive: true });
+console.log(`pdf.js ${version} y las letras de MathLive listos en public/vendor/`);

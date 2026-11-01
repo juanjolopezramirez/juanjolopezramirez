@@ -57,5 +57,7 @@ export default defineConfig({
     // del CSS: un HTML guardado pedia una hoja que ya no existia y la pagina
     // salia sin estilos. Dentro, HTML y estilos llegan siempre juntos.
     inlineStylesheets: 'always'
-  }
+  },
+  // Las letras van siempre como archivo: la politica de contenido no deja letras escritas en «data:»
+  vite: { build: { assetsInlineLimit: (archivo) => (/\.woff2?$/.test(archivo) ? false : undefined) } }
 });

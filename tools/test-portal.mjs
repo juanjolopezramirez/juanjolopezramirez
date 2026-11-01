@@ -1371,7 +1371,7 @@ ok('Taller: esta en Developer-Mode, va a «Más» en el telefono, y Tiptap, pdf.
   assert.ok(!S.enBarra('taller'));
   assert.match(leer('src/scripts/portal/panel.js'), /taller: \(\) => import\('\.\/panel\/dev\/Taller\.js'\)/);
   const andar = (d) => fs.readdirSync(path.join(raiz, d), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? andar(`${d}/${e.name}`) : [`${d}/${e.name}`]));
-  const unicos = { '@tiptap/core': 'taller', 'pdfjs-dist': 'Pdf.js', pagedjs: 'Paginador.js' };
+  const unicos = { '@tiptap/core': 'taller', 'pdfjs-dist': 'Pdf.js', mathlive: 'Formulas.js' };
   for (const f of andar('src').filter((x) => /\.(js|astro)$/.test(x))) {
     const t = leer(f);
     for (const [pq, donde] of Object.entries(unicos)) if (new RegExp(`from '${pq}|import\\('${pq}`).test(t)) assert.ok(f.includes(donde), `${pq} en ${f}`);
@@ -1384,7 +1384,7 @@ ok('Taller: el backend de verdad y el de prueba lo tienen en el mismo lugar, `be
 });
 ok('Taller: versiones exactas, y la hoja no esta en el mapa del sitio ni la encuentran los buscadores', () => {
   const pq = JSON.parse(leer('package.json'));
-  for (const n of ['@tiptap/core', '@tiptap/pm', '@tiptap/starter-kit', '@tiptap/extension-text-style', 'pagedjs', 'pdfjs-dist']) {
+  for (const n of ['@tiptap/core', '@tiptap/pm', '@tiptap/starter-kit', '@tiptap/extension-text-style', '@tiptap/extension-superscript', '@tiptap/extension-subscript', 'pdfjs-dist', 'mathlive', 'katex']) {
     assert.match(pq.dependencies[n], /^\d+\.\d+\.\d+$/, n);
     assert.ok(leer('THIRD-PARTY.md').includes(n.split('/')[0]), `${n} en THIRD-PARTY.md`);
   }

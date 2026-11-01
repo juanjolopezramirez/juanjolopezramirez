@@ -25,7 +25,8 @@ export const Columnas = Node.create({
   },
   parseHTML() { return [{ tag: 'div[data-columnas]' }]; },
   renderHTML({ node }) {
-    return ['div', { 'data-columnas': '1', 'data-anchos': node.attrs.anchos.join(' '), class: 'tal-columnas', style: `grid-template-columns:${node.attrs.anchos.map((x) => `${x}fr`).join(' ')}` }, 0];
+    const anchos = Array.isArray(node.attrs.anchos) ? node.attrs.anchos : [1, 1];
+    return ['div', { 'data-columnas': '1', 'data-anchos': anchos.join(' '), class: 'tal-columnas', style: `grid-template-columns:${anchos.map((x) => `${x}fr`).join(' ')}` }, 0];
   },
   addCommands() {
     return {

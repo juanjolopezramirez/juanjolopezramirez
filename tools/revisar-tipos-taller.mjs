@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
-const AUXILIARES = new Set(['indice.js', 'ayuda.js']);
+const AUXILIARES = new Set(['indice.js', 'ayuda.js', 'objetos.js']);
 
 export async function revisarTiposTaller(dir = raiz, casosDe = null, tiposDe = null) {
   const { TIPOS } = tiposDe || await import(new URL('../src/scripts/contenido/taller/tipos/indice.js', import.meta.url));
@@ -37,6 +37,13 @@ export async function revisarTiposTaller(dir = raiz, casosDe = null, tiposDe = n
         aNodos(limpio.contenido, 'pdf');
       } catch (e) { fallos.push(`${t.tipo}: un caso rompe la salida (${e.message})`); }
     }
+  }
+  /* Cada clase de objeto de una pagina libre tambien trae sus partes y sale en sus pruebas */
+  const { OBJETOS } = await import(new URL('../src/scripts/contenido/taller/tipos/objetos.js', import.meta.url));
+  const probados = JSON.stringify(CASOS.paginaLibre || {});
+  for (const [k, o] of Object.entries(OBJETOS)) {
+    if (!o.limpiar || !o.pdf) fallos.push(`objeto ${k}: le falta limpiar o pdf`);
+    if (!probados.includes(`"tipo":"${k}"`)) fallos.push(`objeto ${k}: faltan sus pruebas`);
   }
   if (fallos.length) throw new Error('\n\n  TALLER: bloques incompletos.\n  · ' + fallos.join('\n  · ') + '\n');
   return true;

@@ -79,7 +79,7 @@ export function abrirDemo() {
   tallerMemoria.crearObra({ titulo: 'Libro de prueba', idioma: 'es', pagina: { anchoMm: 148, altoMm: 210, indice: true }, fuentes: [] })
     .then((r) => tallerMemoria.abrir(r.id)).then((r) => tallerMemoria.guardarCapitulo({
       ...r.capitulos[0],
-      contenido: { version: 1, doc: { type: 'doc', content: [{ type: 'paragraph', attrs: { capital: true }, content: [{ type: 'text', text: 'Hola, {nombre}. Este libro te habla a ti.' }] }] } }
+      contenido: { version: 2, doc: { type: 'doc', content: [{ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Capítulo 1' }] }, { type: 'paragraph', attrs: { capital: true }, content: [{ type: 'text', text: 'Hola, {nombre}. Este libro te habla a ti.' }] }] } }
     }, 'semilla'));
   /* Tablero en memoria (como supabase/009): una lectura por semana y dominio, y las piedras con su fecha */
   const hoy = semanaDe();

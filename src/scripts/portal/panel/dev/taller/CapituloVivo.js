@@ -1,0 +1,106 @@
+/* UN CAPITULO ABIERTO EN LA MESA: su editor, su guardado y sus hojas.
+
+   LAS HOJAS LAS CORTA EL NAVEGADOR. El texto vive en columnas de la altura exacta de la caja de texto
+   (`column-wrap`), una debajo de otra, y el papel blanco se dibuja detras. Una pagina libre es un
+   bloque que llena su columna, con la hoja entera por encima. Asi cada corte de pantalla es el mismo
+   del PDF, porque el motor es el mismo (la prueba de la Etapa 1 lo comprobo pagina por pagina). */
+import { variablesDe } from '../../../../contenido/taller/colores.js';
+import { Autoguardado } from './Autoguardado.js';
+import { crearEditor } from './Editor.js';
+import { limpiarContenido, cabeEnElCapitulo } from '../../../../contenido/taller/TextoLibro.js';
+import { tituloDe } from '../../../../contenido/taller/Migrar.js';
+
+const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
+
+export class CapituloVivo {
+  constructor(cap, mesa) {
+    this.cap = cap;
+    this.mesa = mesa;
+    this.filas = [];                  // { fila, vista } vista = la hoja libre de esa fila, o null
+    this.caja = crear('section', 'corrida');
+    this.caja.dataset.c = cap.id;
+    const c = crear('div', 'corrida__texto');
+    this.caja.append(c);
+    this.papel = limpiarContenido(cap.contenido).contenido.papel || '';
+    this.pintarPapel();
+    this.guardado = new Autoguardado({ guardar: () => this.guardar(), alEstado: (e) => mesa.alEstado(this, e) });
+    this.editor = crearEditor(c, {
+      contenido: limpiarContenido(cap.contenido).contenido.doc, tx: mesa.tx, etiqueta: `${mesa.tx.etiquetaEditor}: ${cap.titulo}`, idioma: mesa.idioma(), mesa, editable: mesa.editable,
+      alCambiar: () => { this.guardado.marcar(); mesa.alEscribir(this); },
+      alMover: () => mesa.alMoverCursor(this),
+      alEnfocar: () => mesa.alEnfocarEditor(this),
+      alBarra: () => mesa.entrarACinta()
+    });
+  }
+
+  get doc() { return this.editor.getJSON(); }
+
+  /* El color de este capitulo. Sin el suyo, cada hoja hereda el del libro. */
+  pintarPapel() {
+    const v = this.papel ? variablesDe(this.papel) : { '--hoja-papel': '', '--hoja-tinta': '', '--hoja-enlace': '' };
+    for (const [k, x] of Object.entries(v)) this.caja.style.setProperty(k, x);
+  }
+
+  /* Cambiar el texto sin dejar rastro en «deshacer»: un Ctrl+Z de mas no debe traer otro texto */
+  ponerTexto(doc) { this.editor.chain().setMeta('addToHistory', false).setContent(doc, { emitUpdate: false }).run(); }
+
+  async guardar() {
+    const c = this.cap, limpio = limpiarContenido({ doc: this.doc, papel: this.papel });
+    if (!cabeEnElCapitulo(limpio)) return { error: 'lleno' };
+    c.contenido = limpio.contenido;
+    c.letras = limpio.letras;
+    c.titulo = tituloDe(limpio.contenido.doc);
+    let r = await this.mesa.be.taller.guardarCapitulo(c.aDatos(), this.mesa.pestana);
+    if (r.reintentar) { c.rev = r.rev; r = await this.mesa.be.taller.guardarCapitulo(c.aDatos(), this.mesa.pestana); }
+    if (r.ok) { c.rev = r.rev; return { ok: true }; }
+    return r;
+  }
+
+  /* Cuantas hojas ocupa, cuales son libres, y sus numeros */
+  medir(numeroInicial, p, z, segura) {
+    const f = this.editor.view.dom, paso = p.H + p.gap;
+    const n = Math.max(1, Math.round((f.offsetHeight + (paso - p.alto)) / paso));
+    this.caja.style.height = `${n * p.H + (n - 1) * p.gap}px`;
+    const arriba = f.getBoundingClientRect().top;
+    const libres = new Map();
+    for (const v of this.mesa.vistas) {
+      if (v.editor !== this.editor) continue;
+      const fila = Math.round((v.dom.getBoundingClientRect().top - arriba) / z / paso);
+      libres.set(fila, v);
+    }
+    this.caja.querySelectorAll('.pie, .seg--texto').forEach((x) => x.remove());
+    this.filas = [];
+    for (let i = 0; i < n; i++) {
+      const vista = libres.get(i) || null;
+      this.filas.push({ fila: i, vista });
+      if (vista) continue;
+      const top = i * paso;
+      const num = crear('div', 'pie', this.mesa.verNumeros() ? String(numeroInicial + i) : '');
+      num.style.top = `${top + p.H - 44}px`;
+      this.caja.append(num);
+      if (segura) {
+        const s = crear('div', 'seg seg--texto');
+        Object.assign(s.style, { left: `${p.ml}px`, right: `${p.mr}px`, top: `${top + p.mt}px`, height: `${p.alto}px` });
+        s.append(crear('span', '', this.mesa.tx.zonaSegura));
+        this.caja.append(s);
+      }
+    }
+    return n;
+  }
+
+  /* El primer bloque que cae en una fila: ahi se suelta una pagina libre. Nunca parte un parrafo. */
+  posicionDeFila(fila, p, z) {
+    const v = this.editor.view, arriba = v.dom.getBoundingClientRect().top, paso = p.H + p.gap;
+    let pos = 0, hallada = null;
+    v.state.doc.forEach((n, inicio) => {
+      if (hallada !== null) return;
+      const c = v.coordsAtPos(Math.min(inicio + 1, v.state.doc.content.size));
+      const f = Math.round((c.top - arriba) / z / paso - .3);
+      if (f >= fila) hallada = inicio;
+      pos = inicio + n.nodeSize;
+    });
+    return hallada === null ? pos : hallada;
+  }
+
+  soltar() { this.guardado.soltar(); this.editor.destroy(); }
+}

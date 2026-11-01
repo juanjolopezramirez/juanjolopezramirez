@@ -1,13 +1,14 @@
-/* LO QUE CORRE DENTRO DEL MARCO DE LA VISTA. Espera el libro del panel, arma los elementos uno por
-   uno (nunca HTML escrito), carga las fuentes y pagina. Solo acepta mensajes de la pagina que lo
+/* LO QUE CORRE DENTRO DEL MARCO DE IMPRESION. Espera el libro del panel, arma los elementos uno por
+   uno (nunca HTML escrito) y carga las fuentes. Solo acepta mensajes de la pagina que lo
    contiene, y vuelve a mirar las listas de hoja.js: aqui no se confia en lo que llega. */
 import { ATRIBUTOS_HOJA, ESTILOS_HOJA, ETIQUETAS_HOJA } from '../../contenido/taller/hoja.js';
 import { urlGoogle } from '../../contenido/taller/fuentes.js';
 import { enlaceSeguro } from '../../contenido/comun.js';
-import { paginar } from './Paginador.js';
+import { OPCIONES_KATEX, TEX_MAX } from '../../contenido/taller/tipos/formula.js';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 const ESPERA_FUENTE_MS = 4000;
-const MARGEN_VISTA_PX = 28;
 const avisar = (m) => window.parent.postMessage(m, window.location.origin);
 
 function valorSeguro(tag, k, v) {
@@ -16,6 +17,7 @@ function valorSeguro(tag, k, v) {
   if (k === 'href') return v.startsWith('#') ? /^#[a-z0-9-]+$/.test(v) : enlaceSeguro(v);
   if (k === 'id') return /^[a-z0-9-]+$/.test(v);
   if (k === 'start') return /^\d{1,5}$/.test(v);
+  if (k === 'data-tex') return v.length <= TEX_MAX;
   return true;
 }
 
@@ -47,15 +49,6 @@ async function fuentes(nombres) {
   ]);
 }
 
-/* La pagina se ve entera en el ancho del marco. Solo en pantalla: al imprimir no se escala nada. */
-function ajustar() {
-  const pagina = document.querySelector('.pagedjs_page');
-  if (!pagina) return;
-  const ancho = pagina.offsetWidth + MARGEN_VISTA_PX;
-  document.documentElement.style.setProperty('--zoom', String(Math.min(1, window.innerWidth / ancho)));
-}
-window.addEventListener('resize', ajustar);
-
 window.addEventListener('message', async (e) => {
   if (e.source !== window.parent || e.origin !== window.location.origin) return;
   const m = e.data || {};
@@ -65,11 +58,15 @@ window.addEventListener('message', async (e) => {
     if (typeof m.titulo === 'string' && m.titulo) document.title = m.titulo;
     if (/^[a-z]{2}$/.test(m.idioma)) document.documentElement.lang = m.idioma;
     await fuentes(Array.isArray(m.fuentes) ? m.fuentes : []);
-    const t = document.createElement('template');
-    (m.nodos || []).forEach((n) => { const c = armar(n); if (c) t.content.append(c); });
-    const paginas = await paginar(String(m.css), t.content, document.querySelector('#destino'));
-    ajustar();
-    avisar({ tipo: 'pintada', id: m.id, paginas });
+    const estilo = document.createElement('style');
+    estilo.textContent = String(m.css);
+    document.head.append(estilo);
+    const destino = document.querySelector('#destino');
+    destino.replaceChildren(...(m.nodos || []).map(armar).filter(Boolean));
+    destino.querySelectorAll('[data-tex]').forEach((f) => { const tex = f.getAttribute('data-tex'); f.textContent = ''; f.dir = 'ltr'; try { katex.render(tex, f, OPCIONES_KATEX); } catch (e) { f.textContent = tex; } });
+    await document.fonts.ready;
+    await Promise.all([...destino.querySelectorAll('img')].map((i) => (i.decode ? i.decode().catch(() => {}) : null)));
+    avisar({ tipo: 'pintada', id: m.id });
   } catch (err) {
     avisar({ tipo: 'fallo', id: m.id });
   }

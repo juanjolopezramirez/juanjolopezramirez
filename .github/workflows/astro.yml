@@ -75,6 +75,7 @@ jobs:
           node tools/test-portal.mjs
           node tools/test-contenido.mjs
           node tools/test-taller.mjs
+          node tools/test-taller-base.mjs
 
       # Astro 7.4 pide Node 22.23.4 o mas; 24 es el que se probo en local.
       - name: Install, build, and upload Site

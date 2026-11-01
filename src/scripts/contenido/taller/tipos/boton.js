@@ -1,0 +1,45 @@
+/* Un boton: abre un enlace o copia un texto que deja el fundador. Va en su propia linea del texto, o suelto
+   en una pagina libre (tipos/objetos.js). Un PDF no puede tocar el portapapeles: ahi el boton de copiar
+   solo se dibuja, y funciona en el libro web. Sin su enlace o su texto se avisa en la mesa, y sale sin accion. */
+import { enlaceSeguro, texto } from '../../comun.js';
+import { colorValido } from '../marcas.js';
+import { tintaPara } from '../colores.js';
+import { alineacion, el, txt } from './ayuda.js';
+
+export const tipo = 'boton';
+export const nodos = ['boton'];
+export const contextos = ['texto'];
+export const contiene = 'nada';
+export const editor = 'boton';
+export const TEXTO_MAX = 120;
+export const COPIA_MAX = 5000;
+
+/* Lo que se copia va a parar a otra herramienta, como una IA, que puede leer lo que aqui no se ve: se va todo
+   caracter invisible. Quedan el salto de linea, el tabulador y lo que necesitan el hebreo y los emojis. */
+const OCULTOS = new RegExp('[\\u0000-\\u0008\\u000B-\\u001F\\u007F-\\u009F\\u200B\\u2028-\\u202E\\u2060-\\u206F\\uFEFF\\u{E0000}-\\u{E007F}\\u{E0100}-\\u{E01EF}]', 'gu');
+
+export const enlaceDeBoton = (v) => (enlaceSeguro(v) && v.startsWith('https://') ? v : '');
+
+export const datosDeBoton = (a) => ({
+  texto: texto(a.texto, TEXTO_MAX), accion: a.accion === 'copiar' ? 'copiar' : 'enlace', enlace: enlaceDeBoton(a.enlace),
+  copia: typeof a.copia === 'string' ? a.copia.replace(OCULTOS, '').slice(0, COPIA_MAX) : '', fondo: colorValido(a.fondo), color: colorValido(a.color)
+});
+
+export const datos = (_, a) => ({ ...datosDeBoton(a), alinear: alineacion(a.alinear) });
+export const botonIncompleto = (o) => (o.accion === 'copiar' ? !o.copia : !o.enlace);
+
+export const estiloDeBoton = (o) => ({
+  ...(o.fondo ? { 'background-color': o.fondo, color: o.color || tintaPara(o.fondo) } : {}),
+  ...(o.color ? { color: o.color } : {})
+});
+
+export function piezaDeBoton(o, clase, estilo, web) {
+  const e = { ...estiloDeBoton(o), ...estilo }, hijos = [txt(o.texto)];
+  if (o.accion === 'enlace' && o.enlace) return el('a', clase, hijos, { href: o.enlace }, e);
+  if (web && o.accion === 'copiar' && o.copia) return el('button', clase, hijos, { type: 'button', 'data-copiar': o.copia }, e);
+  return el('div', clase, hijos, {}, e);
+}
+
+const clase = (a) => `boton${a.alinear ? ` boton--${a.alinear}` : ''}`;
+export const pdf = (n) => piezaDeBoton(n.attrs, clase(n.attrs), {}, false);
+export const web = (n) => piezaDeBoton(n.attrs, clase(n.attrs), {}, true);
