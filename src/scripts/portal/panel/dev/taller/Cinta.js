@@ -14,7 +14,7 @@ const MARCAS = { bold: 'toggleBold', italic: 'toggleItalic', underline: 'toggleU
 const PARADAS = 'button, select, input:not([type="file"]), summary';
 
 /* Los formularios tienen su propio Tab: alli las flechas son del campo */
-const FUERA_DE_LA_FILA = '.tal-b-panel, .tal-pagina, .tal-colores';
+const FUERA_DE_LA_FILA = '.tal-b-panel, .tal-color__panel, .tal-pagina, .tal-colores';
 
 export class Cinta {
   constructor(raiz, { tx, editor, alError, alImagen, alPdf, alNuevaFuente, alInsertar, alFormula, alVolver, alColor, recientes, fuentes }) {
@@ -134,7 +134,7 @@ export class Cinta {
 
   prepararPlegables() {
     this.raiz.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => {
-      if (!d.open || d.matches('.tal-color')) return;
+      if (!d.open) return;
       const c = d.querySelector('input, [data-b-simbolos] button');
       if (c) c.focus();
     }));
@@ -217,7 +217,7 @@ export class Cinta {
     if (!e) return;
     this.raiz.querySelectorAll('[data-b-marca]').forEach((b) => b.setAttribute('aria-pressed', String(e.isActive(b.dataset.bMarca))));
     const a = e.getAttributes('textStyle');
-    if (!this.color.nodo.open) this.color.poner(colorValido(a.color));
+    if (!this.color.caja.matches(':popover-open')) this.color.poner(colorValido(a.color));
     if (document.activeElement !== this.tamano) this.tamano.value = a.fontSize ? parseFloat(a.fontSize) : '';
     if (document.activeElement !== this.fuente) this.fuente.value = a.fontFamily || '';
     if (document.activeElement !== this.nivel) this.nivel.value = e.isActive('heading') ? String(e.getAttributes('heading').level) : 'p';

@@ -27,11 +27,27 @@
 .tal-estado, .tal-avance { margin: 0; color: var(--tiza-2); font-size: 12px; white-space: nowrap; }
 .tal-estado[data-estado="red"], .tal-estado[data-estado="conflicto"], .tal-estado[data-estado="permiso"], .tal-estado[data-estado="lleno"] { color: var(--tiza); font-weight: 700; }
 .tal-tope__der { margin-left: auto; display: flex; align-items: center; gap: .35rem; }
-.tal-btn { min-height: 30px; padding: 0 .65rem; background: transparent; border: 1px solid var(--raya-fuerte); border-radius: 7px; white-space: nowrap; cursor: pointer; }
-.tal-btn:hover { background: rgb(var(--luz) / .06); }
-.tal-btn--fuerte, .tal-btn[aria-pressed="true"] { background: var(--tiza); color: var(--consola); border-color: var(--tiza); font-weight: 700; }
-.tal-mesa .tal-btn--fuerte { color: var(--consola); }
-.tal-btn--aviso { color: var(--alerta); }
+/* Los controles: teclas de la terminal. Se hunden al pulsarlas, y el › del prompt avisa antes del clic. */
+.tal-btn { position: relative; min-height: 30px; padding: 0 .75rem; background: rgb(var(--luz) / .04); border: 1px solid var(--raya-fuerte); border-radius: 8px; box-shadow: inset 0 -2px 0 rgb(var(--sombra-rgb) / .4); white-space: nowrap; cursor: pointer; transition: background .12s var(--ease), border-color .12s var(--ease), transform .08s var(--ease), box-shadow .08s var(--ease); }
+.tal-btn::before { content: "›" / ""; position: absolute; left: .3em; color: var(--prompt); opacity: 0; transform: translateX(-3px); transition: opacity .12s var(--ease), transform .12s var(--ease); }
+.tal-btn:hover { background: rgb(var(--prompt-rgb) / .1); border-color: var(--prompt); }
+.tal-btn:hover::before { opacity: 1; transform: none; }
+.tal-btn:active { transform: translateY(1px); box-shadow: none; }
+.tal-mesa .tal-btn--fuerte { background: linear-gradient(135deg, var(--prompt), rgb(var(--brillo-rgb))); border-color: transparent; color: var(--consola); font-weight: 700; }
+.tal-btn--fuerte::before, [data-grupo="insertar"] .tal-btn::before { content: none; }
+.tal-btn--fuerte:hover { box-shadow: inset 0 -2px 0 rgb(var(--sombra-rgb) / .25), 0 8px 18px -10px rgb(var(--prompt-rgb) / .8); }
+.tal-btn[aria-pressed="true"] { background: rgb(var(--prompt-rgb) / .2); border-color: var(--prompt); }
+.tal-svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tal-accion { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 32px; padding: 0; background: rgb(var(--luz) / .04); border: 1px solid var(--raya); border-radius: 8px; box-shadow: inset 0 -2px 0 rgb(var(--sombra-rgb) / .4); cursor: pointer; transition: background .12s var(--ease), border-color .12s var(--ease), color .12s var(--ease), transform .08s var(--ease), box-shadow .08s var(--ease); }
+.tal-accion:hover { background: rgb(var(--prompt-rgb) / .12); border-color: var(--prompt); color: var(--prompt); }
+.tal-accion:active { transform: translateY(1px); box-shadow: none; }
+.tal-accion--aviso { margin-left: auto; }
+.tal-accion--aviso:hover { background: rgb(255 59 59 / .12); border-color: var(--alerta); color: var(--alerta); }
+.tal-accion--armada, .tal-accion--armada:hover { background: var(--alerta); border-color: var(--alerta); color: var(--noche); }
+.tal-seg { display: flex; flex: 1 1 auto; min-width: 0; padding: 2px; background: var(--consola); border: 1px solid var(--raya); border-radius: 9px; }
+.tal-seg__op { flex: 1 1 0; min-width: 0; min-height: 26px; padding: 0 .3rem; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; border-radius: 6px; color: var(--tiza-2); font-size: 11px; cursor: pointer; transition: background .12s var(--ease), color .12s var(--ease); }
+.tal-seg__op:hover { color: var(--tiza); }
+.tal-seg__op[aria-pressed="true"] { background: rgb(var(--prompt-rgb) / .22); color: var(--tiza); font-weight: 600; }
 .tal-ic { min-width: 32px; height: 32px; padding: 0 .4rem; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; list-style: none; }
 .tal-ic:hover { background: rgb(var(--luz) / .08); }
 .tal-ic[aria-pressed="true"] { background: rgb(var(--prompt-rgb) / .2); border-color: var(--prompt); }
@@ -60,16 +76,25 @@
 .tal-pagina label { display: grid; gap: .1rem; font-size: 11px; color: var(--tiza-2); }
 .tal-colores { display: flex; flex-wrap: wrap; gap: .3rem .9rem; padding-top: .35rem; }
 .tal-colores__uno { display: grid; gap: .1rem; font-size: 11px; color: var(--tiza-2); }
-.tal-color__boton { display: inline-flex; align-items: center; gap: .35rem; height: 28px; box-sizing: border-box; padding: 0 .45rem; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 6px; color: var(--tiza); font-size: 11px; cursor: pointer; }
+.tal-color { min-width: 0; }
+.tal-color__boton { display: inline-flex; align-items: center; gap: .35rem; width: 100%; height: 28px; box-sizing: border-box; padding: 0 .45rem; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; color: var(--tiza); font-size: 11px; cursor: pointer; transition: border-color .12s var(--ease); }
+.tal-color__boton:hover, .tal-color__boton[aria-expanded="true"] { border-color: var(--prompt); }
+.tal-color__dice { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tal-color__muestra { width: 14px; height: 14px; flex: none; border: 1px solid var(--raya-fuerte); border-radius: 4px; box-sizing: border-box; }
 .tal-color__muestra--auto { background: linear-gradient(135deg, #fff 0 49%, #111 51% 100%); }
-.tal-color__panel { width: 15rem; }
-.tal-color--enlinea .tal-color__panel { position: static; width: auto; max-height: none; margin-top: 4px; }
-.tal-color__rejilla { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
-.tal-color__m { aspect-ratio: 1; min-width: 0; padding: 0; border: 1px solid var(--raya-fuerte); border-radius: 5px; cursor: pointer; }
+/* Flota sobre todo: nada lo recorta y nada se corre. Nace junto a su boton. */
+.tal-color__panel { position: fixed; inset: auto; margin: 0; width: 15rem; max-height: calc(100dvh - 16px); overflow-y: auto; scrollbar-width: thin; box-sizing: border-box; padding: .7rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 12px; box-shadow: 0 16px 36px -14px rgb(var(--sombra-rgb) / .8); color: var(--tiza); opacity: 0; transform: translateY(-4px); transition: opacity .14s var(--ease), transform .14s var(--ease), display .14s allow-discrete, overlay .14s allow-discrete; }
+.tal-color__panel:popover-open { display: grid; gap: .5rem; opacity: 1; transform: none; }
+@starting-style { .tal-color__panel:popover-open { opacity: 0; transform: translateY(-4px); } }
+.tal-color__panel label { display: grid; gap: .15rem; flex: 1 1 auto; min-width: 0; font-size: 11px; color: var(--tiza-2); }
+.tal-color__panel input { width: 100%; height: 30px; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; padding: 0 .4rem; }
+.tal-color__panel [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
+.tal-color__codigo { display: flex; align-items: end; gap: .35rem; }
+.tal-color__m { aspect-ratio: 1; min-width: 0; padding: 0; border: 1px solid var(--raya-fuerte); border-radius: 5px; cursor: pointer; transition: transform .1s var(--ease); }
+.tal-color__m:hover { transform: scale(1.12); }
 .tal-color__m[aria-pressed="true"] { outline: 2px solid var(--prompt); outline-offset: 1px; }
+.tal-color__rejilla { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
 .tal-color__nota { margin: 0; font-size: 11px; color: var(--tiza-2); }
-.tal-par textarea { width: 100%; box-sizing: border-box; resize: vertical; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 6px; padding: .3rem .35rem; }
 .tal-marca { display: inline-flex !important; gap: .35rem; align-items: center; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--tiza-2); }
 .tal-nota { font-size: 12px; color: var(--tiza-2); }
 .tal-b-mas { position: relative; }
@@ -160,15 +185,40 @@
 .guia--v { top: 0; bottom: 0; width: 1px; } .guia--h { left: 0; right: 0; height: 1px; }
 
 /* ---- El panel de la derecha: flota, asi la hoja no salta al elegir algo ---- */
-.tal-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 20; width: 236px; box-sizing: border-box; overflow-y: auto; padding: .8rem; display: grid; gap: .7rem; align-content: start; border-left: 1px solid var(--raya); background: var(--consola-alta); scrollbar-width: thin; }
-.tal-panel[hidden] { display: none; }
-.tal-panel h2 { margin: 0; font-size: 13px; }
-.tal-panel p { margin: 0; color: var(--tiza-2); font-size: 12px; }
 .tal-pares { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
-.tal-par { display: grid; gap: .15rem; font-size: 11px; color: var(--tiza-2); }
-.tal-par input, .tal-par select { width: 100%; box-sizing: border-box; height: 30px; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 6px; padding: 0 .35rem; color: var(--tiza); }
-.tal-par input[type="checkbox"] { width: 18px; height: 18px; }
-.tal-acciones { display: grid; gap: .3rem; }
+
+/* ---- El panel de la derecha: una tarjeta que entra de lado y solo mide lo que lleva ---- */
+.tal-panel { position: absolute; top: 10px; right: 10px; z-index: 20; width: 272px; max-height: calc(100% - 20px); box-sizing: border-box; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--raya-fuerte) transparent; padding: .7rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 14px; box-shadow: 0 18px 38px -16px rgb(var(--sombra-rgb) / .85); transition: opacity .16s var(--ease), transform .16s var(--ease), display .16s allow-discrete; }
+.tal-panel[hidden] { display: none; opacity: 0; transform: translateX(12px); transition-duration: .12s; }
+@starting-style { .tal-panel { opacity: 0; transform: translateX(12px); } }
+.tal-panel__dentro { display: grid; gap: .55rem; animation: tal-entra .12s var(--ease); }
+@keyframes tal-entra { from { opacity: 0; transform: translateY(2px); } }
+.tal-panel h2 { margin: 0; font-size: 13px; }
+.tal-panel p { margin: 0; color: var(--tiza-2); font-size: 11px; line-height: 1.35; }
+.tal-panel p.tal-rotulo { margin-bottom: -.25rem; }
+.tal-pares { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem; }
+.tal-par { display: grid; gap: .12rem; min-width: 0; font-size: 11px; color: var(--tiza-2); }
+.tal-par input, .tal-par select, .tal-par textarea { width: 100%; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; transition: border-color .12s var(--ease); }
+.tal-par input, .tal-par select { height: 28px; padding: 0 .35rem; }
+.tal-par textarea { display: block; resize: vertical; padding: .3rem .35rem; line-height: 1.35; scrollbar-width: thin; }
+.tal-par input:hover, .tal-par textarea:hover, .tal-par select:hover { border-color: var(--tiza-2); }
+.tal-par [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
+.tal-par--marca { display: flex; align-items: center; gap: .4rem; cursor: pointer; }
+.tal-par--marca input { order: -1; width: 16px; height: 16px; accent-color: var(--prompt); }
+.tal-medidas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; padding-top: .35rem; }
+.tal-medida { display: flex; align-items: center; gap: .25rem; height: 28px; box-sizing: border-box; padding: 0 .3rem; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; font-size: 11px; color: var(--tiza-2); transition: border-color .12s var(--ease); }
+.tal-medida:hover, .tal-medida:focus-within { border-color: var(--prompt); }
+.tal-medida input { flex: 1 1 auto; min-width: 0; width: 100%; padding: 0; background: transparent; border: 0; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.tal-medida input::-webkit-outer-spin-button, .tal-medida input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tal-medida input:focus-visible { outline: none; }
+.tal-pliegue summary { display: flex; align-items: center; gap: .35rem; min-height: 24px; font-size: 11px; color: var(--tiza-2); cursor: pointer; list-style: none; }
+.tal-pliegue summary::-webkit-details-marker { display: none; }
+.tal-pliegue summary:hover { color: var(--tiza); }
+.tal-pliegue summary::before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .12s var(--ease); }
+.tal-pliegue[open] summary::before { transform: rotate(45deg); }
+.tal-acciones { display: flex; gap: .3rem; }
+.tal-junto { display: flex; align-items: center; gap: .4rem; }
+.tal-junto p { flex: 1 1 auto; min-width: 0; }
 
 .tal-pie { display: flex; align-items: center; gap: .8rem; padding: .3rem 1rem; border-top: 1px solid var(--raya); font-size: 12px; color: var(--tiza-2); min-width: 0; }
 .tal-dicho { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tiza); }
@@ -201,6 +251,10 @@
   .tal-cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 52rem) { .tal-cuerpo { grid-template-columns: 120px minmax(0, 1fr); } .tal-tope { flex-wrap: wrap; } .tal-avance { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .tal-panel, .tal-panel__dentro, .tal-color__panel, .tal-btn, .tal-btn::before, .tal-accion, .tal-seg__op, .tal-color__m, .tal-color__boton { transition: none; animation: none; }
+  .tal-btn:active, .tal-accion:active, .tal-color__m:hover { transform: none; }
+}
 @media (forced-colors: active) {
   .llave { background: Mark; color: MarkText; border-bottom-color: MarkText; }
   .tal-ic[aria-pressed="true"] { background: Highlight; color: HighlightText; }

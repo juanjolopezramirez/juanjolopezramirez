@@ -3,6 +3,7 @@
    uno, `data-tal-mesa` pasa a <body> y ocupa toda la ventana, como Word: cinta arriba, paginas a la
    izquierda, hojas en el centro, y a la derecha las opciones de lo que se elija.
    Lo escrito por el fundador nunca se pinta aqui: entra con textContent y con los nodos del editor. */
+import { TRAZOS } from '../../../scripts/portal/panel/dev/taller/iconos.js';
 const { tx } = Astro.props;
 ---
 <div class="taller dev" data-taller>
@@ -30,8 +31,8 @@ const { tx } = Astro.props;
       <p class="tal-estado" data-tal-estado></p>
       <p class="tal-avance" data-tal-avance></p>
       <div class="tal-tope__der">
-        <button class="tal-ic" type="button" data-tal-deshacer aria-label={tx.deshacer} title={tx.deshacer}>↶</button>
-        <button class="tal-ic" type="button" data-tal-rehacer aria-label={tx.rehacer} title={tx.rehacer}>↷</button>
+        <button class="tal-ic" type="button" data-tal-deshacer aria-label={tx.deshacer} title={tx.deshacer}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.deshacer} /></svg></button>
+        <button class="tal-ic" type="button" data-tal-rehacer aria-label={tx.rehacer} title={tx.rehacer}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.rehacer} /></svg></button>
         <button class="tal-btn" type="button" data-tal-libro>{tx.verLibro}</button>
         <button class="tal-btn tal-btn--fuerte" type="button" data-tal-imprimir>{tx.sacarPdf}</button>
       </div>
@@ -66,13 +67,13 @@ const { tx } = Astro.props;
           <button class={`tal-ic tal-ic--${m}`} type="button" data-b-marca={m} aria-pressed="false" aria-label={n} title={n}>{l}</button>
         ))}
         <span class="tal-sep"></span>
-        {[['izquierda', '⇤'], ['centro', '↔'], ['derecha', '⇥'], ['justificado', '≡']].map(([a, l]) => (
-          <button class="tal-ic" type="button" data-b-alinear={a} aria-pressed="false" aria-label={tx.alinear[a]} title={tx.alinear[a]}>{l}</button>
+        {['izquierda', 'centro', 'derecha', 'justificado'].map((a) => (
+          <button class="tal-ic" type="button" data-b-alinear={a} aria-pressed="false" aria-label={tx.alinear[a]} title={tx.alinear[a]}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS[a]} /></svg></button>
         ))}
         <span class="tal-sep"></span>
-        <button class="tal-ic" type="button" data-b-marca="bulletList" aria-pressed="false" aria-label={tx.lista} title={tx.lista}>•</button>
-        <button class="tal-ic" type="button" data-b-marca="orderedList" aria-pressed="false" aria-label={tx.listaNum} title={tx.listaNum}>1.</button>
-        <button class="tal-ic" type="button" data-b-marca="blockquote" aria-pressed="false" aria-label={tx.cita} title={tx.cita}>”</button>
+        <button class="tal-ic" type="button" data-b-marca="bulletList" aria-pressed="false" aria-label={tx.lista} title={tx.lista}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.lista} /></svg></button>
+        <button class="tal-ic" type="button" data-b-marca="orderedList" aria-pressed="false" aria-label={tx.listaNum} title={tx.listaNum}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.listaNum} /></svg></button>
+        <button class="tal-ic" type="button" data-b-marca="blockquote" aria-pressed="false" aria-label={tx.cita} title={tx.cita}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.cita} /></svg></button>
         <span class="tal-sep"></span>
         <button class="tal-ic" type="button" data-b-marca="superscript" aria-pressed="false" aria-label={tx.exponente} title={tx.exponente}>x²</button>
         <button class="tal-ic" type="button" data-b-marca="subscript" aria-pressed="false" aria-label={tx.subindice} title={tx.subindice}>x₂</button>

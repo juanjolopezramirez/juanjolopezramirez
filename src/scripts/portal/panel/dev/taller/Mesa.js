@@ -183,8 +183,13 @@ export class Mesa {
     return this.moverPagina(h, n > this.paginas.length ? 0 : n);
   }
 
-  confirmarEdicion() { this.vistas.forEach((h) => h.dejarDeEditar()); }
-  hayEdicion() { return [...this.vistas].some((h) => h.editando); }
+  /* Lo escrito en el panel y en un cuadro entra al capitulo antes de guardar o de bloquearlo */
+  confirmarEdicion() {
+    const a = document.activeElement;
+    if (this.prop.caja.contains(a)) a.blur();
+    this.vistas.forEach((h) => h.dejarDeEditar());
+  }
+  hayEdicion() { return this.prop.escribiendo() || [...this.vistas].some((h) => h.editando); }
 
   programar() { clearTimeout(this.reloj); this.reloj = setTimeout(() => this.medir(), PINTAR_MS); }
 
@@ -270,14 +275,14 @@ export class Mesa {
   }
 
   elegirBoton(v) {
-    if (this.soloMirar(v.dom)) return;
+    if (this.imagenElegida === v || this.soloMirar(v.dom)) return;
     this.soltarElegidos();
     this.imagenElegida = v;
     this.prop.deBoton(v);
   }
 
   elegirImagen(v) {
-    if (this.soloMirar(v.dom)) return;
+    if (this.imagenElegida === v || this.soloMirar(v.dom)) return;
     this.soltarElegidos();
     this.imagenElegida = v;
     this.prop.deImagen(v);

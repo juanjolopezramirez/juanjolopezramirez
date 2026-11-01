@@ -450,6 +450,7 @@ export class Taller extends Seccion {
     this.mesa.vivos.forEach((v) => v.editor.view.dom.setAttribute('lang', this.obra.idioma));
     this.guardarObra();
     this.mesa.repintarHojas();
+    if (this.mesa.hojaActiva) this.mesa.alElegir(this.mesa.hojaActiva);
   }
 
   /* ---- Los colores del libro ---- */
