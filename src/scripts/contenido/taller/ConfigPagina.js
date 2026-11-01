@@ -13,10 +13,15 @@ const CAJA_MIN = 20;              // lo que debe quedar para el texto entre marg
 const ANCHO_PX_MAX = 2480;        // A4 a 300 ppp: mas que esto pesa sin verse mejor
 const ALTO_PX_MAX = 3508;
 const MM_POR_PULGADA = 25.4;
+export const PPP = 300;           // la resolucion de imprenta: a la que se piden los px de un diseño en Figma
+export const mmAPx = (v) => Math.round((v / MM_POR_PULGADA) * PPP);
+export const pxAMm = (v) => Math.round((v / PPP) * MM_POR_PULGADA * 100) / 100;
 
 export const TAMANOS = [
   { id: 'a5', nombre: 'A5 (148 × 210 mm)', anchoMm: 148, altoMm: 210 },
   { id: 'a4', nombre: 'A4 (210 × 297 mm)', anchoMm: 210, altoMm: 297 },
+  { id: 'carta', nombre: 'Carta (216 × 279 mm)', anchoMm: 215.9, altoMm: 279.4 },
+  { id: 'oficio', nombre: 'Oficio o folio (216 × 330 mm)', anchoMm: 216, altoMm: 330 },
   { id: '6x9', nombre: '6 × 9 pulgadas (152 × 229 mm)', anchoMm: 152.4, altoMm: 228.6 },
   { id: '5x8', nombre: '5 × 8 pulgadas (127 × 203 mm)', anchoMm: 127, altoMm: 203.2 }
 ];
@@ -34,8 +39,8 @@ const mm = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.i
 export class ConfigPagina {
   constructor(d = {}) {
     const o = objeto(d), m = objeto(o.margenes), n = objeto(o.numeros), c = objeto(o.cuerpo);
-    this.anchoMm = mm(o.anchoMm, LADO_MIN, LADO_MAX, 148);
-    this.altoMm = mm(o.altoMm, LADO_MIN, LADO_MAX, 210);
+    this.anchoMm = mm(o.anchoMm, LADO_MIN, LADO_MAX, 148, 100);
+    this.altoMm = mm(o.altoMm, LADO_MIN, LADO_MAX, 210, 100);
     this.margenes = { sup: mm(m.sup, 0, 150, 20), inf: mm(m.inf, 0, 150, 22), izq: mm(m.izq, 0, 150, 18), der: mm(m.der, 0, 150, 18) };
     this.numeros = { ver: n.ver !== false, lugar: LUGARES_NUMERO.includes(n.lugar) ? n.lugar : 'pie-centro' };
     this.indice = o.indice === true;

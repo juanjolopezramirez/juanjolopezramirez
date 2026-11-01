@@ -2,7 +2,7 @@
      node tools/test-taller.mjs
    Las pruebas de `pruebas-taller.mjs` y la puerta de los cinco requisitos corren aqui tambien. */
 import assert from 'node:assert/strict';
-import { ConfigPagina } from '../src/scripts/contenido/taller/ConfigPagina.js';
+import { ConfigPagina, mmAPx, pxAMm, TAMANOS } from '../src/scripts/contenido/taller/ConfigPagina.js';
 import { contraste, textosPocoVisibles, tintaPara } from '../src/scripts/contenido/taller/colores.js';
 import { POR_NODO } from '../src/scripts/contenido/taller/tipos/indice.js';
 import { Zona } from '../src/scripts/contenido/taller/Zona.js';
@@ -199,6 +199,18 @@ await ok('el titulo viejo solo se omite si el texto ya empieza con ese mismo tit
 });
 await ok('un titulo larguisimo no pasa de lo que admite la base', () => {
   assert.equal(tituloDe({ type: 'doc', content: [{ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'a'.repeat(900) }] }] }).length, 300);
+});
+await ok('los px de Figma ida y vuelta: todo ancho entero vuelve igual tras pasar por milimetros', () => {
+  for (let px = 591; px <= 4960; px++) assert.equal(mmAPx(new ConfigPagina({ anchoMm: pxAMm(px) }).anchoMm), px, String(px));
+});
+await ok('cada formato dice sus px de imprenta, sin topes', () => {
+  const px = (a, b) => ({ ancho: mmAPx(a), alto: mmAPx(b) });
+  const de = (id) => { const t = TAMANOS.find((x) => x.id === id); return px(t.anchoMm, t.altoMm); };
+  assert.deepEqual(de('a5'), { ancho: 1748, alto: 2480 });
+  assert.deepEqual(de('a4'), { ancho: 2480, alto: 3508 });
+  assert.deepEqual(de('carta'), { ancho: 2550, alto: 3300 });
+  assert.deepEqual(de('oficio'), { ancho: 2551, alto: 3898 });
+  assert.deepEqual(px(pxAMm(1600), pxAMm(2240)), { ancho: 1600, alto: 2240 });
 });
 await ok('la letra automatica siempre se lee: claro, oscuro y gris medio', () => {
   for (const p of ['#ffffff', '#111111', '#777777', '#808080', '#2f7bff', '#fbf6e9']) assert.ok(contraste(tintaPara(p), p) >= 4.5, p);

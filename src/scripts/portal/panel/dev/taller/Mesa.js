@@ -13,6 +13,7 @@ import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js
 import { CapituloVivo } from './CapituloVivo.js';
 import { Miniaturas } from './Miniaturas.js';
 import { Propiedades } from './Propiedades.js';
+import { MenuPagina } from './MenuPagina.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const tope = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -38,6 +39,7 @@ export class Mesa {
     this.estilo = raiz.querySelector('style') || raiz.appendChild(crear('style'));
     this.prop = new Propiedades(q('[data-tal-panel]'), { tx: this.tx, mesa: this });
     this.minis = new Miniaturas(q('[data-tal-miniaturas]'), this);
+    this.menu = new MenuPagina(raiz, { tx: this.tx });
     this.fondo.addEventListener('scroll', () => requestAnimationFrame(() => this.alDesplazar()));
     this.fondo.addEventListener('pointerdown', (e) => { if (e.target === this.fondo || e.target === this.caja || e.target === this.lienzo) this.soltarTodo(); });
     this.fondo.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); this.zoom(this.z - Math.sign(e.deltaY) * .1); } }, { passive: false });
@@ -69,6 +71,7 @@ export class Mesa {
   }
 
   cerrar() {
+    this.menu.cerrar(false);
     this.vivos.forEach((v) => v.soltar());
     this.vivos = [];
     this.vistas.clear();
@@ -181,6 +184,74 @@ export class Mesa {
     if (i < 0 || (d < 0 && i === 0)) return;
     const n = d < 0 ? i : i + 3;
     return this.moverPagina(h, n > this.paginas.length ? 0 : n);
+  }
+
+  /* Dejar la pagina en el numero `d`. `moverPagina` pone antes de una pagina: hacia abajo es la siguiente.
+     El texto puede correrse, asi que se dice donde quedo de verdad. */
+  async moverHasta(h, d) {
+    const a = this.paginas.findIndex((p) => p.vista === h) + 1, total = this.paginas.length;
+    if (!a || d === a) return;
+    const n = d < a ? d : d + 1;
+    const puesto = await this.moverPagina(h, n > total ? 0 : n);
+    if (!puesto) return;
+    /* Por su nodo y no por `h`: al mover lejos, ProseMirror reutiliza las vistas y `h` ya muestra otra pagina */
+    const i = this.paginas.findIndex((p) => p.vista && p.vista.node === puesto);
+    if (i < 0) return;
+    this.irA(i + 1);
+    this.paginas[i].vista.hoja.focus({ preventScroll: true });
+    this.decir(this.tx.paginaQuedo.replace('{n}', String(i + 1)));
+  }
+
+  /* ---- El menu de clic derecho ---- */
+  /* Las imagenes puestas se miden en % de la hoja: otra proporcion las estira */
+  imagenesPuestas() {
+    let n = 0;
+    for (const v of this.vivos) {
+      v.editor.state.doc.descendants((x) => { if (x.type.name === 'paginaLibre') n += x.attrs.objetos.filter((o) => o.tipo === 'imagen').length; });
+    }
+    return n;
+  }
+
+  primeraDeTexto() { return this.paginas.findIndex((p) => !p.indice) + 1 || 1; }
+
+  accionesDePagina(i) {
+    const tx = this.tx, p = this.paginas[i], n = i + 1, ir = { texto: tx.irAPagina, icono: 'ir', fn: () => this.irA(n) };
+    if (!p || p.indice) return [ir];
+    if (!p.vista) {
+      return [ir, { texto: tx.libreAqui, icono: 'hoja', fn: () => this.ponerLibreAqui(p), apagado: !p.vivo.editor.isEditable }, { raya: true },
+        { texto: tx.moverA, icono: 'mover', apagado: true, ayuda: tx.paginaDeTexto }, { texto: tx.eliminarPagina, icono: 'eliminar', apagado: true, ayuda: tx.paginaDeTexto }];
+    }
+    const h = p.vista, quieta = h.bloqueada;
+    return [ir,
+      { texto: tx.duplicarPagina, icono: 'duplicar', apagado: quieta, fn: () => { this.activoDe(h); this.duplicarPagina(h); this.decir(tx.paginaDuplicada); } },
+      { texto: tx.moverA, icono: 'mover', apagado: quieta, queda: true, fn: () => this.menu.mover({ actual: n, total: this.paginas.length, primera: this.primeraDeTexto(), alMover: (d) => this.moverHasta(h, d) }) },
+      { raya: true },
+      { texto: tx.eliminarPagina, icono: 'eliminar', aviso: true, apagado: quieta, fn: () => { this.activoDe(h); this.borrarPagina(h); } }];
+  }
+
+  abrirMenu(i, e, origen, antes = []) {
+    e.preventDefault();
+    const con = e.clientX || e.clientY, r = origen.getBoundingClientRect();
+    this.menu.abrir(con ? e.clientX : r.left + 16, con ? e.clientY : r.top + 16, [...antes, ...this.accionesDePagina(i)], origen, () => this.minis.enfocar(i + 1));
+  }
+
+  /* Sobre una hoja: si hay un objeto bajo el puntero, sus acciones van primero */
+  menuDeHoja(h, o, e) {
+    const tx = this.tx, antes = !o || h.bloqueada ? [] : [
+      { texto: tx.duplicar, icono: 'duplicar', fn: () => h.duplicar() }, { texto: tx.adelante, icono: 'adelante', fn: () => h.capa(1) }, { texto: tx.atras, icono: 'atras', fn: () => h.capa(-1) },
+      { texto: tx.eliminar, icono: 'eliminar', aviso: true, fn: () => h.eliminar() }, { raya: true }
+    ];
+    this.abrirMenu(this.paginas.findIndex((p) => p.vista === h), e, h.hoja, antes);
+  }
+
+  ponerLibreAqui(p) {
+    const e = p.vivo.editor, pos = p.vivo.posicionDeFila(p.fila, this.px, this.z);
+    if (!e.isEditable) return;
+    e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.paginaLibre.create({ nombre: this.tx.paginaLibre, objetos: [] })));
+    const h = this.ultimaVista;
+    this.medir();
+    this.irAHoja(h);
+    h.hoja.focus({ preventScroll: true });
   }
 
   /* Lo escrito en el panel y en un cuadro entra al capitulo antes de guardar o de bloquearlo */
@@ -378,13 +449,17 @@ export class Mesa {
   /* ---- Borrar y mover ---- */
   async borrarPagina(h) {
     if (h.bloqueada) return;
-    const e = h.editor, pos = h.getPos();
-    e.view.dispatch(e.state.tr.delete(pos, pos + 1));
+    const e = h.editor, pos = h.getPos(), i = this.paginas.findIndex((p) => p.vista === h), tr = e.state.tr.delete(pos, pos + 1);
+    /* El cursor queda junto a lo borrado: si no, la vista saltaria a donde estaba antes */
+    e.view.dispatch(tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(pos)))));
     this.prop.ocultar();
     this.hojaActiva = null;
     this.medir();
     this.decir(this.tx.paginaBorrada);
-    e.commands.focus();
+    /* Si lo que sigue es otra hoja, el foco va ahi: en un libro de PDF el texto mas cercano puede estar muy lejos */
+    const sigue = this.paginas[Math.min(i, this.paginas.length - 1)];
+    if (sigue && sigue.vista) sigue.vista.hoja.focus({ preventScroll: true });
+    else e.commands.focus();
   }
 
   duplicarPagina(h) {
@@ -398,28 +473,31 @@ export class Mesa {
      se escribe el destino y luego se borra el origen. Lo peor que puede pasar es un duplicado. Cada
      capitulo tiene su propio esquema: la pagina se rehace en el de destino, y si no entro no se borra. */
   async moverPagina(h, n) {
-    if (this.moviendo) return;
+    if (this.moviendo) { this.decir(this.tx.moverEspera); return null; }
     this.moviendo = true;
-    try { await this.moverYa(h, n); } finally { this.moviendo = false; }
+    try { return await this.moverYa(h, n); } finally { this.moviendo = false; }
   }
 
   async moverYa(h, n) {
     const d = this.destinoDe(n, h);
-    if (!d || h.bloqueada || !d.vivo.editor.isEditable) return;
-    const eo = h.editor, ed = d.vivo.editor, pos = h.getPos(), nodo = h.node;
+    if (!d || h.bloqueada || !d.vivo.editor.isEditable) return null;
+    const eo = h.editor, ed = d.vivo.editor, pos = h.getPos();
+    let nodo = h.node;
     if (eo === ed) {
       const tr = eo.state.tr.delete(pos, pos + 1);
       eo.view.dispatch(tr.insert(tr.mapping.map(d.pos), nodo));
     } else {
-      const tr = ed.state.tr.insert(d.pos, ed.schema.nodeFromJSON(nodo.toJSON()));
-      if (!tr.docChanged) { this.alFalla('noGuardado'); return; }
+      nodo = ed.schema.nodeFromJSON(nodo.toJSON());
+      const tr = ed.state.tr.insert(d.pos, nodo);
+      if (!tr.docChanged) { this.alFalla('noGuardado'); return null; }
       ed.view.dispatch(tr);
       const quedo = await d.vivo.guardado.vaciar(), ahora = h.getPos();
-      if (!quedo) { this.alFalla('noGuardado'); this.medir(); return; }
+      if (!quedo) { this.alFalla('noGuardado'); this.medir(); return null; }
       if (typeof ahora === 'number') eo.view.dispatch(eo.state.tr.delete(ahora, ahora + 1));
     }
     this.medir();
     this.decir(this.tx.paginaMovida);
+    return nodo;
   }
 
   destinoDe(n, h) {

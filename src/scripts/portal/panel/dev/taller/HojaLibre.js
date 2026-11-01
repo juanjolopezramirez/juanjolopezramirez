@@ -34,6 +34,7 @@ export class HojaLibre {
     this.dom.append(this.hoja);
     this.hoja.addEventListener('pointerdown', (e) => this.alPresionar(e));
     this.hoja.addEventListener('dblclick', (e) => this.alDobleClic(e));
+    this.hoja.addEventListener('contextmenu', (e) => this.alMenu(e));
     this.hoja.addEventListener('keydown', (e) => this.alTeclear(e));
     this.hoja.addEventListener('focus', () => mesa.alEnfocarHoja(this));
     this.pintar();
@@ -291,6 +292,17 @@ export class HojaLibre {
     });
   }
 
+  /* Clic derecho. Mientras se escribe en un cuadro, el menu sigue siendo el del navegador. */
+  alMenu(e) {
+    const oe = e.target.closest('.obj');
+    if (oe && oe.isContentEditable) return;
+    const o = oe ? this.objeto(oe.dataset.o) : (this.porTeclado ? this.objeto() : null);
+    this.porTeclado = false;
+    this.hoja.focus({ preventScroll: true });
+    if (o && !this.bloqueada && this.elegido !== o.id) this.elegir(o.id);
+    this.mesa.menuDeHoja(this, o, e);
+  }
+
   /* ---- Recortar: la imagen se queda quieta y se mueve la ventana ---- */
   abrirRecorte() {
     const o = this.objeto();
@@ -430,6 +442,7 @@ export class HojaLibre {
 
   /* El teclado: flechas 1 mm, Mayus 5 mm, Alt cambia el tamaño, Tab pasa al siguiente objeto */
   alTeclear(e) {
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) this.porTeclado = true;
     if (e.target !== this.hoja || this.bloqueada) return;
     const ctrl = e.ctrlKey || e.metaKey, tecla = e.key.toLowerCase();
     if (ctrl && (tecla === 'z' || tecla === 'y')) {

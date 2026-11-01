@@ -48,6 +48,16 @@ const { tx } = Astro.props;
       </div>
     </div>
 
+    <div class="tal-conflicto" data-tal-proporcion role="alertdialog" aria-label={tx.pdfProporcion} tabindex="-1" hidden>
+      <p>{tx.pdfProporcion} <span data-pr-nota></span></p>
+      <div class="tal-fila">
+        <button class="tal-btn" type="button" data-pr="libro" title={tx.pdfLibroAyuda}>{tx.pdfAjustarLibro}</button>
+        <button class="tal-btn" type="button" data-pr="cubrir">{tx.ajusteCubrir}</button>
+        <button class="tal-btn" type="button" data-pr="contener">{tx.ajusteContener}</button>
+        <button class="tal-btn" type="button" data-pr="no">{tx.cancelar}</button>
+      </div>
+    </div>
+
     <div class="tal-cinta" role="toolbar" aria-label={tx.barra} data-tal-cinta>
       <div class="tal-pestanas">
         {[['inicio', tx.inicio], ['insertar', tx.insertarTab], ['pagina', tx.pagina], ['copias', tx.copias]].map(([id, t], i) => (
@@ -118,8 +128,10 @@ const { tx } = Astro.props;
       <div class="tal-grupo" data-grupo="pagina" hidden>
         <form class="tal-pagina" data-tal-pagina novalidate>
           <label><span>{tx.tamano}</span><select class="tal-ctl" name="tamano"><option value="">{tx.tamanoOtro}</option></select></label>
-          <label><span>{tx.anchoMm}</span><input class="tal-ctl tal-ctl--num" name="anchoMm" type="number" min="50" max="420" step="0.1" /></label>
-          <label><span>{tx.altoMm}</span><input class="tal-ctl tal-ctl--num" name="altoMm" type="number" min="50" max="420" step="0.1" /></label>
+          <label><span>{tx.anchoMm}</span><input class="tal-ctl tal-ctl--num" name="anchoMm" type="number" min="50" max="420" step="0.01" /></label>
+          <label><span>{tx.altoMm}</span><input class="tal-ctl tal-ctl--num" name="altoMm" type="number" min="50" max="420" step="0.01" /></label>
+          <label title={tx.pxAyuda}><span>{tx.anchoPx}</span><input class="tal-ctl tal-ctl--num" name="anchoPx" type="number" min="591" max="4960" step="1" /></label>
+          <label title={tx.pxAyuda}><span>{tx.altoPx}</span><input class="tal-ctl tal-ctl--num" name="altoPx" type="number" min="591" max="4960" step="1" /></label>
           {['sup', 'inf', 'izq', 'der'].map((m) => <label><span>{tx.lados[m]}</span><input class="tal-ctl tal-ctl--num" name={m} type="number" min="0" max="150" step="0.5" /></label>)}
           <label><span>{tx.fuenteCuerpo}</span><select class="tal-ctl" name="fuente"></select></label>
           <label><span>{tx.tamanoLetra}</span><input class="tal-ctl tal-ctl--num" name="tamanoPt" type="number" min="4" max="72" step="0.5" /></label>

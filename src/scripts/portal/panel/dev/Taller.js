@@ -11,7 +11,7 @@
    pantalla en un computador tambien la hace angosta y ahi se sigue escribiendo. */
 import { Seccion } from '../Seccion.js';
 import { Obra, Capitulo } from '../../../contenido/taller/Obra.js';
-import { colorDeLetra, ConfigPagina, TAMANOS } from '../../../contenido/taller/ConfigPagina.js';
+import { colorDeLetra, ConfigPagina, LADO_MAX, LADO_MIN, mmAPx, pxAMm, TAMANOS } from '../../../contenido/taller/ConfigPagina.js';
 import { limpiarContenido, llavesDe } from '../../../contenido/taller/TextoLibro.js';
 import { aVersion2, necesitaMigrar } from '../../../contenido/taller/Migrar.js';
 import { aHoja } from '../../../contenido/taller/hoja.js';
@@ -287,6 +287,7 @@ export class Taller extends Seccion {
     for (const r of [this.relojAnuncio, this.relojTexto, this.relojDicho, this.relojError, this.relojColores, this.relojObra]) clearTimeout(r);
     this.obraSucia = false;
     this.colorCapitulo = null;
+    if (this.responder) this.responder('no');
     this.m('[data-tal-colores]').replaceChildren();
     this.turnoObra++;
     this.turnoError++;
@@ -404,15 +405,28 @@ export class Taller extends Seccion {
   prepararPagina() {
     const f = this.m('[data-tal-pagina]');
     const tam = f.elements.tamano;
-    TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.nombre; tam.append(o); });
+    TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.nombre} · ${mmAPx(t.anchoMm)} × ${mmAPx(t.altoMm)} px`; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
     tam.addEventListener('change', () => {
       const t = TAMANOS.find((x) => x.id === tam.value);
       if (t) { f.elements.anchoMm.value = t.anchoMm; f.elements.altoMm.value = t.altoMm; }
+      this.ponerPx();
       this.leerPagina();
     });
-    f.addEventListener('change', (e) => { if (e.target !== tam) this.leerPagina(); });
+    f.addEventListener('change', (e) => {
+      if (e.target === tam) return;
+      if (e.target.name === 'anchoPx') f.elements.anchoMm.value = pxAMm(Number(e.target.value));
+      if (e.target.name === 'altoPx') f.elements.altoMm.value = pxAMm(Number(e.target.value));
+      const t = /Px$/.test(e.target.name) && this.formatoDe(Number(f.elements.anchoPx.value), Number(f.elements.altoPx.value));
+      if (t) { f.elements.anchoMm.value = t.anchoMm; f.elements.altoMm.value = t.altoMm; }
+      this.leerPagina();
+    });
     f.elements.imprenta.title = this.tx.imprentaAyuda;
+    this.m('[data-tal-proporcion]').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pr]');
+      if (b && this.responder) this.responder(b.dataset.pr);
+    });
+    this.m('[data-tal-proporcion]').addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.responder) { e.preventDefault(); this.responder('no'); } });
     f.addEventListener('submit', (e) => e.preventDefault());
   }
 
@@ -424,11 +438,21 @@ export class Taller extends Seccion {
     f.elements.tamanoPt.value = c.cuerpo.tamanoPt; f.elements.interlinea.value = c.cuerpo.interlinea;
     f.elements.numerosVer.checked = c.numeros.ver; f.elements.indice.checked = c.indice; f.elements.imprenta.checked = c.imprenta;
     f.elements.lugar.value = c.numeros.lugar;
-    const t = TAMANOS.find((x) => x.anchoMm === c.anchoMm && x.altoMm === c.altoMm);
-    f.elements.tamano.value = t ? t.id : '';
+    this.ponerPx();
     const fu = f.elements.fuente;
     fu.replaceChildren(...this.obra.fuentes.map((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; return o; }));
     fu.value = c.cuerpo.fuente;
+  }
+
+  formatoDe(ancho, alto) { return TAMANOS.find((x) => mmAPx(x.anchoMm) === ancho && mmAPx(x.altoMm) === alto); }
+
+  /* Los px que pide Figma, al lado de los milimetros: los dos campos dicen lo mismo */
+  ponerPx() {
+    const f = this.m('[data-tal-pagina]');
+    f.elements.anchoPx.value = mmAPx(Number(f.elements.anchoMm.value));
+    f.elements.altoPx.value = mmAPx(Number(f.elements.altoMm.value));
+    const t = this.formatoDe(Number(f.elements.anchoPx.value), Number(f.elements.altoPx.value));
+    f.elements.tamano.value = t ? t.id : '';
   }
 
   leerPagina() {
@@ -437,6 +461,8 @@ export class Taller extends Seccion {
     const vacio = campos.find((k) => f.elements[k].value === '');
     if (vacio) { f.elements[vacio].setAttribute('aria-invalid', 'true'); this.error('campoVacio'); return; }
     campos.forEach((k) => f.elements[k].setAttribute('aria-invalid', 'false'));
+    /* Fuera de rango no se adivina: una hoja que no cabe no se vuelve A5 en silencio */
+    if ([n('anchoMm'), n('altoMm')].some((v) => v < LADO_MIN || v > LADO_MAX)) { this.error('tamanoFuera'); this.ponerPagina(); return; }
     const nueva = new ConfigPagina({
       ...this.obra.pagina.aDatos(), imprenta: f.elements.imprenta.checked,
       anchoMm: n('anchoMm'), altoMm: n('altoMm'),
@@ -447,6 +473,7 @@ export class Taller extends Seccion {
     if (nueva.errores().length) { this.error('margenes'); return; }
     this.obra.pagina = nueva;
     this.obra.idioma = f.elements.idioma.value;
+    this.ponerPx();
     this.mesa.vivos.forEach((v) => v.editor.view.dom.setAttribute('lang', this.obra.idioma));
     this.guardarObra();
     this.mesa.repintarHojas();
@@ -553,12 +580,39 @@ export class Taller extends Seccion {
     const turno = this.turnoObra, sigue = () => turno === this.turnoObra;
     await importarPdf(archivo, {
       be: this.be, obra: this.obra.aDatos(), tx: this.tx, imagenes: this.imagenes, sigue,
+      alProporcion: (m) => this.preguntarProporcion(m, sigue),
       alPagina: (a) => { anterior = this.mesa.ponerPaginaDePdf(a, anterior); },
       alAviso: (t) => { if (sigue()) this.avance.textContent = t; },
       alDecir: (t) => this.decir(t),
       alError: (c) => this.error(c)
     });
     if (sigue()) this.mesa.medir();
+  }
+
+  /* El PDF tiene otra proporcion que el libro: decide el fundador. Ajustar el libro cambia todas sus hojas. */
+  async preguntarProporcion(m, sigue) {
+    const caja = this.m('[data-tal-proporcion]'), imagenes = this.mesa.imagenesPuestas();
+    if (this.responder) this.responder('no');
+    this.m('[data-pr-nota]').textContent = imagenes ? this.tx.pdfEstiraImagenes.replace('{n}', String(imagenes)) : '';
+    caja.hidden = false;
+    /* Puede estar escribiendo: el foco va al aviso y no a un boton, que un espacio pulsaria */
+    caja.focus();
+    const q = await new Promise((ok) => {
+      const r = (x) => { if (this.responder === r) { this.responder = null; caja.hidden = true; } ok(x); };
+      this.responder = r;
+    });
+    if (this.mesa && !this.responder) this.mesa.aLaHoja();
+    if (q === 'no' || !sigue()) return null;
+    if (q !== 'libro') return { ajuste: q };
+    const p = this.obra.pagina, ancho = Math.round((p.altoMm * m.anchoMm * 100) / m.altoMm) / 100;
+    const nueva = new ConfigPagina({ ...p.aDatos(), anchoMm: ancho });
+    if (ancho < LADO_MIN || ancho > LADO_MAX) { this.error('tamanoFuera'); return null; }
+    if (nueva.errores().length) { this.error('margenes'); return null; }
+    this.obra.pagina = nueva;
+    this.ponerPagina();
+    this.guardarObra();
+    this.mesa.repintarHojas();
+    return { ajuste: 'contener', pagina: nueva.aDatos() };
   }
 
   /* ---- Sacar el PDF ---- */

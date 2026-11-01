@@ -184,6 +184,22 @@
 .guia { position: absolute; background: #FF3B8D; pointer-events: none; z-index: 60; }
 .guia--v { top: 0; bottom: 0; width: 1px; } .guia--h { left: 0; right: 0; height: 1px; }
 
+/* ---- El menu de clic derecho ---- */
+.tal-menu { position: fixed; inset: auto; margin: 0; min-width: 13rem; max-width: 18rem; max-height: calc(100dvh - 16px); overflow-y: auto; box-sizing: border-box; padding: .3rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 11px; box-shadow: 0 16px 36px -14px rgb(var(--sombra-rgb) / .8); color: var(--tiza); opacity: 0; transform: scale(.98); transform-origin: 0 0; transition: opacity .11s var(--ease), transform .11s var(--ease), display .11s allow-discrete, overlay .11s allow-discrete; }
+.tal-menu:popover-open { display: grid; gap: 1px; opacity: 1; transform: none; }
+@starting-style { .tal-menu:popover-open { opacity: 0; transform: scale(.98); } }
+.tal-menu__op { display: flex; align-items: center; gap: .55rem; width: 100%; min-height: 30px; padding: 0 .55rem; background: transparent; border: 0; border-radius: 7px; color: inherit; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.tal-menu__op:hover, .tal-menu__op:focus-visible { background: rgb(var(--prompt-rgb) / .16); outline: none; }
+.tal-menu__op--aviso { color: var(--alerta); }
+.tal-menu__op--aviso:hover, .tal-menu__op--aviso:focus-visible { background: rgb(255 59 59 / .14); }
+.tal-menu__op[aria-disabled="true"] { color: var(--tiza-2); opacity: .55; cursor: not-allowed; background: transparent; }
+.tal-menu__raya { height: 1px; margin: .2rem .3rem; background: var(--raya); }
+.tal-menu__mover { display: grid; gap: .4rem; padding: .35rem; width: 14rem; }
+.tal-menu__mover label { display: grid; gap: .15rem; font-size: 11px; color: var(--tiza-2); }
+.tal-menu__mover input { width: 100%; height: 30px; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; padding: 0 .4rem; color: var(--tiza); font: inherit; }
+.tal-menu__mover [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
+.tal-menu__fila { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; }
+
 /* ---- El panel de la derecha: flota, asi la hoja no salta al elegir algo ---- */
 .tal-pares { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
 
@@ -252,7 +268,7 @@
 }
 @media (max-width: 52rem) { .tal-cuerpo { grid-template-columns: 120px minmax(0, 1fr); } .tal-tope { flex-wrap: wrap; } .tal-avance { display: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .tal-panel, .tal-panel__dentro, .tal-color__panel, .tal-btn, .tal-btn::before, .tal-accion, .tal-seg__op, .tal-color__m, .tal-color__boton { transition: none; animation: none; }
+  .tal-menu, .tal-panel, .tal-panel__dentro, .tal-color__panel, .tal-btn, .tal-btn::before, .tal-accion, .tal-seg__op, .tal-color__m, .tal-color__boton { transition: none; animation: none; }
   .tal-btn:active, .tal-accion:active, .tal-color__m:hover { transform: none; }
 }
 @media (forced-colors: active) {

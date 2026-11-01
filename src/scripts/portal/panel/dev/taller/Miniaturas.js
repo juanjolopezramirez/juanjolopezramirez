@@ -5,6 +5,7 @@
    Pintar cada miniatura copia su capitulo, asi que solo se pintan las que estan a la vista. */
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const ESCALA = .2;
+const ANCHO_MAX = 112;            // lo que cabe en la columna, para hojas grandes como carta u oficio
 
 export class Miniaturas {
   constructor(caja, mesa) {
@@ -12,6 +13,10 @@ export class Miniaturas {
     this.linea = crear('div', 'marca-soltar');
     this.arrastrado = null;
     caja.addEventListener('keydown', (e) => this.alTeclear(e));
+    caja.addEventListener('contextmenu', (e) => {
+      const b = e.target.closest('.mini');
+      if (b) mesa.abrirMenu(Number(b.dataset.n) - 1, e, b);
+    });
     this.visor = new IntersectionObserver((lista) => lista.forEach((e) => { if (e.isIntersecting) this.llenar(e.target); }), { root: caja, rootMargin: '300px' });
     caja.addEventListener('dragend', () => { this.arrastrado = null; this.linea.remove(); });
     caja.addEventListener('dragover', (e) => this.alPasar(e));
@@ -28,9 +33,10 @@ export class Miniaturas {
   }
 
   pintar() {
-    const m = this.mesa, ant = this.caja.scrollTop, pedidas = new Map();
+    const m = this.mesa, ant = this.caja.scrollTop, pedidas = new Map(), conFoco = this.caja.contains(document.activeElement) ? document.activeElement.dataset.n : '';
     this.visor.disconnect();
     this.caja.replaceChildren();
+    this.escala = Math.min(ESCALA, ANCHO_MAX / m.px.W);
     let grupo = null, cap, n = 0;
     for (const p of m.paginas) {
       n++;
@@ -55,7 +61,7 @@ export class Miniaturas {
       b.setAttribute('aria-label', `${m.tx.pagina2} ${n}`);
       b.dataset.n = String(n);
       b.append(crear('span', 'mini__n', String(n)), crear('span', 'mini__hoja'));
-      b.lastChild.style.cssText = `width:${m.px.W * ESCALA}px;height:${m.px.H * ESCALA}px`;
+      b.lastChild.style.cssText = `width:${m.px.W * this.escala}px;height:${m.px.H * this.escala}px`;
       if (p.vista) {
         b.draggable = true;
         b.title = m.tx.arrastrarPagina;
@@ -71,6 +77,7 @@ export class Miniaturas {
     this.caja.scrollTop = ant;
     for (const b of pedidas.keys()) this.visor.observe(b);
     this.marcar();
+    if (conFoco) this.enfocar(conFoco);
   }
 
   llenar(b) {
@@ -78,7 +85,7 @@ export class Miniaturas {
     if (!p) return;
     this.visor.unobserve(b);
     const h = b.querySelector('.mini__hoja');
-    h.replaceChildren(this.mesa.clon(p, ESCALA));
+    h.replaceChildren(this.mesa.clon(p, this.escala));
   }
 
   marcar() {

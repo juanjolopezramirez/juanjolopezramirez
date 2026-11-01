@@ -8,16 +8,27 @@ import { abrirPdf, leerPagina, medidasDelPdf } from './Pdf.js';
 const azar = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
 const CADA_CUANTAS = 10;
 
-export async function importarPdf(archivo, { be, obra, tx, imagenes, sigue, alPagina, alAviso, alDecir, alError }) {
+/* Figma escribe 1 px como 1 punto, asi que los milimetros de su PDF no dicen nada: solo cuenta la proporcion */
+const DIFERENCIA_PROPORCION = .01;
+const proporcionDistinta = (m, c) => Math.abs((m.anchoMm / m.altoMm) / (c.anchoMm / c.altoMm) - 1) > DIFERENCIA_PROPORCION;
+
+export async function importarPdf(archivo, { be, obra, tx, imagenes, sigue, alProporcion, alPagina, alAviso, alDecir, alError }) {
   let doc;
   try { doc = await abrirPdf(archivo); } catch (e) { alError('pdfNoAbre'); return; }
   try {
     const m = await medidasDelPdf(doc);
     if (m.paginas > PAGINAS_MAX) { alError('pdfLargo'); return; }
+    let pagina = obra.pagina, ajuste = 'contener';
+    if (proporcionDistinta(m, new ConfigPagina(pagina))) {
+      const r = await alProporcion(m);
+      if (!r) return;
+      ajuste = r.ajuste;
+      pagina = r.pagina || pagina;
+    }
     const ruta = `taller/${obra.id}/pdf/original-${azar()}.pdf`;
     const s = await be.taller.subir(ruta, archivo);
     if (s.error) { alError(s.error); return; }
-    const px = new ConfigPagina(obra.pagina).pxPara(300);
+    const px = new ConfigPagina(pagina).pxPara(300);
     alDecir(tx.leyendo.replace('{n}', '1').replace('{total}', String(m.paginas)));
     for (let n = 1; n <= m.paginas; n++) {
       if (!sigue()) return;
@@ -30,7 +41,7 @@ export async function importarPdf(archivo, { be, obra, tx, imagenes, sigue, alPa
       if (r.error) { alError(r.error); return; }
       if (!sigue()) return;
       await imagenes.poner(fondo, g.blob);
-      alPagina({ nombre: archivo.name.replace(/\.pdf$/i, ''), fondo, pdf: ruta, anchoMm: m.anchoMm, altoMm: m.altoMm, ajuste: 'contener', texto: g.texto, alt: '', caja: g.caja, sangre: g.sangre, objetos: [] });
+      alPagina({ nombre: archivo.name.replace(/\.pdf$/i, ''), fondo, pdf: ruta, anchoMm: m.anchoMm, altoMm: m.altoMm, ajuste, texto: g.texto, alt: '', caja: g.caja, sangre: g.sangre, objetos: [] });
     }
     alDecir(tx.pdfListo);
   } catch (e) {
