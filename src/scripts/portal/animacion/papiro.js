@@ -56,18 +56,39 @@ export const PAPIRO = { JUEGO_MS, ENTRA_MS, SALE_MS };
 
 /* Las cuatro lineas del tablero, en el sistema del dibujo (1080 x 1080), de donde empieza el trazo a donde
    acaba. NO estan en el SVG (el tablero es UN contorno): se midieron sobre el, buscando las cuatro rectas
-   (dos casi verticales, a 19.5 grados, y dos casi horizontales, a 9.5). `ancho` es lo que se destapa a cada
-   lado de la recta (el trazo mide ~20: poco, para que al cruzarse no asome un pedazo de la linea que aun no
-   se pinta); `mas`, lo que se pasa de cada punta. Cuando acaba la ultima linea, el tablero entero reemplaza
-   a las franjas (asi la sombra, que las franjas recortan, no se corta). */
+   (dos casi verticales, a 19.5 grados, y dos casi horizontales, a 9.5). Sirven para repartir los pixeles
+   del tablero entre las cuatro lineas (duenoDeLinea) y para saber por donde va el pincel. */
 export const LINEAS = [
   { de: [508, 341], a: [382, 697] },     // la vertical de la izquierda, de arriba abajo
   { de: [682, 375], a: [554, 735] },     // la vertical de la derecha
   { de: [322, 424], a: [786, 497] },     // la horizontal de arriba, de izquierda a derecha
   { de: [292, 563], a: [757, 637] }      // la horizontal de abajo
 ];
-export const TRAZO = { ancho: 17, mas: 28 };
-const ASIENTA_MS = 260;      // al acabar la ultima linea, el tablero entero (con su sombra) reemplaza a las franjas
+/* `mas`: lo que el pincel se pasa de cada punta; `pluma`: lo largo de la punta suave del pincel (el borde por donde
+   el trazo se va destapando, en vez de un corte recto). Los dos en unidades del dibujo (1080). */
+export const TRAZO = { mas: 28, pluma: 24 };
+
+/* A QUE LINEA PERTENECE CADA PIXEL DEL TABLERO. El tablero es UN solo contorno (cuatro lineas que se cruzan), asi que
+   para pintarlo linea por linea cada pixel se reparte a una: a la primera cuya recta pase a menos de `RADIO_CRUCE`
+   (asi el cruce lo pinta la que llega antes y nunca queda un hueco), y si ninguna, a la mas cercana. Antes se
+   destapaba una franja ancha alrededor de cada recta y, al pasar las verticales, asomaban trocitos de las
+   horizontales que aun no se pintaban (los «dientes» en los cruces). Las cuatro partes juntas son el tablero exacto:
+   ningun pixel se repite ni falta, y no hace falta reemplazarlas al final. */
+export const RADIO_CRUCE = 9;
+const NORMALES = LINEAS.map(({ de, a }) => {
+  const l = Math.hypot(a[0] - de[0], a[1] - de[1]);
+  return { de, nx: -(a[1] - de[1]) / l, ny: (a[0] - de[0]) / l };
+});
+export function duenoDeLinea(x, y) {
+  let mejor = 0, dm = Infinity;
+  for (let k = 0; k < NORMALES.length; k++) {
+    const n = NORMALES[k];
+    const d = Math.abs((x - n.de[0]) * n.nx + (y - n.de[1]) * n.ny);
+    if (d <= RADIO_CRUCE) return k;
+    if (d < dm) { dm = d; mejor = k; }
+  }
+  return mejor;
+}
 
 const LADO = 1080;          // el lado del cuadrado en que estan dibujados los componentes
 const AMPLIA = 1.36;        // cuanto se agranda ese cuadrado respecto al lado corto del cuadro (era 1.75: todo un 22 % mas pequeño, pedido del fundador)
@@ -113,6 +134,45 @@ export async function prepararCapas({ ancho, alto, escala, lienzoDe, cargarImage
     if (!cx) throw new Error('lienzo');
     cx.drawImage(img, bx, by, bw, bh, 0, 0, w, h);
     capas[c.id] = { lienzo, x: ox + bx * e, y: oy + by * e, w: bw * e, h: bh * e };
+    if (c.id === 'tablero') {
+      /* el tablero se parte en sus cuatro lineas: cada pixel, a la suya (ver duenoDeLinea) */
+      const orig = cx.getImageData(0, 0, w, h).data;
+      /* cada pixel con algo lleva una marca de su linea (un bit); luego la marca se ensancha 2 pixeles hacia los lados:
+         en la frontera entre dos lineas los dos lados se solapan un poco (es el mismo color), porque al dibujar una
+         capa a otra medida el borde de cada una se mezcla con lo transparente y, sin solape, quedaria una rayita clara. */
+      const marca = new Uint8Array(w * h);
+      for (let j = 0; j < h; j++) {
+        const Y = by + (j + 0.5) * bh / h;
+        for (let i = 0; i < w; i++) {
+          if (orig[(j * w + i) * 4 + 3] === 0) continue;
+          marca[j * w + i] = 1 << duenoDeLinea(bx + (i + 0.5) * bw / w, Y);
+        }
+      }
+      const ancha = new Uint8Array(w * h), dueno = new Uint8Array(w * h);
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+        let m = 0;
+        for (let d = Math.max(0, i - 2); d <= Math.min(w - 1, i + 2); d++) m |= marca[j * w + d];
+        ancha[j * w + i] = m;
+      }
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+        let m = 0;
+        for (let d = Math.max(0, j - 2); d <= Math.min(h - 1, j + 2); d++) m |= ancha[d * w + i];
+        dueno[j * w + i] = m;
+      }
+      capas[c.id].lineas = LINEAS.map((_, k) => {
+        const parte = lienzoDe(w, h);
+        const pc = parte.getContext('2d');
+        if (!pc) throw new Error('lienzo');
+        const datos = pc.createImageData(w, h);
+        for (let n = 0; n < w * h; n++) {
+          if (!(dueno[n] & (1 << k)) || orig[n * 4 + 3] === 0) continue;
+          const o = n * 4;
+          datos.data[o] = orig[o]; datos.data[o + 1] = orig[o + 1]; datos.data[o + 2] = orig[o + 2]; datos.data[o + 3] = orig[o + 3];
+        }
+        pc.putImageData(datos, 0, 0);
+        return parte;
+      });
+    }
   }
   return capas;
 }
@@ -200,23 +260,34 @@ export function crearPapiro({ ancho, alto, azar, duracionMs, escala, lienzoDe, c
 
   function avanzar(dt) { t += dt; }
 
-  /* La franja de la linea `i` ya recorrida (de 0 a 1): un rectangulo girado desde un poco antes de donde empieza
-     hasta donde va el pincel. Todas con el mismo sentido de giro: juntas, el recorte es su union. */
+  /* Una linea del tablero a medio pintar (`p` de 0 a 1): su parte del tablero, destapada hasta donde va el pincel y
+     con la punta suave (un degradado, no un corte recto). Se hace en un lienzo de trabajo del tamaño de la capa. */
   const g0 = geometria(ancho, alto);
-  const punto = (x, y) => [g0.ox + x * g0.e, g0.oy + y * g0.e];
-  function trazar(ctx, i, p) {
+  let trabajo = null;
+  function pintarLinea(ctx, c, i, p) {
+    const parte = c.lineas[i];
+    if (!trabajo) trabajo = lienzoDe(parte.width, parte.height);
+    const tc = trabajo.getContext('2d');
     const { de, a } = LINEAS[i];
     const largo = Math.hypot(a[0] - de[0], a[1] - de[1]);
     const ux = (a[0] - de[0]) / largo, uy = (a[1] - de[1]) / largo;
-    const desde = [de[0] - ux * TRAZO.mas, de[1] - uy * TRAZO.mas];
-    const hasta = [desde[0] + ux * (largo + 2 * TRAZO.mas) * p, desde[1] + uy * (largo + 2 * TRAZO.mas) * p];
-    const nx = -uy * TRAZO.ancho, ny = ux * TRAZO.ancho;
-    const esquinas = [[desde[0] + nx, desde[1] + ny], [hasta[0] + nx, hasta[1] + ny], [hasta[0] - nx, hasta[1] - ny], [desde[0] - nx, desde[1] - ny]];
-    /* el sentido de giro: si sale al reves, se invierte (el recorte juntaria dos signos distintos y se restarian) */
-    const area = esquinas.reduce((s, q, k) => { const r = esquinas[(k + 1) % 4]; return s + q[0] * r[1] - r[0] * q[1]; }, 0);
-    if (area < 0) esquinas.reverse();
-    esquinas.forEach((q, k) => { const [x, y] = punto(q[0], q[1]); if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
-    ctx.closePath();
+    const hx = de[0] - ux * TRAZO.mas + ux * (largo + 2 * TRAZO.mas) * p;       // donde va la punta del pincel, en el dibujo
+    const hy = de[1] - uy * TRAZO.mas + uy * (largo + 2 * TRAZO.mas) * p;
+    const sx = parte.width / c.w, sy = parte.height / c.h;                       // pixeles del lienzo por unidad del cuadro
+    const aqui = (x, y) => [(g0.ox + x * g0.e - c.x) * sx, (g0.oy + y * g0.e - c.y) * sy];
+    const [x1, y1] = aqui(hx, hy), [x0, y0] = aqui(hx - ux * TRAZO.pluma, hy - uy * TRAZO.pluma);
+    tc.setTransform(1, 0, 0, 1, 0, 0);
+    tc.globalCompositeOperation = 'source-over';
+    tc.clearRect(0, 0, parte.width, parte.height);
+    tc.drawImage(parte, 0, 0);
+    tc.globalCompositeOperation = 'destination-in';
+    const f = tc.createLinearGradient(x0, y0, x1, y1);
+    f.addColorStop(0, 'rgba(0,0,0,1)');
+    f.addColorStop(1, 'rgba(0,0,0,0)');
+    tc.fillStyle = f;
+    tc.fillRect(0, 0, parte.width, parte.height);
+    tc.globalCompositeOperation = 'source-over';
+    ctx.drawImage(trabajo, c.x, c.y, c.w, c.h);
   }
 
   function pintar(ctx) {
@@ -229,24 +300,10 @@ export function crearPapiro({ ancho, alto, azar, duracionMs, escala, lienzoDe, c
       const q = Math.min(1, (tj - g.t0) / (g.t1 - g.t0));
       ctx.save();
       if (g.tipo === 'linea') {
-        /* una linea del tablero: se destapa solo la franja que el pincel ya recorrio. Las cuatro se juntan en UN
-           recorte y el tablero se dibuja una sola vez (si no, la sombra se oscurece donde se cruzan). */
-        if (g.linea !== 0) { ctx.restore(); continue; }
-        const fin = GUION.filter((h) => h.tipo === 'linea').at(-1).t1;
-        const asentado = Math.min(1, Math.max(0, (tj - fin) / (ASIENTA_MS * velocidad)));
-        if (asentado < 1) {
-          ctx.beginPath();
-          GUION.forEach((h) => {
-            if (h.tipo !== 'linea' || tj <= h.t0) return;
-            trazar(ctx, h.linea, suave(Math.min(1, (tj - h.t0) / (h.t1 - h.t0))));
-          });
-          ctx.save();
-          ctx.clip();
-          ctx.globalAlpha = 1 - asentado;
-          ctx.drawImage(c.lienzo, c.x, c.y, c.w, c.h);
-          ctx.restore();
-        }
-        if (asentado > 0) { ctx.globalAlpha = asentado; ctx.drawImage(c.lienzo, c.x, c.y, c.w, c.h); }
+        /* una linea del tablero: SU parte del tablero (cada pixel pertenece a una sola linea), destapada hasta donde
+           va el pincel; al acabar se dibuja entera, y las cuatro juntas son el tablero. */
+        if (q < 1) pintarLinea(ctx, c, g.linea, suave(q));
+        else ctx.drawImage(c.lineas[g.linea], c.x, c.y, c.w, c.h);
       } else if (g.tipo === 'cae') {
         /* la pieza cae: llega mas grande y mas arriba, y se asienta */
         const p = 1 - Math.pow(1 - q, 3);

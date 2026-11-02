@@ -1,18 +1,18 @@
 /* EL SONIDO DE «EL JUEGO QUE EL AMOR YA GANO» (solo existe en el archivo que se baja).
 
-   Cinematografico, envolvente y sutil, como el de la lluvia, pero de una escena de madera y metal:
-   una sala de eco largo, un grave calido y oscuro, y cada pieza con SU sonido al caer —
-     el tablero   un roce largo de madera que se abre (ruido que sube de tono) y un golpe sordo al acabar;
-     los clavos   un «tin» de metal, agudo y corto, con un golpecito grave;
-     la moneda    un tintineo brillante que cae y rueda (parciales altos que se apagan);
-     la lanza     otro metal, mas afilado;
-     la corona    un rasguño de espinas (ruido agudo en rafagas cortas);
-     la cruz      un golpe grave de madera pesada que se alarga en la sala;
-     los corazones  el grave oscuro se abre: un acorde luminoso (re mayor) florece en la sala, y el
-                    latido (lub-dub) late por debajo. El amor ya gano: la escena termina en luz.
-   Mas cine (2026-10-30, pedido del fundador): un grave de templo que sube todo el juego, aire que se junta
-   antes de cada golpe, golpes que caen por debajo de lo que se oye y se alargan en la sala, y al final
-   el amor llega sin ruido, como una luz.
+   Rustico y suave (2026-11-01, pedido del fundador: el primero era de cine, de metal y de golpes
+   hondos; ahora suena a taller de carpintero y a papiro): madera, barro, cuerda y papel, todo en
+   voz baja, en una sala pequeña y calida, sin agudos que piquen.
+     el tablero   cada linea es un roce de pigmento sobre papiro (ruido suave que sube un poco de tono) y,
+                  al soltarla, un «toc» de madera apenas; la cuarta cierra con un toc mas hondo;
+     los clavos   dos toques secos de hierro viejo (un toc de madera y un tintineo apagado y bajo);
+     la moneda    un tintineo de barro, corto, que rebota una vez;
+     la lanza     un silbo de aire corto y un toc de madera;
+     la corona    ramitas secas que crujen (rafagas cortas de ruido medio) y un toc;
+     la cruz      el toc mayor: madera pesada, un golpe hondo y redondo, sin retumbar;
+     los corazones  una cuerda pulsada, tres notas de re mayor una tras otra, que se apagan despacio:
+                    el amor ya gano, sin ruido; y el latido (lub-dub) late muy bajito por debajo.
+   Debajo de todo, un zumbido grave y apenas audible (como el aire de una casa de adobe).
    Los momentos los da animacion/papiro.js (`eventos`: cuando empieza y acaba cada cosa, en
    milisegundos del video), asi que sonido e imagen van juntos por construccion. El azar es el de la
    semilla: suena igual cada vez. */
@@ -21,50 +21,57 @@ import { crearEstudio } from './estudio.js';
 /** @param {{ duracion: number, eventos: {tipo: string, t0: number, t1: number}[], azar: () => number }} p
     duracion en segundos; los tiempos de `eventos`, en milisegundos del video. */
 export async function sintetizarPapiro({ duracion, eventos, azar }) {
-  const e = crearEstudio({ duracion, azar, entra: 1.2, sale: 1.6, volumen: 1.3 });
-  const { ctx } = e;
-  const llegada = eventos.find((v) => v.tipo === 'corazones');
-  const tCorazones = llegada ? llegada.t0 / 1000 : duracion * 0.7;
+  /* volumen: medido en Chromium, el de antes tenia pico 0.61 y RMS -19.6 dB; este, pico ~0.3 y RMS ~ -28 dB
+     (unos 8 dB mas bajo, «algo», no un susurro) */
+  const e = crearEstudio({ duracion, azar, entra: 1.0, sale: 1.4, volumen: 1.7 });
 
-  /* El grave oscuro de fondo (mi, la, mi, la): llena la sala como el aire de un templo */
-  e.drone([41.2, 55, 82.41, 110], 0, duracion, 0.022, { subida: 2.4, bajada: 1.6, corte: 280 });
-  /* Una marea que SUBE durante todo el juego (la tension) y se abre en el acorde cuando llegan los corazones */
-  const marea = e.voz(1.0, 0);
-  marea.gain.setValueAtTime(0.0001, 0);
-  marea.gain.linearRampToValueAtTime(0.03, Math.max(1, tCorazones));
-  marea.gain.exponentialRampToValueAtTime(0.0001, Math.min(duracion, tCorazones + 2.4));
-  const fm = e.filtro('lowpass', 420, 0.8, marea);
-  fm.frequency.setValueAtTime(260, 0);
-  fm.frequency.exponentialRampToValueAtTime(900, Math.max(1, tCorazones));
-  for (const n of [55, 82.41, 110]) e.tono('sawtooth', n, 0, Math.min(duracion, tCorazones + 2.5), fm);
+  /* El aire de la casa: un zumbido grave y suave, apenas se oye */
+  e.drone([55, 82.41], 0, duracion, 0.010, { subida: 2.0, bajada: 1.4, corte: 200 });
 
-  /* El aire que se junta antes de un golpe (un «riser» al reves): ruido que sube de tono y de fuerza */
-  const aire = (hasta, largo, nivel, f0, f1, pan = 0) => {
-    const g = e.voz(1.0, pan);
-    g.gain.setValueAtTime(0.0001, hasta - largo);
-    g.gain.exponentialRampToValueAtTime(nivel, hasta - 0.02);
-    g.gain.linearRampToValueAtTime(0.0001, hasta + 0.05);
-    const b = e.filtro('bandpass', f0, 1.2, g);
-    b.frequency.setValueAtTime(f0, hasta - largo);
-    b.frequency.exponentialRampToValueAtTime(f1, hasta);
-    e.fuenteRuido(hasta - largo, hasta + 0.1, b);
+  /* Un «toc» de madera: un tono medio que cae un poco y un chasquido corto y opaco; redondo, sin brillo */
+  const toc = (desde, nivel, base = 190, pan = 0, sala = 0.35) => {
+    const g = e.voz(sala, pan);
+    e.sobre(g, desde, 0.004, nivel, 0.16);
+    e.tono('sine', base, desde, desde + 0.3, g).frequency.exponentialRampToValueAtTime(base * 0.62, desde + 0.14);
+    const c = e.voz(sala * 0.7, pan);
+    e.sobre(c, desde, 0.002, nivel * 0.7, 0.035);
+    e.fuenteRuido(desde, desde + 0.1, e.filtro('bandpass', 900, 1.0, c));
   };
-  /* Un golpe grave de cine: el tono cae por debajo de lo que se oye y se alarga en la sala; un soplo oscuro lo acompaña */
-  const golpe = (desde, nivel, base, cola) => {
-    const g = e.voz(0.8);
-    e.sobre(g, desde, 0.008, nivel, cola);
-    e.tono('sine', base, desde, desde + cola + 0.4, g).frequency.exponentialRampToValueAtTime(base * 0.55, desde + cola);
-    const r = e.voz(0.9);
-    e.sobre(r, desde, 0.004, nivel * 0.55, Math.min(0.9, cola * 0.5));
-    e.fuenteRuido(desde, desde + 1.2, e.filtro('lowpass', 480, 0.8, r));
+  /* Un golpe hondo y redondo (la madera pesada): baja y se apaga pronto; sin retumbo */
+  const hondo = (desde, nivel, base = 78, cola = 0.5, pan = 0) => {
+    const g = e.voz(0.45, pan);
+    e.sobre(g, desde, 0.006, nivel, cola);
+    e.tono('sine', base, desde, desde + cola + 0.3, g).frequency.exponentialRampToValueAtTime(base * 0.7, desde + cola);
+    const r = e.voz(0.3, pan);
+    e.sobre(r, desde, 0.004, nivel * 0.4, 0.07);
+    e.fuenteRuido(desde, desde + 0.2, e.filtro('lowpass', 420, 0.7, r));
   };
-  /* Un «tin» de metal: parciales agudos que se apagan despacio en una sala grande */
-  const metal = (desde, parciales, nivel, decaimiento, sala = 1.3, pan = 0) => {
+  /* Un roce suave (pigmento sobre papiro, un soplo): ruido medio que sube un poco de tono, sin agudos */
+  const roce = (desde, largo, nivel, f0, f1, pan = 0) => {
+    const g = e.voz(0.35, pan);
+    g.gain.setValueAtTime(0.0001, desde);
+    g.gain.linearRampToValueAtTime(nivel, desde + largo * 0.45);
+    g.gain.linearRampToValueAtTime(0.0001, desde + largo);
+    const b = e.filtro('bandpass', f0, 0.9, g);
+    b.frequency.setValueAtTime(f0, desde);
+    b.frequency.exponentialRampToValueAtTime(f1, desde + largo);
+    e.fuenteRuido(desde, desde + largo + 0.05, e.filtro('lowpass', 2400, 0.6, b));
+  };
+  /* Un tintineo apagado (hierro viejo o barro): pocos parciales, medios y bajos, que se apagan pronto */
+  const tintineo = (desde, parciales, nivel, decaimiento, pan = 0) => {
     parciales.forEach((f, i) => {
-      const g = e.voz(sala, pan);
-      e.sobre(g, desde, 0.002, 1.35 * nivel / (i + 1), decaimiento / (1 + i * 0.4));
-      e.tono('sine', f, desde, desde + decaimiento + 0.2, g);
+      const g = e.voz(0.55, pan);
+      e.sobre(g, desde, 0.003, nivel / (i + 1), decaimiento / (1 + i * 0.5));
+      e.tono('sine', f, desde, desde + decaimiento + 0.1, g);
     });
+  };
+  /* Una cuerda pulsada (suave, de laud): una nota que nace de golpe y se apaga despacio */
+  const cuerda = (desde, frecuencia, nivel, cola, pan = 0) => {
+    const g = e.voz(0.9, pan);
+    e.sobre(g, desde, 0.006, nivel, cola);
+    const velo = e.filtro('lowpass', 1500, 0.7, g);
+    e.tono('triangle', frecuencia, desde, desde + cola + 0.3, velo);
+    e.tono('sine', frecuencia * 2, desde, desde + cola * 0.5 + 0.3, velo);
   };
 
   let latidos = 0;
@@ -74,89 +81,62 @@ export async function sintetizarPapiro({ duracion, eventos, azar }) {
     const dur = Math.max(0.2, t1 - t0);
     switch (ev.tipo) {
       case 'trazo': {
-        /* una linea del tablero: el roce de la madera, que sube de tono mientras el pincel pasa (las dos verticales
-           suenan a la izquierda y la derecha, las horizontales al centro), y un golpe sordo al soltarlo; el de la
-           cuarta linea, que cierra el tablero, es el hondo */
-        const pan = [-0.35, 0.35, -0.1, 0.1][ev.i] || 0;
-        const g = e.voz(0.9, pan);
-        g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(0.09, t0 + dur * 0.5);
-        g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
-        const banda = e.filtro('bandpass', 240, 1.4, g);
-        banda.frequency.setValueAtTime(240, t0);
-        banda.frequency.exponentialRampToValueAtTime(1500 + ev.i * 120, t0 + dur);
-        e.fuenteRuido(t0, t0 + dur + 0.05, banda);
-        if (ev.i === 3) golpe(t1, 0.15, 64, 1.8); else golpe(t1, 0.05, 90 - ev.i * 6, 0.7);
+        /* una linea del tablero: el roce del pigmento mientras el pincel pasa (las dos verticales suenan a la
+           izquierda y la derecha, las horizontales al centro) y un toc al soltarlo; el de la cuarta, que
+           cierra el tablero, es el mas hondo */
+        const pan = [-0.3, 0.3, -0.1, 0.1][ev.i] || 0;
+        roce(t0, dur, 0.045, 320, 1100 + ev.i * 100, pan);
+        if (ev.i === 3) hondo(t1, 0.07, 82, 0.45); else toc(t1, 0.035, 210 - ev.i * 14, pan);
         break;
       }
       case 'clavos':
-        aire(t1 - 0.04, 0.4, 0.035, 500, 3000, -0.2);
-        metal(t1 - 0.04, [2100, 3150], 0.05, 0.9, 1.4, -0.2);
-        golpe(t1 - 0.04, 0.13, 92, 1.3);
+        toc(t1 - 0.04, 0.06, 170, -0.2);
+        tintineo(t1 - 0.02, [880, 1320], 0.012, 0.35, -0.2);
         break;
       case 'moneda':
-        aire(t1 - 0.04, 0.35, 0.02, 1200, 5000, 0.25);
-        metal(t1 - 0.04, [2300, 3450, 4700], 0.045, 2.0, 1.6, 0.25);
-        metal(t1 + 0.16, [2300, 3450], 0.02, 1.2, 1.6, 0.25);      // la moneda rebota una vez
-        golpe(t1 - 0.04, 0.06, 110, 0.9);
+        toc(t1 - 0.04, 0.035, 250, 0.25);
+        tintineo(t1 - 0.03, [1180, 1770], 0.014, 0.5, 0.25);
+        tintineo(t1 + 0.17, [1180], 0.006, 0.3, 0.25);              // la moneda rebota una vez
         break;
       case 'lanza':
-        aire(t1 - 0.04, 0.45, 0.045, 300, 4500, 0.2);              // el silbido de la lanza
-        metal(t1 - 0.04, [2800, 4200], 0.045, 1.0, 1.4, 0.2);
-        golpe(t1 - 0.04, 0.12, 100, 1.2);
+        roce(t1 - 0.3, 0.28, 0.03, 500, 2000, 0.2);                 // el silbo de la lanza
+        toc(t1 - 0.04, 0.06, 150, 0.2);
+        tintineo(t1 - 0.02, [760], 0.01, 0.35, 0.2);
         break;
       case 'corona': {
-        /* el rasguño de las espinas, y debajo un grave oscuro e inquieto (dos notas pegadas que laten) */
+        /* las espinas: ramitas secas que crujen, y debajo un toc */
         for (let i = 0; i < 4; i++) {
           const d = t1 - 0.3 + i * 0.07 + azar() * 0.02;
-          const g = e.voz(0.9, azar() * 0.8 - 0.4);
-          e.sobre(g, d, 0.003, 0.05, 0.1);
-          e.fuenteRuido(d, d + 0.15, e.filtro('bandpass', 3000 + azar() * 1800, 1.6, g));
+          const g = e.voz(0.4, azar() * 0.8 - 0.4);
+          e.sobre(g, d, 0.003, 0.03, 0.07);
+          e.fuenteRuido(d, d + 0.12, e.filtro('bandpass', 1700 + azar() * 900, 1.4, g));
         }
-        const oscuro = e.voz(1.2);
-        e.sobre(oscuro, t1 - 0.2, 0.25, 0.035, 1.8);
-        e.tono('sine', 98, t1 - 0.2, t1 + 2.2, oscuro);
-        e.tono('sine', 103.8, t1 - 0.2, t1 + 2.2, oscuro);
-        golpe(t1 - 0.02, 0.11, 105, 1.2);
+        toc(t1 - 0.02, 0.05, 140);
         break;
       }
-      case 'cruz': {
-        /* el golpe mayor: el aire se junta casi un segundo, y cae un grave enorme con un tañido que se alarga */
-        aire(t1 - 0.04, 0.9, 0.06, 140, 2200);
-        golpe(t1 - 0.04, 0.3, 50, 3.2);
-        metal(t1 - 0.04, [196, 294, 392], 0.04, 3.2, 1.6, 0);
-        const metales = e.voz(1.4);
-        e.sobre(metales, t1 - 0.04, 0.05, 0.04, 2.6);
-        const fb = e.filtro('lowpass', 420, 0.8, metales);
-        e.tono('sawtooth', 98, t1 - 0.04, t1 + 3, fb);
-        e.tono('sawtooth', 147, t1 - 0.04, t1 + 3, fb);
+      case 'cruz':
+        /* el toc mayor: madera pesada, hondo y redondo, y se apaga pronto */
+        roce(t1 - 0.45, 0.42, 0.025, 160, 700);
+        hondo(t1 - 0.04, 0.16, 68, 0.8);
+        toc(t1 - 0.04, 0.05, 120);
         break;
-      }
       case 'corazones': {
-        /* el amor gana, sin ruido: un acorde luminoso (re mayor) florece muy despacio, con un brillo apenas audible */
-        const flor = e.voz(1.6, 0.1);
-        e.sobre(flor, t0, 1.4, 0.06, 4.4);
-        const velo = e.filtro('lowpass', 1800, 0.7, flor);
-        for (const n of [146.83, 220, 293.66, 369.99, 587.33]) {
-          e.tono('sine', n, t0, t0 + 6, flor);
-          e.tono('triangle', n * 1.004, t0, t0 + 6, velo);
-        }
-        const brillo = e.voz(1.8, -0.2);
-        e.sobre(brillo, t0 + 0.5, 1.8, 0.008, 3.4);
-        for (const n of [1174.66, 1567.98]) e.tono('sine', n, t0 + 0.5, t0 + 6, brillo);
+        /* el amor gana, sin ruido: re mayor pulsado en cuerda, una nota tras otra (re, la, re, fa#), muy suave */
+        [[146.83, 0, -0.15], [220, 0.22, 0.1], [293.66, 0.44, -0.05], [369.99, 0.7, 0.15]].forEach(([f, d, pan]) => {
+          cuerda(t0 + d, f, 0.03, 3.4 - d, pan);
+        });
         break;
       }
       case 'latido': {
         /* lub y dub: un pulso grave y suave, casi un recuerdo */
-        const g = e.voz(0.8);
-        e.sobre(g, t0, 0.01, latidos++ % 2 === 0 ? 0.1 : 0.06, 0.22);
-        e.tono('sine', 56, t0, t0 + 0.5, g).frequency.exponentialRampToValueAtTime(42, t0 + 0.22);
+        const g = e.voz(0.5);
+        e.sobre(g, t0, 0.012, latidos++ % 2 === 0 ? 0.055 : 0.035, 0.2);
+        e.tono('sine', 60, t0, t0 + 0.5, g).frequency.exponentialRampToValueAtTime(46, t0 + 0.22);
         break;
       }
       default:
         break;
     }
   }
-
-  return ctx.startRendering();
+  return e.ctx.startRendering();
 }

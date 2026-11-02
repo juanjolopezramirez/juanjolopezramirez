@@ -1048,7 +1048,7 @@ ok('El salto al hiperespacio: acelera, salta y frena (y cabe en 4, 6 y 10 s), y 
   const an = AN.ANIMACIONES.find((x) => x.id === 'salto-al-hiperespacio');
   assert.ok(an && an.motor === 'salto' && ICONS[an.icono]);
 });
-const capasFalsas = () => Object.fromEntries(PA.COMPONENTES.map((c, i) => [c.id, { lienzo: { nombre: c.id }, x: 100 + i * 10, y: 80 + i * 5, w: 300, h: 200 }]));
+const capasFalsas = () => Object.fromEntries(PA.COMPONENTES.map((c, i) => [c.id, { lienzo: { nombre: c.id }, x: 100 + i * 10, y: 80 + i * 5, w: 300, h: 200, ...(c.id === 'tablero' ? { lineas: [0, 1, 2, 3].map((k) => ({ nombre: 'linea' + k, width: 300, height: 200 })) } : {}) }]));
 const papiroRastro = (semilla, duracionMs = 6000, cuadros = 140) => {
   const { ctx, registro } = grabadora();
   const lienzoDe = () => ({ getContext: () => ctx });
@@ -1074,6 +1074,30 @@ ok('«El juego que el amor ya ganó»: usa SUS dibujos (el tablero, cinco piezas
   /* cada pieza se dibuja: al final del video las siete capas han salido (el ultimo cuadro esta en el desvanecido) */
   const vistas = a.registro.filter((r) => r.startsWith('drawImage')).length;
   assert.ok(vistas >= 7 * 20, 'las capas se dibujan cuadro a cuadro: ' + vistas);
+});
+ok('«El juego que el amor ya ganó»: cada pixel del tablero es de UNA linea (los cruces los pinta la primera y no asoman trozos de las horizontales), y el pincel tiene la punta suave', () => {
+  const [v0, v1, h0, h1] = PA.LINEAS;
+  const en = (l, t, desvio = 0) => { const [x0, y0] = l.de, [x1, y1] = l.a; const n = Math.hypot(x1 - x0, y1 - y0); return [x0 + (x1 - x0) * t - (y1 - y0) / n * desvio, y0 + (y1 - y0) * t + (x1 - x0) / n * desvio]; };
+  /* sobre el eje de cada linea (lejos de los cruces): es de ella */
+  assert.equal(PA.duenoDeLinea(...en(v0, 0.1)), 0);
+  assert.equal(PA.duenoDeLinea(...en(v1, 0.9)), 1);
+  assert.equal(PA.duenoDeLinea(...en(h0, 0.05)), 2);
+  assert.equal(PA.duenoDeLinea(...en(h1, 0.95)), 3);
+  /* en el cruce de una vertical con una horizontal, la que llega antes (la vertical) se lleva el cruce... */
+  const cruce = (v, h) => { for (let t = 0; t <= 1; t += 0.001) { const p = en(v, t); const d = Math.abs((p[0] - h.de[0]) * (h.a[1] - h.de[1]) - (p[1] - h.de[1]) * (h.a[0] - h.de[0])) / Math.hypot(h.a[0] - h.de[0], h.a[1] - h.de[1]); if (d < 1) return p; } return null; };
+  const c = cruce(v0, h0);
+  assert.ok(c, 'las rectas se cruzan');
+  assert.equal(PA.duenoDeLinea(...c), 0, 'el cruce es de la vertical');
+  /* ...pero un pixel de la horizontal a mas de RADIO_CRUCE de la vertical ya NO es de la vertical (antes asomaba) */
+  const diente = [c[0] + (h0.a[0] - h0.de[0]) / Math.hypot(h0.a[0] - h0.de[0], h0.a[1] - h0.de[1]) * (PA.RADIO_CRUCE + 6), c[1] + (h0.a[1] - h0.de[1]) / Math.hypot(h0.a[0] - h0.de[0], h0.a[1] - h0.de[1]) * (PA.RADIO_CRUCE + 6)];
+  assert.equal(PA.duenoDeLinea(...diente), 2, 'a un lado del cruce, sobre la horizontal: es de la horizontal');
+  /* el pincel se pasa de las puntas y tiene pluma; y el tablero se parte en cuatro capas que se dibujan al terminar */
+  assert.ok(PA.TRAZO.mas > 0 && PA.TRAZO.pluma > 0 && PA.TRAZO.pluma <= PA.TRAZO.mas, 'pluma <= mas: al acabar el trazo queda todo destapado');
+  const { registro } = papiroRastro(21, 6000, 90);
+  assert.ok(registro.some((r) => r.startsWith('createLinearGradient')), 'la punta del pincel es un degradado');
+  assert.ok(registro.some((r) => r === 'globalCompositeOperation=destination-in'), 'y se destapa con destination-in');
+  const t = leer('src/scripts/portal/animacion/papiro.js').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/ctx\.clip\(\)/.test(t) && !/ASIENTA/.test(t), 'ya no hay franjas con recorte ni un reemplazo final del tablero');
 });
 ok('«El juego que el amor ya ganó»: el juego empieza al acabar la entrada, cabe en 4, 6 y 10 s, la muestra lo enseña casi entero, y dibujar NO gasta azar', () => {
   const anim = AN.ANIMACIONES.find((a) => a.id === 'el-juego-que-el-amor-ya-gano');
