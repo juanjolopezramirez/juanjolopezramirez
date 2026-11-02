@@ -58,6 +58,13 @@ export class Mesa {
   verNumeros() { return this.obra().pagina.numeros.ver; }
   decir(t) { this.alDecir(t); }
   imagen(ruta) { return this.imagenes.dame(ruta); }
+  alImagenLista(h) { this.minis.refrescar(h); if (this.vistaLibro) this.vistaLibro.refrescar(); }
+  alImagenDeTexto(dom) {
+    const v = this.vivos.find((x) => x.editor.view.dom.contains(dom));
+    if (v) this.minis.refrescarTexto(v);
+    if (this.vistaLibro) this.vistaLibro.refrescar();
+  }
+  reintentarImagenes() { this.vistas.forEach((h) => { if (h.hoja.querySelector('.hoja__falla')) h.pintar(); }); }
 
   /* ---- Abrir ---- */
   abrir(capitulos) {
@@ -587,7 +594,8 @@ export class Mesa {
       const f = d.querySelector('.flujo');
       if (f) f.removeAttribute('contenteditable');
     }
-    d.querySelectorAll('.marco, .fantasma, .guia, .seg, .sale, .asa').forEach((n) => n.remove());
+    d.querySelectorAll('.marco, .fantasma, .guia, .seg, .sale, .asa, .hoja__falla').forEach((n) => n.remove());
+    [d, ...d.querySelectorAll('.hoja--cargando')].forEach((n) => n.classList.remove('hoja--cargando'));
     const baja = p.vista || p.indice ? 0 : p.fila * (this.px.H + this.px.gap);
     d.classList.add('clon__dentro');
     d.style.transform = `scale(${esc}) translateY(${-baja}px)`;

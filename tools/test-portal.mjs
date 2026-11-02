@@ -495,7 +495,7 @@ ok('salir: la ת se ve SALIDA_MS (<= 600) EN PARALELO con el cierre real, y 0 co
   assert.match(leer('src/components/portal/Panel.astro'), /data-saliendo-texto/);
   assert.ok(p.indexOf("modoFondo('salida');") < p.indexOf('olvidar();', p.indexOf('async function salir')), 'primero la ת y el borrado, luego la espera');
   assert.match(p, /salir\(\(\) => be\.salir\(\)\)/);
-  assert.match(p, /evento === 'SIGNED_OUT'\) salir\(/);        // una sesion que se cierra sola pasa por lo mismo
+  assert.match(p, /evento === 'SIGNED_OUT' \|\| \(s && s\.id !== ses\.id\)\) salir\(/);        // una sesion que se cierra sola, o que cambia de cuenta, pasa por lo mismo
   assert.ok(es.panel.saliendo, 'el texto «Saliendo…»');
   assert.ok(typeof es.panel.saliendo === 'string' && !es.panel.saliendo.includes('?'));
 });

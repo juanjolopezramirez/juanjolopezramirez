@@ -12,6 +12,7 @@ export class Miniaturas {
     Object.assign(this, { caja, mesa });
     this.linea = crear('div', 'marca-soltar');
     this.arrastrado = null;
+    this.pedidas = new Map();
     caja.addEventListener('keydown', (e) => this.alTeclear(e));
     caja.addEventListener('contextmenu', (e) => {
       const b = e.target.closest('.mini');
@@ -86,6 +87,15 @@ export class Miniaturas {
     this.visor.unobserve(b);
     const h = b.querySelector('.mini__hoja');
     h.replaceChildren(this.mesa.clon(p, this.escala));
+  }
+
+  /* La copia de una hoja se saca una vez: si su imagen llega despues, se saca de nuevo */
+  refrescar(vista) {
+    for (const [b, p] of this.pedidas) if (p.vista === vista && b.querySelector('.clon')) this.llenar(b);
+  }
+
+  refrescarTexto(vivo) {
+    for (const [b, p] of this.pedidas) if (p.vivo === vivo && !p.vista && b.querySelector('.clon')) this.llenar(b);
   }
 
   marcar() {

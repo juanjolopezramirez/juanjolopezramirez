@@ -37,6 +37,7 @@ const enTelefono = () => window.matchMedia(TELEFONO).matches;
 const DICHO_MS = 6000;
 const GUARDAR_COLORES_MS = 800;
 const REINTENTO_OBRA_MS = 5000;
+const IMAGENES_MS = 15 * 60 * 1000;
 
 function recorrer(n, fn) { fn(n); (n.content || []).forEach((h) => recorrer(h, fn)); }
 function rutasDe(doc, salida = new Set()) {
@@ -96,6 +97,7 @@ export class Taller extends Seccion {
     this.avance = m('[data-tal-avance]');
     this.errorEl = m('[data-tal-error]');
     this.imagenes = new Imagenes((r) => ctx.be.taller.bajar(r));
+    if (import.meta.env.DEV) window.__imagenesTaller = this.imagenes;
     q('[data-tal-crear]').addEventListener('submit', (e) => { e.preventDefault(); this.crear(e.currentTarget); });
     m('[data-tal-volver]').addEventListener('click', () => this.volver());
     m('[data-tal-titulo]').addEventListener('change', (e) => { this.obra.titulo = e.target.value.trim() || this.obra.titulo; e.target.value = this.obra.titulo; this.guardarObra(); });
@@ -187,6 +189,7 @@ export class Taller extends Seccion {
   }
 
   async abrirYa(id) {
+    clearTimeout(this.relojImagenes);
     this.limpiar();
     const sesion = this.sesion;
     const r = await this.ctx.aTiempo(this.be.taller.abrir(id));
@@ -245,6 +248,7 @@ export class Taller extends Seccion {
     this.mesa.formulas = this.formulas;
     this.vistaLibro = this.vistaLibro || new VistaLibro(this.m('[data-tal-vista-libro]'), { mesa: this.mesa, tx: this.tx });
     this.vistaLibro.mesa = this.mesa;
+    this.mesa.vistaLibro = this.vistaLibro;
     await document.fonts.ready;
     this.mesa.abrir(capitulos);
     this.pintarColores();
@@ -283,7 +287,8 @@ export class Taller extends Seccion {
     const marco = this.m('[data-tal-marco]'), nuevo = marco.cloneNode(false);
     nuevo.removeAttribute('src');
     marco.replaceWith(nuevo);
-    this.imagenes.olvidar();
+    /* Las imagenes esperan un rato por si se vuelve, sin depender de un aviso que podria no llegar */
+    this.relojImagenes = setTimeout(() => this.imagenes.olvidar(), IMAGENES_MS);
     for (const r of [this.relojAnuncio, this.relojTexto, this.relojDicho, this.relojError, this.relojColores, this.relojObra]) clearTimeout(r);
     this.obraSucia = false;
     this.colorCapitulo = null;
@@ -745,6 +750,8 @@ export class Taller extends Seccion {
   olvidar() {
     this.sesion++;
     if (this.obra) this.cerrarObra();
+    clearTimeout(this.relojImagenes);
+    this.imagenes.olvidar();
     this.lista.replaceChildren();
   }
 }

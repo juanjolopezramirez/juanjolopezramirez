@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { ConfigPagina, mmAPx, pxAMm, TAMANOS } from '../src/scripts/contenido/taller/ConfigPagina.js';
 import { contraste, textosPocoVisibles, tintaPara } from '../src/scripts/contenido/taller/colores.js';
+import { Imagenes } from '../src/scripts/portal/panel/dev/taller/Imagenes.js';
 import { POR_NODO } from '../src/scripts/contenido/taller/tipos/indice.js';
 import { Zona } from '../src/scripts/contenido/taller/Zona.js';
 import { Pieza } from '../src/scripts/contenido/taller/Pieza.js';
@@ -199,6 +200,54 @@ await ok('el titulo viejo solo se omite si el texto ya empieza con ese mismo tit
 });
 await ok('un titulo larguisimo no pasa de lo que admite la base', () => {
   assert.equal(tituloDe({ type: 'doc', content: [{ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'a'.repeat(900) }] }] }).length, 300);
+});
+console.log('las imagenes');
+globalThis.FileReader = class { readAsDataURL(b) { this.result = `data:${b}`; setTimeout(() => this.onload()); } };
+await ok('un libro de PDF pide de a pocas, y dos hojas iguales una sola vez', async () => {
+  let a = 0, tope = 0, n = 0;
+  const im = new Imagenes(async () => { a++; n++; tope = Math.max(tope, a); await new Promise((ok) => { setTimeout(ok, 2); }); a--; return { ok: true, blob: 'x' }; }, 1);
+  const r = await Promise.all(['a', 'a', ...Array.from({ length: 20 }, (_, i) => `r${i}`)].map((x) => im.dame(x)));
+  assert.ok(r.every(Boolean));
+  assert.equal(n, 21);
+  assert.ok(tope <= 4, String(tope));
+});
+await ok('una falla de red se reintenta; un error de otra clase no', async () => {
+  let n = 0;
+  const im = new Imagenes(async () => (++n < 3 ? { error: 'red' } : { ok: true, blob: 'x' }), 1);
+  assert.ok(await im.dame('a'));
+  assert.equal(n, 3);
+  n = 0;
+  const mal = new Imagenes(async () => { n++; return { error: 'archivoRuta' }; }, 1);
+  assert.equal(await mal.dame('a'), '');
+  assert.equal(n, 1);
+});
+await ok('tres fallas seguidas dicen que no llego, y una cola atascada no bloquea a las demas', async () => {
+  const im = new Imagenes(async (r) => (r.startsWith('mal') ? { error: 'red' } : { ok: true, blob: 'x' }), 1);
+  const r = await Promise.all([...Array.from({ length: 8 }, (_, i) => `mal${i}`), 'bien'].map((x) => im.dame(x)));
+  assert.equal(r.filter(Boolean).length, 1);
+});
+await ok('una descarga colgada no tapa la fila, y una imagen dañada no deja nada esperando', async () => {
+  const colgada = new Imagenes((r) => (r.startsWith('c') ? new Promise(() => {}) : Promise.resolve({ ok: true, blob: 'x' })), 1, 5);
+  const r = await Promise.all(['c1', 'c2', 'c3', 'c4', 'bien'].map((x) => colgada.dame(x)));
+  assert.deepEqual(r.map(Boolean), [false, false, false, false, true]);
+  assert.equal(colgada.activas, 0);
+  const lector = globalThis.FileReader;
+  globalThis.FileReader = class { readAsDataURL() { setTimeout(() => this.onerror()); } };
+  const danada = new Imagenes(async () => ({ ok: true, blob: 'x' }), 1);
+  assert.equal(await danada.dame('a'), '');
+  assert.equal(danada.activas, 0);
+  globalThis.FileReader = lector;
+});
+await ok('olvidar corta lo que iba en camino: al cerrar sesion no vuelve a la memoria', async () => {
+  let suelta;
+  const im = new Imagenes(() => new Promise((ok) => { suelta = () => ok({ ok: true, blob: 'x' }); }), 1);
+  const p = im.dame('a');
+  await new Promise((ok) => { setTimeout(ok, 1); });
+  im.olvidar();
+  suelta();
+  assert.equal(await p, '');
+  assert.equal(im.mapa.size, 0);
+  assert.equal(im.activas, 0);
 });
 await ok('los px de Figma ida y vuelta: todo ancho entero vuelve igual tras pasar por milimetros', () => {
   for (let px = 591; px <= 4960; px++) assert.equal(mmAPx(new ConfigPagina({ anchoMm: pxAMm(px) }).anchoMm), px, String(px));

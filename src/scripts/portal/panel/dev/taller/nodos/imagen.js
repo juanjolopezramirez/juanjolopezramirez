@@ -46,7 +46,17 @@ export const Imagen = Node.create({
       };
       let actual = node;
       poner(node);
-      mesa.imagen(node.attrs.ruta).then((d) => { if (d) img.src = d; });
+      const pedir = () => mesa.imagen(actual.attrs.ruta).then((d) => {
+        const antes = dom.querySelector('.hoja__falla');
+        if (antes) antes.remove();
+        if (d) { img.src = d; mesa.alImagenDeTexto(dom); return; }
+        const b = crear('button', 'hoja__falla');
+        b.type = 'button';
+        b.textContent = mesa.tx.imagenNoLlego;
+        b.addEventListener('click', (e) => { e.stopPropagation(); pedir(); });
+        dom.append(b);
+      });
+      pedir();
       const vista = { getPos, updateAttributes, get node() { return actual; }, dom };
       dom.addEventListener('click', () => mesa.elegirImagen(vista));
       dom.addEventListener('pointerdown', (e) => {

@@ -200,7 +200,8 @@ function iniciar(raiz) {
 
     if (!escuchando) {
       escuchando = true;
-      be.alCambiar((evento) => { if (evento === 'SIGNED_OUT') salir(() => Promise.resolve()); });
+      /* Otra cuenta entro en este navegador: lo de este panel no es suyo */
+      be.alCambiar((evento, s) => { if (evento === 'SIGNED_OUT' || (s && s.id !== ses.id)) salir(() => Promise.resolve()); });
     }
     /* El admin con codigo de app (seccion «Seguridad») lo escribe antes de ver nada. */
     if (perfil.esAdmin && be.mfa) {

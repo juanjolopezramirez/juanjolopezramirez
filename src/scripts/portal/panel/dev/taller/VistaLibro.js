@@ -36,6 +36,7 @@ export class VistaLibro {
 
   cerrar() { this.caja.hidden = true; this.escena.replaceChildren(); if (this.origen) this.origen.focus(); }
   mover(d) { this.pliego += d; this.pintar(); }
+  refrescar() { if (!this.caja.hidden) this.pintar(); }
 
   pintar() {
     const l = this.pliegos(), p = this.mesa.px;

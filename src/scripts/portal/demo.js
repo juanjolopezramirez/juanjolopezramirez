@@ -239,7 +239,11 @@ export function abrirDemo() {
         subidos.set(ruta, archivo);
         return { ok: true };
       },
-      async bajar(ruta) { return subidos.has(ruta) ? { ok: true, blob: subidos.get(ruta) } : { error: 'red' }; }
+      async bajar(ruta) {
+        const prueba = window.__pruebaImagenes || {};
+        if (prueba.demora) await new Promise((ok) => { setTimeout(ok, prueba.demora); });
+        if (prueba.fallos > 0) { prueba.fallos--; return { error: 'red' }; }
+        return subidos.has(ruta) ? { ok: true, blob: subidos.get(ruta) } : { error: 'red' }; }
     }),
 
     /* Tablero en memoria: la misma forma que el de verdad (real.js), con las mismas validaciones */

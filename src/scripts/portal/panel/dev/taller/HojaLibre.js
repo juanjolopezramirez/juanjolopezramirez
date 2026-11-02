@@ -23,6 +23,7 @@ export class HojaLibre {
   constructor({ node, getPos, editor, mesa }) {
     Object.assign(this, { node, getPos, editor, mesa });
     this.objetos = limpiarObjetos(node.attrs.objetos);
+    this.turnoFondo = 0;
     this.elegido = '';
     this.recortando = false;
     this.editando = null;
@@ -79,10 +80,21 @@ export class HojaLibre {
     this.mesa.alCambiarHoja(this);
   }
 
+  /* No llego ni tras reintentar: se dice, y se puede pedir otra vez sin salir del libro */
+  ponerFalla() {
+    if (this.hoja.querySelector('.hoja__falla')) return;
+    const b = crear('button', 'hoja__falla', this.mesa.tx.imagenNoLlego);
+    b.type = 'button';
+    b.addEventListener('click', () => this.mesa.reintentarImagenes());
+    this.hoja.append(b);
+    this.mesa.alImagenLista(this);
+  }
+
   /* ---- Pintar ---- */
   pintar() {
-    const { hoja, attrs } = this;
+    const { hoja, attrs } = this, turno = ++this.turnoFondo;
     hoja.replaceChildren();
+    hoja.classList.remove('hoja--cargando');
     /* Un PDF traido conserva su fondo; una hoja sin color propio hereda el de su capitulo */
     const propio = attrs.fondo ? PAPEL_BASE : attrs.papel, tonos = propio ? variablesDe(propio) : { '--hoja-papel': '', '--hoja-tinta': '', '--hoja-enlace': '' };
     for (const [k, v] of Object.entries(tonos)) hoja.style.setProperty(k, v);
@@ -90,7 +102,12 @@ export class HojaLibre {
       const f = crear('img', `fondo fondo--${attrs.ajuste}`);
       f.alt = attrs.alt || attrs.texto.slice(0, 300) || this.mesa.tx.paginaPdf;
       f.draggable = false;
-      this.mesa.imagen(attrs.fondo).then((d) => { if (d) f.src = d; });
+      hoja.classList.add('hoja--cargando');
+      this.mesa.imagen(attrs.fondo).then((d) => {
+        if (turno !== this.turnoFondo) return;
+        hoja.classList.remove('hoja--cargando');
+        if (d) { f.src = d; this.mesa.alImagenLista(this); } else this.ponerFalla();
+      });
       hoja.append(f);
     }
     for (const o of this.objetos) hoja.append(this.pintarObjeto(o));
@@ -123,7 +140,7 @@ export class HojaLibre {
       const img = crear('img');
       img.alt = o.decorativa ? '' : o.alt;
       img.draggable = false;
-      this.mesa.imagen(o.ruta).then((d) => { if (d) img.src = d; });
+      this.mesa.imagen(o.ruta).then((d) => { if (d) { img.src = d; this.mesa.alImagenLista(this); } else if (e.isConnected) this.ponerFalla(); });
       this.ponerImagen(o, img);
       e.append(img);
     } else if (o.tipo === 'texto') {
@@ -236,7 +253,7 @@ export class HojaLibre {
   }
 
   alPresionar(e) {
-    if (e.button !== 0 || this.bloqueada) return;
+    if (e.button !== 0 || this.bloqueada || e.target.closest('.hoja__falla')) return;
     const asa = e.target.closest('.asa');
     if (asa) { this.empezarAsa(e, asa); return; }
     const oe = e.target.closest('.obj');

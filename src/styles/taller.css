@@ -132,6 +132,11 @@
 /* ---- Las hojas ---- */
 .hoja { width: var(--W); height: var(--H); background: var(--hoja-papel, #fff); color: var(--hoja-tinta, #151515); position: relative; box-shadow: 0 6px 22px rgb(0 0 0 / .55); user-select: none; overflow: hidden; }
 .hoja:focus { outline: none; }
+/* Mientras una imagen llega no se ve su texto alternativo, que parece una imagen rota */
+.hoja img:not([src]), .flujo img:not([src]) { visibility: hidden; }
+.hoja--cargando::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgb(127 127 127 / .14) 50%, transparent 70%) 0 0 / 240% 100%; animation: hoja-carga 1.3s linear infinite; pointer-events: none; }
+@keyframes hoja-carga { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.hoja__falla { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: .5rem .8rem; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 8px; color: var(--tiza); font: 12px var(--mono); cursor: pointer; }
 .hoja--activa { box-shadow: 0 0 0 2px var(--prompt), 0 6px 22px rgb(0 0 0 / .55); }
 .hoja--indice { padding: var(--mt) var(--mr) var(--mb) var(--ml); box-sizing: border-box; user-select: auto; }
 .indice__fila { display: flex; justify-content: space-between; gap: 1em; width: 100%; padding: .15em 0; background: none; border: 0; color: inherit !important; font: inherit !important; cursor: pointer; text-align: left; }
@@ -148,6 +153,7 @@
 .tal-columna { min-width: 0; padding: .4rem; outline: 1px dashed #bbb; }
 .flujo .imagen { position: relative; cursor: pointer; }
 .flujo .imagen img { width: 100%; }
+.flujo .imagen:has(.hoja__falla) { min-height: 64px; }
 .asa--texto { position: absolute; right: -6px; bottom: -6px; cursor: nwse-resize; display: none; }
 .flujo .imagen:hover .asa--texto { display: block; }
 .flujo .ProseMirror-selectednode { outline: 3px solid #1a4f8a; outline-offset: 2px; }
@@ -268,6 +274,7 @@
 }
 @media (max-width: 52rem) { .tal-cuerpo { grid-template-columns: 120px minmax(0, 1fr); } .tal-tope { flex-wrap: wrap; } .tal-avance { display: none; } }
 @media (prefers-reduced-motion: reduce) {
+  .hoja--cargando::after { animation: none; }
   .tal-menu, .tal-panel, .tal-panel__dentro, .tal-color__panel, .tal-btn, .tal-btn::before, .tal-accion, .tal-seg__op, .tal-color__m, .tal-color__boton { transition: none; animation: none; }
   .tal-btn:active, .tal-accion:active, .tal-color__m:hover { transform: none; }
 }
