@@ -10,7 +10,7 @@ import { colorDeLetra, ConfigPagina } from './ConfigPagina.js';
 import { familiaCss } from './fuentes.js';
 import { aNodos } from './TextoLibro.js';
 import { colorValido } from './marcas.js';
-import { PAPEL_BASE, tonosDe, variablesDe } from './colores.js';
+import { PAPEL_BASE, TINTA_SOBRE_PDF, tonosDe, variablesDe } from './colores.js';
 import { objeto } from '../comun.js';
 import { el, txt } from './tipos/ayuda.js';
 
@@ -96,6 +96,7 @@ html, body { margin: 0; background: transparent; print-color-adjust: exact; -web
 .obj--texto { white-space: pre-wrap; overflow-wrap: anywhere; padding: 4px; font-family: ${familiaCss(b.fuente)}; line-height: 1.3; }
 ${deCapitulos}
 ${deLibres}
+.pag-libre.pag-libre--pdf { --hoja-tinta: ${TINTA_SOBRE_PDF}; }
 ${cssLibro(config)}`;
 }
 

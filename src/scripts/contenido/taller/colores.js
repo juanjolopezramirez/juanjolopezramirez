@@ -4,6 +4,7 @@ import { objeto } from '../comun.js';
 import { colorValido } from './marcas.js';
 
 export const PAPEL_BASE = '#ffffff';
+export const TINTA_SOBRE_PDF = '#111111';     // la letra automatica sobre un dibujo: el papel de atras no dice si es claro
 export const RECIENTES_MAX = 12;
 const LEGIBLE = 4.5;                          // el contraste minimo de un texto
 const VISIBLE = 3;                            // por debajo de esto, un texto ya casi no se ve
@@ -49,7 +50,7 @@ export function textosPocoVisibles(contenido, base) {
   const recorrer = (nodo, papel) => {
     const o = objeto(nodo);
     if (o.type === 'paginaLibre') {
-      const a = objeto(o.attrs), hoja = a.fondo ? PAPEL_BASE : colorValido(a.papel) || papel;
+      const a = objeto(o.attrs), hoja = (!a.fondo && colorValido(a.papel)) || papel;
       for (const x of Array.isArray(a.objetos) ? a.objetos : []) if (x.tipo === 'texto') mirar(x.color, hoja);
       return;
     }

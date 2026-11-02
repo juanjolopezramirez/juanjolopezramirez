@@ -37,10 +37,10 @@ export function pdf(n, _, o = {}) {
   const src = (o.imagenes || {})[a.fondo];
   if (src) hijos.push(el('img', `pag-libre__fondo pag-libre__fondo--${a.ajuste}`, [], { src, alt: a.alt || a.texto.slice(0, 1000) }));
   for (const obj of a.objetos) { const e = OBJETOS[obj.tipo].pdf(obj, o); if (e) hijos.push(e); }
-  /* Un PDF traido conserva su fondo: el color del libro no lo toca */
-  const papel = a.fondo ? PAPEL_BASE : a.papel || o.papelCapitulo || PAPEL_BASE;
+  /* Un PDF traido conserva su dibujo, que va encima: lo que no cubre es el papel de su capitulo o del libro */
+  const papel = (!a.fondo && a.papel) || o.papelCapitulo || PAPEL_BASE;
   if (o.papelesLibres) o.papelesLibres.add(papel);
-  return el('div', `pag-libre papel-${papel.slice(1)}`, [el('div', 'pag-libre__caja', hijos)]);
+  return el('div', `pag-libre papel-${papel.slice(1)}${a.fondo ? ' pag-libre--pdf' : ''}`, [el('div', 'pag-libre__caja', hijos)]);
 }
 export const web = (n, h, o = {}) => pdf(n, h, { ...o, web: true });
 

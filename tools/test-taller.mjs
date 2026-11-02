@@ -283,7 +283,11 @@ await ok('el papel llega a la hoja: libro, capitulo y pagina libre, y el PDF tra
   assert.ok(/size: [^;]+; margin: [^;]+; background: #112233/.test(h.css));
   assert.ok(h.css.includes('@page cap-445566 { background: #445566'));
   assert.ok(texto.includes('capitulo papel-445566'));
-  for (const c of ['778899', 'ffffff', '445566']) { assert.ok(texto.includes(`pag-libre papel-${c}`), c); assert.ok(h.css.includes(`@page libre-${c}`), c); }
+  /* La pagina con PDF toma el papel de su capitulo: su dibujo va encima y lo que no cubre es papel */
+  for (const c of ['778899', '445566']) { assert.ok(texto.includes(`pag-libre papel-${c}`), c); assert.ok(h.css.includes(`@page libre-${c}`), c); }
+  assert.ok(!texto.includes('pag-libre papel-ffffff'));
+  /* Sobre un dibujo la letra automatica es oscura, aunque el papel de atras sea oscuro */
+  assert.ok(texto.includes('pag-libre--pdf') && h.css.includes('.pag-libre.pag-libre--pdf { --hoja-tinta: #111111; }'));
   assert.ok(!h.css.includes('background: #fff;'));
   assert.equal(limpiarContenido({ papel: 'url(x)', doc: { type: 'doc', content: [] } }).contenido.papel, undefined);
 });

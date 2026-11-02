@@ -602,8 +602,10 @@ export class Mesa {
 
   /* ---- Copias para la vista de libro y las miniaturas ---- */
   clon(p, esc) {
-    const c = crear('span', 'clon libro');
+    const c = crear('span', 'clon libro'), fuente = p.vista ? p.vista.hoja : p.vivo ? p.vivo.caja : this.raiz;
     c.style.cssText = `width:${this.px.W * esc}px;height:${this.px.H * esc}px`;
+    /* Lo que la copia no cubre es papel: blanco solo si el libro es blanco */
+    c.style.setProperty('--hoja-papel', getComputedStyle(fuente).getPropertyValue('--hoja-papel'));
     let d;
     if (p.indice) d = this.elementoDe(p).cloneNode(true);
     else if (p.vista) {

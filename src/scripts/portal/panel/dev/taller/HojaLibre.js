@@ -10,7 +10,7 @@ import { closeHistory } from '@tiptap/pm/history';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { limpiarObjetos, OBJETOS_MAX, TEXTO_CUADRO_MAX } from '../../../../contenido/taller/tipos/objetos.js';
 import { botonIncompleto, estiloDeBoton } from '../../../../contenido/taller/tipos/boton.js';
-import { PAPEL_BASE, variablesDe } from '../../../../contenido/taller/colores.js';
+import { TINTA_SOBRE_PDF, variablesDe } from '../../../../contenido/taller/colores.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const tope = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -95,9 +95,10 @@ export class HojaLibre {
     const { hoja, attrs } = this, turno = ++this.turnoFondo;
     hoja.replaceChildren();
     hoja.classList.remove('hoja--cargando');
-    /* Un PDF traido conserva su fondo; una hoja sin color propio hereda el de su capitulo */
-    const propio = attrs.fondo ? PAPEL_BASE : attrs.papel, tonos = propio ? variablesDe(propio) : { '--hoja-papel': '', '--hoja-tinta': '', '--hoja-enlace': '' };
+    /* Una hoja sin color propio hereda el de su capitulo. El dibujo de un PDF va encima: lo que no cubre es papel. */
+    const propio = attrs.fondo ? '' : attrs.papel, tonos = propio ? variablesDe(propio) : { '--hoja-papel': '', '--hoja-tinta': '', '--hoja-enlace': '' };
     for (const [k, v] of Object.entries(tonos)) hoja.style.setProperty(k, v);
+    if (attrs.fondo) hoja.style.setProperty('--hoja-tinta', TINTA_SOBRE_PDF);
     if (attrs.fondo) {
       const f = crear('img', `fondo fondo--${attrs.ajuste}`);
       f.alt = attrs.alt || attrs.texto.slice(0, 300) || this.mesa.tx.paginaPdf;

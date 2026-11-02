@@ -119,10 +119,10 @@
 .mini[aria-current="true"] { background: rgb(var(--prompt-rgb) / .16); }
 .mini[draggable="true"] { cursor: grab; }
 .mini__n { font-size: 11px; color: var(--tiza-2); text-align: right; padding-top: .15rem; }
-.mini__hoja { display: block; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .5); overflow: hidden; }
+.mini__hoja { display: block; background: var(--hoja-papel, #fff); box-shadow: 0 1px 4px rgb(0 0 0 / .5); overflow: hidden; }
 .punto { position: absolute; right: 16px; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--alerta); box-shadow: 0 0 0 2px #fff; }
 .marca-soltar { height: 3px; background: var(--prompt); border-radius: 2px; }
-.clon { display: block; position: relative; overflow: hidden; background: #fff; }
+.clon { display: block; position: relative; overflow: hidden; background: var(--hoja-papel, #fff); }
 .clon__dentro { position: absolute !important; top: 0; left: 0; transform-origin: 0 0; pointer-events: none; box-shadow: none !important; filter: none !important; margin: 0 !important; }
 
 .tal-fondo { overflow: auto; background: radial-gradient(circle at 50% 0, rgb(var(--prompt-rgb) / .07), transparent 60%); padding: 28px 16px 60px; scrollbar-width: thin; }
@@ -253,7 +253,8 @@
 .tal-vl-tope { display: flex; align-items: center; gap: .6rem; padding: .6rem 1rem; }
 .tal-vl-escena { display: flex; align-items: center; justify-content: center; min-height: 0; padding-bottom: 1rem; }
 .pliego { display: flex; box-shadow: 0 14px 40px rgb(0 0 0 / .7); }
-.pliego .clon + .clon { border-left: 1px solid #ccc; }
+.clon .hoja { box-shadow: none; }
+.pliego .clon + .clon::after { content: ""; position: absolute; inset: 0; box-shadow: inset 8px 0 10px -8px rgb(0 0 0 / .28); pointer-events: none; }
 
 /* ---- Formulas ---- */
 .formula--ed { cursor: pointer; unicode-bidi: isolate; border-radius: 3px; }
