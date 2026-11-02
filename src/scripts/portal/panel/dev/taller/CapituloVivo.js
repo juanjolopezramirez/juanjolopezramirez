@@ -29,7 +29,9 @@ export class CapituloVivo {
       alCambiar: () => { this.guardado.marcar(); mesa.alEscribir(this); },
       alMover: () => mesa.alMoverCursor(this),
       alEnfocar: () => mesa.alEnfocarEditor(this),
-      alBarra: () => mesa.entrarACinta()
+      alBarra: () => mesa.entrarACinta(),
+      alProtegerPagina: () => mesa.decir(mesa.tx.paginaProtegida),
+      alDeshacerPagina: () => mesa.decir(mesa.tx.deshacerPagina)
     });
   }
 

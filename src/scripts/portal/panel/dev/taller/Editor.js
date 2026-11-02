@@ -5,6 +5,7 @@
    guarda pasa siempre por TextoLibro.js: el editor propone, la lista de permitidos decide. */
 import { Editor, Extension } from '@tiptap/core';
 import { Fragment, Slice } from '@tiptap/pm/model';
+import { Plugin } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import { Color, FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style';
 import Subscript from '@tiptap/extension-subscript';
@@ -56,6 +57,33 @@ function fragmentoLimpio(f) {
   return Fragment.fromArray(hijos);
 }
 
+/* LA GUARDA DE LAS PAGINAS. Una pagina libre no cabe en una seleccion de texto: Ctrl+A y borrar, o escribir
+   encima, se llevarian paginas enteras sin que nadie lo pidiera. Solo las borra quien dice que borra una
+   pagina (`META_PAGINA`). Deshacer si puede, porque Ctrl+Y la trae de vuelta, pero se avisa. */
+export const META_PAGINA = 'tallerPagina';
+/* Se cuentan, no se siguen una por una: guardar una pagina libre la reemplaza entera, y seguirla la bloquearia.
+   Solo se entra a las columnas, que pueden llevarlas: asi no se recorre todo el texto en cada tecla. */
+const paginasLibres = (doc) => {
+  let n = 0;
+  doc.descendants((x) => { if (x.type.name === 'paginaLibre') n++; return x.type.name === 'columnas' || x.type.name === 'columna'; });
+  return n;
+};
+
+const GuardaPaginas = (o) => Extension.create({
+  name: 'guardaPaginas',
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      filterTransaction(tr, state) {
+        if (!tr.docChanged || tr.getMeta(META_PAGINA) || tr.getMeta('addToHistory') === false) return true;
+        if (paginasLibres(tr.doc) >= paginasLibres(state.doc)) return true;
+        if (tr.getMeta('history$')) { o.alDeshacerPagina(); return true; }
+        o.alProtegerPagina();
+        return false;
+      }
+    })];
+  }
+});
+
 export function crearEditor(elemento, o) {
   return new Editor({
     element: elemento,
@@ -68,7 +96,8 @@ export function crearEditor(elemento, o) {
       Columna, Columnas, PaginasPdf,
       PaginaLibre.configure({ mesa: o.mesa }),
       Formula.configure({ mesa: o.mesa }),
-      Boton.configure({ mesa: o.mesa })
+      Boton.configure({ mesa: o.mesa }),
+      GuardaPaginas(o)
     ],
     editorProps: {
       transformPastedHTML: limpiarPegado,

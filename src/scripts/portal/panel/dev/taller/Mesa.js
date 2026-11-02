@@ -5,6 +5,8 @@
    EL ZOOM ES UNA ESCALA, no `zoom` de CSS: la prueba de la Etapa 1 mostro que el otro mueve los cortes
    de pagina. Con la escala, lo que se ve en cualquier zoom es lo que sale en el PDF. */
 import { Selection } from '@tiptap/pm/state';
+import { closeHistory } from '@tiptap/pm/history';
+import { META_PAGINA } from './Editor.js';
 import { Capitulo } from '../../../../contenido/taller/Obra.js';
 import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
@@ -86,7 +88,7 @@ export class Mesa {
     this.lienzo.replaceChildren();
     this.minis.vaciar();
     this.prop.ocultar();
-    this.activo = null; this.hojaActiva = null; this.imagenElegida = null; this.ultimaVista = null;
+    this.activo = null; this.hojaActiva = null; this.imagenElegida = null;
     this.raiz.removeAttribute('style');
     clearTimeout(this.reloj);
     this.q('[data-t-segura]').checked = false;
@@ -254,8 +256,7 @@ export class Mesa {
   ponerLibreAqui(p) {
     const e = p.vivo.editor, pos = p.vivo.posicionDeFila(p.fila, this.px, this.z);
     if (!e.isEditable) return;
-    e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.paginaLibre.create({ nombre: this.tx.paginaLibre, objetos: [] })));
-    const h = this.ultimaVista;
+    const h = this.meterPagina(e, pos, { nombre: this.tx.paginaLibre, objetos: [] });
     this.medir();
     this.irAHoja(h);
     h.hoja.focus({ preventScroll: true });
@@ -333,7 +334,7 @@ export class Mesa {
   alElegir(h) { this.hojaActiva = h; this.vistas.forEach((o) => o.hoja.classList.toggle('hoja--activa', o === h)); this.prop.deHoja(h); }
   alMoverObjeto(h) { /* el panel se pone al dia al soltar */ if (!h) this.prop.ocultar(); }
   alCambiarHoja(h) { this.prop.deHoja(h); this.programar(); }
-  registrar(h) { this.vistas.add(h); this.ultimaVista = h; }
+  registrar(h) { this.vistas.add(h); }
   soltar(h) { this.vistas.delete(h); if (this.hojaActiva === h) { this.hojaActiva = null; this.prop.ocultar(); } }
 
   soltarElegidos() {
@@ -374,16 +375,39 @@ export class Mesa {
   /* ---- Insertar ---- */
   /* Donde cae lo nuevo: despues de la hoja elegida, o al terminar el parrafo del cursor. Nunca lo parte. */
   puntoDeInsercion() {
-    if (this.hojaActiva) { const v = this.vivoDe(this.hojaActiva); return { vivo: v, pos: this.hojaActiva.getPos() + 1 }; }
+    if (this.hojaActiva && this.aLaVista(this.hojaActiva.hoja.getBoundingClientRect())) { const v = this.vivoDe(this.hojaActiva); return { vivo: v, pos: this.hojaActiva.getPos() + 1 }; }
     const v = this.activo || this.vivos[this.vivos.length - 1], { $from } = v.editor.state.selection;
-    return { vivo: v, pos: $from.depth ? $from.after(1) : v.editor.state.doc.content.size };
+    if (this.cursorALaVista(v)) return { vivo: v, pos: $from.depth ? $from.after(1) : v.editor.state.doc.content.size };
+    return this.despuesDePagina(this.paginaActual());
+  }
+
+  /* El cursor puede haber quedado muy lejos de lo que se esta mirando: entonces no manda el */
+  cursorALaVista(v) {
+    return this.aLaVista(v.editor.view.coordsAtPos(v.editor.state.selection.from));
+  }
+
+  aLaVista(r) { const m = this.fondo.getBoundingClientRect(); return r.bottom > m.top && r.top < m.bottom; }
+
+  despuesDePagina(n) {
+    const p = this.paginas[n - 1], sig = this.paginas[n];
+    if (!p || p.indice) return { vivo: this.vivos[0], pos: 0 };
+    if (p.vista) return { vivo: p.vivo, pos: p.vista.getPos() + 1 };
+    if (!sig || sig.vivo !== p.vivo) return { vivo: p.vivo, pos: p.vivo.editor.state.doc.content.size };
+    return { vivo: p.vivo, pos: sig.vista ? sig.vista.getPos() : p.vivo.posicionDeFila(sig.fila, this.px, this.z) };
+  }
+
+  /* La vista de lo que se acaba de poner. Por posicion: ProseMirror puede reutilizar la de la pagina vecina, y
+     la ultima creada seria otra hoja. */
+  vistaEn(e, pos) { return [...this.vistas].find((h) => h.editor === e && h.getPos() === pos) || null; }
+
+  meterPagina(e, pos, attrs) {
+    e.view.dispatch(closeHistory(e.state.tr.insert(pos, e.schema.nodes.paginaLibre.create(attrs))));
+    return this.vistaEn(e, pos);
   }
   vivoDe(h) { return this.vivos.find((x) => x.editor === h.editor); }
 
   ponerLibre(attrs) {
-    const { vivo, pos } = this.puntoDeInsercion(), e = vivo.editor;
-    e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.paginaLibre.create(attrs)));
-    const h = this.ultimaVista;
+    const { vivo, pos } = this.puntoDeInsercion(), h = this.meterPagina(vivo.editor, pos, attrs);
     this.medir();
     this.irAHoja(h);
     return h;
@@ -394,10 +418,9 @@ export class Mesa {
   /* Las paginas de un PDF van una tras otra, aunque se siga escribiendo mientras llegan */
   ponerPaginaDePdf(attrs, anterior) {
     if (anterior && this.vistas.has(anterior)) {
-      const e = anterior.editor, pos = anterior.getPos() + 1;
-      e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.paginaLibre.create(attrs)));
+      const h = this.meterPagina(anterior.editor, anterior.getPos() + 1, attrs);
       this.programar();
-      return this.ultimaVista;
+      return h;
     }
     return this.ponerLibre(attrs);
   }
@@ -456,7 +479,7 @@ export class Mesa {
   /* ---- Borrar y mover ---- */
   async borrarPagina(h) {
     if (h.bloqueada) return;
-    const e = h.editor, pos = h.getPos(), i = this.paginas.findIndex((p) => p.vista === h), tr = e.state.tr.delete(pos, pos + 1);
+    const e = h.editor, pos = h.getPos(), i = this.paginas.findIndex((p) => p.vista === h), tr = e.state.tr.delete(pos, pos + 1).setMeta(META_PAGINA, true);
     /* El cursor queda junto a lo borrado: si no, la vista saltaria a donde estaba antes */
     e.view.dispatch(tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(pos)))));
     this.prop.ocultar();
@@ -465,14 +488,14 @@ export class Mesa {
     this.decir(this.tx.paginaBorrada);
     /* Si lo que sigue es otra hoja, el foco va ahi: en un libro de PDF el texto mas cercano puede estar muy lejos */
     const sigue = this.paginas[Math.min(i, this.paginas.length - 1)];
-    if (sigue && sigue.vista) sigue.vista.hoja.focus({ preventScroll: true });
+    if (sigue && sigue.vista && sigue.vista.editor === e) sigue.vista.hoja.focus({ preventScroll: true });
     else e.commands.focus();
   }
 
   duplicarPagina(h) {
     if (h.bloqueada) return;
     const e = h.editor, pos = h.getPos();
-    e.view.dispatch(e.state.tr.insert(pos + 1, e.schema.nodes.paginaLibre.create(JSON.parse(JSON.stringify(h.attrs)))));
+    this.meterPagina(e, pos + 1, JSON.parse(JSON.stringify(h.attrs)));
     this.medir();
   }
 
@@ -491,8 +514,8 @@ export class Mesa {
     const eo = h.editor, ed = d.vivo.editor, pos = h.getPos();
     let nodo = h.node;
     if (eo === ed) {
-      const tr = eo.state.tr.delete(pos, pos + 1);
-      eo.view.dispatch(tr.insert(tr.mapping.map(d.pos), nodo));
+      const tr = eo.state.tr.delete(pos, pos + 1).setMeta(META_PAGINA, true);
+      eo.view.dispatch(closeHistory(tr.insert(tr.mapping.map(d.pos), nodo)));
     } else {
       nodo = ed.schema.nodeFromJSON(nodo.toJSON());
       const tr = ed.state.tr.insert(d.pos, nodo);
@@ -500,7 +523,7 @@ export class Mesa {
       ed.view.dispatch(tr);
       const quedo = await d.vivo.guardado.vaciar(), ahora = h.getPos();
       if (!quedo) { this.alFalla('noGuardado'); this.medir(); return null; }
-      if (typeof ahora === 'number') eo.view.dispatch(eo.state.tr.delete(ahora, ahora + 1));
+      if (typeof ahora === 'number') eo.view.dispatch(eo.state.tr.delete(ahora, ahora + 1).setMeta(META_PAGINA, true));
     }
     this.medir();
     this.decir(this.tx.paginaMovida);

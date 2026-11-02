@@ -581,17 +581,23 @@ export class Taller extends Seccion {
 
   /* Si el libro se cierra a medio camino, lo que falta no entra en el siguiente */
   async traerPdf(archivo) {
-    let anterior = null;
+    let anterior = null, primera = null;
     const turno = this.turnoObra, sigue = () => turno === this.turnoObra;
     await importarPdf(archivo, {
       be: this.be, obra: this.obra.aDatos(), tx: this.tx, imagenes: this.imagenes, sigue,
       alProporcion: (m) => this.preguntarProporcion(m, sigue),
-      alPagina: (a) => { anterior = this.mesa.ponerPaginaDePdf(a, anterior); },
+      alPagina: (a) => { anterior = this.mesa.ponerPaginaDePdf(a, anterior); primera = primera || anterior; },
       alAviso: (t) => { if (sigue()) this.avance.textContent = t; },
       alDecir: (t) => this.decir(t),
       alError: (c) => this.error(c)
     });
-    if (sigue()) this.mesa.medir();
+    if (!sigue()) return;
+    this.mesa.medir();
+    /* Se ve donde quedo y se dice: si no, una pagina puede parecer perdida */
+    const n = this.mesa.paginas.findIndex((p) => p.vista === primera) + 1;
+    if (n < 1) return;
+    if (!document.activeElement.closest('.flujo, .hoja')) this.mesa.irA(n);
+    this.decir(this.tx.pdfQuedo.replace('{n}', String(n)));
   }
 
   /* El PDF tiene otra proporcion que el libro: decide el fundador. Ajustar el libro cambia todas sus hojas. */
