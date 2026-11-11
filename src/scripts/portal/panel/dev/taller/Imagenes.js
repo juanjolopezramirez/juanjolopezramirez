@@ -5,7 +5,11 @@
 
    Se piden de a pocas y una sola vez cada una: un libro de PDF abre decenas a la vez. Las que mas tiempo
    llevan sin usarse salen de la memoria a los 64 MB. Se quedan un rato tras cerrar el libro (Taller.js):
-   su ruta nunca cambia de contenido, asi que volver enseguida no las baja otra vez. */
+   su ruta nunca cambia de contenido, asi que volver enseguida no las baja otra vez.
+
+   Una imagen de imprenta ocupa 17 MB ya abierta: con veinte en la mesa el navegador las suelta y al volver a
+   ellas la hoja sale vacia un momento. Por eso la mesa ve una copia liviana (`vista`), y el PDF usa la
+   original (`dame`). */
 const TOPE = 64 * 1024 * 1024;
 const A_LA_VEZ = 4;
 const INTENTOS = 3;
@@ -18,11 +22,28 @@ const aDireccion = (blob) => new Promise((ok, mal) => {
   r.readAsDataURL(blob);
 });
 const esperar = (ms) => new Promise((ok) => { setTimeout(ok, ms); });
+const ANCHO_VISTA = 1400;
+const CALIDAD_VISTA = .85;
+
+async function aVista(dir) {
+  const i = new Image();
+  i.src = dir;
+  await i.decode();
+  if (i.naturalWidth <= ANCHO_VISTA) return dir;
+  const c = document.createElement('canvas');
+  c.width = ANCHO_VISTA;
+  c.height = Math.round((i.naturalHeight * ANCHO_VISTA) / i.naturalWidth);
+  c.getContext('2d').drawImage(i, 0, 0, c.width, c.height);
+  /* Un navegador que no sabe hacer WebP devuelve PNG, que pesa diez veces mas: entonces JPEG */
+  const webp = c.toDataURL('image/webp', CALIDAD_VISTA);
+  return webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/jpeg', CALIDAD_VISTA);
+}
 
 export class Imagenes {
   constructor(bajar, espera = ESPERA_MS, limite = LIMITE_MS) {
     Object.assign(this, { bajar, espera, limite });
     this.mapa = new Map();
+    this.vistas = new Map();          // ruta → la promesa de su copia liviana
     this.total = 0;
     this.turno = 0;
     this.enCurso = new Map();         // ruta → su promesa: dos hojas iguales no la bajan dos veces
@@ -42,6 +63,16 @@ export class Imagenes {
     const p = this.traer(ruta, this.turno).finally(() => { if (this.enCurso.get(ruta) === p) this.enCurso.delete(ruta); });
     this.enCurso.set(ruta, p);
     return p;
+  }
+
+  /* La de la mesa. Si la copia no se puede hacer, se ve la original. */
+  vista(ruta) {
+    if (!this.vistas.has(ruta)) {
+      const p = this.dame(ruta).then((d) => (d ? aVista(d).catch(() => d) : ''));
+      p.then((d) => { if (!d && this.vistas.get(ruta) === p) this.vistas.delete(ruta); });
+      this.vistas.set(ruta, p);
+    }
+    return this.vistas.get(ruta);
   }
 
   async traer(ruta, turno) {
@@ -89,5 +120,5 @@ export class Imagenes {
     return { mapa, faltan };
   }
 
-  olvidar() { this.mapa.clear(); this.enCurso.clear(); this.total = 0; this.turno += 1; }
+  olvidar() { this.mapa.clear(); this.vistas.clear(); this.enCurso.clear(); this.total = 0; this.turno += 1; }
 }

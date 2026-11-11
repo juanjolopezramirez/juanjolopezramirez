@@ -85,14 +85,14 @@ const obraN = new Obra({ titulo: 'Mi libro', pagina: new ConfigPagina({}).aDatos
 let id, cap, obra;
 
 console.log('el taller contra la base');
-await ok('crear un libro le da su primer capitulo, con su titulo en el texto', async () => {
+await ok('crear un libro le da su primer capitulo, vacio: el sistema no escribe en el texto', async () => {
   const r = await repo.crearObra(obraN.aDatos());
   assert.ok(r.ok, JSON.stringify(r));
   id = r.id;
   const a = await repo.abrir(id);
   assert.ok(a.ok);
   assert.equal(a.capitulos[0].contenido.version, 2);
-  assert.equal(a.capitulos[0].contenido.doc.content[0].type, 'heading');
+  assert.deepEqual(a.capitulos[0].contenido.doc.content, [{ type: 'paragraph' }]);
   obra = new Obra(a.obra);
   cap = new Capitulo(a.capitulos[0]);
 });

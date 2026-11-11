@@ -46,7 +46,7 @@ export class Miniaturas {
         grupo = crear('div', 'bloque-mini');
         if (cap) {
           const c = cap;
-          const t = crear('div', 'cap-mini', `▤ ${c.cap.titulo || m.tx.capitulo}`);
+          const t = crear('div', 'cap-mini', `▤ ${c.cap.titulo || `${m.tx.capitulo} ${m.vivos.indexOf(c) + 1}`}`);
           t.draggable = true;
           t.tabIndex = -1;
           t.title = m.tx.arrastrarCapitulo;

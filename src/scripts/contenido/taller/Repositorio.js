@@ -19,9 +19,8 @@ export function decidir(actual, pestana) {
 }
 
 const nuevoId = () => crypto.randomUUID();
-const contenidoNuevo = (titulo) => ({ version: VERSION_CONTENIDO, doc: { type: 'doc', content: [
-  { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: titulo }] }, { type: 'paragraph' }
-] } });
+/* Un capitulo nace vacio: su nombre es el primer titulo que escriba el autor, nunca uno puesto por el sistema */
+const contenidoNuevo = () => ({ version: VERSION_CONTENIDO, doc: { type: 'doc', content: [{ type: 'paragraph' }] } });
 const copiaProfunda = (v) => JSON.parse(JSON.stringify(v));
 const COPIAS_AUTO = 30;
 
@@ -42,7 +41,7 @@ export class RepositorioTallerMemoria {
     const id = datos.id || nuevoId();
     const fila = { ...copiaProfunda(datos), id, rev: 1, pestana: null };
     this.obrasM.set(id, fila);
-    await this.crearCapitulo(id, 'Capítulo 1');
+    await this.crearCapitulo(id);
     return { ok: true, id };
   }
   guardar(mapa, datos, pestana) {
@@ -61,10 +60,10 @@ export class RepositorioTallerMemoria {
     for (const m of [this.capitulosM, this.piezasM]) for (const [k, v] of m) if (v.obraId === id) m.delete(k);
     return { ok: true };
   }
-  async crearCapitulo(obraId, titulo) {
+  async crearCapitulo(obraId, titulo = '') {
     const id = nuevoId();
     const orden = [...this.capitulosM.values()].filter((c) => c.obraId === obraId).length;
-    const fila = { id, obraId, orden, titulo, contenido: contenidoNuevo(titulo), letras: 0, rev: 1, pestana: null };
+    const fila = { id, obraId, orden, titulo, contenido: contenidoNuevo(), letras: 0, rev: 1, pestana: null };
     this.capitulosM.set(id, fila);
     return { ok: true, fila: copiaProfunda(fila) };
   }
@@ -153,7 +152,7 @@ export class RepositorioTallerSupabase {
     const id = nuevoId();
     const r = await this.pedir(this.sb.from('taller_obras').insert({ ...CAMPOS.obra(datos), id }));
     if (r.error) return r;
-    const c = await this.crearCapitulo(id, 'Capítulo 1');
+    const c = await this.crearCapitulo(id);
     return c.error ? c : { ok: true, id };
   }
 
@@ -176,11 +175,11 @@ export class RepositorioTallerSupabase {
     const r = await this.pedir(this.sb.from(tabla).delete().eq('id', id));
     return r.error ? r : { ok: true };
   }
-  async crearCapitulo(obraId, titulo) {
+  async crearCapitulo(obraId, titulo = '') {
     const ya = await this.pedir(this.sb.from('taller_capitulos').select('orden').eq('obra_id', obraId).order('orden', { ascending: false }).limit(1));
     if (ya.error) return ya;
     const orden = ya.data.length ? ya.data[0].orden + 1 : 0;
-    const contenido = contenidoNuevo(titulo);
+    const contenido = contenidoNuevo();
     const r = await this.pedir(this.sb.from('taller_capitulos').insert({ obra_id: obraId, orden, titulo, contenido }).select('id,obra_id,orden,titulo,contenido,letras,rev').single());
     return r.error ? r : { ok: true, fila: deFila(r.data) };
   }

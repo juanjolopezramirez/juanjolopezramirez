@@ -25,7 +25,7 @@ export class CapituloVivo {
     this.pintarPapel();
     this.guardado = new Autoguardado({ guardar: () => this.guardar(), alEstado: (e) => mesa.alEstado(this, e) });
     this.editor = crearEditor(c, {
-      contenido: limpiarContenido(cap.contenido).contenido.doc, tx: mesa.tx, etiqueta: `${mesa.tx.etiquetaEditor}: ${cap.titulo}`, idioma: mesa.idioma(), mesa, editable: mesa.editable,
+      contenido: limpiarContenido(cap.contenido).contenido.doc, tx: mesa.tx, etiqueta: `${mesa.tx.etiquetaEditor}: ${cap.titulo || mesa.tx.capitulo}`, idioma: mesa.idioma(), mesa, editable: mesa.editable,
       alCambiar: () => { this.guardado.marcar(); mesa.alEscribir(this); },
       alMover: () => mesa.alMoverCursor(this),
       alEnfocar: () => mesa.alEnfocarEditor(this),

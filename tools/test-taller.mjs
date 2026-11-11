@@ -384,7 +384,7 @@ await ok('una copia automatica sin cambios no se repite, y restaurar devuelve lo
   await r.guardarCapitulo({ ...c, titulo: 'nuevo' }, 'yo');
   const [v] = (await r.versiones(id)).filas;
   await r.restaurar(v.id);
-  assert.equal((await r.abrir(id)).capitulos[0].titulo, 'Capítulo 1');
+  assert.equal((await r.abrir(id)).capitulos[0].titulo, '');        // nace sin nombre, y restaurar lo devuelve asi, no «nuevo»
 });
 
 console.log('el guardado automatico');

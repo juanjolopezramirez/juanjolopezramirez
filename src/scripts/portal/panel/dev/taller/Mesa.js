@@ -59,7 +59,7 @@ export class Mesa {
   margenes() { return new ConfigPagina(this.obra().pagina).aPorcentajes(); }
   verNumeros() { return this.obra().pagina.numeros.ver; }
   decir(t) { this.alDecir(t); }
-  imagen(ruta) { return this.imagenes.dame(ruta); }
+  imagen(ruta) { return this.imagenes.vista(ruta); }
   alImagenLista(h) { this.minis.refrescar(h); if (this.vistaLibro) this.vistaLibro.refrescar(); }
   alImagenDeTexto(dom) {
     const v = this.vivos.find((x) => x.editor.view.dom.contains(dom));
@@ -459,7 +459,7 @@ export class Mesa {
   }
 
   async nuevoCapitulo() {
-    const r = await this.be.taller.crearCapitulo(this.obra().id, `${this.tx.capitulo} ${this.vivos.length + 1}`);
+    const r = await this.be.taller.crearCapitulo(this.obra().id);
     if (r.error) { this.alFalla(r.error); return; }
     const v = new CapituloVivo(new Capitulo(r.fila), this);
     const i = this.activo ? this.vivos.indexOf(this.activo) + 1 : this.vivos.length;

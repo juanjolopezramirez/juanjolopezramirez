@@ -196,7 +196,7 @@ export class Taller extends Seccion {
     if (r.error) { this.error(r.error); return; }
     let capitulos = r.capitulos.map((c) => new Capitulo(c));
     if (!capitulos.length) {
-      const c = await this.be.taller.crearCapitulo(id, `${this.tx.capitulo} 1`);
+      const c = await this.be.taller.crearCapitulo(id);
       if (c.error) { this.error(c.error); return; }
       capitulos = [new Capitulo(c.fila)];
     }

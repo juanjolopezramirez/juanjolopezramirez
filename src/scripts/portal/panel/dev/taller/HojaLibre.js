@@ -101,6 +101,7 @@ export class HojaLibre {
     if (attrs.fondo) hoja.style.setProperty('--hoja-tinta', TINTA_SOBRE_PDF);
     if (attrs.fondo) {
       const f = crear('img', `fondo fondo--${attrs.ajuste}`);
+      f.decoding = 'sync';
       f.alt = attrs.alt || attrs.texto.slice(0, 300) || this.mesa.tx.paginaPdf;
       f.draggable = false;
       hoja.classList.add('hoja--cargando');

@@ -141,7 +141,7 @@
 .hoja--indice { padding: var(--mt) var(--mr) var(--mb) var(--ml); box-sizing: border-box; user-select: auto; }
 .indice__fila { display: flex; justify-content: space-between; gap: 1em; width: 100%; padding: .15em 0; background: none; border: 0; color: inherit !important; font: inherit !important; cursor: pointer; text-align: left; }
 .corrida { width: var(--W); box-sizing: border-box; padding: var(--mt) var(--mr) 0 var(--ml); position: relative;
-  background: repeating-linear-gradient(to bottom, var(--hoja-papel, #fff) 0, var(--hoja-papel, #fff) var(--H), transparent var(--H), transparent calc(var(--H) + var(--gap))); filter: drop-shadow(0 4px 8px rgb(0 0 0 / .5)); }
+  background: repeating-linear-gradient(to bottom, var(--hoja-papel, #fff) 0, var(--hoja-papel, #fff) var(--H), transparent var(--H), transparent calc(var(--H) + var(--gap))); }
 .flujo { width: var(--ancho); column-width: var(--ancho); column-height: var(--alto); column-wrap: wrap; column-gap: 0; row-gap: var(--salto); column-fill: auto; outline: none; caret-color: var(--hoja-tinta, #111); }
 .pie { position: absolute; left: 0; width: 100%; text-align: center; font: 12px var(--mono); color: var(--hoja-tinta, #555); opacity: .7; pointer-events: none; }
 .flujo:focus-visible { outline: none; }
