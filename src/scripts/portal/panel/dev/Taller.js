@@ -26,6 +26,8 @@ import { importarPdf } from './taller/Importar.js';
 import { Formulas } from './taller/Formulas.js';
 import { bajarLibro, entregar, nombreDeArchivo } from './taller/Descarga.js';
 import { SelectorColor } from './taller/SelectorColor.js';
+import { Selector } from './taller/Selector.js';
+import { familiaCss } from '../../../contenido/taller/fuentes.js';
 import { RECIENTES_MAX, textosPocoVisibles } from '../../../contenido/taller/colores.js';
 
 const COPIA_MS = 10 * 60 * 1000;
@@ -412,6 +414,8 @@ export class Taller extends Seccion {
     const tam = f.elements.tamano;
     TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.nombre} · ${mmAPx(t.anchoMm)} × ${mmAPx(t.altoMm)} px`; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
+    for (const k of ['tamano', 'idioma', 'lugar']) new Selector(f.elements[k]);
+    new Selector(f.elements.fuente, { fuenteDe: (v) => (v ? familiaCss(v) : '') });
     tam.addEventListener('change', () => {
       const t = TAMANOS.find((x) => x.id === tam.value);
       if (t) { f.elements.anchoMm.value = t.anchoMm; f.elements.altoMm.value = t.altoMm; }

@@ -3,18 +3,21 @@
    Una sola parada de Tab para la fila que se ve, flechas para moverse dentro, Inicio y Fin. Alt+F10
    llega desde el texto y Escape vuelve a el. Con el raton el cursor del texto no se mueve; con el
    teclado el foco se queda en la cinta, para poder seguir eligiendo. */
+import { Campo, Selector } from './Selector.js';
 import { SelectorColor } from './SelectorColor.js';
 import { SIMBOLOS } from '../../../../../data/portal/taller.js';
-import { nombreDeFuente } from '../../../../contenido/taller/fuentes.js';
+import { familiaCss, nombreDeFuente } from '../../../../contenido/taller/fuentes.js';
 import { tamanoValido, colorValido } from '../../../../contenido/taller/marcas.js';
 import { enlaceSeguro } from '../../../../contenido/comun.js';
 import { cargarFuente } from './Fuentes.js';
 
 const MARCAS = { bold: 'toggleBold', italic: 'toggleItalic', underline: 'toggleUnderline', strike: 'toggleStrike', superscript: 'toggleSuperscript', subscript: 'toggleSubscript', bulletList: 'toggleBulletList', orderedList: 'toggleOrderedList', blockquote: 'toggleBlockquote' };
-const PARADAS = 'button, select, input:not([type="file"]), summary';
+const PARADAS = 'button, select:not(.tal-sel__nativo), input:not([type="file"]), summary';
+/* Los tamaños listos, como en Word. Lo escrito a mano sigue valiendo. */
+const TAMANOS_LETRA = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
 
 /* Los formularios tienen su propio Tab: alli las flechas son del campo */
-const FUERA_DE_LA_FILA = '.tal-b-panel, .tal-color__panel, .tal-pagina, .tal-colores';
+const FUERA_DE_LA_FILA = '.tal-b-panel, .tal-color__panel, .tal-pagina, .tal-colores, .tal-sel__lista, .tal-sel__abrir';
 
 export class Cinta {
   constructor(raiz, { tx, editor, alError, alImagen, alPdf, alNuevaFuente, alInsertar, alFormula, alVolver, alColor, recientes, fuentes }) {
@@ -26,6 +29,9 @@ export class Cinta {
     this.q('[data-b-color]').append(this.color.nodo);
     this.nivel = this.q('[data-b-nivel]');
     this.ponerFuentes(fuentes);
+    this.selNivel = new Selector(this.nivel);
+    this.selFuente = new Selector(this.fuente, { fuenteDe: (v) => (v ? familiaCss(v) : '') });
+    this.campoTamano = new Campo(this.tamano, TAMANOS_LETRA);
     raiz.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
     raiz.querySelectorAll('[data-pestana]').forEach((p) => p.addEventListener('click', () => this.abrir(p.dataset.pestana)));
     raiz.querySelectorAll('[data-b-marca]').forEach((b) => b.addEventListener('click', (e) => { const c = this.cadena(e); if (c) c[MARCAS[b.dataset.bMarca]]().run(); }));
@@ -218,9 +224,9 @@ export class Cinta {
     this.raiz.querySelectorAll('[data-b-marca]').forEach((b) => b.setAttribute('aria-pressed', String(e.isActive(b.dataset.bMarca))));
     const a = e.getAttributes('textStyle');
     if (!this.color.caja.matches(':popover-open')) this.color.poner(colorValido(a.color));
-    if (document.activeElement !== this.tamano) this.tamano.value = a.fontSize ? parseFloat(a.fontSize) : '';
-    if (document.activeElement !== this.fuente) this.fuente.value = a.fontFamily || '';
-    if (document.activeElement !== this.nivel) this.nivel.value = e.isActive('heading') ? String(e.getAttributes('heading').level) : 'p';
+    if (document.activeElement !== this.tamano && !this.campoTamano.abierto) this.tamano.value = a.fontSize ? parseFloat(a.fontSize) : '';
+    if (!this.selFuente.abierto) this.fuente.value = a.fontFamily || '';
+    if (!this.selNivel.abierto) this.nivel.value = e.isActive('heading') ? String(e.getAttributes('heading').level) : 'p';
     const tipo = e.isActive('heading') ? 'heading' : 'paragraph', al = e.getAttributes(tipo).alinear;
     this.raiz.querySelectorAll('[data-b-alinear]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bAlinear === al)));
     this.q('[data-b-capital]').setAttribute('aria-pressed', String(!!e.getAttributes('paragraph').capital));
