@@ -12,12 +12,14 @@ import { enlaceSeguro } from '../../../../contenido/comun.js';
 import { cargarFuente } from './Fuentes.js';
 
 const MARCAS = { bold: 'toggleBold', italic: 'toggleItalic', underline: 'toggleUnderline', strike: 'toggleStrike', superscript: 'toggleSuperscript', subscript: 'toggleSubscript', bulletList: 'toggleBulletList', orderedList: 'toggleOrderedList', blockquote: 'toggleBlockquote' };
-const PARADAS = 'button, select:not(.tal-sel__nativo), input:not([type="file"]), summary';
+/* Los campos de numero no son paradas de la fila: en ellos las flechas son del campo, y se llega con Tab */
+const PARADAS = 'button, select:not(.tal-sel__nativo), summary';
 /* Los tamaños listos, como en Word. Lo escrito a mano sigue valiendo. */
 const TAMANOS_LETRA = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
 
-/* Los formularios tienen su propio Tab: alli las flechas son del campo */
-const FUERA_DE_LA_FILA = '.tal-b-panel, .tal-color__panel, .tal-pagina, .tal-colores, .tal-sel__lista, .tal-sel__abrir';
+/* Lo que se abre (paneles, listas, la hoja de ajustes) tiene su propio Tab: alli las flechas son del campo.
+   La fila de Diseño si es parte de la cinta. */
+const FUERA_DE_LA_FILA = '.tal-b-panel, .tal-color__panel, .tal-colores, .tal-sel__lista, .tal-sel__abrir, .tal-ajustes';
 
 export class Cinta {
   constructor(raiz, { tx, editor, alError, alImagen, alPdf, alNuevaFuente, alInsertar, alFormula, alVolver, alColor, recientes, fuentes }) {
@@ -83,7 +85,7 @@ export class Cinta {
   cadena(e) { const ed = this.ed(); if (!ed) return null; const c = ed.chain(); return e && e.detail > 0 ? c.focus() : c; }
 
   abrir(id) {
-    this.raiz.querySelectorAll('[data-pestana]').forEach((p) => p.setAttribute('aria-pressed', String(p.dataset.pestana === id)));
+    this.raiz.querySelectorAll('[data-pestana]').forEach((p) => p.setAttribute('aria-selected', String(p.dataset.pestana === id)));
     this.raiz.querySelectorAll('[data-grupo]').forEach((g) => { g.hidden = g.dataset.grupo !== id; });
     this.ordenarParadas();
   }
@@ -120,6 +122,8 @@ export class Cinta {
       l.forEach((n) => { n.tabIndex = n === e.target ? 0 : -1; });
     });
     this.raiz.addEventListener('keydown', (e) => {
+      /* La hoja de ajustes es un dialogo: Escape la cierra el navegador, y el foco vuelve solo */
+      if (e.target.closest('dialog[open]')) return;
       if (e.key === 'Escape') {
         const abierto = e.target.closest('details[open]');
         e.preventDefault();
@@ -128,7 +132,8 @@ export class Cinta {
         return;
       }
       const l = this.paradas(), i = l.indexOf(e.target);
-      if (i < 0 || e.target.matches('[data-b-tamano]')) return;
+      /* En un campo de numero las flechas mueven el cursor y el valor */
+      if (i < 0 || e.target.matches('input')) return;
       const destino = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: l.length - 1 }[e.key];
       if (destino === undefined) return;
       e.preventDefault();
@@ -139,9 +144,14 @@ export class Cinta {
   entrar() { const a = this.paradas().find((n) => n.tabIndex === 0); if (a) a.focus(); }
 
   prepararPlegables() {
+    /* Un menu de opciones (Página ▾) se cierra al elegir una */
+    this.raiz.querySelectorAll('.tal-b-panel--menu').forEach((p) => p.addEventListener('click', (e) => {
+      if (e.target.closest('button')) p.closest('details').open = false;
+    }));
     this.raiz.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => {
       if (!d.open) return;
-      const c = d.querySelector('input, [data-b-simbolos] button');
+      /* La opcion que ya esta elegida, o el primer control: la letra antes que el tamaño */
+      const c = d.querySelector('input:checked') || d.querySelector('.tal-sel, input:not([type="radio"]), [data-b-simbolos] button');
       if (c) c.focus();
     }));
     document.addEventListener('pointerdown', (e) => {

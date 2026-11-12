@@ -1,5 +1,9 @@
 /* LOS ICONOS DEL TALLER: un solo trazo en una caja de 16. Los usa la cinta (Taller.astro) y el panel. */
 export const TRAZOS = {
+  reloj: 'M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM8 5v3.2l2.2 1.4',
+  flecha: 'M4.5 6.5 8 10l3.5-3.5',
+  mas: 'M8 3.5v9M3.5 8h9',
+  puntos: 'M3.5 8h.01M8 8h.01M12.5 8h.01',
   deshacer: 'M6 4 3 7l3 3M3 7h6.5a3.5 3.5 0 0 1 0 7H7',
   rehacer: 'M10 4l3 3-3 3M13 7H6.5a3.5 3.5 0 0 0 0 7H9',
   adelante: 'M8 13.5V5M4.5 8.5 8 5l3.5 3.5M3 2h10',

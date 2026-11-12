@@ -42,6 +42,13 @@ const DICHO_MS = 6000;
 const GUARDAR_COLORES_MS = 800;
 const REINTENTO_OBRA_MS = 5000;
 const IMAGENES_MS = 15 * 60 * 1000;
+const CAMPOS_CAPITAL = new Set(['capitalEstilo', 'capitalFuente', 'capitalLineas', 'capitalSepara']);
+/* Los margenes listos, en mm. «Normal» es el de un libro nuevo: sale de ConfigPagina, no se repite aqui. */
+const MARGENES_LISTOS = {
+  normal: new ConfigPagina({}).margenes,
+  estrecho: { sup: 12, inf: 14, izq: 12, der: 12 },
+  amplio: { sup: 25, inf: 28, izq: 25, der: 25 }
+};
 
 function recorrer(n, fn) { fn(n); (n.content || []).forEach((h) => recorrer(h, fn)); }
 function rutasDe(doc, salida = new Set()) {
@@ -252,6 +259,8 @@ export class Taller extends Seccion {
     });
     this.mesa.recordarColor = (c) => this.recordarColor(c);
     this.mesa.alActivo = (v) => { if (this.colorCapitulo) this.colorCapitulo.poner(v.papel); };
+    this.mesa.alCapital = (cambios) => this.cambiarCapital(cambios);
+    this.mesa.capitalDelLibro = () => ({ ...this.obra.pagina.capital, fuentes: this.obra.fuentes });
     this.cinta = this.cinta || new Cinta(this.m('[data-tal-cinta]'), {
       tx: this.tx, fuentes: this.obra.fuentes, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null),
       alError: (c) => this.error(c),
@@ -429,18 +438,35 @@ export class Taller extends Seccion {
   prepararPagina() {
     const f = this.m('[data-tal-pagina]');
     const tam = f.elements.tamano;
-    TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.nombre} · ${mmAPx(t.anchoMm)} × ${mmAPx(t.altoMm)} px`; tam.append(o); });
+    /* Solo el nombre: los px para Figma estan en «Más ajustes», y la lista ya no se corta */
+    TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.nombre; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
-    for (const k of ['tamano', 'idioma', 'lugar', 'capitalEstilo', 'capitalLineas']) new Selector(f.elements[k]);
+    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas']) new Selector(f.elements[k]);
     for (const k of ['fuente', 'capitalFuente', 'citaFuente']) new Selector(f.elements[k], { fuenteDe: (v) => (v ? familiaCss(v) : '') });
+    const ajustes = this.m('[data-tal-ajustes]');
     tam.addEventListener('change', () => {
       const t = TAMANOS.find((x) => x.id === tam.value);
       if (t) { f.elements.anchoMm.value = t.anchoMm; f.elements.altoMm.value = t.altoMm; }
       this.ponerPx();
       this.leerPagina();
+      /* «A mi medida» lleva a donde se escribe la medida */
+      if (!t && !ajustes.open) ajustes.showModal();
     });
-    f.addEventListener('change', (e) => {
-      if (e.target === tam) return;
+    this.m('[data-tal-mas-ajustes]').addEventListener('click', () => ajustes.showModal());
+    this.m('[data-tal-ajustes-cerrar]').addEventListener('click', () => ajustes.close());
+    /* Los margenes listos: un clic los pone, y los campos dicen como quedaron */
+    this.m('.tal-margenes').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-margenes]');
+      if (!b) return;
+      const m = MARGENES_LISTOS[b.dataset.margenes];
+      for (const k of ['sup', 'inf', 'izq', 'der']) f.elements[k].value = m[k];
+      this.leerPagina();
+    });
+    this.prepararMenusDelTope();
+    /* Los campos del libro viven en varios sitios (cinta, flechitas, ajustes, opciones del PDF), todos del mismo
+       formulario: el cambio se escucha en la mesa y se lee por un solo camino */
+    this.nodoMesa.addEventListener('change', (e) => {
+      if (e.target.form !== f || e.target === tam) return;
       if (e.target.name === 'anchoPx') f.elements.anchoMm.value = pxAMm(Number(e.target.value));
       if (e.target.name === 'altoPx') f.elements.altoMm.value = pxAMm(Number(e.target.value));
       const t = /Px$/.test(e.target.name) && this.formatoDe(Number(f.elements.anchoPx.value), Number(f.elements.altoPx.value));
@@ -454,6 +480,31 @@ export class Taller extends Seccion {
     });
     this.m('[data-tal-proporcion]').addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.responder) { e.preventDefault(); this.responder('no'); } });
     f.addEventListener('submit', (e) => e.preventDefault());
+  }
+
+  /* Las copias y las opciones del PDF cuelgan del tope: se cierran al tocar fuera, con Escape vuelve el foco */
+  prepararMenusDelTope() {
+    const menus = () => this.nodoMesa.querySelectorAll('.tal-tope-mas[open]');
+    document.addEventListener('pointerdown', (e) => { menus().forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
+    this.m('.tal-tope').addEventListener('keydown', (e) => {
+      const d = e.target.closest('.tal-tope-mas[open]');
+      if (e.key !== 'Escape' || !d) return;
+      e.preventDefault();
+      d.open = false;
+      d.querySelector('summary').focus();
+    });
+  }
+
+  /* Desde el panel de la derecha: los mismos campos del libro, y por el mismo camino de siempre */
+  cambiarCapital(cambios) {
+    const f = this.m('[data-tal-pagina]');
+    for (const [k, v] of Object.entries(cambios)) {
+      if (!CAMPOS_CAPITAL.has(k)) continue;           // solo los de la capital, nunca otro campo del libro
+      const c = f.elements[k];
+      if (!c) continue;
+      if (c.type === 'checkbox') c.checked = !!v; else c.value = v;
+    }
+    this.leerPagina();
   }
 
   ponerPagina() {
@@ -536,6 +587,8 @@ export class Taller extends Seccion {
     this.guardarObra();
     this.mesa.repintarHojas();
     if (this.mesa.hojaActiva) this.mesa.alElegir(this.mesa.hojaActiva);
+    /* Si el panel habla de la capital, dice como quedo */
+    this.mesa.refrescarCapital();
   }
 
   /* ---- Los colores del libro ---- */

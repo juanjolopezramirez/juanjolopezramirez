@@ -80,7 +80,17 @@
 .tal-cinta { border-bottom: 1px solid var(--raya); background: rgb(var(--luz) / .025); min-width: 0; }
 .tal-pestanas { display: flex; gap: .15rem; padding: .25rem 1rem 0; }
 .tal-pestana { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: .25rem .7rem; color: var(--tiza-2); cursor: pointer; }
-.tal-pestana[aria-pressed="true"] { color: var(--tiza); border-color: var(--prompt); }
+.tal-pestana[aria-selected="true"] { color: var(--tiza); border-color: var(--prompt); }
+/* Lo que se escribe de ejemplo en un campo («pt», «Auto») se lee: el gris del navegador no llegaba a 4,5:1 */
+.tal-mesa ::placeholder { color: var(--tiza-2); opacity: 1; }
+/* Un boton con su flechita: el boton hace, la flechita abre como se ve en todo el libro */
+.tal-dividido { display: inline-flex; align-items: center; }
+.tal-ic--flecha { min-width: 18px; padding: 0 .1rem; color: var(--tiza-2); }
+.tal-ic--flecha .tal-svg { width: 12px; height: 12px; }
+.tal-dividido .tal-btn--fuerte { border-radius: 8px 0 0 8px; }
+.tal-mesa .tal-btn--flecha { min-width: 26px; padding: 0 .35rem; margin-left: 1px; border-radius: 0 8px 8px 0; }
+.tal-btn .tal-svg { width: 12px; height: 12px; margin-left: .3rem; }
+.tal-btn--flecha .tal-svg { margin-left: 0; }
 .tal-grupo { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: .35rem 1rem; min-height: 42px; }
 .tal-grupo[hidden] { display: none; }
 .tal-sep { width: 1px; height: 22px; background: var(--raya); margin: 0 .3rem; }
@@ -107,9 +117,10 @@
 .tal-sel__abrir:hover { color: var(--prompt); }
 .tal-ctl--num { width: 4.2rem; }
 .tal-ctl[aria-invalid="true"], .tal-b-panel [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
-.tal-pagina { display: flex; flex-wrap: wrap; gap: .3rem .6rem; align-items: end; }
-.tal-pagina label { display: grid; gap: .1rem; font-size: 11px; color: var(--tiza-2); }
-.tal-colores { display: flex; flex-wrap: wrap; gap: .3rem .9rem; padding-top: .35rem; }
+/* Diseño: una fila, como Inicio. Cada control lleva su nombre corto al lado, no encima. */
+.tal-pagina { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
+.tal-corto { display: inline-flex; align-items: center; gap: .35rem; font-size: 11px; color: var(--tiza-2); white-space: nowrap; }
+.tal-colores { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .7rem; }
 .tal-colores__uno { display: grid; gap: .1rem; font-size: 11px; color: var(--tiza-2); }
 .tal-color { min-width: 0; }
 .tal-color__boton { display: inline-flex; align-items: center; gap: .35rem; width: 100%; height: 28px; box-sizing: border-box; padding: 0 .45rem; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; color: var(--tiza); font-size: 11px; cursor: pointer; transition: border-color .12s var(--ease); }
@@ -131,12 +142,36 @@
 .tal-color__rejilla { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
 .tal-color__nota { margin: 0; font-size: 11px; color: var(--tiza-2); }
 .tal-marca { display: inline-flex !important; gap: .35rem; align-items: center; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--tiza-2); }
-.tal-nota { font-size: 12px; color: var(--tiza-2); }
 .tal-b-mas { position: relative; }
 .tal-b-mas summary { list-style: none; display: inline-flex; align-items: center; }
 .tal-b-mas summary::-webkit-details-marker { display: none; }
 .tal-b-panel { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; width: 17rem; max-width: 80vw; max-height: 20rem; overflow: auto; display: grid; gap: .5rem; padding: .7rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 10px; box-sizing: border-box; }
 .tal-b-panel label { display: grid; gap: .15rem; font-size: 12px; color: var(--tiza-2); }
+/* Los que cuelgan del tope se abren hacia la izquierda: a la derecha ya no hay pantalla */
+.tal-b-panel--der { left: auto; right: 0; }
+.tal-b-panel--fila { display: flex; gap: .2rem; width: auto; }
+.tal-b-panel--menu { width: 13rem; gap: .3rem; }
+.tal-b-panel--menu .tal-btn { justify-content: flex-start; text-align: left; }
+.tal-b-panel--colores { width: 22rem; }
+.tal-copias { width: 19rem; }
+.tal-b-panel .tal-rotulo, .tal-ajustes .tal-rotulo { margin: 0; font-size: 11px; font-weight: 600; color: var(--tiza); }
+/* El estilo de la capital: dos opciones que se ven, no una lista */
+.tal-campo-seg { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: .15rem; }
+.tal-campo-seg legend { padding: 0; margin-bottom: .15rem; font-size: 12px; color: var(--tiza-2); }
+.tal-seg__op:has(input:checked) { background: rgb(var(--prompt-rgb) / .22); color: var(--tiza); font-weight: 600; }
+.tal-seg__op:has(input:focus-visible) { outline: 2px solid var(--prompt); outline-offset: 1px; }
+.tal-tipografia .tal-campo-seg { grid-column: 1 / -1; }
+.tal-margenes { width: 18rem; }
+.tal-margenes__campos { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .6rem; }
+/* Ajustes del libro: lo que se pone una vez */
+.tal-ajustes { width: min(30rem, calc(100vw - 2rem)); box-sizing: border-box; padding: 1.1rem 1.2rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 14px; box-shadow: 0 24px 60px -20px rgb(var(--sombra-rgb) / .9); color: var(--tiza); }
+.tal-ajustes[open] { display: grid; gap: .7rem; }
+.tal-ajustes::backdrop { background: rgb(0 0 0 / .55); }
+.tal-ajustes__titulo { margin: 0; font-size: 1rem; font-weight: 700; }
+.tal-ajustes__fila { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem .8rem; }
+.tal-ajustes label { display: grid; gap: .15rem; font-size: 12px; color: var(--tiza-2); }
+.tal-ajustes .tal-ctl--num { width: 100%; }
+.tal-ajustes__uno { max-width: 14rem; }
 .tal-b-panel input { height: 32px; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 6px; padding: 0 .4rem; }
 .tal-simbolos__grupo { margin: 0; font-size: 11px; color: var(--tiza-2); }
 .tal-simbolos__fila { display: flex; flex-wrap: wrap; gap: .15rem; }
@@ -194,7 +229,7 @@
 .pasaje--falta { outline: 2px dashed #B3261E; outline-offset: 2px; }
 .tal-tipografia { width: 21rem; max-height: none; grid-template-columns: 1fr 1fr; align-items: end; }
 .tal-tipografia .tal-rotulo { grid-column: 1 / -1; margin: .25rem 0 0; font-size: 11px; font-weight: 600; color: var(--tiza); }
-.tal-tipografia .tal-marca { grid-column: 1 / -1; }
+.tal-tipografia .tal-marca, .tal-tipografia .tal-ayuda { grid-column: 1 / -1; }
 .tal-tipografia [hidden] { display: none; }
 .llave { background: #FFE36B; color: #111; border-bottom: 2px dotted #111; border-radius: 2px; padding: 0 1px; }
 .tal-columnas { display: grid; gap: 1rem; margin: 1em 0; }
@@ -267,6 +302,9 @@
 .tal-panel__dentro { display: grid; gap: .55rem; animation: tal-entra .12s var(--ease); }
 @keyframes tal-entra { from { opacity: 0; transform: translateY(2px); } }
 .tal-panel h2 { margin: 0; font-size: 13px; }
+/* Nada ensancha el panel: un texto largo se parte, no lo empuja hacia fuera */
+.tal-panel__dentro > * { min-width: 0; }
+.tal-panel .tal-btn { white-space: normal; }
 .tal-panel p { margin: 0; color: var(--tiza-2); font-size: 11px; line-height: 1.35; }
 .tal-panel p.tal-rotulo { margin-bottom: -.25rem; }
 .tal-pares { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem; }

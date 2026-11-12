@@ -48,8 +48,30 @@ const { tx } = Astro.props;
       <div class="tal-tope__der">
         <button class="tal-ic" type="button" data-tal-deshacer aria-label={tx.deshacer} title={tx.deshacer}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.deshacer} /></svg></button>
         <button class="tal-ic" type="button" data-tal-rehacer aria-label={tx.rehacer} title={tx.rehacer}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.rehacer} /></svg></button>
+        <!-- Las copias no son una pestaña: se miran de vez en cuando, como el historial de Google Docs -->
+        <details class="tal-b-mas tal-tope-mas" name="tal-tope" data-tal-copias>
+          <summary class="tal-ic" aria-label={tx.copias} title={tx.copias}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.reloj} /></svg></summary>
+          <div class="tal-b-panel tal-b-panel--der tal-copias">
+            <p class="tal-rotulo">{tx.copias}</p>
+            <button class="tal-btn" type="button" data-tal-version>{tx.guardarVersion}</button>
+            <ul class="tal-versiones" role="list" data-tal-versiones></ul>
+            <label class="tal-marca"><input type="checkbox" data-tal-con-archivos /><span>{tx.conArchivos}</span></label>
+            <button class="tal-btn" type="button" data-tal-bajar>{tx.bajarLibro}</button>
+            <p class="tal-ayuda">{tx.sinImportar}</p>
+          </div>
+        </details>
         <button class="tal-btn" type="button" data-tal-libro>{tx.verLibro}</button>
-        <button class="tal-btn tal-btn--fuerte" type="button" data-tal-imprimir>{tx.sacarPdf}</button>
+        <div class="tal-dividido">
+          <button class="tal-btn tal-btn--fuerte" type="button" data-tal-imprimir>{tx.sacarPdf}</button>
+          <!-- Para pantalla o para imprenta: se decide al sacar el PDF, no mientras se escribe -->
+          <details class="tal-b-mas tal-tope-mas" name="tal-tope">
+            <summary class="tal-btn tal-btn--fuerte tal-btn--flecha" aria-label={tx.opcionesPdf} title={tx.opcionesPdf}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel tal-b-panel--der">
+              <label class="tal-marca"><input name="imprenta" type="checkbox" form="tal-pagina-f" /><span>{tx.imprenta}</span></label>
+              <p class="tal-ayuda">{tx.imprentaAyuda}</p>
+            </div>
+          </details>
+        </div>
       </div>
     </header>
 
@@ -73,24 +95,40 @@ const { tx } = Astro.props;
       </div>
     </div>
 
-    <div class="tal-cinta" role="toolbar" aria-label={tx.barra} data-tal-cinta>
-      <div class="tal-pestanas">
-        {[['inicio', tx.inicio], ['insertar', tx.insertarTab], ['pagina', tx.pagina], ['copias', tx.copias]].map(([id, t], i) => (
-          <button class="tal-pestana" type="button" data-pestana={id} aria-pressed={i === 0 ? 'true' : 'false'}>{t}</button>
+    <!-- LA CINTA: tres pestañas de una sola fila. Lo que se toca a menudo, a la vista; lo que se pone una vez,
+         detras de una flechita o en «Ajustes del libro». Los campos del libro son del formulario
+         `tal-pagina-f`, esten donde esten (atributo form): asi se leen y se guardan por un solo camino. -->
+    <div class="tal-cinta" data-tal-cinta>
+      <div class="tal-pestanas" role="tablist" aria-label={tx.barra}>
+        {[['inicio', tx.inicio], ['insertar', tx.insertarTab], ['diseno', tx.diseno]].map(([id, t], i) => (
+          <button class="tal-pestana" type="button" role="tab" id={`tal-tab-${id}`} aria-controls={`tal-grupo-${id}`} data-pestana={id} aria-selected={i === 0 ? 'true' : 'false'}>{t}</button>
         ))}
       </div>
 
-      <div class="tal-grupo" data-grupo="inicio">
+      <div class="tal-grupo" data-grupo="inicio" role="tabpanel" id="tal-grupo-inicio" aria-labelledby="tal-tab-inicio">
         <select class="tal-ctl" data-b-nivel aria-label={tx.nivel}>
           <option value="p">{tx.niveles.p}</option><option value="1">{tx.niveles.t1}</option><option value="2">{tx.niveles.t2}</option><option value="3">{tx.niveles.t3}</option>
         </select>
         <select class="tal-ctl" data-b-fuente aria-label={tx.fuente}><option value="">{tx.fuenteDelLibro}</option></select>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-ic" aria-label={tx.agregarLetra} title={tx.agregarLetra}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.mas} /></svg></summary>
+          <form class="tal-b-panel" data-b-otra novalidate>
+            <label><span>{tx.otraFuenteAyuda}</span><input name="fuente" maxlength="60" autocomplete="off" /></label>
+            <button class="tal-btn" type="submit">{tx.usarFuente}</button>
+          </form>
+        </details>
         <input class="tal-ctl tal-ctl--num" data-b-tamano type="number" min="1" max="999" step="0.5" placeholder="pt" aria-label={tx.tamanoLetra} title={tx.tamanoLetra} />
         <span data-b-color></span>
         <span class="tal-sep"></span>
-        {[['bold', 'N', tx.negrita], ['italic', 'I', tx.cursiva], ['underline', 'S', tx.subrayado], ['strike', 'T', tx.tachado]].map(([m, l, n]) => (
+        {[['bold', 'N', tx.negrita], ['italic', 'I', tx.cursiva], ['underline', 'S', tx.subrayado]].map(([m, l, n]) => (
           <button class={`tal-ic tal-ic--${m}`} type="button" data-b-marca={m} aria-pressed="false" aria-label={n} title={n}>{l}</button>
         ))}
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-ic" aria-label={tx.masFormato} title={tx.masFormato}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.puntos} /></svg></summary>
+          <div class="tal-b-panel tal-b-panel--fila">
+            <button class="tal-ic tal-ic--strike" type="button" data-b-marca="strike" aria-pressed="false" aria-label={tx.tachado} title={tx.tachado}>T</button>
+            <button class="tal-ic" type="button" data-b-marca="superscript" aria-pressed="false" aria-label={tx.exponente} title={tx.exponente}>x²</button>
+            <button class="tal-ic" type="button" data-b-marca="subscript" aria-pressed="false" aria-label={tx.subindice} title={tx.subindice}>x₂</button>
+          </div>
+        </details>
         <span class="tal-sep"></span>
         {['izquierda', 'centro', 'derecha', 'justificado'].map((a) => (
           <button class="tal-ic" type="button" data-b-alinear={a} aria-pressed="false" aria-label={tx.alinear[a]} title={tx.alinear[a]}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS[a]} /></svg></button>
@@ -98,25 +136,54 @@ const { tx } = Astro.props;
         <span class="tal-sep"></span>
         <button class="tal-ic" type="button" data-b-marca="bulletList" aria-pressed="false" aria-label={tx.lista} title={tx.lista}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.lista} /></svg></button>
         <button class="tal-ic" type="button" data-b-marca="orderedList" aria-pressed="false" aria-label={tx.listaNum} title={tx.listaNum}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.listaNum} /></svg></button>
-        <button class="tal-ic" type="button" data-b-marca="blockquote" aria-pressed="false" aria-label={tx.cita} title={tx.cita}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.cita} /></svg></button>
         <span class="tal-sep"></span>
-        <button class="tal-ic" type="button" data-b-marca="superscript" aria-pressed="false" aria-label={tx.exponente} title={tx.exponente}>x²</button>
-        <button class="tal-ic" type="button" data-b-marca="subscript" aria-pressed="false" aria-label={tx.subindice} title={tx.subindice}>x₂</button>
-        <button class="tal-ic tal-ic--texto" type="button" data-b-formula aria-label={tx.formula} title={tx.formulaAyuda}>√x</button>
-        <button class="tal-ic tal-ic--texto" type="button" data-b-capital aria-pressed="false" title={tx.capitalAyuda}>{tx.capital}</button>
-        <button class="tal-ic tal-ic--texto" type="button" data-b-llave title={tx.llaveAyuda}>{'{llave}'}</button>
-        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-ic tal-ic--texto">{tx.simbolos}</summary><div class="tal-b-panel tal-simbolos" data-b-simbolos></div></details>
+        <!-- La cita y la capital: un clic las pone; la flechita abre como se ven en todo el libro -->
+        <div class="tal-dividido">
+          <button class="tal-ic" type="button" data-b-marca="blockquote" aria-pressed="false" aria-label={tx.cita} title={tx.cita}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.cita} /></svg></button>
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-ic tal-ic--flecha" aria-label={tx.opcionesCita} title={tx.opcionesCita}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel tal-tipografia">
+              <p class="tal-rotulo">{tx.citas}</p>
+              <label><span>{tx.fuente}</span><select class="tal-ctl" name="citaFuente" form="tal-pagina-f" aria-label={tx.fuenteCitas}></select></label>
+              <label><span>{tx.citaTamano}</span><input class="tal-ctl tal-ctl--num" name="citaTamano" form="tal-pagina-f" type="number" min="70" max="160" step="5" /></label>
+              <label><span>{tx.citaSangria}</span><input class="tal-ctl tal-ctl--num" name="citaSangria" form="tal-pagina-f" type="number" min="0" max="40" step="0.5" /></label>
+              <label class="tal-marca"><input name="citaCursiva" form="tal-pagina-f" type="checkbox" /><span>{tx.citaCursiva}</span></label>
+              <p class="tal-ayuda">{tx.citaLibro}</p>
+            </div>
+          </details>
+        </div>
+        <div class="tal-dividido">
+          <button class="tal-ic tal-ic--texto" type="button" data-b-capital aria-pressed="false" title={tx.capitalAyuda}>{tx.capital}</button>
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-ic tal-ic--flecha" aria-label={tx.opcionesCapital} title={tx.opcionesCapital}><svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel tal-tipografia">
+              <p class="tal-rotulo">{tx.capital}</p>
+              <fieldset class="tal-campo-seg"><legend>{tx.capitalEstilo}</legend>
+                <div class="tal-seg">
+                  {[['hundida', tx.capitalHundida], ['sencilla', tx.capitalSencilla]].map(([v, t]) => (
+                    <label class="tal-seg__op"><input class="sr-only" type="radio" name="capitalEstilo" value={v} form="tal-pagina-f" />{t}</label>
+                  ))}
+                </div>
+              </fieldset>
+              <label><span>{tx.fuente}</span><select class="tal-ctl" name="capitalFuente" form="tal-pagina-f" aria-label={tx.fuenteCapital}></select></label>
+              <label data-capital-lineas><span>{tx.capitalLineas}</span><select class="tal-ctl" name="capitalLineas" form="tal-pagina-f">{[2, 3, 4].map((n) => <option value={n}>{n}</option>)}</select></label>
+              <label><span>{tx.capitalSepara}</span><input class="tal-ctl tal-ctl--num" name="capitalSepara" form="tal-pagina-f" type="number" min="0" max="6" step="0.1" placeholder={tx.capitalAuto} title={tx.capitalSeparaAyuda} /></label>
+              <p class="tal-ayuda">{tx.capitalLibro}</p>
+            </div>
+          </details>
+        </div>
       </div>
 
-      <div class="tal-grupo" data-grupo="insertar" hidden>
-        <button class="tal-btn" type="button" data-b-imagen>+ {tx.imagen}</button>
-        <button class="tal-btn" type="button" data-b-pdf>+ {tx.pdf}</button>
-        <button class="tal-btn" type="button" data-insertar="libre">+ {tx.paginaLibre}</button>
-        <button class="tal-btn" type="button" data-insertar="cuadro">+ {tx.objCuadro}</button>
-        <button class="tal-btn" type="button" data-insertar="boton">+ {tx.objBoton}</button>
-        <button class="tal-btn" type="button" data-insertar="pasaje">+ {tx.objPasaje}</button>
-        <button class="tal-btn" type="button" data-insertar="zona">+ {tx.objZona}</button>
-        <button class="tal-btn" type="button" data-insertar="capitulo">+ {tx.capitulo}</button>
+      <div class="tal-grupo" data-grupo="insertar" role="tabpanel" id="tal-grupo-insertar" aria-labelledby="tal-tab-insertar" hidden>
+        <button class="tal-btn" type="button" data-b-imagen>{tx.imagen}</button>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.paginaMenu}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+          <div class="tal-b-panel tal-b-panel--menu">
+            <button class="tal-btn" type="button" data-insertar="libre">{tx.paginaLibre}</button>
+            <button class="tal-btn" type="button" data-b-pdf>{tx.paginasDePdf}</button>
+            <button class="tal-btn" type="button" data-insertar="capitulo">{tx.capituloNuevo}</button>
+          </div>
+        </details>
+        <button class="tal-btn" type="button" data-insertar="cuadro">{tx.objCuadro}</button>
+        <button class="tal-btn" type="button" data-insertar="boton">{tx.objBoton}</button>
+        <button class="tal-btn" type="button" data-insertar="pasaje">{tx.objPasaje}</button>
         <span class="tal-sep"></span>
         <button class="tal-btn" type="button" data-b-separador>{tx.separador}</button>
         <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.columnas}</summary>
@@ -131,60 +198,58 @@ const { tx } = Astro.props;
             <button class="tal-btn" type="submit">{tx.ponerEnlace}</button>
           </form>
         </details>
-        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.otraFuente}</summary>
-          <form class="tal-b-panel" data-b-otra novalidate>
-            <label><span>{tx.otraFuenteAyuda}</span><input name="fuente" maxlength="60" autocomplete="off" /></label>
-            <button class="tal-btn" type="submit">{tx.usarFuente}</button>
-          </form>
-        </details>
+        <span class="tal-sep"></span>
+        <button class="tal-btn" type="button" data-b-formula title={tx.formulaAyuda}>{tx.formula}</button>
+        <button class="tal-btn" type="button" data-b-llave title={tx.llaveAyuda}>{'{llave}'}</button>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.simbolos}</summary><div class="tal-b-panel tal-simbolos" data-b-simbolos></div></details>
         <input type="file" accept="image/png,image/jpeg,image/webp" data-b-imagen-archivo hidden />
         <input type="file" accept="application/pdf" data-b-pdf-archivo hidden />
       </div>
 
-      <div class="tal-grupo" data-grupo="pagina" hidden>
-        <form class="tal-pagina" data-tal-pagina novalidate>
-          <label><span>{tx.tamano}</span><select class="tal-ctl" name="tamano"><option value="">{tx.tamanoOtro}</option></select></label>
-          <label><span>{tx.anchoMm}</span><input class="tal-ctl tal-ctl--num" name="anchoMm" type="number" min="50" max="420" step="0.01" /></label>
-          <label><span>{tx.altoMm}</span><input class="tal-ctl tal-ctl--num" name="altoMm" type="number" min="50" max="420" step="0.01" /></label>
-          <label title={tx.pxAyuda}><span>{tx.anchoPx}</span><input class="tal-ctl tal-ctl--num" name="anchoPx" type="number" min="591" max="4960" step="1" /></label>
-          <label title={tx.pxAyuda}><span>{tx.altoPx}</span><input class="tal-ctl tal-ctl--num" name="altoPx" type="number" min="591" max="4960" step="1" /></label>
-          {['sup', 'inf', 'izq', 'der'].map((m) => <label><span>{tx.lados[m]}</span><input class="tal-ctl tal-ctl--num" name={m} type="number" min="0" max="150" step="0.5" /></label>)}
-          <label><span>{tx.fuenteCuerpo}</span><select class="tal-ctl" name="fuente"></select></label>
-          <label><span>{tx.tamanoLetra}</span><input class="tal-ctl tal-ctl--num" name="tamanoPt" type="number" min="4" max="72" step="0.5" /></label>
-          <label><span>{tx.interlinea}</span><input class="tal-ctl tal-ctl--num" name="interlinea" type="number" min="1" max="3" step="0.05" /></label>
-          <label><span>{tx.idioma}</span><select class="tal-ctl" name="idioma"></select></label>
-          <label class="tal-marca"><input name="numerosVer" type="checkbox" /><span>{tx.numeros}</span></label>
-          <label><span>{tx.lugarNumero}</span><select class="tal-ctl" name="lugar">
-            <option value="pie-centro">{tx.lugares.centro}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
-          </select></label>
-          <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
-          <label class="tal-marca"><input name="imprenta" type="checkbox" /><span>{tx.imprenta}</span></label>
-          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.capitalYCitas}</summary>
-            <div class="tal-b-panel tal-tipografia">
-              <p class="tal-rotulo">{tx.capital}</p>
-              <label><span>{tx.fuente}</span><select class="tal-ctl" name="capitalFuente" aria-label={tx.fuenteCapital}></select></label>
-              <label><span>{tx.capitalEstilo}</span><select class="tal-ctl" name="capitalEstilo">{[['hundida', tx.capitalHundida], ['elevada', tx.capitalElevada], ['sencilla', tx.capitalSencilla]].map(([v, t]) => <option value={v}>{t}</option>)}</select></label>
-              <label data-capital-lineas><span>{tx.capitalLineas}</span><select class="tal-ctl" name="capitalLineas">{[2, 3, 4].map((n) => <option value={n}>{n}</option>)}</select></label>
-              <label><span>{tx.capitalSepara}</span><input class="tal-ctl tal-ctl--num" name="capitalSepara" type="number" min="0" max="6" step="0.1" placeholder={tx.capitalAuto} title={tx.capitalSeparaAyuda} /></label>
-              <p class="tal-rotulo">{tx.citas}</p>
-              <label><span>{tx.fuente}</span><select class="tal-ctl" name="citaFuente" aria-label={tx.fuenteCitas}></select></label>
-              <label><span>{tx.citaTamano}</span><input class="tal-ctl tal-ctl--num" name="citaTamano" type="number" min="70" max="160" step="5" /></label>
-              <label><span>{tx.citaSangria}</span><input class="tal-ctl tal-ctl--num" name="citaSangria" type="number" min="0" max="40" step="0.5" /></label>
-              <label class="tal-marca"><input name="citaCursiva" type="checkbox" /><span>{tx.citaCursiva}</span></label>
+      <div class="tal-grupo" data-grupo="diseno" role="tabpanel" id="tal-grupo-diseno" aria-labelledby="tal-tab-diseno" hidden>
+        <form class="tal-pagina" id="tal-pagina-f" data-tal-pagina novalidate>
+          <label class="tal-corto"><span>{tx.tamano}</span><select class="tal-ctl" name="tamano"><option value="">{tx.tamanoOtro}</option></select></label>
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.margenesMenu}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel tal-margenes">
+              <div class="tal-seg" role="group" aria-label={tx.margenesMenu}>
+                {[['normal', tx.margenesNormal], ['estrecho', tx.margenesEstrecho], ['amplio', tx.margenesAmplio]].map(([v, t]) => <button class="tal-seg__op" type="button" data-margenes={v}>{t}</button>)}
+              </div>
+              <div class="tal-margenes__campos">
+                {['sup', 'inf', 'izq', 'der'].map((m) => <label><span>{tx.lados[m]} (mm)</span><input class="tal-ctl tal-ctl--num" name={m} type="number" min="0" max="150" step="0.5" /></label>)}
+              </div>
             </div>
           </details>
+          <label class="tal-corto"><span>{tx.letra}</span><select class="tal-ctl" name="fuente" aria-label={tx.fuenteCuerpo}></select></label>
+          <label class="tal-corto"><span>{tx.cuerpo}</span><input class="tal-ctl tal-ctl--num" name="tamanoPt" type="number" min="4" max="72" step="0.5" aria-label={tx.tamanoLetra} title={tx.tamanoLetra} /></label>
+          <label class="tal-corto"><span>{tx.renglones}</span><input class="tal-ctl tal-ctl--num" name="interlinea" type="number" min="1" max="3" step="0.05" aria-label={tx.interlinea} title={tx.interlinea} /></label>
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.numerosEIndice}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel">
+              <label class="tal-marca"><input name="numerosVer" type="checkbox" /><span>{tx.numeros}</span></label>
+              <label><span>{tx.lugarNumero}</span><select class="tal-ctl" name="lugar">
+                <option value="pie-centro">{tx.lugares.centro}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
+              </select></label>
+              <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
+            </div>
+          </details>
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.colores}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel tal-b-panel--colores"><div class="tal-colores" data-tal-colores></div></div>
+          </details>
+          <button class="tal-btn" type="button" data-tal-mas-ajustes>{tx.masAjustes}</button>
+          <!-- Lo que se pone una vez: la medida exacta (mm y px para Figma) y el idioma -->
+          <dialog class="tal-ajustes" data-tal-ajustes aria-labelledby="tal-ajustes-t">
+            <h2 class="tal-ajustes__titulo" id="tal-ajustes-t">{tx.ajustesLibro}</h2>
+            <p class="tal-rotulo">{tx.hojaAMedida}</p>
+            <div class="tal-ajustes__fila">
+              <label><span>{tx.anchoMm}</span><input class="tal-ctl tal-ctl--num" name="anchoMm" type="number" min="50" max="420" step="0.01" /></label>
+              <label><span>{tx.altoMm}</span><input class="tal-ctl tal-ctl--num" name="altoMm" type="number" min="50" max="420" step="0.01" /></label>
+              <label title={tx.pxAyuda}><span>{tx.anchoPx}</span><input class="tal-ctl tal-ctl--num" name="anchoPx" type="number" min="591" max="4960" step="1" /></label>
+              <label title={tx.pxAyuda}><span>{tx.altoPx}</span><input class="tal-ctl tal-ctl--num" name="altoPx" type="number" min="591" max="4960" step="1" /></label>
+            </div>
+            <p class="tal-ayuda">{tx.pxAyuda}</p>
+            <label class="tal-ajustes__uno"><span>{tx.idioma}</span><select class="tal-ctl" name="idioma"></select></label>
+            <div class="tal-fila"><button class="tal-btn tal-btn--fuerte" type="button" data-tal-ajustes-cerrar>{tx.listo}</button></div>
+          </dialog>
         </form>
-        <div class="tal-colores" data-tal-colores></div>
-      </div>
-
-      <div class="tal-grupo" data-grupo="copias" hidden>
-        <button class="tal-btn" type="button" data-tal-version>{tx.guardarVersion}</button>
-        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.verCopias}</summary>
-          <div class="tal-b-panel"><ul class="tal-versiones" role="list" data-tal-versiones></ul></div>
-        </details>
-        <label class="tal-marca"><input type="checkbox" data-tal-con-archivos /><span>{tx.conArchivos}</span></label>
-        <button class="tal-btn" type="button" data-tal-bajar>{tx.bajarLibro}</button>
-        <span class="tal-nota">{tx.sinImportar}</span>
       </div>
     </div>
 

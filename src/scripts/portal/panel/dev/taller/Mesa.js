@@ -543,9 +543,28 @@ export class Mesa {
   /* ---- Lo que avisan los capitulos y las hojas ---- */
   alEstado(v, e) { this.alEstadoGlobal(v, e); }
   alEscribir(v) { this.programar(); this.alMoverCursor(v); }
-  alMoverCursor(v) { if (this.activo === v && this.cinta) this.cinta.actualizar(); }
+  alMoverCursor(v) {
+    if (this.activo !== v) return;
+    if (this.cinta) this.cinta.actualizar();
+    this.panelDeCapital(v);
+  }
+
+  /* En un parrafo con capital, el panel muestra como se ven las capitales del libro (lo mismo que su flechita
+     en la cinta). Solo si no hay otra cosa elegida: una hoja, una imagen o varias paginas mandan. */
+  panelDeCapital(v) {
+    const e = v && v.editor, enCapital = !!e && e.isEditable && !e.isActive('heading') && !!e.getAttributes('paragraph').capital;
+    if (enCapital && this.capitalDelLibro && !this.hojaActiva && !this.imagenElegida && this.cuantasElegidas() < 2) this.prop.deCapital(this.capitalDelLibro());
+    else if (this.prop.dueno === 'capital') this.prop.ocultar();
+  }
+  refrescarCapital() { if (this.prop.dueno === 'capital' && this.capitalDelLibro) this.prop.deCapital(this.capitalDelLibro()); }
+  quitarCapital() {
+    const v = this.activo;
+    if (v && v.editor.isEditable) v.editor.chain().focus().updateAttributes('paragraph', { capital: false }).run();
+  }
   entrarACinta() { if (this.cinta) this.cinta.entrar(); }
-  alEnfocarEditor(v) { this.activo = v; this.soltarEleccion(); this.soltarElegidos(); if (this.cinta) this.cinta.actualizar(); this.alActivo(v); }
+  /* Al volver al texto se suelta lo elegido, y si el cursor sigue en una capital su panel vuelve en el mismo
+     momento: sin parpadeo, y aunque el cursor no se haya movido */
+  alEnfocarEditor(v) { this.activo = v; this.soltarEleccion(); this.soltarElegidos(); this.panelDeCapital(v); if (this.cinta) this.cinta.actualizar(); this.alActivo(v); }
   alEnfocarHoja(h) { this.soltarEleccion(); this.hojaActiva = h; this.vistas.forEach((o) => { if (o !== h && o.elegido) o.elegir(''); }); this.activoDe(h); this.alElegir(h); this.alActivo(this.activo); }
   activoDe(h) { const v = this.vivos.find((x) => x.editor === h.editor); if (v) this.activo = v; }
   alElegir(h) { this.hojaActiva = h; this.vistas.forEach((o) => o.hoja.classList.toggle('hoja--activa', o === h)); this.prop.deHoja(h); }

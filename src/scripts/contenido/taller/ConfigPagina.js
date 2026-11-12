@@ -28,8 +28,9 @@ export const TAMANOS = [
 export const LUGARES_NUMERO = ['pie-centro', 'pie-exterior', 'pie-interior'];
 /* El panel ofrece 2 a 4 renglones; 5 solo se conserva en los libros que ya lo tenian */
 export const CAPITAL_LINEAS = [2, 3, 4, 5];
-/* Hundida: baja junto a sus renglones. Elevada: se apoya en el primero y sube. Sencilla: una letra algo mayor. */
-export const CAPITAL_ESTILOS = ['hundida', 'elevada', 'sencilla'];
+/* Hundida: baja junto a sus renglones. Sencilla: una letra algo mayor. (La elevada se quito: un libro que la
+   tenia vuelve a la hundida.) */
+export const CAPITAL_ESTILOS = ['hundida', 'sencilla'];
 
 /* El color de cada letra del libro: { fuente: color }. Se lee con `colorDeLetra`: una fuente puede llamarse «constructor» */
 export const colorDeLetra = (c, fuente) => (tiene(c.letras, fuente) ? c.letras[fuente] : '');

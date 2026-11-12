@@ -34,7 +34,7 @@ const conLetra = (f) => [`font-family: ${f};`, `font-family: ${f},`, `"${f}"`].m
 
 /* LA CAPITAL. Todo en CSS del libro: la mesa y el PDF la miden igual y cortan la pagina en la misma palabra.
    - El espacio a su lado crece con ella (en 'auto'): 1,2 mm fijos la dejaban pegada al texto cuando era grande.
-   - Nada sale de la caja del texto: la elevada y la sencilla suben dentro de un aire que el parrafo reserva
+   - Nada sale de la caja del texto: la sencilla sube dentro de un aire que el parrafo reserva
      arriba, y una letra elegida aparte (suele traer adornos) recibe un poco de aire sobre la hundida.
    - La sencilla se mide en renglones y no en em: asi sale del mismo alto con cualquier letra (Estonia es chica).
    - `box-sizing` va escrito: el portal mide con border-box y la hoja de impresion no; con alto minimo y aire
@@ -48,9 +48,6 @@ export function estiloCapital(cap, cuerpoPt) {
   const n = cap.lineas;
   if (cap.estilo === 'sencilla') {
     return { capital: `initial-letter: ${SENCILLA_RENGLONES} 1; ${letra} margin-right: ${espacio(0.08)};`, conCapital: `padding-top: ${Math.round((SENCILLA_RENGLONES - 1) * 100) / 100}lh;` };
-  }
-  if (cap.estilo === 'elevada') {
-    return { capital: `initial-letter: ${n} 1; ${letra} margin-right: ${espacio(0.15)};`, conCapital: `padding-top: ${n - 1}lh;` };
   }
   return {
     capital: `initial-letter: ${n}; ${letra} margin: 0 ${espacio(0.5 + 0.15 * (n - 2))} .6mm 0;`,

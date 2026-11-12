@@ -526,9 +526,10 @@ await ok('la capital: libros de antes, sus tres estilos y nada fuera de la caja 
   assert.ok(css({ lineas: 3 }).includes('.libro .capital { box-sizing: content-box; min-height: 3lh; orphans: 3; }'));
   /* Con una letra propia (suele traer adornos) la hundida deja aire arriba */
   assert.ok(css({ lineas: 3, fuente: 'Petemoss' }).includes('.libro .capital { box-sizing: content-box; min-height: 3lh; orphans: 3; padding-top: .4lh; }'));
-  /* La elevada sube dentro del aire que reserva su parrafo */
+  /* La elevada ya no existe: un libro que la tenia vuelve a la hundida */
+  assert.equal(new ConfigPagina({ capital: { estilo: 'elevada' } }).capital.estilo, 'hundida');
   const e = css({ estilo: 'elevada', lineas: 3 });
-  assert.ok(e.includes('initial-letter: 3 1;') && e.includes('.libro .capital { box-sizing: content-box; padding-top: 2lh; }'));
+  assert.ok(e.includes('initial-letter: 3;') && !e.includes('initial-letter: 3 1;'));
   /* La sencilla tiene un solo alto en renglones, igual con cualquier letra */
   const s = css({ estilo: 'sencilla', lineas: 4, fuente: 'Estonia' });
   assert.ok(s.includes('initial-letter: 1.7 1;') && s.includes('.libro .capital { box-sizing: content-box; padding-top: 0.7lh; }'));
@@ -598,6 +599,28 @@ await ok('los archivos de un libro: todas las carpetas, de a paginas, y nunca fu
   assert.deepEqual(enTandas([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
   assert.equal(pesoLegible(15.1 * 1024 * 1024), '15,1 MB');
   assert.equal(pesoLegible(0), '0 KB');
+});
+
+console.log('la cinta');
+await ok('cada ajuste del libro es del formulario, este donde este en la cinta', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const astro = await readFile(new URL('../src/components/portal/dev/Taller.astro', import.meta.url), 'utf8');
+  const ini = astro.indexOf('<form class="tal-pagina" id="tal-pagina-f"'), fin = astro.indexOf('</form>', astro.indexOf('</dialog>', ini));
+  assert.ok(ini > 0 && fin > ini);
+  const dentro = astro.slice(ini, fin);
+  /* Lo que leerPagina lee del formulario: dentro de el, o fuera con form="tal-pagina-f" */
+  const nombres = ['tamano', 'anchoMm', 'altoMm', 'anchoPx', 'altoPx', 'fuente', 'tamanoPt', 'interlinea', 'idioma', 'numerosVer', 'lugar', 'indice', 'imprenta',
+    'capitalEstilo', 'capitalFuente', 'capitalLineas', 'capitalSepara', 'citaFuente', 'citaTamano', 'citaSangria', 'citaCursiva'];
+  for (const n of nombres) {
+    /* «Agregar letra» tiene su propio formulario con un campo «fuente»: ese no es del libro */
+    const otra = astro.indexOf('data-b-otra'), otraFin = astro.indexOf('</form>', otra);
+    const etiquetas = [...astro.matchAll(new RegExp(`<[^>]*name="${n}"[^>]*>`, 'g'))].map((m) => ({ tag: m[0], i: m.index })).filter((e) => !(e.i > otra && e.i < otraFin));
+    assert.ok(etiquetas.length, `falta ${n}`);
+    for (const e of etiquetas) assert.ok((e.i > ini && e.i < fin) || e.tag.includes('form="tal-pagina-f"'), `${n} quedo fuera del formulario`);
+  }
+  assert.ok(dentro.includes('name={m}'), 'los cuatro margenes van dentro');
+  /* «Normal» es el margen de un libro nuevo */
+  assert.deepEqual(new ConfigPagina({}).margenes, { sup: 20, inf: 22, izq: 18, der: 18 });
 });
 
 console.log('los iconos de los botones');

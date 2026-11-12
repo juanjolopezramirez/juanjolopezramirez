@@ -266,6 +266,35 @@ export class Propiedades {
     l.append(crear('p', 'tal-rotulo', tx.agregar), agregar, crear('p', 'tal-rotulo', tx.estaPagina), pagina);
   }
 
+  /* La capital del libro, vista desde un parrafo que la tiene. `c`: ConfigPagina.capital mas las letras del libro.
+     Cada cambio va a los campos del libro (la flechita de la cinta) y se guarda por ese mismo camino. */
+  deCapital(c) { this.rehacer(() => this.poner(() => this.pintarCapital(c), 'capital', `capital:${c.estilo}`)); }
+
+  pintarCapital(c) {
+    const tx = this.tx, l = this.lienzo, cambiar = (x) => this.mesa.alCapital(x);
+    l.append(crear('h2', '', tx.capital), crear('p', 'tal-ayuda', tx.capitalLibro));
+    l.append(crear('p', 'tal-rotulo', tx.capitalEstilo), this.segmento([['hundida', tx.capitalHundida], ['sencilla', tx.capitalSencilla]], c.estilo, (k) => cambiar({ capitalEstilo: k })));
+    const letra = crear('label', 'tal-par'), sel = crear('select', 'tal-ctl');
+    sel.dataset.clave = 'capital:letra';
+    for (const [v, t] of [['', tx.fuenteDelLibro], ...c.fuentes.map((f) => [f, f])]) { const o = crear('option', '', t); o.value = v; sel.append(o); }
+    sel.value = c.fuentes.includes(c.fuente) ? c.fuente : '';
+    sel.addEventListener('change', () => cambiar({ capitalFuente: sel.value }));
+    letra.append(crear('span', '', tx.fuente), sel);
+    l.append(letra);
+    if (c.estilo !== 'sencilla') {
+      const altos = [2, 3, 4, ...(c.lineas === 5 ? [5] : [])].map((n) => [n, String(n)]);
+      l.append(crear('p', 'tal-rotulo', tx.capitalLineas), this.segmento(altos, c.lineas, (n) => cambiar({ capitalLineas: String(n) })));
+    }
+    /* Vacio es automatico: crece con la letra */
+    const espacio = crear('label', 'tal-par'), i = crear('input');
+    i.type = 'number'; i.min = '0'; i.max = '6'; i.step = '0.1';
+    i.placeholder = tx.capitalAuto;
+    i.value = c.separaMm === 'auto' ? '' : c.separaMm;
+    i.addEventListener('change', () => cambiar({ capitalSepara: i.value }));
+    espacio.append(crear('span', '', tx.capitalSepara), i);
+    l.append(espacio, this.accion(tx.capitalQuitar, () => this.mesa.quitarCapital()));
+  }
+
   /* Varias paginas elegidas en las miniaturas. Los botones leen la eleccion al pulsarse: nunca una vieja. */
   /* `r`: { n, hojas, pdf, papel, ajuste } (Varias.resumenDe). Con otra mezcla de paginas, el panel se rehace. */
   deVarias(r) { this.rehacer(() => this.poner(() => this.pintarVarias(r), 'varias', `varias:${r.n}:${r.hojas}:${r.pdf}`)); }
