@@ -22,6 +22,27 @@ export function posicionesDe(doc, nodos) {
   return lista;
 }
 
+/* Todas las paginas libres del capitulo, en orden */
+export function libresDe(doc) {
+  const lista = [];
+  doc.descendants((x) => {
+    if (x.type.name === 'paginaLibre') lista.push(x);
+    return ENTRAR.has(x.type.name);
+  });
+  return lista;
+}
+
+/* Cambiar el papel crea nodos nuevos, y deshacerlo otros mas: la eleccion se pierde. Se recuerda por su lugar
+   entre las paginas libres y, si la cuenta no cambio, se vuelve a encontrar ahi. */
+export const lugaresDe = (doc, nodos) => {
+  const elegida = new Set(nodos);
+  return libresDe(doc).map((n, i) => (elegida.has(n) ? i : -1)).filter((i) => i >= 0);
+};
+export function nodosEnLugares(doc, lugares, cuantasAntes) {
+  const libres = libresDe(doc);
+  return libres.length === cuantasAntes ? lugares.map((i) => libres[i]).filter(Boolean) : null;
+}
+
 /* `lista`: las paginas en orden, cada una { vivo, nodo } (nodo es null si no es pagina libre).
    De la pagina `a` a la `b`: solo libres y solo del capitulo de `a`. `fuera` dice si el tramo entraba en otro. */
 export function rango(lista, a, b) {
@@ -49,6 +70,64 @@ export function trBorrar(state, nodos) {
   for (const { pos, nodo } of [...lista].reverse()) tr.delete(pos, pos + nodo.nodeSize);
   tr.setSelection(Selection.near(tr.doc.resolve(Math.min(tr.mapping.map(lista[0].pos), tr.doc.content.size))));
   return closeHistory(tr.setMeta(META_PAGINA, true));
+}
+
+/* ---- Mover el bloque ---- */
+/* Donde cae el bloque si se suelta antes de la pagina `i` de la lista (lista.length = al final). Soltarlo
+   sobre si mismo es dejarlo antes de la siguiente que no este elegida. Solo dentro de su capitulo: entre
+   capitulos serian dos guardados y dos Ctrl+Z. Devuelve { antes: indice } o { fin: true }, o null. */
+export function destinoDelBloque(lista, nodos, i) {
+  const elegida = new Set(nodos), es = (p) => !!p && !!p.nodo && elegida.has(p.nodo);
+  const primera = lista.find(es);
+  if (!primera) return null;
+  let j = Math.max(0, Math.min(i, lista.length));
+  while (j < lista.length && es(lista[j])) j++;
+  if (lista[j] && lista[j].vivo === primera.vivo) return { antes: j };
+  let k = j - 1;
+  while (k >= 0 && es(lista[k])) k--;
+  return k >= 0 && lista[k].vivo === primera.vivo ? { fin: true } : null;
+}
+
+/* «Que la primera del bloque quede en la pagina `d`»: antes de la que hoy es la d-esima sin contar las elegidas */
+export function antesDelNumero(lista, nodos, d) {
+  const elegida = new Set(nodos), resto = [];
+  lista.forEach((p, i) => { if (!(p.nodo && elegida.has(p.nodo))) resto.push(i); });
+  const n = Math.max(1, Math.min(Math.round(d), resto.length + 1));
+  return n <= resto.length ? resto[n - 1] : lista.length;
+}
+
+/* Se quitan todas y se ponen juntas, en su orden, donde iba `pos` (posicion del documento de antes).
+   Los nodos son los mismos: la eleccion sigue valiendo despues. Un solo Ctrl+Z. */
+export function trMover(state, nodos, pos) {
+  const lista = posicionesDe(state.doc, nodos);
+  if (!lista.length) return null;
+  const tr = state.tr;
+  for (const { pos: p, nodo } of [...lista].reverse()) tr.delete(p, p + nodo.nodeSize);
+  tr.insert(tr.mapping.map(pos), lista.map((x) => x.nodo));
+  return closeHistory(tr.setMeta(META_PAGINA, true));
+}
+
+/* El papel de todas, o como cubre su fondo cada pagina de PDF. Una pagina de PDF no lleva papel propio:
+   lo que no cubre toma el del libro. Devuelve las paginas nuevas (cambian de nodo) y cuantas no aplicaban. */
+export function trPapel(state, nodos, cambio) {
+  const lista = posicionesDe(state.doc, nodos);
+  if (!lista.length) return null;
+  const tr = state.tr;
+  let saltadas = 0;
+  for (const { pos, nodo } of lista) {
+    const pdf = !!nodo.attrs.fondo;
+    if ('papel' in cambio && !pdf) tr.setNodeMarkup(pos, null, { ...nodo.attrs, papel: cambio.papel });
+    else if ('ajuste' in cambio && pdf) tr.setNodeMarkup(pos, null, { ...nodo.attrs, ajuste: cambio.ajuste });
+    else saltadas++;
+  }
+  return { tr: closeHistory(tr), nodos: lista.map(({ pos }) => tr.doc.nodeAt(pos)), saltadas };
+}
+
+/* Lo que tienen en comun, para el panel: '' si difieren */
+export function resumenDe(nodos) {
+  const pdf = nodos.filter((n) => n.attrs.fondo), hojas = nodos.filter((n) => !n.attrs.fondo);
+  const comun = (l, k) => (l.length && l.every((n) => n.attrs[k] === l[0].attrs[k]) ? l[0].attrs[k] : '');
+  return { n: nodos.length, pdf: pdf.length, hojas: hojas.length, papel: comun(hojas, 'papel'), ajuste: comun(pdf, 'ajuste') };
 }
 
 /* Las copias van juntas, justo despues de la ultima elegida, en el mismo orden. Se devuelven para elegirlas. */

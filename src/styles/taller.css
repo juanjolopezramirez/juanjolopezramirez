@@ -177,6 +177,8 @@
 @keyframes hoja-carga { from { background-position: 120% 0; } to { background-position: -120% 0; } }
 .hoja__falla { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: .5rem .8rem; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 8px; color: var(--tiza); font: 12px var(--mono); cursor: pointer; }
 .hoja--activa { box-shadow: 0 0 0 2px var(--prompt), 0 6px 22px rgb(0 0 0 / .55); }
+/* Una de varias elegidas: un borde por dentro que no cambia ninguna medida (las paginas se cortan igual) */
+.hoja--elegida { outline: 3px solid var(--prompt); outline-offset: -3px; }
 .hoja--indice { padding: var(--mt) var(--mr) var(--mb) var(--ml); box-sizing: border-box; user-select: auto; }
 .indice__fila { display: flex; justify-content: space-between; gap: 1em; width: 100%; padding: .15em 0; background: none; border: 0; color: inherit !important; font: inherit !important; cursor: pointer; text-align: left; }
 .corrida { width: var(--W); box-sizing: border-box; padding: var(--mt) var(--mr) 0 var(--ml); position: relative;
@@ -332,5 +334,5 @@
   .tal-ic[aria-pressed="true"] { background: Highlight; color: HighlightText; }
   .tal-sel__op:hover, .tal-sel__op--activa { forced-color-adjust: none; background: Highlight; color: HighlightText; }
   .tal-sel__op[aria-selected="true"]::before { content: "• " / ""; }
-  .mini[aria-selected="true"] { outline-color: Highlight; }
+  .mini[aria-selected="true"], .hoja--elegida { outline-color: Highlight; }
 }

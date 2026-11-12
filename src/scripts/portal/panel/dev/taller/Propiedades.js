@@ -260,15 +260,22 @@ export class Propiedades {
   }
 
   /* Varias paginas elegidas en las miniaturas. Los botones leen la eleccion al pulsarse: nunca una vieja. */
-  deVarias(n) { this.rehacer(() => this.poner(() => this.pintarVarias(n), 'varias', `varias:${n}`)); }
+  /* `r`: { n, hojas, pdf, papel, ajuste } (Varias.resumenDe). Con otra mezcla de paginas, el panel se rehace. */
+  deVarias(r) { this.rehacer(() => this.poner(() => this.pintarVarias(r), 'varias', `varias:${r.n}:${r.hojas}:${r.pdf}`)); }
 
-  pintarVarias(n) {
-    const tx = this.tx, l = this.lienzo, cuenta = (t) => t.replace('{n}', String(n)), ac = crear('div', 'tal-acciones');
+  pintarVarias(r) {
+    const tx = this.tx, l = this.lienzo, m = this.mesa, cuenta = (t, n = r.n) => t.replace('{n}', String(n)), ac = crear('div', 'tal-acciones');
+    l.append(crear('h2', '', cuenta(tx.elegidas)), crear('p', '', tx.variasAyuda));
+    /* Una pagina de PDF no lleva papel: lo que no cubre toma el del libro. Por eso aqui van aparte. */
+    const colorDe = !r.pdf ? tx.colorVarias : r.hojas === 1 ? tx.colorDeLaHoja : cuenta(tx.colorDeLasHojas, r.hojas);
+    if (r.hojas) l.append(this.color(colorDe, r.papel, (c) => m.papelVarias({ papel: c })));
+    if (r.pdf) l.append(crear('p', 'tal-rotulo', r.pdf === 1 ? tx.ajusteDeLaPdf : cuenta(tx.ajusteDeLasPdf, r.pdf)), this.segmento([['contener', tx.ajusteContener], ['cubrir', tx.ajusteCubrir]], r.ajuste, (k) => m.papelVarias({ ajuste: k })));
     ac.append(
-      this.conIcono('duplicar', cuenta(tx.duplicarVarias), () => this.mesa.duplicarVarias()),
-      this.armado('eliminar', cuenta(tx.eliminarVarias), cuenta(tx.eliminarVariasSeguro), () => this.mesa.borrarVarias())
+      this.conIcono('subir', tx.subirVarias, () => m.moverVariasPaso(-1)), this.conIcono('bajar', tx.bajarVarias, () => m.moverVariasPaso(1)),
+      this.conIcono('duplicar', cuenta(tx.duplicarVarias), () => m.duplicarVarias()),
+      this.armado('eliminar', cuenta(tx.eliminarVarias), cuenta(tx.eliminarVariasSeguro), () => m.borrarVarias())
     );
-    l.append(crear('h2', '', cuenta(tx.elegidas)), crear('p', '', tx.variasAyuda), ac, this.accion(tx.quitarEleccion, () => this.mesa.soltarEleccion(true)));
+    l.append(ac, this.accion(tx.quitarEleccion, () => m.soltarEleccion(true)));
   }
 
   /* Lo que hace un boton, en la linea o en una pagina libre */

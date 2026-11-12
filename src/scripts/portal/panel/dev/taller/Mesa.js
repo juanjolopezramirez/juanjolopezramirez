@@ -6,7 +6,7 @@
    de pagina. Con la escala, lo que se ve en cualquier zoom es lo que sale en el PDF. */
 import { Selection } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
-import { META_PAGINA, alternar, posicionesDe, rango, todasDelCapitulo, trBorrar, trDuplicar } from './Varias.js';
+import { META_PAGINA, alternar, antesDelNumero, destinoDelBloque, libresDe, lugaresDe, nodosEnLugares, posicionesDe, rango, resumenDe, todasDelCapitulo, trBorrar, trDuplicar, trMover, trPapel } from './Varias.js';
 import { Capitulo } from '../../../../contenido/taller/Obra.js';
 import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
@@ -146,13 +146,24 @@ export class Mesa {
     this.pintarIndice(reparto);
     this.podarEleccion();
     this.minis.pintar();
+    this.pintarEleccion();
     this.contar();
   }
 
   /* Deshacer y rehacer van al capitulo de lo ultimo tocado: la hoja elegida, o el capitulo activo */
   historia(cmd) {
     const h = this.hojaActiva, e = h ? h.editor : (this.activo && this.activo.editor);
-    if (e) e.commands[cmd]();
+    if (!e) return;
+    /* Deshacer un cambio de papel rehace los nodos: las elegidas se vuelven a buscar por su lugar */
+    const { vivo, nodos, ancla } = this.eleccion, mia = vivo && vivo.editor === e && nodos.length;
+    const lugares = mia ? lugaresDe(e.state.doc, nodos) : null, cuantas = mia ? libresDe(e.state.doc).length : 0;
+    e.commands[cmd]();
+    if (!mia || posicionesDe(e.state.doc, nodos).length === nodos.length) return;
+    const otra = nodosEnLugares(e.state.doc, lugares, cuantas);
+    if (!otra || !otra.length) return;
+    this.eleccion = { vivo, nodos: otra, ancla: nodos.includes(ancla) ? otra[nodos.indexOf(ancla)] || otra[0] : otra[0] };
+    this.panelDeEleccion();
+    this.pintarEleccion();
   }
 
   /* ---- Varias paginas elegidas ---- */
@@ -168,6 +179,16 @@ export class Mesa {
   }
 
   cuantasElegidas() { return this.eleccion.nodos.length; }
+  /* Las paginas como las ve Varias.js: su capitulo y su nodo (null si no es libre) */
+  listaDePaginas() { return this.paginas.map((q) => ({ vivo: q.vivo, nodo: q.vista ? q.vista.node : null })); }
+  primeraElegida() { return this.paginas.findIndex((p) => this.estaElegida(p)); }
+
+  /* La marca en las miniaturas y en la mesa: un borde que no mueve nada */
+  pintarEleccion() {
+    this.minis.marcarEleccion();
+    const elegidas = new Set(this.eleccion.nodos);
+    this.vistas.forEach((h) => h.hoja.classList.toggle('hoja--elegida', elegidas.size > 1 && elegidas.has(h.node)));
+  }
   estaElegida(p) { return !!p.vista && p.vivo === this.eleccion.vivo && this.eleccion.nodos.includes(p.vista.node); }
 
   /* `modo`: 'uno' (clic), 'rango' (Mayus+clic) o 'alternar' (Ctrl+clic). Solo paginas libres de un capitulo. */
@@ -199,7 +220,7 @@ export class Mesa {
     }
     this.eleccion = nueva;
     this.panelDeEleccion();
-    this.minis.marcarEleccion();
+    this.pintarEleccion();
     if (modo !== 'uno') this.decirEleccion(aviso);
   }
 
@@ -215,7 +236,7 @@ export class Mesa {
     const n = this.cuantasElegidas();
     if (n > 1) {
       if (this.hojaActiva || this.imagenElegida) this.soltarElegidos();
-      this.prop.deVarias(n);
+      this.prop.deVarias(resumenDe(this.eleccion.nodos));
     } else if (this.prop.dueno === 'varias') this.prop.ocultar();
   }
 
@@ -223,7 +244,7 @@ export class Mesa {
     if (!this.eleccion.nodos.length && !this.eleccion.ancla) return;
     this.eleccion = SIN_ELEGIR;
     this.panelDeEleccion();
-    this.minis.marcarEleccion();
+    this.pintarEleccion();
     if (avisar) this.decirEleccion();
   }
 
@@ -232,6 +253,8 @@ export class Mesa {
     const { vivo, nodos } = this.eleccion;
     if (!vivo || !nodos.length) return null;
     if (!vivo.editor.isEditable) { this.decir(this.tx.variasQuietas); return null; }
+    /* Una pagina que va a otro capitulo espera su guardado: mientras, nada cambia de lugar */
+    if (this.moviendo) { this.decir(this.tx.moverEspera); return null; }
     this.confirmarEdicion();
     const vivos = posicionesDe(vivo.editor.state.doc, nodos).map((x) => x.nodo);
     return vivos.length ? { vivo, nodos: vivos } : null;
@@ -249,6 +272,65 @@ export class Mesa {
     this.prop.ocultar();
     this.medir();
     this.decir(n > 1 ? this.tx.variasBorradas.replace('{n}', String(n)) : this.tx.paginaBorrada);
+  }
+
+  /* «Que la primera del bloque quede en la pagina `d`», como «Mover a…» de una sola */
+  moverVarias(d) {
+    const el = this.eleccionParaCambiar();
+    if (el) this.moverBloque(el, antesDelNumero(this.listaDePaginas(), el.nodos, d));
+  }
+
+  /* Una pagina arriba o abajo, todo el bloque. Si estaban sueltas, primero se juntan. */
+  moverVariasPaso(dir) {
+    const i = this.primeraElegida();
+    if (i >= 0) this.moverVarias(i + 1 + dir);
+  }
+
+  /* Soltar el bloque antes de la pagina `n` (0 = al final), como al arrastrar una sola */
+  soltarVariasAntes(n) {
+    const el = this.eleccionParaCambiar();
+    if (el) this.moverBloque(el, n ? n - 1 : this.paginas.length);
+  }
+
+  moverBloque(el, i) {
+    const tx = this.tx, d = destinoDelBloque(this.listaDePaginas(), el.nodos, i);
+    if (!d) { this.decir(tx.bloqueSoloCapitulo); return; }
+    const e = el.vivo.editor, lugar = (q) => (q.vista ? q.vista.getPos() : q.vivo.posicionDeFila(q.fila, this.px, this.z));
+    let fila = d.antes, tr = trMover(e.state, el.nodos, d.fin ? e.state.doc.content.size : lugar(this.paginas[fila]));
+    /* Una pagina de texto se parte en el parrafo, nunca en medio: si su lugar da el mismo libro, el parrafo
+       empieza mas arriba, y se busca su primer renglon */
+    while (tr && !d.fin && tr.doc.eq(e.state.doc)) {
+      const q = this.paginas[fila - 1];
+      if (!q || q.vista || q.vivo !== el.vivo) break;
+      fila--;
+      tr = trMover(e.state, el.nodos, lugar(q));
+    }
+    if (!tr || tr.doc.eq(e.state.doc)) { this.decir(tx.bloqueYaAhi); return; }
+    e.view.dispatch(tr);
+    this.activo = el.vivo;
+    this.hojaActiva = null;
+    this.medir();
+    /* El texto puede correrse: se dice donde quedo de verdad */
+    const k = this.primeraElegida();
+    if (k < 0) return;
+    this.irA(k + 1);
+    /* El foco sigue al bloque solo si estaba en las miniaturas: desde el panel, se queda en su boton */
+    if (this.minis.caja.contains(document.activeElement)) this.minis.enfocar(k + 1);
+    this.decir(tx.bloqueQuedo.replace('{n}', String(el.nodos.length)).replace('{p}', String(k + 1)));
+  }
+
+  /* El papel de todas (o como cubre su fondo cada pagina de PDF). Las paginas cambian de nodo: la eleccion se
+     queda con las nuevas. */
+  papelVarias(cambio) {
+    const el = this.eleccionParaCambiar();
+    if (!el) return;
+    const e = el.vivo.editor, r = trPapel(e.state, el.nodos, cambio);
+    e.view.dispatch(r.tr);
+    this.eleccion = { vivo: el.vivo, nodos: r.nodos, ancla: r.nodos[0] };
+    this.activo = el.vivo;
+    this.medir();
+    this.panelDeEleccion();
+    if (r.saltadas && 'papel' in cambio) this.decir(r.saltadas === 1 ? this.tx.pdfNoCambiaUna : this.tx.pdfNoCambian.replace('{n}', String(r.saltadas)));
   }
 
   /* Las copias quedan elegidas: asi se pueden mover o borrar enseguida */
@@ -356,6 +438,11 @@ export class Mesa {
       const cuenta = (t) => t.replace('{n}', String(k));
       return [ir,
         { texto: cuenta(tx.duplicarVarias), icono: 'duplicar', apagado: quieta, fn: () => this.duplicarVarias() },
+        /* «Al inicio» y «Al final» son los de su capitulo: el bloque no sale de el */
+        { texto: cuenta(tx.moverVarias), icono: 'mover', apagado: quieta, queda: true, fn: () => this.menu.mover({
+          actual: this.primeraElegida() + 1, total: this.paginas.length, etiqueta: cuenta(tx.moverVariasA), alMover: (d) => this.moverVarias(d),
+          primera: p.vivo.primera, ultima: this.paginas.findLastIndex((q) => q.vivo === p.vivo) + 2 - k
+        }) },
         { raya: true },
         /* Solo si siguen siendo las que dice el boton */
         { texto: cuenta(tx.eliminarVarias), icono: 'eliminar', aviso: true, apagado: quieta, confirmar: cuenta(tx.eliminarVariasSeguro), fn: () => { if (this.cuantasElegidas() === k) this.borrarVarias(); } }];
@@ -393,8 +480,9 @@ export class Mesa {
 
   /* Lo escrito en el panel y en un cuadro entra al capitulo antes de guardar o de bloquearlo */
   confirmarEdicion() {
+    /* Solo un campo guarda al salir de el; un boton del panel conserva el foco, para pulsarlo otra vez */
     const a = document.activeElement;
-    if (this.prop.caja.contains(a)) a.blur();
+    if (this.prop.caja.contains(a) && a.matches('input, textarea, select, [contenteditable]')) a.blur();
     this.vistas.forEach((h) => h.dejarDeEditar());
   }
   hayEdicion() { return this.prop.escribiendo() || [...this.vistas].some((h) => h.editando); }
@@ -767,6 +855,8 @@ export class Mesa {
     }
     d.querySelectorAll('.marco, .fantasma, .guia, .seg, .sale, .asa, .hoja__falla').forEach((n) => n.remove());
     [d, ...d.querySelectorAll('.hoja--cargando')].forEach((n) => n.classList.remove('hoja--cargando'));
+    /* La marca de elegida es de la mesa: ni la copia de una hoja ni la de un capitulo entero la llevan */
+    [d, ...d.querySelectorAll('.hoja--elegida')].forEach((n) => n.classList.remove('hoja--elegida'));
     const baja = p.vista || p.indice ? 0 : p.fila * (this.px.H + this.px.gap);
     d.classList.add('clon__dentro');
     d.style.transform = `scale(${esc}) translateY(${-baja}px)`;

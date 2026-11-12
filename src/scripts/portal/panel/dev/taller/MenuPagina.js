@@ -70,7 +70,8 @@ export class MenuPagina {
   opciones() { return [...this.caja.querySelectorAll('.tal-menu__op:not([aria-disabled="true"])')]; }
 
   /* Mover a una pagina: `{ actual, total, primera, alMover(n) }` */
-  mover({ actual, total, primera, alMover }) {
+  /* `ultima`: adonde lleva «Al final» (si no, la ultima pagina del libro) */
+  mover({ actual, total, primera, alMover, etiqueta, ultima = total }) {
     const { tx } = this, f = crear('form', 'tal-menu__mover'), l = crear('label'), i = crear('input');
     f.noValidate = true;
     this.caja.setAttribute('role', 'dialog');
@@ -79,7 +80,7 @@ export class MenuPagina {
     i.max = String(total);
     i.value = String(actual);
     i.addEventListener('focus', () => i.select());
-    l.append(crear('span', '', tx.moverAPagina.replace('{total}', String(total))), i);
+    l.append(crear('span', '', (etiqueta || tx.moverAPagina).replace('{total}', String(total))), i);
     const ir = crear('button', 'tal-btn tal-btn--fuerte', tx.mover);
     ir.type = 'submit';
     const atajo = (texto, n) => {
@@ -89,7 +90,7 @@ export class MenuPagina {
       return b;
     };
     const fila = crear('div', 'tal-menu__fila');
-    fila.append(atajo(tx.alInicio, primera), atajo(tx.alFinal, total));
+    fila.append(atajo(tx.alInicio, primera), atajo(tx.alFinal, ultima));
     f.addEventListener('submit', (e) => {
       e.preventDefault();
       const n = Number(i.value);

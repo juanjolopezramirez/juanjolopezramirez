@@ -7,6 +7,7 @@ const crear = (tag, clase, texto) => { const e = document.createElement(tag); if
 const ESCALA = .2;
 const ANCHO_MAX = 112;            // lo que cabe en la columna, para hojas grandes como carta u oficio
 const DESARMAR_MS = 3000;         // lo mismo que el boton rojo del panel
+const PROPIOS = new Set(['pagina', 'paginas', 'capitulo']);   // lo que esta columna pone al arrastrar
 
 export class Miniaturas {
   constructor(caja, mesa) {
@@ -77,7 +78,14 @@ export class Miniaturas {
         b.draggable = true;
         b.title = m.tx.arrastrarPagina;
         const v = p.vista;
-        b.addEventListener('dragstart', (e) => { this.arrastrado = { vista: v }; e.dataTransfer.setData('text/plain', 'pagina'); e.dataTransfer.effectAllowed = 'move'; });
+        /* Si es de las elegidas, se lleva el bloque; si no, se elige sola y va sola, como en las presentaciones */
+        b.addEventListener('dragstart', (e) => {
+          const k = Number(b.dataset.n) - 1, bloque = m.cuantasElegidas() > 1 && m.estaElegida(m.paginas[k]);
+          if (!bloque) m.elegirMini(k, 'uno');
+          this.arrastrado = bloque ? { varias: true } : { vista: v };
+          e.dataTransfer.setData('text/plain', bloque ? 'paginas' : 'pagina');
+          e.dataTransfer.effectAllowed = 'move';
+        });
         if (m.segura && m.seSale(v)) { b.append(crear('span', 'punto')); b.setAttribute('aria-label', `${m.tx.pagina2} ${n}. ${m.tx.fueraDeZona}`); }
       }
       /* Como en las presentaciones: clic elige una, Mayus+clic las de en medio, Ctrl+clic suma o quita una */
@@ -156,6 +164,8 @@ export class Miniaturas {
     if (t.capitulo) { this.mesa.moverCapituloPaso(t.capitulo, d); this.entrarAlCapitulo(t.capitulo); return; }
     const n = Number(t.dataset.n), p = this.mesa.paginas[n - 1];
     if (!p || !p.vista) { this.mesa.decir(this.mesa.tx.paginaDeTexto); return; }
+    /* Una de varias elegidas: se mueve todo el bloque, y el foco va con el */
+    if (this.mesa.cuantasElegidas() > 1 && this.mesa.estaElegida(p)) { this.mesa.moverVariasPaso(d); return; }
     await this.mesa.moverPaso(p.vista, d);
     this.enfocar(n + d);
   }
@@ -224,8 +234,11 @@ export class Miniaturas {
     const m = this.destino(e), lo = this.arrastrado;
     this.arrastrado = null;
     this.linea.remove();
+    /* Solo lo que salio de esta columna: si un arrastre se corto a medias, algo traido de fuera no lo hereda */
+    if (!PROPIOS.has(e.dataTransfer.getData('text/plain'))) return;
     const n = m ? Number(m.dataset.n) : 0;
-    if (lo.vista) this.mesa.moverPagina(lo.vista, n);
+    if (lo.varias) this.mesa.soltarVariasAntes(n);
+    else if (lo.vista) this.mesa.moverPagina(lo.vista, n);
     else this.mesa.moverCapitulo(lo.capitulo, n);
   }
 }

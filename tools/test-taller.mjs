@@ -579,7 +579,7 @@ console.log('varias paginas a la vez');
   const { history, undo, redo } = await import('@tiptap/pm/history');
   const V = await import('../src/scripts/portal/panel/dev/taller/Varias.js');
   const s = new Schema({ nodes: { doc: { content: 'block+' }, text: { group: 'inline' }, paragraph: { group: 'block', content: 'inline*' },
-    paginaLibre: { group: 'block', atom: true, attrs: { nombre: { default: '' }, objetos: { default: [] } } },
+    paginaLibre: { group: 'block', atom: true, attrs: { nombre: { default: '' }, objetos: { default: [] }, fondo: { default: '' }, papel: { default: '' }, ajuste: { default: 'contener' } } },
     columnas: { group: 'block', content: 'columna+' }, columna: { content: 'block+' } } });
   const P = (n) => s.nodes.paginaLibre.create({ nombre: n, objetos: [{ id: `o${n}` }] }), T = (t) => s.nodes.paragraph.create(null, s.text(t));
   const original = s.nodes.doc.create(null, [T('a'), P('1'), P('2'), T('b'), P('3'), s.nodes.columnas.create(null, [s.nodes.columna.create(null, [P('4')])])]);
@@ -631,6 +631,69 @@ console.log('varias paginas a la vez');
     assert.notEqual(r.copias[0].attrs.objetos, libres[0].attrs.objetos);
     atras(c);
     assert.ok(c.st.doc.eq(original));
+  });
+  await ok('donde cae el bloque: dentro de su capitulo, sobre si mismo es «aqui», y nunca en otro', () => {
+    const a = {}, b = {}, L = [{ vivo: a, nodo: null }, { vivo: a, nodo: 'x' }, { vivo: a, nodo: 'y' }, { vivo: a, nodo: 'z' }, { vivo: b, nodo: 'q' }];
+    assert.deepEqual(V.destinoDelBloque(L, ['y'], 1), { antes: 1 });
+    assert.deepEqual(V.destinoDelBloque(L, ['x', 'y'], 1), { antes: 3 });
+    assert.deepEqual(V.destinoDelBloque(L, ['x'], 4), { fin: true });
+    assert.equal(V.destinoDelBloque(L, ['x'], 5), null);
+    assert.equal(V.destinoDelBloque([{ vivo: b, nodo: 'q' }, ...L], ['x'], 0), null);
+    assert.equal(V.destinoDelBloque(L, ['nada'], 1), null);
+    /* «que la primera quede en la pagina d» */
+    assert.equal(V.antesDelNumero(L, ['z'], 2), 1);
+    assert.equal(V.antesDelNumero(L, ['x'], 3), 3);
+    assert.equal(V.antesDelNumero(L, ['x'], 99), 5);
+  });
+  await ok('mover tres al inicio: juntas, en su orden, las mismas, y un Ctrl+Z las regresa', () => {
+    const c = nuevo(), tr = V.trMover(c.st, [libres[3], libres[1], libres[2]], 0);
+    hacer(c, tr);
+    c.st.doc.check();
+    assert.equal(nombres(c.st.doc), '2341');
+    assert.equal(V.posicionesDe(c.st.doc, [libres[1], libres[2], libres[3]]).length, 3);
+    atras(c);
+    assert.ok(c.st.doc.eq(original));
+  });
+  await ok('mover al medio, dentro de una columna y con elegidas sueltas', () => {
+    const casos = [
+      { elegidas: [0, 2], pos: (d) => V.posicionesDe(d, [libres[3]])[0].pos, da: '2134' },   // dentro de la columna
+      { elegidas: [3], pos: (d) => V.posicionesDe(d, [libres[1]])[0].pos, da: '1423' },      // de la columna al medio
+      { elegidas: [0, 3], pos: (d) => d.content.size, da: '2314' },                          // sueltas, al final
+      { elegidas: [1], pos: (d) => V.posicionesDe(d, [libres[1]])[0].pos, da: '1234' }        // sobre si misma
+    ];
+    for (const k of casos) {
+      const c = nuevo(), tr = V.trMover(c.st, k.elegidas.map((i) => libres[i]), k.pos(c.st.doc));
+      hacer(c, tr);
+      c.st.doc.check();
+      assert.equal(nombres(c.st.doc), k.da);
+    }
+  });
+  await ok('tras deshacer el papel, las mismas paginas siguen elegidas por su lugar', () => {
+    const c = nuevo(), elegidas = [libres[1], libres[3]], lugares = V.lugaresDe(c.st.doc, elegidas), cuantas = V.libresDe(c.st.doc).length;
+    assert.deepEqual(lugares, [1, 3]);
+    const r = V.trPapel(c.st, elegidas, { papel: '#000000' });
+    hacer(c, r.tr);
+    atras(c);
+    assert.equal(V.posicionesDe(c.st.doc, r.nodos).length, 0);
+    const otra = V.nodosEnLugares(c.st.doc, lugares, cuantas);
+    assert.deepEqual(otra.map((n) => n.attrs.nombre), ['2', '4']);
+    assert.equal(V.nodosEnLugares(c.st.doc, lugares, cuantas + 1), null);
+  });
+  await ok('el papel de todas, menos las de PDF; el ajuste solo a las de PDF; un Ctrl+Z', () => {
+    const pdf = s.nodes.paginaLibre.create({ nombre: 'P', fondo: 'taller/a/pdf/1.webp' });
+    const d = s.nodes.doc.create(null, [P('1'), pdf, P('2')]);
+    const c = { st: EditorState.create({ doc: d, plugins: [history()] }) }, todas = [d.child(0), d.child(1), d.child(2)];
+    assert.deepEqual(V.resumenDe(todas), { n: 3, pdf: 1, hojas: 2, papel: '', ajuste: 'contener' });
+    const r = V.trPapel(c.st, todas, { papel: '#F4EBDD' });
+    hacer(c, r.tr);
+    assert.equal(r.saltadas, 1);
+    assert.deepEqual(r.nodos.map((n) => n.attrs.papel), ['#F4EBDD', '', '#F4EBDD']);
+    assert.equal(V.resumenDe(r.nodos).papel, '#F4EBDD');
+    const r2 = V.trPapel(c.st, r.nodos, { ajuste: 'cubrir' });
+    hacer(c, r2.tr);
+    assert.deepEqual(r2.nodos.map((n) => n.attrs.ajuste), ['contener', 'cubrir', 'contener']);
+    atras(c); atras(c);
+    assert.ok(c.st.doc.eq(d));
   });
   await ok('nada elegido que siga en el capitulo: no se hace nada', () => {
     const c = nuevo();
