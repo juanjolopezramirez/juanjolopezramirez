@@ -6,6 +6,7 @@ import { el } from './ayuda.js';
 import { limpiarObjetos, OBJETOS } from './objetos.js';
 import { colorValido } from '../marcas.js';
 import { PAPEL_BASE } from '../colores.js';
+import { esAncla, RE_ANCLA_PAGINA, textoIndice, TITULO_INDICE_MAX } from '../IndiceLibro.js';
 
 export const tipo = 'paginaLibre';
 export const nodos = ['paginaLibre'];
@@ -28,7 +29,10 @@ export function datos(_, a) {
     caja: a.caja ? { x: pct(c.x), y: pct(c.y), w: pct(c.w), h: pct(c.h) } : null,
     sangre: a.sangre === true,
     papel: colorValido(a.papel),
-    objetos: limpiarObjetos(a.objetos)
+    objetos: limpiarObjetos(a.objetos),
+    /* Su nombre en el contenido del libro ('' = no sale) y su ancla fija (p-xxxxxxxx) */
+    titulo: textoIndice(a.titulo, TITULO_INDICE_MAX),
+    ancla: esAncla(RE_ANCLA_PAGINA, a.ancla) ? a.ancla : ''
   };
 }
 
@@ -40,7 +44,7 @@ export function pdf(n, _, o = {}) {
   /* Un PDF traido conserva su dibujo, que va encima: lo que no cubre es el papel de su capitulo o del libro */
   const papel = (!a.fondo && a.papel) || o.papelCapitulo || PAPEL_BASE;
   if (o.papelesLibres) o.papelesLibres.add(papel);
-  return el('div', `pag-libre papel-${papel.slice(1)}${a.fondo ? ' pag-libre--pdf' : ''}`, [el('div', 'pag-libre__caja', hijos)]);
+  return el('div', `pag-libre papel-${papel.slice(1)}${a.fondo ? ' pag-libre--pdf' : ''}`, [el('div', 'pag-libre__caja', hijos)], a.titulo && a.ancla ? { id: a.ancla } : {});
 }
 export const web = (n, h, o = {}) => pdf(n, h, { ...o, web: true });
 

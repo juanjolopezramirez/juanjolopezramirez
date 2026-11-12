@@ -135,7 +135,8 @@ export function trDuplicar(state, nodos) {
   const lista = posicionesDe(state.doc, nodos);
   if (!lista.length) return null;
   const ultima = lista[lista.length - 1];
-  const copias = lista.map(({ nodo }) => nodo.type.create(JSON.parse(JSON.stringify(nodo.attrs)), nodo.content, nodo.marks));
+  /* Las copias no salen en el contenido del libro (sin nombre ni ancla): dos filas iguales confunden */
+  const copias = lista.map(({ nodo }) => nodo.type.create({ ...JSON.parse(JSON.stringify(nodo.attrs)), titulo: '', ancla: '' }, nodo.content, nodo.marks));
   const tr = state.tr.insert(ultima.pos + ultima.nodo.nodeSize, copias);
   return { tr: closeHistory(tr), copias };
 }

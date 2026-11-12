@@ -9,6 +9,7 @@ import { Autoguardado } from './Autoguardado.js';
 import { crearEditor } from './Editor.js';
 import { limpiarContenido, cabeEnElCapitulo } from '../../../../contenido/taller/TextoLibro.js';
 import { tituloDe } from '../../../../contenido/taller/Migrar.js';
+import { conAnclas } from '../../../../contenido/taller/IndiceLibro.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 
@@ -21,7 +22,11 @@ export class CapituloVivo {
     this.caja.dataset.c = cap.id;
     const c = crear('div', 'corrida__texto');
     this.caja.append(c);
+    /* Un capitulo de antes de las anclas recibe las suyas al abrirse, siempre las mismas (salen del id del
+       capitulo): asi la mesa y el PDF las nombran igual, y se guardan con el primer cambio */
     const leido = limpiarContenido(cap.contenido).contenido;
+    leido.doc = conAnclas(leido.doc, cap.id);
+    cap.contenido = leido;
     this.papel = leido.papel || '';
     /* El nombre puesto a mano ('' = el primer titulo del texto) y si sale en el contenido del libro */
     this.tituloPropio = leido.titulo || '';
@@ -29,7 +34,7 @@ export class CapituloVivo {
     this.pintarPapel();
     this.guardado = new Autoguardado({ guardar: () => this.guardar(), alEstado: (e) => mesa.alEstado(this, e) });
     this.editor = crearEditor(c, {
-      contenido: limpiarContenido(cap.contenido).contenido.doc, tx: mesa.tx, etiqueta: `${mesa.tx.etiquetaEditor}: ${cap.titulo || mesa.tx.capitulo}`, idioma: mesa.idioma(), mesa, editable: mesa.editable,
+      contenido: leido.doc, tx: mesa.tx, etiqueta: `${mesa.tx.etiquetaEditor}: ${cap.titulo || mesa.tx.capitulo}`, idioma: mesa.idioma(), mesa, editable: mesa.editable,
       alCambiar: () => { this.guardado.marcar(); mesa.alEscribir(this); },
       alMover: () => mesa.alMoverCursor(this),
       alEnfocar: () => mesa.alEnfocarEditor(this),

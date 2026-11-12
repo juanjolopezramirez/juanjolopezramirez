@@ -3,7 +3,7 @@
 import { Node } from '@tiptap/core';
 import { HojaLibre } from '../HojaLibre.js';
 
-const ATRIBUTOS = { nombre: '', fondo: '', pdf: '', anchoMm: 0, altoMm: 0, ajuste: 'contener', texto: '', alt: '', caja: null, sangre: false, papel: '', objetos: [] };
+const ATRIBUTOS = { nombre: '', fondo: '', pdf: '', anchoMm: 0, altoMm: 0, ajuste: 'contener', texto: '', alt: '', caja: null, sangre: false, papel: '', objetos: [], titulo: '', ancla: '' };
 
 export const PaginaLibre = Node.create({
   name: 'paginaLibre',

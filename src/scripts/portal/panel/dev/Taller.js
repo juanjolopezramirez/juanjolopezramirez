@@ -448,7 +448,9 @@ export class Taller extends Seccion {
     /* Solo el nombre: los px para Figma estan en «Más ajustes», y la lista ya no se corta */
     TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.nombre; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
-    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas']) new Selector(f.elements[k]);
+    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas', 'indiceAntes']) new Selector(f.elements[k]);
+    /* Los capitulos cambian de nombre y de orden: la lista de «Va antes de» se arma al abrir el menu */
+    f.elements.indiceAntes.closest('details').addEventListener('toggle', (e) => { if (e.currentTarget.open) this.llenarAntesDe(); });
     for (const k of ['fuente', 'capitalFuente', 'citaFuente']) new Selector(f.elements[k], { fuenteDe: (v) => (v ? familiaCss(v) : '') });
     const ajustes = this.m('[data-tal-ajustes]');
     tam.addEventListener('change', () => {
@@ -520,7 +522,11 @@ export class Taller extends Seccion {
     f.elements.anchoMm.value = c.anchoMm; f.elements.altoMm.value = c.altoMm;
     for (const m of ['sup', 'inf', 'izq', 'der']) f.elements[m].value = c.margenes[m];
     f.elements.tamanoPt.value = c.cuerpo.tamanoPt; f.elements.interlinea.value = c.cuerpo.interlinea;
-    f.elements.numerosVer.checked = c.numeros.ver; f.elements.indice.checked = c.indice; f.elements.imprenta.checked = c.imprenta;
+    f.elements.numerosVer.checked = c.numeros.ver; f.elements.imprenta.checked = c.imprenta;
+    f.elements.indice.checked = c.indice.ver; f.elements.indiceTitulo.value = c.indice.titulo;
+    f.elements.indiceSubtemas.checked = c.indice.subtemas; f.elements.indicePuntos.checked = c.indice.puntos;
+    this.llenarAntesDe();
+    this.m('[data-tal-indice-opciones]').hidden = !c.indice.ver;
     f.elements.lugar.value = c.numeros.lugar;
     this.ponerPx();
     const opcion = (valor, texto) => { const o = document.createElement('option'); o.value = valor; o.textContent = texto; return o; };
@@ -543,6 +549,18 @@ export class Taller extends Seccion {
     f.elements.citaTamano.value = c.cita.tamanoPct;
     f.elements.citaSangria.value = c.cita.sangriaMm;
     f.elements.citaCursiva.checked = c.cita.cursiva;
+  }
+
+  /* Delante de que capitulo va el contenido. Antes del primero es «al comienzo». */
+  llenarAntesDe() {
+    const s = this.m('[data-tal-pagina]').elements.indiceAntes, id = this.obra.pagina.indice.antesDe;
+    const vivos = this.mesa ? this.mesa.vivos : [];
+    const opcion = (valor, texto) => { const o = document.createElement('option'); o.value = valor; o.textContent = texto; return o; };
+    const nombre = (v, n) => `${n}. ${(v.cap.titulo || `${this.tx.capitulo} ${n}`).slice(0, 60)}`;
+    s.replaceChildren(opcion('', this.tx.indiceAlComienzo), ...vivos.slice(1).map((v, i) => opcion(v.cap.id, nombre(v, i + 2))));
+    s.value = vivos.slice(1).some((v) => v.cap.id === id) ? id : '';
+    /* Sin capitulos abiertos aun, la lista no sabe nada: leerPagina conserva lo guardado */
+    s.dataset.lleno = vivos.length ? '1' : '';
   }
 
   /* La sencilla tiene un solo alto: el campo de renglones no aplica */
@@ -573,7 +591,12 @@ export class Taller extends Seccion {
       ...this.obra.pagina.aDatos(), imprenta: f.elements.imprenta.checked,
       anchoMm: n('anchoMm'), altoMm: n('altoMm'),
       margenes: { sup: n('sup'), inf: n('inf'), izq: n('izq'), der: n('der') },
-      numeros: { ver: f.elements.numerosVer.checked, lugar: f.elements.lugar.value }, indice: f.elements.indice.checked,
+      numeros: { ver: f.elements.numerosVer.checked, lugar: f.elements.lugar.value },
+      indice: {
+        ver: f.elements.indice.checked, titulo: f.elements.indiceTitulo.value, subtemas: f.elements.indiceSubtemas.checked,
+        puntos: f.elements.indicePuntos.checked,
+        antesDe: f.elements.indiceAntes.dataset.lleno ? f.elements.indiceAntes.value : this.obra.pagina.indice.antesDe
+      },
       cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },
       capital: {
         estilo: f.elements.capitalEstilo.value, fuente: f.elements.capitalFuente.value, lineas: n('capitalLineas'),
@@ -590,6 +613,8 @@ export class Taller extends Seccion {
     this.mostrarLineas(nueva.capital.estilo);
     f.elements.citaTamano.value = nueva.cita.tamanoPct;
     f.elements.citaSangria.value = nueva.cita.sangriaMm;
+    f.elements.indiceTitulo.value = nueva.indice.titulo;
+    this.m('[data-tal-indice-opciones]').hidden = !nueva.indice.ver;
     this.mesa.vivos.forEach((v) => v.editor.view.dom.setAttribute('lang', this.obra.idioma));
     this.guardarObra();
     this.mesa.repintarHojas();
@@ -751,6 +776,8 @@ export class Taller extends Seccion {
   async sacarPdf() {
     if (!(await this.vaciarTodo())) { this.error('noGuardado'); return; }
     this.mesa.medir();
+    /* Los numeros del contenido, recien medidos: la hoja de impresion los usa tal cual */
+    const indice = this.mesa.datosDeIndice;
     this.avance.textContent = this.tx.preparandoPdf;
     const caps = this.mesa.vivos.map((v) => v.cap);
     const rutas = new Set();
@@ -769,7 +796,7 @@ export class Taller extends Seccion {
     ].filter(Boolean).join(' ');
     if (dice) this.decir(dice);
     this.asegurarVista();
-    this.vista.pintar(aHoja(this.obra.aDatos(), caps.map((c) => c.aDatos()), { imagenes: mapa, indice: this.mesa.entradasDeIndice() }));
+    this.vista.pintar(aHoja(this.obra.aDatos(), caps.map((c) => c.aDatos()), { imagenes: mapa, indice }));
   }
 
   /* ---- Copias ---- */

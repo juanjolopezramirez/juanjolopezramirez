@@ -20,6 +20,7 @@ import { OPCIONES_KATEX } from '../src/scripts/contenido/taller/tipos/formula.js
 import { RepositorioTallerMemoria, RepositorioTallerSupabase, decidir } from '../src/scripts/contenido/taller/Repositorio.js';
 import { Autoguardado } from '../src/scripts/portal/panel/dev/taller/Autoguardado.js';
 import { CASOS } from './pruebas-taller.mjs';
+import * as I from '../src/scripts/contenido/taller/IndiceLibro.js';
 import { revisarTiposTaller } from './revisar-tipos-taller.mjs';
 
 let bien = 0, mal = 0;
@@ -139,16 +140,109 @@ await ok('todos los casos salen solo con etiquetas, atributos y estilos permitid
 });
 await ok('el indice sale con sus numeros, cada capitulo con su ancla, y la caja del texto en pixeles enteros', () => {
   const obra = new Obra({ titulo: 'T', pagina: { indice: true } }).aDatos();
-  const h = aHoja(obra, [{ titulo: 'Uno', contenido: doc(parrafo('a')) }], { indice: [{ titulo: 'Uno', pagina: 2, capitulo: 1 }] });
+  const h = aHoja(obra, [{ titulo: 'Uno', contenido: doc(parrafo('a')) }], { indice: { numeros: { 'cap-1': 2 }, reparto: [1] } });
   assert.match(h.css, /size: 420pt 595pt/);
   assert.ok(!/target-counter/.test(h.css));
   h.nodos.forEach(permitido);
   assert.ok(JSON.stringify(h.nodos).includes('#cap-1'));
+  assert.ok(JSON.stringify(h.nodos).includes('"texto":"2"'));
   assert.equal(h.titulo, 'T');
   const p = new ConfigPagina({}).enPixeles();
   assert.deepEqual([p.W, p.H, p.ancho, p.alto], [559, 794, 423, 635]);
   assert.ok(Math.abs(p.mrImpresion - 69) < .02 && Math.abs(p.mbImpresion - 82.33) < .02, `${p.mrImpresion} ${p.mbImpresion}`);
 });
+console.log('el contenido del libro');
+{
+  const h = (texto, level, id) => ({ type: 'heading', attrs: { level, ...(id ? { id } : {}) }, content: [{ type: 'text', text: texto }] });
+  const libre = (titulo, ancla) => ({ type: 'paginaLibre', attrs: { titulo, ancla, objetos: [] } });
+  const caps = () => [
+    { id: 'c1', titulo: 'Portada', contenido: { titulo: 'Portada', enIndice: false, doc: { type: 'doc', content: [libre('', '')] } } },
+    { id: 'c2', titulo: 'Uno', contenido: { doc: { type: 'doc', content: [h('Uno', 1, 't-00000001'), parrafo('a'), h('Sub A', 2, 't-00000002'), h('Menor', 3, 't-00000003'), libre('Mapa', 'p-00000004'),
+      { type: 'columnas', attrs: { anchos: [1, 1] }, content: [{ type: 'columna', content: [h('En columna', 2, 't-00000005')] }, { type: 'columna', content: [parrafo('b')] }] }] } } },
+    { id: 'c3', titulo: 'Dos a mano', contenido: { titulo: 'Dos a mano', doc: { type: 'doc', content: [h('Primero', 1, 't-00000006'), h('Repetido', 2, 't-00000002')] } } }
+  ];
+  await ok('entradas: capitulos visibles, Título 1 y 2 y paginas con nombre; nunca Título 3 ni el titulo que nombra al capitulo', async () => {
+    const { capitulosParaIndice } = await import('../src/scripts/contenido/taller/hoja.js');
+    const e = I.entradasDe(capitulosParaIndice(caps()));
+    assert.deepEqual(e.map((f) => `${f.nivel}:${f.titulo}:${f.ancla}`), [
+      '1:Uno:cap-2', '2:Sub A:t-00000002', '2:Mapa:p-00000004', '2:En columna:t-00000005',
+      '1:Dos a mano:cap-3', '2:Primero:t-00000006'
+    ]);
+    assert.deepEqual(I.entradasDe(capitulosParaIndice(caps()), { subtemas: false }).map((f) => f.titulo), ['Uno', 'Dos a mano']);
+  });
+  await ok('anclas: un libro viejo recibe siempre las mismas, y las repetidas cambian', () => {
+    const viejo = { type: 'doc', content: [h('A', 1), h('B', 2), h('C', 2, 't-0000000a'), h('D', 2, 't-0000000a'), libre('X', ''), libre('', '')] };
+    const a = I.conAnclas(viejo, 'cap-uuid'), b = I.conAnclas(viejo, 'cap-uuid');
+    assert.deepEqual(a, b);
+    const ids = a.content.filter((n) => n.type === 'heading').map((n) => n.attrs.id);
+    ids.forEach((x) => assert.match(x, I.RE_ANCLA_TITULO));
+    assert.equal(new Set(ids).size, 4);
+    assert.equal(ids[2], 't-0000000a');
+    assert.match(a.content[4].attrs.ancla, I.RE_ANCLA_PAGINA);
+    assert.equal(a.content[5].attrs.ancla, '');
+    assert.notDeepEqual(I.conAnclas(viejo, 'otro').content[0].attrs.id, ids[0]);
+    assert.equal(viejo.content[0].attrs.id, undefined, 'no toca el original');
+  });
+  await ok('hojas: el reparto de la mesa manda, el nombre solo en la primera, y ninguna fila se pierde', () => {
+    const e = [{ nivel: 1, titulo: 'A', ancla: 'cap-1' }, { nivel: 2, titulo: 'a', ancla: 't-00000001' }, { nivel: 1, titulo: 'B', ancla: 'cap-2' }];
+    const hs = I.hojasDeIndice(e, { 'cap-1': 3, 't-00000001': 4, 'cap-2': 9 }, [2], { titulo: 'Índice', puntos: false });
+    assert.equal(hs.length, 1);
+    assert.equal(hs[0].hijos.length, 4, 'la que no cupo va en la ultima');
+    assert.equal(hs[0].hijos[0].hijos[0].texto, 'Índice');
+    assert.ok(!JSON.stringify(hs).includes('indice__puntos'));
+    const dos = I.hojasDeIndice(e, {}, [2, 1], {});
+    assert.equal(dos.length, 2);
+    assert.equal(dos[1].hijos[0].clase, 'indice__fila indice__fila--1');
+    assert.equal(dos[0].hijos[0].hijos[0].texto, 'Contenido');
+    dos.forEach(permitido);
+  });
+  await ok('la hoja: el contenido va antes del capitulo elegido, y titulos y paginas llevan su ancla como id', () => {
+    const obra = new Obra({ titulo: 'T', idioma: 'en', pagina: { indice: { ver: true, antesDe: 'c2', puntos: true } } }).aDatos();
+    const hj = aHoja(obra, caps(), { indice: { numeros: { 'cap-2': 3, 't-00000002': 4 }, reparto: [6] } });
+    const hijos = hj.nodos[0].hijos;
+    assert.deepEqual(hijos.map((n) => n.tag), ['section', 'nav', 'section', 'section']);
+    assert.equal(hijos[1].hijos[0].hijos[0].texto, 'Contents');
+    assert.ok(JSON.stringify(hijos[1]).includes('indice__puntos'));
+    const s = JSON.stringify(hijos[2]);
+    assert.ok(s.includes('"id":"t-00000002"') && s.includes('"id":"p-00000004"'));
+    hj.nodos.forEach(permitido);
+    assert.match(hj.css, /\.libro > \.indice:first-child \{ break-before: auto; \}/);
+    assert.match(cssLibro({}), /\.libro \.indice__fila \{/);
+    /* El capitulo elegido ya no esta: al comienzo */
+    const otra = aHoja(new Obra({ pagina: { indice: { ver: true, antesDe: 'nada' } } }).aDatos(), caps(), { indice: { numeros: {}, reparto: [6] } });
+    assert.equal(otra.nodos[0].hijos[0].tag, 'nav');
+    /* Sin «ver», sin hoja */
+    assert.ok(!aHoja(new Obra({ pagina: {} }).aDatos(), caps(), { indice: { numeros: {}, reparto: [6] } }).nodos[0].hijos.some((n) => n.tag === 'nav'));
+  });
+  await ok('ConfigPagina: el indice de antes (true) sigue, y lo raro no pasa', () => {
+    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '' });
+    assert.equal(new ConfigPagina({}).indice.ver, false);
+    const raro = new ConfigPagina({ indice: { ver: 'si', titulo: `  Mi\u0007  índice ${'x'.repeat(300)}`, subtemas: false, puntos: 0, antesDe: '../x;y' } }).indice;
+    assert.equal(raro.ver, false);
+    assert.ok(raro.titulo.startsWith('Mi índice') && raro.titulo.length <= I.TITULO_INDICE_MAX);
+    assert.equal(raro.subtemas, false);
+    assert.equal(raro.puntos, true);
+    assert.equal(raro.antesDe, '');
+    assert.deepEqual(new ConfigPagina(new ConfigPagina({ indice: { ver: true, antesDe: 'abc-1' } }).aDatos()).indice.antesDe, 'abc-1');
+  });
+  await ok('lo raro en anclas y nombres: arreglos, «__proto__», marcas de direccion y libros enormes', () => {
+    assert.equal(POR_NODO.get('heading').datos('heading', { level: 2, id: ['t-12345678'] }).id, '');
+    assert.equal(POR_NODO.get('paginaLibre').datos('paginaLibre', { titulo: 'a‮b⁦c', ancla: ['p-12345678'] }).ancla, '');
+    assert.equal(POR_NODO.get('paginaLibre').datos('paginaLibre', { titulo: 'a‮b⁦c' }).titulo, 'abc');
+    assert.equal(new ConfigPagina({ indice: { ver: true, titulo: 'x‮y' } }).indice.titulo, 'xy');
+    const [nav] = I.hojasDeIndice([{ nivel: 2, titulo: 'X', ancla: '__proto__' }, { nivel: 9, titulo: 'Y', ancla: 'cap-1' }], { 'cap-1': 2.5 }, [2], {});
+    assert.deepEqual(nav.hijos.slice(1).map((f) => f.hijos[f.hijos.length - 1].hijos[0].texto), ['', '']);
+    assert.equal(nav.hijos[2].clase, 'indice__fila indice__fila--1');
+    const muchos = [{ ancla: 'cap-1', titulo: 'A', doc: { type: 'doc', content: Array.from({ length: 900 }, (_, k) => h(`T${k}`, 2, `t-${String(k).padStart(8, '0')}`)) } }];
+    assert.equal(I.entradasDe(muchos).length, I.ENTRADAS_MAX);
+  });
+  await ok('limpiarContenido conserva las anclas buenas y quita las malas', () => {
+    const l = limpiarContenido(doc(h('A', 2, 't-00000001'), h('B', 2, 'x'), libre('Mapa', 'p-00000002'), libre('Otra', 'malo'))).contenido.doc.content;
+    assert.deepEqual(l.map((n) => n.attrs.id ?? n.attrs.ancla), ['t-00000001', '', 'p-00000002', '']);
+    assert.equal(l[2].attrs.titulo, 'Mapa');
+  });
+}
+
 await ok('una pagina libre: fondo, recorte que no toca la imagen, y lo raro no pasa', () => {
   const nodo = (o) => ({ type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: o } });
   const img = { id: 'o-abcd1234', tipo: 'imagen', ruta: 'taller/o/i.webp', x: 10, y: 10, w: 40, h: 30, rot: 12, crop: { l: .25, t: 0, r: .25, b: 0 } };
@@ -644,7 +738,7 @@ await ok('cada ajuste del libro es del formulario, este donde este en la cinta',
   assert.ok(ini > 0 && fin > ini);
   const dentro = astro.slice(ini, fin);
   /* Lo que leerPagina lee del formulario: dentro de el, o fuera con form="tal-pagina-f" */
-  const nombres = ['tamano', 'anchoMm', 'altoMm', 'anchoPx', 'altoPx', 'fuente', 'tamanoPt', 'interlinea', 'idioma', 'numerosVer', 'lugar', 'indice', 'imprenta',
+  const nombres = ['tamano', 'anchoMm', 'altoMm', 'anchoPx', 'altoPx', 'fuente', 'tamanoPt', 'interlinea', 'idioma', 'numerosVer', 'lugar', 'indice', 'indiceTitulo', 'indiceAntes', 'indiceSubtemas', 'indicePuntos', 'imprenta',
     'capitalEstilo', 'capitalFuente', 'capitalLineas', 'capitalSepara', 'citaFuente', 'citaTamano', 'citaSangria', 'citaCursiva'];
   for (const n of nombres) {
     /* «Agregar letra» tiene su propio formulario con un campo «fuente»: ese no es del libro */

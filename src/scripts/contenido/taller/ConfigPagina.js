@@ -6,6 +6,7 @@ import { objeto, tiene } from '../comun.js';
 import { nombreDeFuente, FUENTES_MAX } from './fuentes.js';
 import { colorValido } from './marcas.js';
 import { RECIENTES_MAX } from './colores.js';
+import { textoIndice, TITULO_INDICE_MAX } from './IndiceLibro.js';
 
 export const LADO_MIN = 50;
 export const LADO_MAX = 420;
@@ -50,7 +51,16 @@ export class ConfigPagina {
     this.altoMm = mm(o.altoMm, LADO_MIN, LADO_MAX, 210, 100);
     this.margenes = { sup: mm(m.sup, 0, 150, 20), inf: mm(m.inf, 0, 150, 22), izq: mm(m.izq, 0, 150, 18), der: mm(m.der, 0, 150, 18) };
     this.numeros = { ver: n.ver !== false, lugar: LUGARES_NUMERO.includes(n.lugar) ? n.lugar : 'pie-centro' };
-    this.indice = o.indice === true;
+    /* El contenido del libro. Antes era solo «si o no» (true): ese libro lo sigue teniendo, con lo de siempre. */
+    const ind = o.indice === true ? { ver: true } : objeto(o.indice);
+    this.indice = {
+      ver: ind.ver === true,
+      titulo: textoIndice(ind.titulo, TITULO_INDICE_MAX),
+      subtemas: ind.subtemas !== false,
+      puntos: ind.puntos !== false,
+      /* El capitulo delante del cual va ('' = al comienzo del libro). Si ya no existe, va al comienzo. */
+      antesDe: typeof ind.antesDe === 'string' && /^[A-Za-z0-9-]{1,40}$/.test(ind.antesDe) ? ind.antesDe : ''
+    };
     this.imprenta = o.imprenta === true;
     this.papel = colorValido(o.papel);
     this.letras = letrasValidas(o.letras);
@@ -122,7 +132,7 @@ export class ConfigPagina {
 
   aDatos() {
     return {
-      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: this.indice, cuerpo: { ...this.cuerpo },
+      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice }, cuerpo: { ...this.cuerpo },
       imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
       capital: { ...this.capital }, cita: { ...this.cita }
     };

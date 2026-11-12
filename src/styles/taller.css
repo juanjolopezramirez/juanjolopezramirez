@@ -149,6 +149,8 @@
 .tal-b-panel label { display: grid; gap: .15rem; font-size: 12px; color: var(--tiza-2); }
 /* Los que cuelgan del tope se abren hacia la izquierda: a la derecha ya no hay pantalla */
 .tal-b-panel--der { left: auto; right: 0; }
+.tal-b-grupo { display: grid; gap: .5rem; padding: .5rem 0 0 .6rem; border-left: 1px solid var(--raya-fuerte); }
+.tal-b-grupo[hidden] { display: none; }
 .tal-b-panel--fila { display: flex; gap: .2rem; width: auto; }
 .tal-b-panel--menu { width: 13rem; gap: .3rem; }
 .tal-b-panel--menu .tal-btn { justify-content: flex-start; text-align: left; }
@@ -215,7 +217,9 @@
 /* Una de varias elegidas: un borde por dentro que no cambia ninguna medida (las paginas se cortan igual) */
 .hoja--elegida { outline: 3px solid var(--prompt); outline-offset: -3px; }
 .hoja--indice { padding: var(--mt) var(--mr) var(--mb) var(--ml); box-sizing: border-box; user-select: auto; }
-.indice__fila { display: flex; justify-content: space-between; gap: 1em; width: 100%; padding: .15em 0; background: none; border: 0; color: inherit !important; font: inherit !important; cursor: pointer; text-align: left; }
+/* Las filas son las mismas que imprime el PDF (cssLibro): aqui solo se dice que llevan a su pagina */
+.hoja--indice .indice__fila { cursor: pointer; }
+.hoja--indice .indice__fila:hover .indice__texto { text-decoration: underline; text-underline-offset: .18em; }
 .corrida { width: var(--W); box-sizing: border-box; padding: var(--mt) var(--mr) 0 var(--ml); position: relative;
   background: repeating-linear-gradient(to bottom, var(--hoja-papel, #fff) 0, var(--hoja-papel, #fff) var(--H), transparent var(--H), transparent calc(var(--H) + var(--gap))); }
 .flujo { width: var(--ancho); column-width: var(--ancho); column-height: var(--alto); column-wrap: wrap; column-gap: 0; row-gap: var(--salto); column-fill: auto; outline: none; caret-color: var(--hoja-tinta, #111); }

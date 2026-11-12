@@ -12,9 +12,10 @@ import { aNodos } from './TextoLibro.js';
 import { colorValido } from './marcas.js';
 import { PAPEL_BASE, TINTA_SOBRE_PDF, tonosDe, variablesDe } from './colores.js';
 import { objeto } from '../comun.js';
-import { el, txt } from './tipos/ayuda.js';
+import { el } from './tipos/ayuda.js';
 import { FUENTE_HEBREO } from './tipos/pasaje.js';
 import { FORMAS } from './iconosBoton.js';
+import { entradasDe, hojasDeIndice, tituloDeIndice } from './IndiceLibro.js';
 
 const tieneClase = (n, c) => !!n && ((n.clase || '').split(' ').includes(c) || (n.hijos || []).some((h) => tieneClase(h, c)));
 
@@ -92,7 +93,13 @@ export function cssLibro(config) {
 .libro hr { border: 0; border-top: 1px solid #888; margin: 1.4em 0; }
 .libro ul, .libro ol { margin: 0 0 .7em; padding-left: 1.4em; }
 .libro a { color: var(--hoja-enlace); }
-.libro .indice a { color: inherit; }
+.libro .indice__titulo { margin: 0 0 .8em; }
+.libro .indice__fila { display: flex; align-items: baseline; gap: .4em; color: inherit; text-decoration: none; margin: 0 0 .3em; break-inside: avoid; }
+.libro .indice__fila--2 { padding-left: 1.3em; font-size: .92em; }
+.libro .indice__fila--2 + .indice__fila--1 { margin-top: .7em; }
+.libro .indice__texto { min-width: 0; }
+.libro .indice__puntos { flex: 1 1 auto; min-width: 1.5em; border-bottom: .12em dotted currentColor; opacity: .45; }
+.libro .indice__num { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; }
 .libro .boton { box-sizing: border-box; display: block; width: fit-content; max-width: 100%; margin: .8em 0; padding: .5em 1.2em; border-radius: .45em; background: var(--hoja-tinta); color: var(--hoja-papel); font-size: .95em; line-height: 1.3; text-align: center; text-decoration: none; overflow-wrap: anywhere; break-inside: avoid; }
 .libro .boton--centro { margin-left: auto; margin-right: auto; }
 .libro .boton--derecha { margin-left: auto; }
@@ -131,8 +138,8 @@ html, body { margin: 0; background: transparent; print-color-adjust: exact; -web
 .libro { width: ${p.ancho}px; ${fijas(tono.papel)} }
 .capitulo { break-before: page; }
 .capitulo:first-child { break-before: auto; }
-.indice { break-after: page; } .indice h1 { margin-bottom: .8em; }
-.indice a { display: flex; justify-content: space-between; gap: 1em; color: inherit; text-decoration: none; margin-bottom: .3em; }
+.indice { break-before: page; break-after: page; }
+.libro > .indice:first-child { break-before: auto; }
 .pag-libre { break-before: page; position: relative; overflow: hidden; width: ${p.anchoPt + sPt * 2}pt; height: ${p.altoPt + sPt * 2}pt; }
 .pag-libre__caja { position: absolute; inset: ${sPt}pt; }
 .pag-libre__fondo { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -146,21 +153,29 @@ ${deLibres}
 ${cssLibro(config)}`;
 }
 
-/* `capitulos` ya en orden. `o`: { imagenes: {ruta: data:…}, indice: [{ titulo, pagina }] } */
+/* Lo que el contenido necesita de cada capitulo: igual que lo arma la mesa (Mesa.capitulosParaIndice) */
+export const capitulosParaIndice = (capitulos) => capitulos.map((c, i) => {
+  const x = objeto(c.contenido);
+  return { ancla: `cap-${i + 1}`, titulo: c.titulo || '', enIndice: x.enIndice !== false, tituloPropio: typeof x.titulo === 'string' ? x.titulo : '', doc: objeto(x.doc) };
+});
+
+/* `capitulos` ya en orden. `o`: { imagenes: {ruta: data:…}, indice: { numeros: {ancla: pagina}, reparto: [filas por hoja] } }.
+   Los numeros y el reparto los mide la mesa; las filas salen de los capitulos mismos, con la misma regla. */
 export function aHoja(obra, capitulos, o = {}) {
-  const config = new ConfigPagina(obra.pagina);
+  const config = new ConfigPagina(obra.pagina), ind = config.indice;
+  const entradas = ind.ver && o.indice ? entradasDe(capitulosParaIndice(capitulos), { subtemas: ind.subtemas }) : [];
+  const indice = entradas.length ? hojasDeIndice(entradas, o.indice.numeros, o.indice.reparto, { titulo: tituloDeIndice(ind, obra.idioma), puntos: ind.puntos }) : [];
   const nodos = [];
-  if (config.indice && (o.indice || []).length) {
-    nodos.push(el('nav', 'indice', [el('h1', '', [txt('Contenido')]),
-      ...o.indice.map((f) => el('a', '', [el('span', '', [txt(f.titulo)]), el('span', '', [txt(String(f.pagina))])], { href: `#cap-${f.capitulo}` }))]));
-  }
   const usados = { capitulos: new Set(), libres: new Set() };
+  const antes = Math.max(0, capitulos.findIndex((c) => c.id && c.id === ind.antesDe));
   capitulos.forEach((c, i) => {
+    if (i === antes) nodos.push(...indice);
     const propio = colorValido(objeto(c.contenido).papel);
     if (propio) usados.capitulos.add(propio);
     const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres });
     nodos.push(el('section', `capitulo${propio ? ` papel-${nombre(propio)}` : ''}`, hijos, { id: `cap-${i + 1}` }));
   });
+  if (!capitulos.length) nodos.push(...indice);
   const libro = el('div', 'libro', nodos);
   /* El hebreo de un pasaje necesita su letra, aunque el libro no la tenga en su lista */
   const fuentes = [...(obra.fuentes || [])];

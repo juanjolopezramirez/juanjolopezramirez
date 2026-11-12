@@ -229,6 +229,13 @@ const { tx } = Astro.props;
                 <option value="pie-centro">{tx.lugares.centro}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
               </select></label>
               <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
+              <!-- Lo del contenido solo se ve cuando el libro lo lleva -->
+              <div class="tal-b-grupo" data-tal-indice-opciones>
+                <label><span>{tx.indiceNombre}</span><input class="tal-ctl" name="indiceTitulo" type="text" maxlength="120" placeholder={tx.indiceTitulo} /></label>
+                <label><span>{tx.indiceAntes}</span><select class="tal-ctl" name="indiceAntes"></select></label>
+                <label class="tal-marca"><input name="indiceSubtemas" type="checkbox" /><span>{tx.indiceSubtemas}</span></label>
+                <label class="tal-marca"><input name="indicePuntos" type="checkbox" /><span>{tx.indicePuntos}</span></label>
+              </div>
             </div>
           </details>
           <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.colores}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>

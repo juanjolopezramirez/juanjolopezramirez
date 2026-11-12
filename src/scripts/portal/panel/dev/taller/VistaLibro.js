@@ -10,7 +10,11 @@ export class VistaLibro {
     caja.querySelector('[data-vl-cerrar]').addEventListener('click', () => this.cerrar());
     caja.querySelector('[data-vl-ant]').addEventListener('click', () => this.mover(-1));
     caja.querySelector('[data-vl-sig]').addEventListener('click', () => this.mover(1));
-    this.escena.addEventListener('click', (e) => { const r = this.escena.getBoundingClientRect(); this.mover(e.clientX > r.left + r.width / 2 ? 1 : -1); });
+    this.escena.addEventListener('click', (e) => {
+      if (this.irDesdeIndice(e)) return;
+      const r = this.escena.getBoundingClientRect();
+      this.mover(e.clientX > r.left + r.width / 2 ? 1 : -1);
+    });
     caja.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.cerrar(); }
       if (e.key === 'ArrowRight') this.mover(1);
@@ -36,6 +40,21 @@ export class VistaLibro {
 
   cerrar() { this.caja.hidden = true; this.escena.replaceChildren(); if (this.origen) this.origen.focus(); }
   mover(d) { this.pliego += d; this.pintar(); }
+
+  /* Una fila del contenido lleva a su pagina. Las copias son inertes: la fila se busca por donde cayo el clic. */
+  irDesdeIndice(e) {
+    const numeros = (this.mesa.datosDeIndice || {}).numeros || {};
+    const fila = [...this.escena.querySelectorAll('.indice__fila')].find((a) => {
+      const r = a.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    });
+    const n = fila && numeros[(fila.getAttribute('href') || '').slice(1)];
+    if (!n) return false;
+    const i = n - 1;
+    this.pliego = i === 0 ? 0 : Math.ceil(i / 2);
+    this.pintar();
+    return true;
+  }
   refrescar() { if (!this.caja.hidden) this.pintar(); }
 
   pintar() {

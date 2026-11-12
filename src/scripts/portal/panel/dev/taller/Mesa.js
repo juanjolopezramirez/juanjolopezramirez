@@ -10,6 +10,8 @@ import { META_PAGINA, alternar, antesDelNumero, destinoDelBloque, libresDe, luga
 import { Capitulo } from '../../../../contenido/taller/Obra.js';
 import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
+import { armar } from '../../../../contenido/taller/armar.js';
+import { entradasDe, hojasDeIndice, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { CapituloVivo } from './CapituloVivo.js';
@@ -120,36 +122,44 @@ export class Mesa {
   /* ---- Medir ---- */
   /* Cuantas filas lleva cada hoja del indice. Se miden: un titulo largo ocupa dos renglones y la letra
      cambia, y si aqui saliera una hoja menos que al imprimir, todos los numeros del indice mentirian. */
-  repartoDeIndice() {
-    const titulos = this.entradasDeIndice().map((f) => f.titulo);
-    if (!this.obra().pagina.indice || !titulos.length) return [];
-    const h = crear('section', 'hoja hoja--indice libro'), dentro = crear('div', 'indice');
+  repartoDeIndice(entradas) {
+    if (!entradas.length) return [];
+    const h = crear('section', 'hoja hoja--indice libro');
     h.style.cssText = 'position:absolute;visibility:hidden';
-    dentro.append(crear('h1', '', this.tx.indiceTitulo));
-    for (const t of titulos) { const f = crear('button', 'indice__fila'); f.append(crear('span', '', t), crear('span', '', '000')); dentro.append(f); }
-    h.append(dentro);
+    /* Con numeros de tres cifras: el mas ancho que puede tener una fila */
+    const numeros = Object.fromEntries(entradas.map((f) => [f.ancla, 888]));
+    const nav = armar(hojasDeIndice(entradas, numeros, [entradas.length], this.opcionesDeIndice())[0]);
+    h.append(nav);
     this.lienzo.append(h);
-    const filas = [...dentro.querySelectorAll('.indice__fila')], reparto = [0];
-    let corte = dentro.firstChild.offsetTop;
+    const filas = [...nav.querySelectorAll('.indice__fila')], reparto = [0];
+    let corte = nav.firstChild.offsetTop;
     for (const f of filas) {
-      if (f.offsetTop + f.offsetHeight - corte > this.px.alto) { reparto.push(0); corte = f.offsetTop; }
+      if (f.offsetTop + f.offsetHeight - corte > this.px.alto && reparto[reparto.length - 1]) { reparto.push(0); corte = f.offsetTop; }
       reparto[reparto.length - 1]++;
     }
     h.remove();
     return reparto;
   }
 
+  /* El capitulo delante del cual va el contenido (0 = al comienzo, o si el elegido ya no esta) */
+  lugarDelIndice() {
+    const id = new ConfigPagina(this.obra().pagina).indice.antesDe;
+    return Math.max(0, this.vivos.findIndex((v) => v.cap.id === id));
+  }
+
   medir() {
-    const p = this.px, reparto = this.repartoDeIndice(), ind = reparto.length;
+    const p = this.px, entradas = this.entradasDeIndice(), reparto = this.repartoDeIndice(entradas), ind = reparto.length, antes = this.lugarDelIndice();
     this.paginas = [];
-    for (let i = 0; i < ind; i++) this.paginas.push({ vivo: null, fila: i, vista: null, indice: true });
-    let n = ind;
-    for (const v of this.vivos) {
+    let n = 0;
+    const meterIndice = () => { for (let i = 0; i < ind; i++) this.paginas.push({ vivo: null, fila: i, vista: null, indice: true }); n += ind; };
+    this.vivos.forEach((v, k) => {
+      if (k === antes) meterIndice();
       v.primera = n + 1;
       n += v.medir(n + 1, p, this.z, this.segura);
       for (const f of v.filas) this.paginas.push({ vivo: v, ...f });
-    }
-    this.pintarIndice(reparto);
+    });
+    if (!this.vivos.length) meterIndice();
+    this.pintarIndice(entradas, reparto, antes);
     this.podarEleccion();
     this.minis.pintar();
     this.pintarEleccion();
@@ -355,28 +365,58 @@ export class Mesa {
 
   /* Lo que va en el contenido: los capitulos con nombre que no se ocultaron (una portada, por ejemplo). El numero
      de capitulo sigue siendo su lugar en el libro: asi lo nombra la hoja de impresion (#cap-N). */
-  entradasDeIndice() { return this.vivos.map((v, i) => ({ titulo: v.cap.titulo, pagina: v.primera, capitulo: i + 1, ver: v.enIndice })).filter((f) => f.titulo && f.ver).map(({ ver, ...f }) => f); }
+  /* Los capitulos como los lee IndiceLibro (igual que hoja.capitulosParaIndice), con el texto vivo del editor */
+  capitulosParaIndice() { return this.vivos.map((v, i) => ({ ancla: `cap-${i + 1}`, titulo: v.cap.titulo, enIndice: v.enIndice, tituloPropio: v.tituloPropio, doc: v.editor.state.doc })); }
 
-  pintarIndice(reparto) {
+  entradasDeIndice() {
+    const ind = new ConfigPagina(this.obra().pagina).indice;
+    return ind.ver ? entradasDe(this.capitulosParaIndice(), { subtemas: ind.subtemas }) : [];
+  }
+
+  opcionesDeIndice() {
+    const ind = new ConfigPagina(this.obra().pagina).indice;
+    return { titulo: tituloDeIndice(ind, this.idioma()), puntos: ind.puntos };
+  }
+
+  /* La pagina de cada ancla, ya medida: el capitulo empieza en su primera; un titulo, en la fila donde cae; una
+     pagina libre, en la suya */
+  numerosDeIndice() {
+    /* Sin prototipo: un ancla nunca lee algo heredado */
+    const numeros = Object.create(null), paso = this.px.H + this.px.gap;
+    this.vivos.forEach((v, i) => {
+      numeros[`cap-${i + 1}`] = v.primera;
+      const arriba = v.editor.view.dom.getBoundingClientRect().top;
+      v.editor.view.dom.querySelectorAll('[data-ancla]').forEach((t) => {
+        const fila = Math.floor((t.getBoundingClientRect().top - arriba) / this.z / paso + 0.001);
+        if (!(t.dataset.ancla in numeros)) numeros[t.dataset.ancla] = v.primera + Math.max(0, fila);
+      });
+    });
+    this.paginas.forEach((q, k) => { const a = q.vista && q.vista.node.attrs; if (a && a.titulo && a.ancla && !(a.ancla in numeros)) numeros[a.ancla] = k + 1; });
+    return numeros;
+  }
+
+  /* El mismo arbol que imprime la hoja (hojasDeIndice + armar): la mesa y el PDF no pueden diferir.
+     Un clic en una fila lleva a su pagina. `datosDeIndice` es lo que la hoja de impresion recibe. */
+  pintarIndice(entradas, reparto, antes) {
     this.lienzo.querySelectorAll('.hoja--indice').forEach((h) => h.remove());
-    const lista = this.entradasDeIndice(), cajas = [];
-    let desde = 0;
-    for (let i = 0; i < reparto.length; i++) {
+    this.datosDeIndice = null;
+    if (!reparto.length) return;
+    const numeros = this.numerosDeIndice();
+    this.datosDeIndice = { numeros, reparto: [...reparto] };
+    const cajas = hojasDeIndice(entradas, numeros, reparto, this.opcionesDeIndice()).map((nav) => {
       const h = crear('section', 'hoja hoja--indice libro');
-      const dentro = crear('div', 'indice');
-      if (i === 0) dentro.append(crear('h1', '', this.tx.indiceTitulo));
-      for (const f of lista.slice(desde, desde + reparto[i])) {
-        const a = crear('button', 'indice__fila');
-        a.type = 'button';
-        a.append(crear('span', '', f.titulo), crear('span', '', String(f.pagina)));
-        a.addEventListener('click', () => this.irA(f.pagina));
-        dentro.append(a);
-      }
-      desde += reparto[i];
-      h.append(dentro);
-      cajas.push(h);
-    }
-    this.lienzo.prepend(...cajas);
+      h.append(armar(nav));
+      h.addEventListener('click', (e) => {
+        const a = e.target.closest('a.indice__fila');
+        if (!a) return;
+        e.preventDefault();
+        const n = numeros[(a.getAttribute('href') || '').slice(1)];
+        if (n) this.irA(n);
+      });
+      return h;
+    });
+    const sitio = this.vivos[antes];
+    if (sitio) sitio.caja.before(...cajas); else this.lienzo.prepend(...cajas);
   }
 
   /* F6 pasa entre las partes de la mesa, como en Word */
@@ -642,7 +682,9 @@ export class Mesa {
 
   despuesDePagina(n) {
     const p = this.paginas[n - 1], sig = this.paginas[n];
-    if (!p || p.indice) return { vivo: this.vivos[0], pos: 0 };
+    if (!p) return { vivo: this.vivos[0], pos: 0 };
+    /* Despues del contenido es el comienzo del capitulo que lo sigue (puede ir a mitad del libro) */
+    if (p.indice) return { vivo: this.vivos[this.lugarDelIndice()] || this.vivos[0], pos: 0 };
     if (p.vista) return { vivo: p.vivo, pos: p.vista.getPos() + 1 };
     if (!sig || sig.vivo !== p.vivo) return { vivo: p.vivo, pos: p.vivo.editor.state.doc.content.size };
     return { vivo: p.vivo, pos: sig.vista ? sig.vista.getPos() : p.vivo.posicionDeFila(sig.fila, this.px, this.z) };
@@ -939,7 +981,8 @@ export class Mesa {
   duplicarPagina(h) {
     if (h.bloqueada) return;
     const e = h.editor, pos = h.getPos();
-    this.meterPagina(e, pos + 1, JSON.parse(JSON.stringify(h.attrs)));
+    /* La copia no sale en el contenido: dos filas iguales confunden. Se le pone nombre si hace falta. */
+    this.meterPagina(e, pos + 1, { ...JSON.parse(JSON.stringify(h.attrs)), titulo: '', ancla: '' });
     this.medir();
   }
 
@@ -978,7 +1021,11 @@ export class Mesa {
     if (!n) { const v = this.vivos[this.vivos.length - 1]; return { vivo: v, pos: v.editor.state.doc.content.size }; }
     const p = this.paginas[n - 1];
     if (!p || p.vista === h) return null;
-    if (p.indice) return { vivo: this.vivos[0], pos: 0 };
+    /* Antes del contenido: al final del capitulo anterior a el, o al comienzo del libro si va primero */
+    if (p.indice) {
+      const k = this.lugarDelIndice(), previo = this.vivos[k - 1];
+      return previo ? { vivo: previo, pos: previo.editor.state.doc.content.size } : { vivo: this.vivos[0], pos: 0 };
+    }
     if (p.vista) return { vivo: p.vivo, pos: p.vista.getPos() };
     return { vivo: p.vivo, pos: p.vivo.posicionDeFila(p.fila, this.px, this.z) };
   }
@@ -1004,7 +1051,8 @@ export class Mesa {
 
   moverCapitulo(v, n) {
     const p = n ? this.paginas[n - 1] : null;
-    const antes = p ? (p.vivo || this.vivos[0]) : null;
+    /* Soltado sobre el contenido: delante del capitulo al que precede */
+    const antes = p ? (p.vivo || this.vivos[this.lugarDelIndice()] || this.vivos[0]) : null;
     if (antes === v) return;
     this.vivos = this.vivos.filter((x) => x !== v);
     const i = antes ? this.vivos.indexOf(antes) : this.vivos.length;

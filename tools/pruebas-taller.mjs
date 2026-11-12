@@ -6,8 +6,8 @@ export const CASOS = {
     hostil: [{ type: 'paragraph', attrs: { onclick: 'x', alinear: 'url(x)' }, content: [{ type: 'text', text: '<script>', marks: [{ type: 'link', attrs: { href: 'javascript:x' } }] }] }]
   },
   titulo: {
-    bueno: [{ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'T' }] }],
-    hostil: [{ type: 'heading', attrs: { level: 99 }, content: [{ type: 'text', text: 'T' }] }]
+    bueno: [{ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'T' }] }, { type: 'heading', attrs: { level: 2, id: 't-0a1b2c3d' }, content: [{ type: 'text', text: 'Con ancla' }] }],
+    hostil: [{ type: 'heading', attrs: { level: 99 }, content: [{ type: 'text', text: 'T' }] }, { type: 'heading', attrs: { level: 1, id: '"><script>' }, content: [{ type: 'text', text: 'T' }] }]
   },
   lista: {
     bueno: [{ type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'a' }] }] }] }],
@@ -27,13 +27,16 @@ export const CASOS = {
     hostil: [{ type: 'columnas', attrs: { anchos: ['1fr;background:url(x)', 1e9] }, content: [] }]
   },
   paginaLibre: {
-    bueno: [{ type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: [
+    bueno: [{ type: 'paginaLibre', attrs: { fondo: 'taller/o/p/2.webp', titulo: 'Portada del capítulo', ancla: 'p-00ff00aa', objetos: [] } },
+      { type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: [
       { id: 'o-abcd1234', tipo: 'imagen', ruta: 'taller/o/i.webp', x: 10, y: 10, w: 40, h: 30, rot: 12, crop: { l: .1, t: 0, r: .2, b: 0 } },
       { id: 'o-abcd1235', tipo: 'texto', texto: 'Hola', x: 5, y: 5, w: 50, h: 10, tam: '14pt', color: '#123456' },
       { id: 'o-abcd1236', tipo: 'zona', nombre: 'Quiz', x: 5, y: 60, w: 50, h: 20 },
       { id: 'o-abcd1237', tipo: 'boton', texto: 'Copiar', accion: 'copiar', copia: 'Hola', x: 5, y: 80, w: 40, h: 7, fondo: '#123456' }
     ] } }],
-    hostil: [{ type: 'paginaLibre', attrs: { fondo: 'https://malo.com/x.png', objetos: [
+    hostil: [{ type: 'paginaLibre', attrs: { titulo: { x: 1 }, ancla: 'p-x" onload="y', objetos: [] } },
+      { type: 'paginaLibre', attrs: { titulo: '<script>'.repeat(40), ancla: 'javascript:x' } },
+      { type: 'paginaLibre', attrs: { fondo: 'https://malo.com/x.png', objetos: [
       { tipo: 'imagen', ruta: 'javascript:x', x: 'a', crop: { l: 9 } }, { tipo: 'script', texto: '<x>' },
       { tipo: 'texto', texto: '<script>', tam: '1pt;x', color: 'red;x:url(y)', fuente: 'x");}' },
       { tipo: 'boton', texto: '<b>', accion: 'x', enlace: 'javascript:alert(1)', copia: 5, fondo: 'url(x)' }

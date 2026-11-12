@@ -11,6 +11,7 @@ import { REFERENCIA_MAX, TEXTO_MAX as PASAJE_MAX } from '../../../../contenido/t
 import { NOMBRES_ICONO, arbolIcono } from '../../../../contenido/taller/iconosBoton.js';
 import { armar } from '../../../../contenido/taller/armar.js';
 import { leerSvg } from './SvgSubido.js';
+import { anclaNueva, esAncla, RE_ANCLA_PAGINA, textoIndice, TITULO_INDICE_MAX } from '../../../../contenido/taller/IndiceLibro.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const mm = (pct, base) => Math.round(pct * base) / 100;
@@ -253,6 +254,13 @@ export class Propiedades {
   dePagina(v) {
     const tx = this.tx, a = v.attrs, l = this.lienzo;
     l.append(crear('h2', '', a.fondo ? tx.paginaPdf : tx.paginaLibre));
+    /* Con nombre sale en el contenido del libro, como subtema de su capitulo. El ancla se pone una vez y se queda. */
+    const nombre = this.par(tx.nombreEnContenido, a.titulo || '', (t) => {
+      const titulo = textoIndice(t, TITULO_INDICE_MAX), ancla = v.attrs.ancla;
+      v.cambiarHoja({ titulo, ancla: titulo && !esAncla(RE_ANCLA_PAGINA, ancla) ? anclaNueva('p') : ancla });
+    }, 'text', TITULO_INDICE_MAX);
+    nombre.querySelector('input').placeholder = tx.nombreEnContenidoAyuda;
+    l.append(nombre);
     if (a.fondo) {
       l.append(crear('p', '', tx.pdfSinColor), this.par(tx.altPagina, a.alt, (t) => v.cambiarHoja({ alt: t }), 'text'));
       l.append(this.segmento([['contener', tx.ajusteContener], ['cubrir', tx.ajusteCubrir]], a.ajuste, (k) => v.cambiarHoja({ ajuste: k })));

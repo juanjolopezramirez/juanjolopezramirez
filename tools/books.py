@@ -82,6 +82,7 @@ MAX_PAGES = 300              # 3 JPEG por pagina: mas que esto casi seguro es un
 MAX_LADO = 5000              # puntos de un lado de pagina (los libros de hoy miden ~1600 x 2240)
 LINK_OK = re.compile(r'(?i)(https://|mailto:)')    # los enlaces del PDF que se conservan (http no: va sin cifrar)
 LINK_AREA_MAX = 0.25         # un enlace que tapa mas de un cuarto de la pagina no es un enlace: es una trampa
+LINKS_MAX = 200              # por pagina: un PDF con miles de enlaces llenaria el libro de botones
 
 # LA PLANTILLA: 1600 x 2240 px (5:7). Todas las paginas del mismo tamaño.
 # Otro tamaño funciona, pero el libro no quedaria igual que los demas:
@@ -140,6 +141,20 @@ def offset(doc):
     return max(votes, key=votes.get) if votes else None
 
 
+def pagina_de(ln, doc, guardado):
+    """La pagina (desde 0) a la que salta un enlace interno, o None. Siempre un entero dentro del libro."""
+    p = ln.get('page')
+    valida = lambda x: isinstance(x, int) and not isinstance(x, bool) and 0 <= x < doc.page_count
+    if not valida(p) and ln.get('kind') == pymupdf.LINK_NAMED and isinstance(ln.get('nameddest'), str):
+        if 'mapa' not in guardado:
+            try:
+                guardado['mapa'] = doc.resolve_names()
+            except Exception:
+                guardado['mapa'] = {}
+        p = (guardado['mapa'].get(ln['nameddest']) or {}).get('page')
+    return p if valida(p) else None
+
+
 def render(pdf, dest, version):
     doc = pymupdf.open(pdf)
     if doc.page_count == 0:
@@ -158,6 +173,7 @@ def render(pdf, dest, version):
 
     first = doc[0].rect
     pages = []
+    nombres = {}     # los destinos con nombre del PDF: se leen una vez, solo si hace falta
     for n, page in enumerate(doc, 1):
         r = page.rect
         for w in WIDTHS:
@@ -166,9 +182,14 @@ def render(pdf, dest, version):
 
         links = []
         for ln in page.get_links():
-            box = ln['from']
+            if len(links) >= LINKS_MAX:
+                break
+            # Dentro de la pagina siempre: lo que se sale se recorta al borde
+            box = pymupdf.Rect(ln['from']) & r
+            if box.is_empty:
+                continue
             spot = {
-                'x': round(box.x0 / r.width, 4), 'y': round(box.y0 / r.height, 4),
+                'x': round((box.x0 - r.x0) / r.width, 4), 'y': round((box.y0 - r.y0) / r.height, 4),
                 'w': round(box.width / r.width, 4), 'h': round(box.height / r.height, 4),
             }
             if spot['w'] * spot['h'] > LINK_AREA_MAX:
@@ -179,8 +200,13 @@ def render(pdf, dest, version):
                 if not LINK_OK.match(ln['uri']):
                     continue
                 spot['href'] = ln['uri']
-            elif ln.get('kind') == pymupdf.LINK_GOTO and ln.get('page', -1) >= 0:
-                spot['page'] = ln['page']
+            # Un salto dentro del libro. El contenido del Taller sale de Chrome como
+            # destino con nombre (#t-..., #cap-...): PyMuPDF suele traer su pagina, y si no, se busca el nombre.
+            elif ln.get('kind') in (pymupdf.LINK_GOTO, pymupdf.LINK_NAMED):
+                destino = pagina_de(ln, doc, nombres)
+                if destino is None:
+                    continue
+                spot['page'] = destino
             else:
                 continue
             links.append(spot)
