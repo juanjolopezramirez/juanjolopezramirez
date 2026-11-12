@@ -601,6 +601,41 @@ await ok('los archivos de un libro: todas las carpetas, de a paginas, y nunca fu
   assert.equal(pesoLegible(0), '0 KB');
 });
 
+console.log('partir y unir capitulos');
+{
+  const P = await import('../src/scripts/portal/panel/dev/taller/Partir.js');
+  const par = (t) => ({ type: 'paragraph', content: [{ type: 'text', text: t }] }), tit = (t) => ({ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: t }] });
+  const pdf = { type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: [] } };
+  const libro = { type: 'doc', content: [tit('Uno'), par('a'), par('b'), pdf, par('c'), { type: 'columnas', content: [] }] };
+  await ok('partir nunca pierde nada: cabeza y cola son el capitulo de antes, bloque por bloque', () => {
+    for (let i = 1; i < libro.content.length; i++) {
+      const r = P.cortar(libro, i);
+      assert.equal(r.cabeza.content.length + r.cola.content.length, libro.content.length);
+      assert.deepEqual([...r.cabeza.content, ...r.cola.content], libro.content);
+      assert.deepEqual(P.unir(r.cabeza, r.cola), libro);
+    }
+    /* Ni al principio ni al final ni fuera: ahi ya empieza o no queda nada */
+    for (const i of [0, libro.content.length, -1, 1.5, '2']) assert.equal(P.cortar(libro, i), null);
+  });
+  await ok('una portada en PDF no trae titulo: hay que ponerle nombre; con un titulo de texto, no', () => {
+    assert.equal(P.tieneTitulo(P.cortar(libro, 3).cola), false);
+    assert.equal(P.tieneTitulo(P.cortar(libro, 0 + 1).cabeza), true);
+  });
+  await ok('unir un capitulo vacio no deja un renglon de mas', () => {
+    assert.deepEqual(P.unir({ type: 'doc', content: [{ type: 'paragraph' }] }, libro), libro);
+    assert.deepEqual(P.unir({ type: 'doc', content: [{ type: 'paragraph' }] }, { type: 'doc', content: [{ type: 'paragraph' }] }), { type: 'doc', content: [{ type: 'paragraph' }] });
+  });
+  await ok('el nombre puesto a mano y «fuera del contenido» se guardan; sin datos, como siempre', () => {
+    const c = limpiarContenido({ doc: libro, titulo: '  Portada <b>\n del  libro ', enIndice: false }).contenido;
+    assert.equal(c.titulo, 'Portada <b> del libro');
+    assert.equal(c.enIndice, false);
+    const s = limpiarContenido({ doc: libro }).contenido;
+    assert.ok(!('titulo' in s) && !('enIndice' in s));
+    assert.equal(limpiarContenido({ doc: libro, titulo: 'x'.repeat(900), enIndice: 'no' }).contenido.titulo.length, 300);
+    assert.ok(!('enIndice' in limpiarContenido({ doc: libro, enIndice: 'no' }).contenido));
+  });
+}
+
 console.log('la cinta');
 await ok('cada ajuste del libro es del formulario, este donde este en la cinta', async () => {
   const { readFile } = await import('node:fs/promises');

@@ -13,9 +13,15 @@ import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { CapituloVivo } from './CapituloVivo.js';
+import { cortar, unir, tieneTitulo } from './Partir.js';
+import { limpiarContenido, cabeEnElCapitulo, tituloLimpio } from '../../../../contenido/taller/TextoLibro.js';
+import { tituloDe } from '../../../../contenido/taller/Migrar.js';
 import { Miniaturas } from './Miniaturas.js';
 import { Propiedades } from './Propiedades.js';
 import { MenuPagina } from './MenuPagina.js';
+
+/* Donde empieza el bloque de arriba numero `i` */
+const posicionDeBloque = (doc, i) => { let pos = 0; for (let k = 0; k < i; k++) pos += doc.child(k).nodeSize; return pos; };
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const tope = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -115,7 +121,7 @@ export class Mesa {
   /* Cuantas filas lleva cada hoja del indice. Se miden: un titulo largo ocupa dos renglones y la letra
      cambia, y si aqui saliera una hoja menos que al imprimir, todos los numeros del indice mentirian. */
   repartoDeIndice() {
-    const titulos = this.vivos.map((v) => v.cap.titulo).filter(Boolean);
+    const titulos = this.entradasDeIndice().map((f) => f.titulo);
     if (!this.obra().pagina.indice || !titulos.length) return [];
     const h = crear('section', 'hoja hoja--indice libro'), dentro = crear('div', 'indice');
     h.style.cssText = 'position:absolute;visibility:hidden';
@@ -347,7 +353,9 @@ export class Mesa {
     this.decir(r.copias.length > 1 ? this.tx.variasDuplicadas.replace('{n}', String(r.copias.length)) : this.tx.paginaDuplicada);
   }
 
-  entradasDeIndice() { return this.vivos.map((v, i) => ({ titulo: v.cap.titulo, pagina: v.primera, capitulo: i + 1 })).filter((f) => f.titulo); }
+  /* Lo que va en el contenido: los capitulos con nombre que no se ocultaron (una portada, por ejemplo). El numero
+     de capitulo sigue siendo su lugar en el libro: asi lo nombra la hoja de impresion (#cap-N). */
+  entradasDeIndice() { return this.vivos.map((v, i) => ({ titulo: v.cap.titulo, pagina: v.primera, capitulo: i + 1, ver: v.enIndice })).filter((f) => f.titulo && f.ver).map(({ ver, ...f }) => f); }
 
   pintarIndice(reparto) {
     this.lienzo.querySelectorAll('.hoja--indice').forEach((h) => h.remove());
@@ -430,7 +438,7 @@ export class Mesa {
     const tx = this.tx, p = this.paginas[i], n = i + 1, ir = { texto: tx.irAPagina, icono: 'ir', fn: () => this.irA(n) };
     if (!p || p.indice) return [ir];
     if (!p.vista) {
-      return [ir, { texto: tx.libreAqui, icono: 'hoja', fn: () => this.ponerLibreAqui(p), apagado: !p.vivo.editor.isEditable }, { raya: true },
+      return [ir, { texto: tx.libreAqui, icono: 'hoja', fn: () => this.ponerLibreAqui(p), apagado: !p.vivo.editor.isEditable }, ...this.accionesDeCapitulo(i), { raya: true },
         { texto: tx.moverA, icono: 'mover', apagado: true, ayuda: tx.paginaDeTexto }, { texto: tx.eliminarPagina, icono: 'eliminar', apagado: true, ayuda: tx.paginaDeTexto }];
     }
     const h = p.vista, quieta = h.bloqueada, k = this.cuantasElegidas();
@@ -450,6 +458,7 @@ export class Mesa {
     return [ir,
       { texto: tx.duplicarPagina, icono: 'duplicar', apagado: quieta, fn: () => { this.activoDe(h); this.duplicarPagina(h); this.decir(tx.paginaDuplicada); } },
       { texto: tx.moverA, icono: 'mover', apagado: quieta, queda: true, fn: () => this.menu.mover({ actual: n, total: this.paginas.length, primera: this.primeraDeTexto(), alMover: (d) => this.moverHasta(h, d) }) },
+      ...this.accionesDeCapitulo(i),
       { raya: true },
       { texto: tx.eliminarPagina, icono: 'eliminar', aviso: true, apagado: quieta, confirmar: tx.eliminarPaginaSeguro, fn: () => { this.activoDe(h); this.borrarPagina(h); } }];
   }
@@ -723,9 +732,191 @@ export class Mesa {
     v.editor.commands.focus('end');
   }
 
+  /* Devuelve si quedo guardado el orden: sin el, partir no recorta (mejor repetido que fuera de lugar) */
   async ordenar() {
     const r = await this.be.taller.ordenar(this.obra().id, this.vivos.map((v) => v.cap.id));
-    if (r.error) this.alFalla(r.error);
+    if (r.error) { this.alFalla(r.error); return false; }
+    return true;
+  }
+
+  /* Un capitulo que sale de la mesa: su editor, su caja, y lo que la barra de estado sabia de el */
+  quitarVivo(x) {
+    const k = this.vivos.indexOf(x);
+    if (k >= 0) this.vivos.splice(k, 1);
+    x.soltar();
+    x.caja.remove();
+    if (this.alQuitarVivo) this.alQuitarVivo(x);
+  }
+
+  /* ---- Partir y unir capitulos ---- */
+  /* Donde partir, tomado cuando se abre el menu: el capitulo y su bloque de arriba. Si las paginas se vuelven a
+     medir mientras se escribe el nombre, el corte cae igual donde se pidio. */
+  puntoDeCorte(i) {
+    const p = this.paginas[i];
+    if (!p || !p.vivo) return null;
+    const indice = this.bloqueDePagina(p);
+    return indice === null ? null : { vivo: p.vivo, indice };
+  }
+
+  /* Desde ese bloque empieza un capitulo nuevo (una portada en PDF pasa a ser su primera pagina). Nunca pierde
+     nada: guardar → copia de seguridad → crear el capitulo nuevo con la cola y guardarlo → ordenar → recien ahi
+     quitar la cola del de antes, y solo si el capitulo sigue identico a la foto del principio. Bloquearlo frena lo
+     que se escribe, no lo que llega solo (una pagina de PDF, un deshacer): si algo entro, se deja repetido. */
+  async empezarCapituloAqui(punto, escrito = '') {
+    const tx = this.tx, titulo = tituloLimpio(escrito);
+    if (!punto || !this.vivos.includes(punto.vivo)) return;
+    if (this.moviendo) { this.decir(tx.moverEspera); return; }
+    const v = punto.vivo, e = v.editor;
+    if (!e.isEditable) { this.decir(tx.variasQuietas); return; }
+    this.moviendo = true;
+    e.setEditable(false, false);
+    const sigue = () => this.vivos.includes(v) && !e.isDestroyed;
+    try {
+      this.confirmarEdicion();
+      const foto = e.getJSON(), firma = JSON.stringify(foto), partes = cortar(foto, punto.indice);
+      if (!partes) { this.decir(tx.yaEmpiezaAqui); return; }
+      v.guardado.marcar();
+      if (!(await v.guardado.vaciar())) { if (sigue()) this.alFalla('noGuardado'); return; }
+      if (!sigue() || (this.alCopiaSegura && !(await this.alCopiaSegura())) || !sigue()) return;
+      const r = await this.be.taller.crearCapitulo(this.obra().id, titulo);
+      if (!sigue()) return;
+      if (r.error) { this.alFalla(r.error); return; }
+      const cap = new Capitulo(r.fila);
+      cap.contenido = limpiarContenido({ doc: partes.cola, papel: v.papel, titulo }).contenido;
+      const nuevo = new CapituloVivo(cap, this);
+      nuevo.guardado.marcar();
+      if (!(await nuevo.guardado.vaciar()) || !sigue()) {
+        this.quitarVivo(nuevo);
+        await this.be.taller.borrarCapitulo(cap.id);
+        if (sigue()) this.alFalla('noGuardado');
+        return;
+      }
+      this.vivos.splice(this.vivos.indexOf(v) + 1, 0, nuevo);
+      this.lienzo.insertBefore(nuevo.caja, v.caja.nextSibling);
+      const ordenado = await this.ordenar();
+      if (!sigue()) return;
+      if (!ordenado || JSON.stringify(e.getJSON()) !== firma) { this.medir(); this.decir(tx.capituloRepetido); return; }
+      /* La cola ya esta a salvo en el capitulo nuevo: se quita de este, sin rastro en «deshacer» (un Ctrl+Z la
+         traeria repetida) */
+      e.view.dispatch(e.state.tr.delete(posicionDeBloque(e.state.doc, punto.indice), e.state.doc.content.size).setMeta(META_PAGINA, true).setMeta('addToHistory', false));
+      this.soltarElegidos();
+      this.soltarEleccion();
+      v.guardado.marcar();
+      const cabeza = await v.guardado.vaciar();
+      if (!sigue()) return;
+      this.activo = nuevo;
+      this.medir();
+      this.irA(nuevo.primera);
+      this.minis.entrarAlCapitulo(nuevo);
+      this.decir(cabeza ? tx.capituloEmpieza : tx.capituloEmpiezaPendiente);
+    } finally {
+      /* Un capitulo que un conflicto dejo quieto sigue quieto */
+      if (sigue()) e.setEditable(this.editable && !v.guardado.parado, false);
+      this.moviendo = false;
+    }
+  }
+
+  /* El capitulo `v` se pega al final del anterior. Se guardan los dos y se hace una copia; el de antes queda con
+     todo, y solo cuando eso esta guardado, y si `v` no cambio mientras tanto, se borra `v`. */
+  async unirConAnterior(v) {
+    const tx = this.tx, k = this.vivos.indexOf(v), a = this.vivos[k - 1];
+    if (k < 1) return;
+    if (this.moviendo) { this.decir(tx.moverEspera); return; }
+    if (!a.editor.isEditable || !v.editor.isEditable) { this.decir(tx.variasQuietas); return; }
+    this.moviendo = true;
+    a.editor.setEditable(false, false);
+    v.editor.setEditable(false, false);
+    const juntos = () => this.vivos.indexOf(a) >= 0 && this.vivos.indexOf(v) === this.vivos.indexOf(a) + 1;
+    try {
+      this.confirmarEdicion();
+      for (const x of [a, v]) {
+        x.guardado.marcar();
+        if (!(await x.guardado.vaciar())) { if (juntos()) this.alFalla('noGuardado'); return; }
+        if (!juntos()) return;
+      }
+      if ((this.alCopiaSegura && !(await this.alCopiaSegura())) || !juntos()) return;
+      const fv = JSON.stringify(v.editor.getJSON());
+      const limpio = limpiarContenido({ doc: unir(a.editor.getJSON(), JSON.parse(fv)), papel: a.papel, titulo: a.tituloPropio, enIndice: a.enIndice });
+      if (!cabeEnElCapitulo(limpio)) { this.decir(tx.noCabeUnir); return; }
+      a.ponerTexto(limpio.contenido.doc);
+      a.guardado.marcar();
+      if (!(await a.guardado.vaciar())) { if (juntos()) { this.alFalla('noGuardado'); this.medir(); } return; }
+      if (!juntos()) return;
+      /* Si al segundo le llego algo mientras tanto, no se borra: queda repetido, nunca perdido */
+      if (JSON.stringify(v.editor.getJSON()) !== fv) { this.medir(); this.decir(tx.capituloRepetido); return; }
+      const r = await this.be.taller.borrarCapitulo(v.cap.id);
+      if (!juntos()) return;
+      if (r.error) { this.alFalla(r.error); this.medir(); return; }
+      const otroPapel = a.papel !== v.papel;
+      this.soltarElegidos();
+      this.soltarEleccion();
+      this.quitarVivo(v);
+      if (this.activo === v) this.activo = a;
+      await this.ordenar();
+      this.medir();
+      this.irA(a.primera);
+      this.minis.entrarAlCapitulo(a);
+      this.decir(otroPapel ? tx.capitulosUnidosPapel : tx.capitulosUnidos);
+    } finally {
+      for (const x of [a, v]) if (this.vivos.includes(x) && !x.editor.isDestroyed) x.editor.setEditable(this.editable && !x.guardado.parado, false);
+      this.moviendo = false;
+    }
+  }
+
+  /* El bloque de arriba donde empieza la pagina `p`: una pagina libre es el suyo; una de texto, el primero que
+     cae en ella (un parrafo que viene de la pagina de antes se queda atras). Una pagina dentro de columnas no
+     se ofrece: el corte caeria antes de todas las columnas. null si no se puede partir ahi. */
+  bloqueDePagina(p) {
+    const e = p.vivo.editor, pos = p.vista ? p.vista.getPos() : p.vivo.posicionDeFila(p.fila, this.px, this.z);
+    if (typeof pos !== 'number') return null;
+    const doc = e.state.doc, r = doc.resolve(Math.min(pos, doc.content.size));
+    if (r.depth > 0) return null;
+    const i = r.index(0);
+    return i >= 1 && i < doc.childCount ? i : null;
+  }
+
+  renombrarCapitulo(v, titulo) {
+    v.tituloPropio = tituloLimpio(titulo);
+    v.cap.titulo = v.tituloPropio || tituloDe(v.editor.getJSON());
+    v.guardado.marcar();
+    this.medir();
+    this.decir(this.tx.capituloRenombrado);
+  }
+
+  alternarEnIndice(v) {
+    v.enIndice = !v.enIndice;
+    v.guardado.marcar();
+    this.medir();
+    this.decir(v.enIndice ? this.tx.vuelveAlContenido : this.tx.fueraDelContenidoDicho);
+  }
+
+  /* Clic derecho sobre el nombre de un capitulo en las miniaturas */
+  abrirMenuCapitulo(v, e, origen) {
+    e.preventDefault();
+    const tx = this.tx, k = this.vivos.indexOf(v), quieto = !v.editor.isEditable, con = e.clientX || e.clientY, r = origen.getBoundingClientRect();
+    const items = [
+      { texto: tx.cambiarNombre, queda: true, apagado: quieto, fn: () => this.menu.pedirTexto({ etiqueta: tx.nombreCapitulo, valor: v.tituloPropio, ayuda: tx.nombreCapituloAyuda, alListo: (t) => this.renombrarCapitulo(v, t) }) },
+      { texto: v.enIndice ? tx.ocultarDelContenido : tx.mostrarEnContenido, apagado: quieto, fn: () => this.alternarEnIndice(v) },
+      ...(k > 0 ? [{ raya: true }, { texto: tx.unirConAnterior, apagado: quieto, confirmar: tx.unirSeguro, fn: () => this.unirConAnterior(v) }] : [])
+    ];
+    this.menu.abrir(con ? e.clientX : r.left + 16, con ? e.clientY : r.top + 16, items, origen, () => this.minis.entrarAlCapitulo(v));
+  }
+
+  /* Lo de capitulos en el menu de una pagina: aqui empieza uno, o unir con el de antes si ya es la primera. Se
+     mira solo el bloque y si lo que sigue trae un titulo: abrir un menu no copia el capitulo entero. */
+  accionesDeCapitulo(i) {
+    const tx = this.tx, p = this.paginas[i], v = p.vivo, quieto = !v.editor.isEditable;
+    if (this.paginas.findIndex((q) => q.vivo === v) === i) {
+      return this.vivos.indexOf(v) > 0 ? [{ texto: tx.unirConAnterior, icono: 'subir', apagado: quieto, confirmar: tx.unirSeguro, fn: () => this.unirConAnterior(v) }] : [];
+    }
+    const punto = this.puntoDeCorte(i);
+    if (!punto) return [];
+    let conTitulo = false;
+    v.editor.state.doc.forEach((n, _, k) => { if (k >= punto.indice && n.type.name === 'heading') conTitulo = true; });
+    /* Una cola sin titulo (una portada en PDF) necesita nombre: se pregunta antes de partir */
+    return [{ texto: tx.empiezaAqui, icono: 'hoja', apagado: quieto, queda: !conTitulo, fn: () => (conTitulo
+      ? this.empezarCapituloAqui(punto)
+      : this.menu.pedirTexto({ etiqueta: tx.comoSeLlama, valor: '', ayuda: tx.nombreCapituloAyuda, alListo: (t) => this.empezarCapituloAqui(punto, t) })) }];
   }
 
   /* ---- Borrar y mover ---- */

@@ -38,5 +38,5 @@ export function aVersion2(capitulo, piezas) {
 /* El titulo de un capitulo es su primer titulo */
 export function tituloDe(doc) {
   const h = (objeto(doc).content || []).find((n) => objeto(n).type === 'heading');
-  return h ? textoDe(h).slice(0, TITULO_MAX) : '';
+  return h ? textoDe(h).slice(0, TITULO_MAX).replace(/[\uD800-\uDBFF]$/, '') : '';     // sin medio emoji al final
 }

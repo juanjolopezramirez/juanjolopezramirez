@@ -260,6 +260,10 @@ export class Taller extends Seccion {
     this.mesa.recordarColor = (c) => this.recordarColor(c);
     this.mesa.alActivo = (v) => { if (this.colorCapitulo) this.colorCapitulo.poner(v.papel); };
     this.mesa.alCapital = (cambios) => this.cambiarCapital(cambios);
+    /* Antes de partir o unir capitulos, una copia de todo el libro */
+    this.mesa.alCopiaSegura = () => this.copiaSegura('auto');
+    /* Un capitulo que sale de la mesa (unido, o uno nuevo que no se pudo guardar) no se queda en la barra de estado */
+    this.mesa.alQuitarVivo = (v) => { this.estados.delete(v); this.conflictos = this.conflictos.filter((c) => c !== v); };
     this.mesa.capitalDelLibro = () => ({ ...this.obra.pagina.capital, fuentes: this.obra.fuentes });
     this.cinta = this.cinta || new Cinta(this.m('[data-tal-cinta]'), {
       tx: this.tx, fuentes: this.obra.fuentes, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null),
@@ -421,7 +425,10 @@ export class Taller extends Seccion {
       const contenido = necesitaMigrar(fila.contenido) ? aVersion2(fila, r.piezas) : fila.contenido;
       v.cap.contenido = contenido;
       v.cap.titulo = fila.titulo;
-      v.papel = limpiarContenido(contenido).contenido.papel || '';
+      const leido = limpiarContenido(contenido).contenido;
+      v.papel = leido.papel || '';
+      v.tituloPropio = leido.titulo || '';
+      v.enIndice = leido.enIndice !== false;
       v.pintarPapel();
       if (v === this.mesa.activo && this.colorCapitulo) this.colorCapitulo.poner(v.papel);
       v.guardado.soltar();
@@ -857,13 +864,15 @@ export class Taller extends Seccion {
     this.mesa.confirmarEdicion();
     const titulo = this.obra.titulo, fotos = this.mesa.vivos.map((v) => [v, v.doc, v.papel]);
     await this.vaciarTodo();
-    for (const [v, doc, papel] of fotos) if (v.guardado.sucio) this.entregarCapitulo(titulo, v.cap, doc, papel);
+    for (const [v, doc, papel] of fotos) if (v.guardado.sucio) this.entregarCapitulo(titulo, v, doc, papel);
   }
 
-  bajarCapitulo(v) { this.entregarCapitulo(this.obra.titulo, v.cap, v.doc, v.papel); }
+  bajarCapitulo(v) { this.entregarCapitulo(this.obra.titulo, v, v.doc, v.papel); }
 
-  entregarCapitulo(titulo, c, doc, papel) {
-    entregar(JSON.stringify({ formato: 'taller-capitulo', titulo: c.titulo, contenido: { version: 2, ...(papel ? { papel } : {}), doc } }), nombreDeArchivo(`${titulo} ${c.titulo}`));
+  /* La copia de un capitulo lleva tambien su nombre puesto a mano y si sale en el contenido */
+  entregarCapitulo(titulo, v, doc, papel) {
+    const c = v.cap, extra = { ...(v.tituloPropio ? { titulo: v.tituloPropio } : {}), ...(v.enIndice === false ? { enIndice: false } : {}) };
+    entregar(JSON.stringify({ formato: 'taller-capitulo', titulo: c.titulo, contenido: { version: 2, ...(papel ? { papel } : {}), ...extra, doc } }), nombreDeArchivo(`${titulo} ${c.titulo}`));
   }
 
   /* `sesion` detiene un libro que se estaba abriendo: tras salir, no se pinta */

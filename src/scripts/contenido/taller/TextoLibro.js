@@ -15,6 +15,10 @@ import { VERSION_CONTENIDO } from './Migrar.js';
 
 export const TOPE_BYTES = 3 * 1000 * 1000;
 export const TOPE_NODOS = 50000;
+const TITULO_MAX = 300;                       // el mismo tope de supabase/012_taller.sql
+/* El nombre de un capitulo: sin controles ni lo que da la vuelta al texto, en un renglon, y cortado sin dejar medio
+   emoji (la base rechaza un caracter partido y el guardado no terminaria nunca) */
+export const tituloLimpio = (v) => textoLibro(v).replace(/\s+/g, ' ').trim().slice(0, TITULO_MAX).replace(/[\uD800-\uDBFF]$/, '');
 const PROFUNDIDAD_MAX = 40;
 
 /* Quita controles y lo que da la vuelta al texto; conserva ZWJ, ZWNJ, LRM y RLM */
@@ -84,7 +88,13 @@ export function limpiarContenido(json) {
   const o = objeto(json), doc = objeto(o.doc || o), cuenta = { nodos: 0, letras: 0, descartados: 0 };
   const hijos = bloques(doc.content, cuenta, 0, false);
   const papel = colorValido(o.papel);
-  return { contenido: { version: VERSION_CONTENIDO, ...(papel ? { papel } : {}), doc: { type: 'doc', content: hijos.length ? hijos : [vacio()] } }, ...cuenta };
+  /* El nombre puesto a mano (gana al primer titulo: hace falta cuando el capitulo empieza con una pagina de PDF)
+     y si el capitulo sale en el contenido. Sin datos, como siempre. */
+  const titulo = tituloLimpio(o.titulo);
+  return {
+    contenido: { version: VERSION_CONTENIDO, ...(papel ? { papel } : {}), ...(titulo ? { titulo } : {}), ...(o.enIndice === false ? { enIndice: false } : {}), doc: { type: 'doc', content: hijos.length ? hijos : [vacio()] } },
+    ...cuenta
+  };
 }
 
 /* ¿Cabe? Si no, no se guarda: nunca se corta un libro */

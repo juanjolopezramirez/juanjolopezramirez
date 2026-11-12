@@ -104,6 +104,32 @@ export class MenuPagina {
     i.focus();
   }
 
+  /* Un nombre, en el mismo menu: `{ etiqueta, valor, ayuda, alListo(texto) }` */
+  pedirTexto({ etiqueta, valor = '', ayuda = '', alListo }) {
+    const { tx } = this, f = crear('form', 'tal-menu__mover'), l = crear('label'), i = crear('input');
+    f.noValidate = true;
+    this.caja.setAttribute('role', 'dialog');
+    i.type = 'text';
+    i.maxLength = 300;
+    i.value = valor;
+    i.autocomplete = 'off';
+    l.append(crear('span', '', etiqueta), i);
+    const ir = crear('button', 'tal-btn tal-btn--fuerte', tx.listo);
+    ir.type = 'submit';
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.cerrar(false);
+      alListo(i.value.trim());
+    });
+    f.append(l);
+    if (ayuda) f.append(crear('p', 'tal-menu__ayuda', ayuda));
+    f.append(ir);
+    this.caja.replaceChildren(f);
+    this.colocar();
+    i.focus();
+    i.select();
+  }
+
   cerrar(devolver = true) {
     if (this.caja.matches(':popover-open')) this.caja.hidePopover();
     if (!devolver || !this.origen) return;

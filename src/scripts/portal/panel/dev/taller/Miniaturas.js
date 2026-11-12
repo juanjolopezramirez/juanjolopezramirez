@@ -18,7 +18,10 @@ export class Miniaturas {
     caja.addEventListener('keydown', (e) => this.alTeclear(e));
     caja.addEventListener('contextmenu', (e) => {
       const b = e.target.closest('.mini');
-      if (b) mesa.abrirMenu(Number(b.dataset.n) - 1, e, b);
+      if (b) { mesa.abrirMenu(Number(b.dataset.n) - 1, e, b); return; }
+      /* Sobre el nombre de un capitulo: cambiarlo, sacarlo del contenido, unirlo con el de antes */
+      const t = e.target.closest('.cap-mini');
+      if (t && t.capitulo) mesa.abrirMenuCapitulo(t.capitulo, e, t);
     });
     this.visor = new IntersectionObserver((lista) => lista.forEach((e) => { if (e.isIntersecting) this.llenar(e.target); }), { root: caja, rootMargin: '300px' });
     caja.addEventListener('dragend', () => { this.arrastrado = null; this.linea.remove(); });
@@ -58,6 +61,8 @@ export class Miniaturas {
           t.draggable = true;
           t.tabIndex = -1;
           t.title = m.tx.arrastrarCapitulo;
+          /* Fuera del contenido (una portada, por ejemplo): se ve apagado y lo dice */
+          if (!c.enIndice) { t.classList.add('cap-mini--fuera'); t.title = `${m.tx.fueraDelContenido}. ${m.tx.arrastrarCapitulo}`; t.setAttribute('aria-description', m.tx.fueraDelContenido); }
           t.capitulo = c;
           t.addEventListener('dragstart', (e) => { this.arrastrado = { capitulo: c }; e.dataTransfer.setData('text/plain', 'capitulo'); e.dataTransfer.effectAllowed = 'move'; });
           grupo.append(t);

@@ -21,7 +21,11 @@ export class CapituloVivo {
     this.caja.dataset.c = cap.id;
     const c = crear('div', 'corrida__texto');
     this.caja.append(c);
-    this.papel = limpiarContenido(cap.contenido).contenido.papel || '';
+    const leido = limpiarContenido(cap.contenido).contenido;
+    this.papel = leido.papel || '';
+    /* El nombre puesto a mano ('' = el primer titulo del texto) y si sale en el contenido del libro */
+    this.tituloPropio = leido.titulo || '';
+    this.enIndice = leido.enIndice !== false;
     this.pintarPapel();
     this.guardado = new Autoguardado({ guardar: () => this.guardar(), alEstado: (e) => mesa.alEstado(this, e) });
     this.editor = crearEditor(c, {
@@ -47,11 +51,11 @@ export class CapituloVivo {
   ponerTexto(doc) { this.editor.chain().setMeta('addToHistory', false).setContent(doc, { emitUpdate: false }).run(); }
 
   async guardar() {
-    const c = this.cap, limpio = limpiarContenido({ doc: this.doc, papel: this.papel });
+    const c = this.cap, limpio = limpiarContenido({ doc: this.doc, papel: this.papel, titulo: this.tituloPropio, enIndice: this.enIndice });
     if (!cabeEnElCapitulo(limpio)) return { error: 'lleno' };
     c.contenido = limpio.contenido;
     c.letras = limpio.letras;
-    c.titulo = tituloDe(limpio.contenido.doc);
+    c.titulo = limpio.contenido.titulo || tituloDe(limpio.contenido.doc);
     let r = await this.mesa.be.taller.guardarCapitulo(c.aDatos(), this.mesa.pestana);
     if (r.reintentar) { c.rev = r.rev; r = await this.mesa.be.taller.guardarCapitulo(c.aDatos(), this.mesa.pestana); }
     if (r.ok) { c.rev = r.rev; return { ok: true }; }
