@@ -40,8 +40,15 @@ export const CASOS = {
     ] } }]
   },
   boton: {
-    bueno: [{ type: 'boton', attrs: { texto: 'Abrir', accion: 'enlace', enlace: 'https://fraterni.co/x', alinear: 'centro', fondo: '#123456' } }, { type: 'boton', attrs: { texto: 'Copiar', accion: 'copiar', copia: 'Un prompt' } }],
-    hostil: [{ type: 'boton', attrs: { texto: 5, accion: 'borrar', enlace: 'javascript:alert(1)', copia: {}, fondo: 'red;x:url(y)', color: 7, alinear: 'url(x)', onclick: 'x' } }]
+    bueno: [{ type: 'boton', attrs: { texto: 'Abrir', accion: 'enlace', enlace: 'https://fraterni.co/x', alinear: 'centro', fondo: '#123456', icono: { nombre: 'enlace' }, lado: 'der' } }, { type: 'boton', attrs: { texto: 'Copiar', accion: 'copiar', copia: 'Un prompt', icono: { nombre: 'copiar' }, lado: 'solo' } },
+      { type: 'boton', attrs: { texto: 'Mio', accion: 'enlace', enlace: 'https://fraterni.co/y', icono: { propio: { caja: [0, 0, 24, 24], formas: [{ t: 'circle', cx: 12, cy: 12, r: 8, relleno: true }, { t: 'path', d: 'M4 4l16 16', trazo: 2, punta: 'round', union: 'round', transform: 'rotate(45 12 12)' }] } } } }],
+    hostil: [{ type: 'boton', attrs: { texto: 5, accion: 'borrar', enlace: 'javascript:alert(1)', copia: {}, fondo: 'red;x:url(y)', color: 7, alinear: 'url(x)', onclick: 'x', lado: 'url(x)', icono: { nombre: '__proto__' } } },
+      { type: 'boton', attrs: { texto: 'x', icono: { propio: { caja: [0, 0, 'a', 24], formas: [{ t: 'circle', r: 1, relleno: true }] } } } },
+      { type: 'boton', attrs: { texto: 'x', icono: { propio: { caja: [0, 0, 24, 24], formas: [
+        { t: 'script', d: 'alert(1)' }, { t: 'image', href: 'javascript:alert(1)' }, { t: 'path', d: 'M0 0 url(javascript:x)', relleno: true },
+        { t: 'path', d: 'M0 0L9 9', relleno: true, onload: 'alert(1)', transform: 'translate(0) url(x)', fill: 'url(#x)' }, { t: 'use', href: '#a' },
+        { t: 'polygon', points: '0,0 1,1"><script>', relleno: true }, { t: 'rect', x: 'Infinity', y: 0, width: 1, height: 1, relleno: true }
+      ] } } } }]
   },
   pasaje: {
     bueno: [{ type: 'pasaje', attrs: { texto: 'Porque de tal manera amó Dios al mundo,\nque ha dado a su Hijo unigénito', referencia: 'Juan 3:16' } }, { type: 'pasaje', attrs: { texto: 'שְׁמַע יִשְׂרָאֵל', referencia: 'Deuteronomio 6:4' } }],

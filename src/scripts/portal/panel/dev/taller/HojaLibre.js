@@ -9,7 +9,8 @@
 import { closeHistory } from '@tiptap/pm/history';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { limpiarObjetos, OBJETOS_MAX, TEXTO_CUADRO_MAX } from '../../../../contenido/taller/tipos/objetos.js';
-import { botonIncompleto, estiloDeBoton } from '../../../../contenido/taller/tipos/boton.js';
+import { botonIncompleto, claseDeIcono, estiloDeBoton, hijosDeBoton } from '../../../../contenido/taller/tipos/boton.js';
+import { armar } from '../../../../contenido/taller/armar.js';
 import { TINTA_SOBRE_PDF, variablesDe } from '../../../../contenido/taller/colores.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
@@ -149,9 +150,9 @@ export class HojaLibre {
       e.textContent = o.texto;
       Object.assign(e.style, { fontSize: o.tam, color: o.color, fontFamily: o.fuente ? `"${o.fuente}", Georgia, serif` : '', textAlign: CSS_ALINEAR[o.alinear] || '' });
     } else if (o.tipo === 'boton') {
-      e.classList.add('boton');
+      e.className += ` boton${claseDeIcono(o)}`;
       e.classList.toggle('boton--falta', botonIncompleto(o));
-      e.textContent = o.texto;
+      e.replaceChildren(...hijosDeBoton(o).map((h) => armar(h)).filter(Boolean));
       e.style.fontSize = o.tam;
       for (const [k, v] of Object.entries(estiloDeBoton(o))) e.style.setProperty(k, v);
     } else e.textContent = o.nombre;

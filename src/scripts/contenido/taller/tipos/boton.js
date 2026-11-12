@@ -5,6 +5,7 @@ import { enlaceSeguro, texto } from '../../comun.js';
 import { colorValido } from '../marcas.js';
 import { tintaPara } from '../colores.js';
 import { alineacion, el, txt } from './ayuda.js';
+import { LADOS, arbolIcono, limpiarIcono } from '../iconosBoton.js';
 
 export const tipo = 'boton';
 export const nodos = ['boton'];
@@ -22,8 +23,20 @@ export const enlaceDeBoton = (v) => (enlaceSeguro(v) && v.startsWith('https://')
 
 export const datosDeBoton = (a) => ({
   texto: texto(a.texto, TEXTO_MAX), accion: a.accion === 'copiar' ? 'copiar' : 'enlace', enlace: enlaceDeBoton(a.enlace),
-  copia: typeof a.copia === 'string' ? a.copia.replace(OCULTOS, '').slice(0, COPIA_MAX) : '', fondo: colorValido(a.fondo), color: colorValido(a.color)
+  copia: typeof a.copia === 'string' ? a.copia.replace(OCULTOS, '').slice(0, COPIA_MAX) : '', fondo: colorValido(a.fondo), color: colorValido(a.color),
+  icono: limpiarIcono(a.icono), lado: LADOS.includes(a.lado) ? a.lado : 'izq'
 });
+
+/* El icono va a un lado del texto, o solo: entonces el texto no se ve pero sigue siendo el nombre del boton
+   (lo lee el lector de pantalla y lo copia quien selecciona en el PDF) */
+export function hijosDeBoton(o) {
+  const icono = arbolIcono(o.icono), t = txt(o.texto);
+  if (!icono) return [t];
+  if (!o.texto) return [icono];            // sin texto, el icono va centrado y sin hueco a su lado
+  const nombre = el('span', 'boton__texto', [t]);
+  return o.lado === 'der' ? [nombre, icono] : [icono, nombre];
+}
+export const claseDeIcono = (o) => (limpiarIcono(o.icono) ? ` boton--icono${o.lado === 'solo' ? ' boton--solo' : ''}` : '');
 
 export const datos = (_, a) => ({ ...datosDeBoton(a), alinear: alineacion(a.alinear) });
 export const botonIncompleto = (o) => (o.accion === 'copiar' ? !o.copia : !o.enlace);
@@ -33,8 +46,8 @@ export const estiloDeBoton = (o) => ({
   ...(o.color ? { color: o.color } : {})
 });
 
-export function piezaDeBoton(o, clase, estilo, web) {
-  const e = { ...estiloDeBoton(o), ...estilo }, hijos = [txt(o.texto)];
+export function piezaDeBoton(o, claseBase, estilo, web) {
+  const e = { ...estiloDeBoton(o), ...estilo }, hijos = hijosDeBoton(o), clase = claseBase + claseDeIcono(o);
   if (o.accion === 'enlace' && o.enlace) return el('a', clase, hijos, { href: o.enlace }, e);
   if (web && o.accion === 'copiar' && o.copia) return el('button', clase, hijos, { type: 'button', 'data-copiar': o.copia }, e);
   return el('div', clase, hijos, {}, e);

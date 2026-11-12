@@ -286,6 +286,13 @@
 .tal-medida input:focus-visible { outline: none; }
 .tal-pliegue summary { display: flex; align-items: center; gap: .35rem; min-height: 24px; font-size: 11px; color: var(--tiza-2); cursor: pointer; list-style: none; }
 .tal-pliegue summary::-webkit-details-marker { display: none; }
+/* Los iconos del boton: una rejilla de seis, del alto de un dedo en pantalla tactil */
+.tal-iconos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: .35rem 0; }
+.tal-icono-b { display: grid; place-items: center; aspect-ratio: 1; min-height: 30px; padding: 0; background: transparent; border: 1px solid var(--raya); border-radius: 7px; color: var(--tiza-2); cursor: pointer; }
+.tal-icono-b svg { width: 18px; height: 18px; }
+.tal-icono-b:hover { color: var(--tiza); border-color: var(--raya-fuerte); }
+.tal-icono-b[aria-pressed="true"] { color: var(--tiza); border-color: var(--prompt); background: rgb(var(--prompt-rgb) / .16); }
+.tal-ayuda { margin: .3rem 0 0; font-size: 11px; color: var(--tiza-2); }
 .tal-pliegue summary:hover { color: var(--tiza); }
 .tal-pliegue summary::before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .12s var(--ease); }
 .tal-pliegue[open] summary::before { transform: rotate(45deg); }
@@ -336,4 +343,5 @@
   .tal-sel__op:hover, .tal-sel__op--activa { forced-color-adjust: none; background: Highlight; color: HighlightText; }
   .tal-sel__op[aria-selected="true"]::before { content: "• " / ""; }
   .mini[aria-selected="true"], .hoja--elegida { outline-color: Highlight; }
+  .tal-icono-b[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }

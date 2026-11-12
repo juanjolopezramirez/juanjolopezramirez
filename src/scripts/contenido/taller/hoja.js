@@ -14,13 +14,19 @@ import { PAPEL_BASE, TINTA_SOBRE_PDF, tonosDe, variablesDe } from './colores.js'
 import { objeto } from '../comun.js';
 import { el, txt } from './tipos/ayuda.js';
 import { FUENTE_HEBREO } from './tipos/pasaje.js';
+import { FORMAS } from './iconosBoton.js';
 
 const tieneClase = (n, c) => !!n && ((n.clase || '').split(' ').includes(c) || (n.hijos || []).some((h) => tieneClase(h, c)));
 
 /* Lo unico que el arbol puede pedir. La pagina de la vista vuelve a mirar estas listas. */
 export const ETIQUETAS_HOJA = new Set(['section', 'nav', 'div', 'figure', 'figcaption', 'img', 'p', 'h1', 'h2', 'h3',
   'ul', 'ol', 'li', 'blockquote', 'hr', 'br', 'a', 'span', 'strong', 'em', 'u', 's', 'sup', 'sub']);
-export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'href', 'id', 'start', 'data-tex', 'dir', 'lang']);
+/* Los iconos de los botones: un SVG de formas simples, nada mas. armar.js revisa cada valor. */
+export const ETIQUETAS_SVG = new Set(['svg', ...FORMAS]);
+export const ATRIBUTOS_SVG = new Set(['viewBox', 'aria-hidden', 'focusable', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height', 'x1', 'y1', 'x2', 'y2',
+  'points', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'transform']);
+ETIQUETAS_SVG.forEach((t) => ETIQUETAS_HOJA.add(t));
+export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'href', 'id', 'start', 'data-tex', 'dir', 'lang', ...ATRIBUTOS_SVG]);
 export const ESTILOS_HOJA = new Set(['color', 'background-color', 'font-size', 'font-family', 'text-align', 'width', 'height', 'left', 'top', 'transform', 'grid-template-columns']);
 
 /* Las formas en que el navegador escribe una letra. Con su nombre entero: «Noto Serif» no es «Noto Serif Hebrew». */
@@ -94,6 +100,11 @@ export function cssLibro(config) {
 .libro .boton--centro { margin-left: auto; margin-right: auto; }
 .libro .boton--derecha { margin-left: auto; }
 .libro .obj--boton { display: flex; align-items: center; justify-content: center; max-width: none; margin: 0; padding: .2em .6em; }
+.libro .boton--icono { display: flex; align-items: center; justify-content: center; gap: .45em; }
+.libro .boton__icono { width: 1.15em; height: 1.15em; flex: none; overflow: hidden; }
+.libro .boton--solo { padding-left: .75em; padding-right: .75em; }
+.libro .boton--solo:not(.obj) { position: relative; }
+.libro .boton--solo .boton__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 ${porLetra}
 ${porTitulo}`;
 }

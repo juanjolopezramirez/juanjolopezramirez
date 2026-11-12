@@ -2,9 +2,10 @@
    demas esta en el panel. El alto es el mismo del PDF: si cambiara, las paginas se cortarian distinto. */
 import { Node } from '@tiptap/core';
 import { cambiador } from './cambiar.js';
-import { botonIncompleto, estiloDeBoton } from '../../../../../contenido/taller/tipos/boton.js';
+import { botonIncompleto, claseDeIcono, datos, estiloDeBoton, hijosDeBoton } from '../../../../../contenido/taller/tipos/boton.js';
+import { armar } from '../../../../../contenido/taller/armar.js';
 
-const ATRIBUTOS = { texto: '', accion: 'enlace', enlace: '', copia: '', fondo: '', color: '', alinear: '' };
+const ATRIBUTOS = { texto: '', accion: 'enlace', enlace: '', copia: '', fondo: '', color: '', alinear: '', icono: null, lado: 'izq' };
 
 export const Boton = Node.create({
   name: 'boton',
@@ -26,9 +27,11 @@ export const Boton = Node.create({
       const dom = document.createElement('div');
       dom.contentEditable = 'false';
       const poner = (n) => {
-        const a = n.attrs;
-        dom.className = `boton${a.alinear ? ` boton--${a.alinear}` : ''}${botonIncompleto(a) ? ' boton--falta' : ''}`;
-        dom.textContent = a.texto;
+        /* Lo que dice el nodo puede venir pegado de fuera: se dibuja ya limpio, como en el PDF */
+        const a = datos(null, n.attrs);
+        dom.className = `boton${a.alinear ? ` boton--${a.alinear}` : ''}${claseDeIcono(a)}${botonIncompleto(a) ? ' boton--falta' : ''}`;
+        /* Los mismos hijos que el PDF, por la misma puerta: asi mide igual */
+        dom.replaceChildren(...hijosDeBoton(a).map((h) => armar(h)).filter(Boolean));
         dom.removeAttribute('style');
         for (const [k, v] of Object.entries(estiloDeBoton(a))) dom.style.setProperty(k, v);
       };

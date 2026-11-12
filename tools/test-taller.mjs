@@ -600,6 +600,98 @@ await ok('los archivos de un libro: todas las carpetas, de a paginas, y nunca fu
   assert.equal(pesoLegible(0), '0 KB');
 });
 
+console.log('los iconos de los botones');
+{
+  const I = await import('../src/scripts/contenido/taller/iconosBoton.js');
+  const { valorSeguro } = await import('../src/scripts/contenido/taller/armar.js');
+  const B = await import('../src/scripts/contenido/taller/tipos/boton.js');
+  const propio = (formas, caja = [0, 0, 24, 24]) => I.limpiarIcono({ propio: { caja, formas } });
+  await ok('la coleccion: cada icono pasa su propia revision y dibuja solo formas permitidas', () => {
+    for (const n of I.NOMBRES_ICONO) {
+      assert.deepEqual(I.limpiarIcono({ nombre: n }), { nombre: n });
+      const a = I.arbolIcono({ nombre: n });
+      assert.equal(a.tag, 'svg');
+      assert.equal(a.attrs['aria-hidden'], 'true');
+      for (const h of a.hijos) {
+        assert.ok(ETIQUETAS_HOJA.has(h.tag), h.tag);
+        for (const [k, v] of Object.entries(h.attrs)) { assert.ok(ATRIBUTOS_HOJA.has(k), k); assert.ok(valorSeguro(h.tag, k, v), `${n} ${k}=${v}`); }
+      }
+    }
+    assert.equal(I.limpiarIcono({ nombre: 'constructor' }), null);
+    assert.equal(I.limpiarIcono({ nombre: '__proto__' }), null);
+    assert.equal(I.limpiarIcono('copiar'), null);
+  });
+  await ok('un icono propio: se queda lo que es forma y numero, el color siempre es el del boton', () => {
+    const i = propio([{ t: 'circle', cx: 12, cy: 12, r: 8, relleno: true }, { t: 'path', d: 'M1 1L9 9', trazo: 2.5, punta: 'x' }]);
+    assert.deepEqual(i.propio.formas, [{ t: 'circle', cx: 12, cy: 12, r: 8, relleno: true, trazo: 0 }, { t: 'path', d: 'M1 1L9 9', relleno: false, trazo: 2.5, punta: 'butt', union: 'miter' }]);
+    const a = I.arbolIcono(i);
+    assert.equal(a.attrs.viewBox, '0 0 24 24');
+    assert.deepEqual(a.hijos.map((h) => [h.attrs.fill, h.attrs.stroke]), [['currentColor', 'none'], ['none', 'currentColor']]);
+  });
+  await ok('un icono hostil: fuera scripts, enlaces, url(), numeros raros y lo invisible', () => {
+    assert.equal(propio([{ t: 'script', d: 'x' }, { t: 'image', href: 'javascript:x' }, { t: 'use', href: '#a' }]), null);
+    assert.equal(propio([{ t: 'path', d: 'M0 0 url(javascript:x)', relleno: true }]), null);
+    assert.equal(propio([{ t: 'rect', x: Infinity, y: 0, width: 1, height: 1, relleno: true }]), null);
+    assert.equal(propio([{ t: 'polygon', points: '0,0 1,1"><script>', relleno: true }]), null);
+    assert.equal(propio([{ t: 'path', d: 'M0 0L1 1' }]), null);                     // ni relleno ni trazo: no se ve
+    assert.equal(propio([{ t: 'circle', r: 1, relleno: true }], [0, 0, 0, 24]), null);
+    const raro = propio([{ t: 'path', d: 'M0 0L9 9', relleno: true, onload: 'x', fill: 'url(#a)' }]);
+    assert.deepEqual(raro.propio.formas[0], { t: 'path', d: 'M0 0L9 9', relleno: true, trazo: 0 });
+    /* Un giro que no se puede leer dejaria la forma en otro lugar: la forma no va */
+    assert.equal(propio([{ t: 'path', d: 'M0 0L9 9', relleno: true, transform: 'translate(0) url(x)' }]), null);
+    assert.equal(propio([{ t: 'path', d: 'M0 0L9 9', relleno: true, transform: 'skewX(10)' }]), null);
+    /* Los huecos se respetan */
+    assert.equal(propio([{ t: 'path', d: 'M0 0L9 9z', relleno: true, regla: 'evenodd' }]).propio.formas[0].regla, 'evenodd');
+    assert.equal(I.arbolIcono(propio([{ t: 'path', d: 'M0 0L9 9z', relleno: true, regla: 'evenodd' }])).hijos[0].attrs['fill-rule'], 'evenodd');
+    assert.equal(propio([{ t: 'path', d: `M0 0${' L1 1'.repeat(3000)}`, relleno: true }]), null);   // demasiado trazado
+    assert.equal(propio(Array.from({ length: 200 }, () => ({ t: 'circle', cx: 1, cy: 1, r: 1, relleno: true }))).propio.formas.length, I.FORMAS_MAX);
+  });
+  await ok('la puerta del dibujo: atributos de icono solo en el icono, y solo valores de forma', () => {
+    assert.ok(valorSeguro('path', 'd', 'M0 0L1 1z'));
+    assert.ok(!valorSeguro('path', 'd', 'M0 0 url(x)'));
+    assert.ok(!valorSeguro('div', 'd', 'M0 0'));
+    assert.ok(!valorSeguro('img', 'width', '10'));
+    assert.ok(valorSeguro('circle', 'r', '1.5e2'));
+    assert.ok(!valorSeguro('circle', 'r', '1;x'));
+    assert.ok(valorSeguro('path', 'fill', 'currentColor') && !valorSeguro('path', 'fill', 'url(#a)') && !valorSeguro('path', 'stroke', 'red'));
+    assert.ok(valorSeguro('svg', 'viewBox', '0 0 24 24') && !valorSeguro('svg', 'viewBox', '0 0 24'));
+    assert.ok(!valorSeguro('path', 'transform', 'translate(1) url(x)'));
+    assert.ok(!valorSeguro('svg', 'aria-hidden', 'false'));
+    assert.ok(valorSeguro('a', 'href', 'https://fraterni.co/x') && !valorSeguro('a', 'href', 'javascript:x'));
+    assert.ok(!valorSeguro('path', 'href', '#a') && !valorSeguro('div', 'href', 'https://fraterni.co'));
+    assert.ok(!valorSeguro('circle', 'r', '1'.repeat(40)));
+    assert.ok(valorSeguro('path', 'fill-rule', 'evenodd') && !valorSeguro('path', 'fill-rule', 'x'));
+  });
+  await ok('un giro armado para trabar la pestaña se rechaza al instante', () => {
+    const inicio = performance.now();
+    for (const t of ['rotate(1)   '.repeat(24) + '!', 'scale(1)    '.repeat(24) + 'x', ' translate( 1 2 )  '.repeat(15) + 'y']) {
+      assert.equal(I.RE_TRANSFORM.test(t), false);
+      assert.equal(valorSeguro('path', 'transform', t), false);
+    }
+    assert.ok(I.RE_TRANSFORM.test('translate(1 2) rotate(45)') && I.RE_TRANSFORM.test('matrix(1,0,0,1,1e3,-2.5)') && I.RE_TRANSFORM.test(' scale( 2 ) '));
+    assert.ok(performance.now() - inicio < 200, `tardo ${Math.round(performance.now() - inicio)} ms`);
+  });
+  await ok('el boton con icono: a un lado o solo, y su texto sigue siendo su nombre', () => {
+    const d = B.datosDeBoton({ texto: 'Copiar', accion: 'copiar', copia: 'x', icono: { nombre: 'copiar' }, lado: 'solo' });
+    assert.deepEqual([d.icono, d.lado], [{ nombre: 'copiar' }, 'solo']);
+    const p = B.piezaDeBoton(d, 'boton', {}, false);
+    assert.equal(p.clase, 'boton boton--icono boton--solo');
+    assert.deepEqual(p.hijos.map((h) => h.tag), ['svg', 'span']);
+    assert.equal(p.hijos[1].hijos[0].texto, 'Copiar');
+    const der = B.piezaDeBoton({ ...d, lado: 'der' }, 'boton', {}, false);
+    assert.deepEqual([der.clase, der.hijos.map((h) => h.tag)], ['boton boton--icono', ['span', 'svg']]);
+    /* Sin icono queda como siempre: un texto suelto, sin clases nuevas, y mide lo mismo */
+    const sin = B.piezaDeBoton(B.datosDeBoton({ texto: 'Abrir', enlace: 'https://fraterni.co' }), 'boton', {}, false);
+    assert.deepEqual([sin.clase, sin.hijos], ['boton', [{ texto: 'Abrir' }]]);
+    assert.equal(B.datosDeBoton({ lado: 'url(x)' }).lado, 'izq');
+    /* Sin texto, solo el icono: sin hueco a su lado */
+    assert.deepEqual(B.piezaDeBoton({ ...d, texto: '' }, 'boton', {}, false).hijos.map((h) => h.tag), ['svg']);
+    /* Un boton solo icono en una pagina libre sigue en su lugar: no se vuelve relativo */
+    assert.ok(cssLibro({}).includes('.libro .boton--solo:not(.obj) { position: relative; }'));
+    assert.ok(cssLibro({}).includes('.libro .boton--solo .boton__texto { position: absolute;'));
+  });
+}
+
 console.log('varias paginas a la vez');
 {
   const { Schema } = await import('@tiptap/pm/model');

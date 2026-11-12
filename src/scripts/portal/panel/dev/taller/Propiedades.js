@@ -8,6 +8,9 @@ import { SelectorColor } from './SelectorColor.js';
 import { icono } from './iconos.js';
 import { enlaceDeBoton, COPIA_MAX, TEXTO_MAX } from '../../../../contenido/taller/tipos/boton.js';
 import { REFERENCIA_MAX, TEXTO_MAX as PASAJE_MAX } from '../../../../contenido/taller/tipos/pasaje.js';
+import { NOMBRES_ICONO, arbolIcono } from '../../../../contenido/taller/iconosBoton.js';
+import { armar } from '../../../../contenido/taller/armar.js';
+import { leerSvg } from './SvgSubido.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const mm = (pct, base) => Math.round(pct * base) / 100;
@@ -17,6 +20,8 @@ const CONTROLES = 'input, select, textarea, button';
 const ATRIBUTOS = ['style', 'class', 'title', 'aria-pressed', 'aria-label', 'aria-invalid', 'placeholder'];
 
 const fuera = (n) => n.closest('.tal-color__panel');
+/* Una huella corta de un texto (djb2): basta para notar que un dibujo cambio */
+const huella = (s) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const firma = (e) => [...e.querySelectorAll('*')].filter((n) => !fuera(n)).map((n) => n.tagName + (n.dataset.clave || '')).join();
 
 function igualar(a, b) {
@@ -132,8 +137,10 @@ export class Propiedades {
   pliegue(titulo, hijos) {
     const d = crear('details', 'tal-pliegue'), s = crear('summary', '', titulo);
     s.dataset.clave = `pliegue:${titulo}`;
-    d.open = !!this.pliegueAbierto;
-    d.addEventListener('toggle', () => { this.pliegueAbierto = d.open; });
+    /* Cada pliegue recuerda lo suyo: abrir «Icono» no abre «Posición» */
+    this.abiertos = this.abiertos || {};
+    d.open = !!this.abiertos[titulo];
+    d.addEventListener('toggle', () => { this.abiertos[titulo] = d.open; });
     d.append(s, ...hijos);
     return d;
   }
@@ -303,7 +310,44 @@ export class Propiedades {
     }
     const dos = crear('div', 'tal-pares');
     dos.append(this.color(tx.colorFondoBoton, o.fondo, (c) => cambiar({ fondo: c })), this.color(tx.colorLetra, o.color, (c) => cambiar({ color: c })));
-    l.append(dos);
+    l.append(dos, this.pliegue(tx.icono, this.camposDeIcono(o, cambiar)));
+  }
+
+  /* El icono del boton: uno de la coleccion, el propio (un SVG revisado y hecho formas), o ninguno */
+  camposDeIcono(o, cambiar) {
+    const tx = this.tx, rejilla = crear('div', 'tal-iconos'), actual = o.icono || null;
+    const opcion = (clave, texto, icono, elegido, fn) => {
+      const b = crear('button', 'tal-icono-b');
+      b.type = 'button';
+      b.title = texto;
+      b.dataset.clave = `icono:${clave}`;
+      b.setAttribute('aria-label', texto);
+      b.setAttribute('aria-pressed', String(elegido));
+      const dibujo = icono && armar(arbolIcono(icono));
+      if (dibujo) b.append(dibujo); else b.append(crear('span', '', '—'));
+      b.addEventListener('click', fn);
+      return b;
+    };
+    rejilla.append(opcion('ninguno', tx.sinIcono, null, !actual, () => cambiar({ icono: null, lado: 'izq' })));
+    for (const n of NOMBRES_ICONO) rejilla.append(opcion(n, tx.iconosBoton[n], { nombre: n }, actual?.nombre === n, () => cambiar({ icono: { nombre: n } })));
+    /* Su clave lleva una huella del dibujo: otro SVG con la misma forma de arbol rehace la muestra, no la parcha */
+    if (actual?.propio) rejilla.append(opcion(`propio:${huella(JSON.stringify(actual.propio))}`, tx.iconoPropio, actual, true, () => {}));
+    /* El archivo se lee aqui y se vuelve formas: nunca se guarda ni se pinta tal cual llego */
+    const archivo = crear('input');
+    archivo.type = 'file';
+    archivo.accept = '.svg,image/svg+xml';
+    archivo.hidden = true;
+    archivo.addEventListener('change', async () => {
+      const r = await leerSvg(archivo.files[0]);
+      archivo.value = '';
+      if (r.error) { this.mesa.decir(tx[r.error]); return; }
+      cambiar({ icono: { propio: r.icono } });
+      this.mesa.decir(tx.svgListo);
+    });
+    const subir = this.accion(tx.iconoSubir, () => archivo.click());
+    const hijos = [rejilla, subir, archivo, crear('p', 'tal-ayuda', tx.iconoAyuda)];
+    if (actual) hijos.splice(1, 0, this.segmento([['izq', tx.iconoIzq], ['der', tx.iconoDer], ['solo', tx.iconoSolo]], o.lado || 'izq', (k) => cambiar({ lado: k })));
+    return hijos;
   }
 
   /* Un boton en su propia linea */
