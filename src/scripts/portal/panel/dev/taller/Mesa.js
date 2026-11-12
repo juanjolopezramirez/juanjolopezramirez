@@ -360,6 +360,13 @@ export class Mesa {
     this.prop.deBoton(v);
   }
 
+  elegirPasaje(v) {
+    if (this.imagenElegida === v || this.soloMirar(v.dom)) return;
+    this.soltarElegidos();
+    this.imagenElegida = v;
+    this.prop.dePasaje(v);
+  }
+
   elegirImagen(v) {
     if (this.imagenElegida === v || this.soloMirar(v.dom)) return;
     this.soltarElegidos();
@@ -432,6 +439,7 @@ export class Mesa {
     if (que === 'cuadro') { this.hojaParaObjeto().agregar({ tipo: 'texto', texto: this.tx.escribeAqui, x: 20, y: 40, w: 60, h: 10, rot: 0, tam: '14pt', color: '', fuente: '', alinear: '' }); return; }
     if (que === 'zona') { this.hojaParaObjeto().agregar({ tipo: 'zona', nombre: this.tx.zonaNueva, x: 16, y: 50, w: 68, h: 22, rot: 0, bloques: [] }); return; }
     if (que === 'boton') { this.ponerBoton(); return; }
+    if (que === 'pasaje') { this.ponerPasaje(); return; }
     if (que === 'capitulo') this.nuevoCapitulo();
   }
 
@@ -441,6 +449,14 @@ export class Mesa {
     if (this.hojaActiva) { this.hojaActiva.agregar({ tipo: 'boton', ...base, x: 30, y: 45, w: 40, h: 7, rot: 0, tam: '12pt' }); return; }
     const { vivo, pos } = this.puntoDeInsercion(), e = vivo.editor;
     e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.boton.create(base)));
+    e.view.nodeDOM(pos).click();
+    this.programar();
+  }
+
+  /* Un pasaje va siempre en el texto, en su propia linea; con una pagina libre elegida, justo despues de ella */
+  ponerPasaje() {
+    const { vivo, pos } = this.puntoDeInsercion(), e = vivo.editor;
+    e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.pasaje.create({ texto: '', referencia: '' })));
     e.view.nodeDOM(pos).click();
     this.programar();
   }

@@ -7,6 +7,7 @@
 import { SelectorColor } from './SelectorColor.js';
 import { icono } from './iconos.js';
 import { enlaceDeBoton, COPIA_MAX, TEXTO_MAX } from '../../../../contenido/taller/tipos/boton.js';
+import { REFERENCIA_MAX, TEXTO_MAX as PASAJE_MAX } from '../../../../contenido/taller/tipos/pasaje.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const mm = (pct, base) => Math.round(pct * base) / 100;
@@ -292,6 +293,28 @@ export class Propiedades {
       this.segmento([['', tx.alinear.izquierda, 'izquierda'], ['centro', tx.alinear.centro, 'centro'], ['derecha', tx.alinear.derecha, 'derecha']], a.alinear, (k) => cambiar({ alinear: k })),
       this.conIcono('eliminar', tx.eliminar, () => this.mesa.borrarImagen(v), 'tal-accion--aviso')
     );
+    l.append(ac);
+  }
+
+  /* Un pasaje biblico: su texto (con un renglon por versiculo, si se quiere) y su referencia */
+  dePasaje(v) { this.rehacer(() => this.poner(() => this.pintarPasaje(v), v, 'pasaje')); }
+
+  pintarPasaje(v) {
+    const tx = this.tx, a = v.node.attrs, l = this.lienzo, cambiar = (x) => { v.updateAttributes(x); this.dePasaje(v); };
+    l.append(crear('h2', '', tx.objPasaje));
+    const c = crear('label', 'tal-par'), t = crear('textarea');
+    t.value = a.texto;
+    t.rows = 5;
+    t.maxLength = PASAJE_MAX;
+    t.dir = 'auto';
+    t.placeholder = tx.pasajeTextoAyuda;
+    t.addEventListener('change', () => cambiar({ texto: t.value }));
+    c.append(crear('span', '', tx.pasajeTexto), t);
+    const r = this.par(tx.pasajeReferencia, a.referencia, (s) => cambiar({ referencia: s }), 'text', REFERENCIA_MAX);
+    r.querySelector('input').placeholder = tx.pasajeReferenciaAyuda;
+    l.append(c, r, crear('p', '', tx.pasajeHebreo));
+    const ac = crear('div', 'tal-junto');
+    ac.append(this.conIcono('eliminar', tx.eliminar, () => this.mesa.borrarImagen(v), 'tal-accion--aviso'));
     l.append(ac);
   }
 

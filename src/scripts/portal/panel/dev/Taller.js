@@ -434,8 +434,8 @@ export class Taller extends Seccion {
     const tam = f.elements.tamano;
     TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.nombre} · ${mmAPx(t.anchoMm)} × ${mmAPx(t.altoMm)} px`; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
-    for (const k of ['tamano', 'idioma', 'lugar']) new Selector(f.elements[k]);
-    new Selector(f.elements.fuente, { fuenteDe: (v) => (v ? familiaCss(v) : '') });
+    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas']) new Selector(f.elements[k]);
+    for (const k of ['fuente', 'capitalFuente', 'citaFuente']) new Selector(f.elements[k], { fuenteDe: (v) => (v ? familiaCss(v) : '') });
     tam.addEventListener('change', () => {
       const t = TAMANOS.find((x) => x.id === tam.value);
       if (t) { f.elements.anchoMm.value = t.anchoMm; f.elements.altoMm.value = t.altoMm; }
@@ -468,9 +468,20 @@ export class Taller extends Seccion {
     f.elements.numerosVer.checked = c.numeros.ver; f.elements.indice.checked = c.indice; f.elements.imprenta.checked = c.imprenta;
     f.elements.lugar.value = c.numeros.lugar;
     this.ponerPx();
+    const opcion = (valor, texto) => { const o = document.createElement('option'); o.value = valor; o.textContent = texto; return o; };
     const fu = f.elements.fuente;
-    fu.replaceChildren(...this.obra.fuentes.map((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; return o; }));
+    fu.replaceChildren(...this.obra.fuentes.map((n) => opcion(n, n)));
     fu.value = c.cuerpo.fuente;
+    /* La capital y las citas: «la del libro» o una de las del libro */
+    for (const [k, valor] of [['capitalFuente', c.capital.fuente], ['citaFuente', c.cita.fuente]]) {
+      f.elements[k].replaceChildren(opcion('', this.tx.fuenteDelLibro), ...this.obra.fuentes.map((n) => opcion(n, n)));
+      f.elements[k].value = this.obra.fuentes.includes(valor) ? valor : '';
+    }
+    f.elements.capitalLineas.value = String(c.capital.lineas);
+    f.elements.capitalSepara.value = c.capital.separaMm;
+    f.elements.citaTamano.value = c.cita.tamanoPct;
+    f.elements.citaSangria.value = c.cita.sangriaMm;
+    f.elements.citaCursiva.checked = c.cita.cursiva;
   }
 
   formatoDe(ancho, alto) { return TAMANOS.find((x) => mmAPx(x.anchoMm) === ancho && mmAPx(x.altoMm) === alto); }
@@ -486,7 +497,7 @@ export class Taller extends Seccion {
 
   leerPagina() {
     const f = this.m('[data-tal-pagina]'), n = (k) => Number(f.elements[k].value);
-    const campos = ['anchoMm', 'altoMm', 'sup', 'inf', 'izq', 'der', 'tamanoPt', 'interlinea'];
+    const campos = ['anchoMm', 'altoMm', 'sup', 'inf', 'izq', 'der', 'tamanoPt', 'interlinea', 'capitalSepara', 'citaTamano', 'citaSangria'];
     const vacio = campos.find((k) => f.elements[k].value === '');
     if (vacio) { f.elements[vacio].setAttribute('aria-invalid', 'true'); this.error('campoVacio'); return; }
     campos.forEach((k) => f.elements[k].setAttribute('aria-invalid', 'false'));
@@ -497,12 +508,18 @@ export class Taller extends Seccion {
       anchoMm: n('anchoMm'), altoMm: n('altoMm'),
       margenes: { sup: n('sup'), inf: n('inf'), izq: n('izq'), der: n('der') },
       numeros: { ver: f.elements.numerosVer.checked, lugar: f.elements.lugar.value }, indice: f.elements.indice.checked,
-      cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') }
+      cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },
+      capital: { fuente: f.elements.capitalFuente.value, lineas: n('capitalLineas'), separaMm: n('capitalSepara') },
+      cita: { fuente: f.elements.citaFuente.value, tamanoPct: n('citaTamano'), sangriaMm: n('citaSangria'), cursiva: f.elements.citaCursiva.checked }
     });
     if (nueva.errores().length) { this.error('margenes'); return; }
     this.obra.pagina = nueva;
     this.obra.idioma = f.elements.idioma.value;
     this.ponerPx();
+    /* Lo que se paso del borde se ve como quedo */
+    f.elements.capitalSepara.value = nueva.capital.separaMm;
+    f.elements.citaTamano.value = nueva.cita.tamanoPct;
+    f.elements.citaSangria.value = nueva.cita.sangriaMm;
     this.mesa.vivos.forEach((v) => v.editor.view.dom.setAttribute('lang', this.obra.idioma));
     this.guardarObra();
     this.mesa.repintarHojas();

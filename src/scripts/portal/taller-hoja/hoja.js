@@ -18,6 +18,8 @@ function valorSeguro(tag, k, v) {
   if (k === 'id') return /^[a-z0-9-]+$/.test(v);
   if (k === 'start') return /^\d{1,5}$/.test(v);
   if (k === 'data-tex') return v.length <= TEX_MAX;
+  if (k === 'dir') return v === 'rtl' || v === 'ltr' || v === 'auto';
+  if (k === 'lang') return /^[a-z]{2}$/.test(v);
   return true;
 }
 
@@ -43,8 +45,9 @@ async function fuentes(nombres) {
     document.head.append(l);
   })));
   const pesos = ['400', '700'];
+  /* Con una letra latina y una hebrea: Google sirve el hebreo en otro trozo, y sin pedirlo no llega a tiempo */
   await Promise.race([
-    Promise.allSettled(nombres.flatMap((n) => pesos.map((p) => document.fonts.load(`${p} 16px "${n}"`)))),
+    Promise.allSettled(nombres.flatMap((n) => pesos.map((p) => document.fonts.load(`${p} 16px "${n}"`, 'Aא')))),
     new Promise((ok) => setTimeout(ok, ESPERA_FUENTE_MS))
   ]);
 }

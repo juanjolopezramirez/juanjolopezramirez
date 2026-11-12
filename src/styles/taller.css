@@ -183,6 +183,12 @@
 .boton { cursor: pointer; }
 .flujo > .boton { position: relative; z-index: 1; }
 .boton--falta { outline: 2px dashed #B3261E; outline-offset: 2px; }
+/* El pasaje se elige con un clic; vacio, se marca como el boton que falta llenar */
+.pasaje-ed { cursor: pointer; }
+.pasaje--falta { outline: 2px dashed #B3261E; outline-offset: 2px; }
+.tal-tipografia { width: 21rem; max-height: none; grid-template-columns: 1fr 1fr; align-items: end; }
+.tal-tipografia .tal-rotulo { grid-column: 1 / -1; margin: .25rem 0 0; font-size: 11px; font-weight: 600; color: var(--tiza); }
+.tal-tipografia .tal-marca { grid-column: 1 / -1; }
 .llave { background: #FFE36B; color: #111; border-bottom: 2px dotted #111; border-radius: 2px; padding: 0 1px; }
 .tal-columnas { display: grid; gap: 1rem; margin: 1em 0; }
 .tal-columna { min-width: 0; padding: .4rem; outline: 1px dashed #bbb; }

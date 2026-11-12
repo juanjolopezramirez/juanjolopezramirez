@@ -114,6 +114,7 @@ const { tx } = Astro.props;
         <button class="tal-btn" type="button" data-insertar="libre">+ {tx.paginaLibre}</button>
         <button class="tal-btn" type="button" data-insertar="cuadro">+ {tx.objCuadro}</button>
         <button class="tal-btn" type="button" data-insertar="boton">+ {tx.objBoton}</button>
+        <button class="tal-btn" type="button" data-insertar="pasaje">+ {tx.objPasaje}</button>
         <button class="tal-btn" type="button" data-insertar="zona">+ {tx.objZona}</button>
         <button class="tal-btn" type="button" data-insertar="capitulo">+ {tx.capitulo}</button>
         <span class="tal-sep"></span>
@@ -158,6 +159,19 @@ const { tx } = Astro.props;
           </select></label>
           <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
           <label class="tal-marca"><input name="imprenta" type="checkbox" /><span>{tx.imprenta}</span></label>
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.capitalYCitas}</summary>
+            <div class="tal-b-panel tal-tipografia">
+              <p class="tal-rotulo">{tx.capital}</p>
+              <label><span>{tx.fuente}</span><select class="tal-ctl" name="capitalFuente"></select></label>
+              <label><span>{tx.capitalLineas}</span><select class="tal-ctl" name="capitalLineas">{[2, 3, 4, 5].map((n) => <option value={n}>{n}</option>)}</select></label>
+              <label><span>{tx.capitalSepara}</span><input class="tal-ctl tal-ctl--num" name="capitalSepara" type="number" min="0" max="6" step="0.1" /></label>
+              <p class="tal-rotulo">{tx.citas}</p>
+              <label><span>{tx.fuente}</span><select class="tal-ctl" name="citaFuente"></select></label>
+              <label><span>{tx.citaTamano}</span><input class="tal-ctl tal-ctl--num" name="citaTamano" type="number" min="70" max="160" step="5" /></label>
+              <label><span>{tx.citaSangria}</span><input class="tal-ctl tal-ctl--num" name="citaSangria" type="number" min="0" max="40" step="0.5" /></label>
+              <label class="tal-marca"><input name="citaCursiva" type="checkbox" /><span>{tx.citaCursiva}</span></label>
+            </div>
+          </details>
         </form>
         <div class="tal-colores" data-tal-colores></div>
       </div>

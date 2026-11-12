@@ -43,6 +43,10 @@ export const CASOS = {
     bueno: [{ type: 'boton', attrs: { texto: 'Abrir', accion: 'enlace', enlace: 'https://fraterni.co/x', alinear: 'centro', fondo: '#123456' } }, { type: 'boton', attrs: { texto: 'Copiar', accion: 'copiar', copia: 'Un prompt' } }],
     hostil: [{ type: 'boton', attrs: { texto: 5, accion: 'borrar', enlace: 'javascript:alert(1)', copia: {}, fondo: 'red;x:url(y)', color: 7, alinear: 'url(x)', onclick: 'x' } }]
   },
+  pasaje: {
+    bueno: [{ type: 'pasaje', attrs: { texto: 'Porque de tal manera amó Dios al mundo,\nque ha dado a su Hijo unigénito', referencia: 'Juan 3:16' } }, { type: 'pasaje', attrs: { texto: 'שְׁמַע יִשְׂרָאֵל', referencia: 'Deuteronomio 6:4' } }],
+    hostil: [{ type: 'pasaje', attrs: { texto: '<script>alert(1)</script>‮abc', referencia: { x: 1 }, onclick: 'x', dir: 'url(x)' } }]
+  },
   formula: {
     bueno: [{ type: 'paragraph', content: [{ type: 'formula', attrs: { tex: '\\frac{a}{b}^2' } }] }, { type: 'formula', attrs: { tex: 'x^2' } }],
     hostil: [{ type: 'paragraph', content: [{ type: 'formula', attrs: { tex: '\\href{javascript:alert(1)}{x}\u0007', onclick: 'x' } }] }]

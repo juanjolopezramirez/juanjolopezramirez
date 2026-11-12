@@ -26,6 +26,7 @@ export const TAMANOS = [
   { id: '5x8', nombre: '5 × 8 pulgadas (127 × 203 mm)', anchoMm: 127, altoMm: 203.2 }
 ];
 export const LUGARES_NUMERO = ['pie-centro', 'pie-exterior', 'pie-interior'];
+export const CAPITAL_LINEAS = [2, 3, 4, 5];
 
 /* El color de cada letra del libro: { fuente: color }. Se lee con `colorDeLetra`: una fuente puede llamarse «constructor» */
 export const colorDeLetra = (c, fuente) => (tiene(c.letras, fuente) ? c.letras[fuente] : '');
@@ -35,6 +36,8 @@ function letrasValidas(v) {
 }
 
 const mm = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? Math.round(v * pasos) / pasos : siNo);
+/* Para la capital y las citas: lo que se pasa del borde se queda en el borde, no vuelve al valor de siempre */
+const entre = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v)) * pasos) / pasos : siNo);
 
 export class ConfigPagina {
   constructor(d = {}) {
@@ -53,6 +56,20 @@ export class ConfigPagina {
       fuente: nombreDeFuente(c.fuente) ? c.fuente : 'Young Serif',
       tamanoPt: mm(c.tamanoPt, 4, 72, 11),
       interlinea: mm(c.interlinea, 1, 3, 1.5, 100)
+    };
+    /* La letra grande del comienzo y las citas, para todo el libro. Sin datos quedan como siempre estuvieron.
+       Una letra vacia es la del libro. */
+    const cap = objeto(o.capital), ci = objeto(o.cita);
+    this.capital = {
+      fuente: nombreDeFuente(cap.fuente) ? cap.fuente : '',
+      lineas: CAPITAL_LINEAS.includes(cap.lineas) ? cap.lineas : 3,
+      separaMm: entre(cap.separaMm, 0, 6, 1.2)
+    };
+    this.cita = {
+      fuente: nombreDeFuente(ci.fuente) ? ci.fuente : '',
+      tamanoPct: entre(ci.tamanoPct, 70, 160, 100, 1),
+      sangriaMm: entre(ci.sangriaMm, 0, 40, 4.7),
+      cursiva: ci.cursiva !== false
     };
   }
 
@@ -99,7 +116,8 @@ export class ConfigPagina {
   aDatos() {
     return {
       anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: this.indice, cuerpo: { ...this.cuerpo },
-      imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores]
+      imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      capital: { ...this.capital }, cita: { ...this.cita }
     };
   }
 }

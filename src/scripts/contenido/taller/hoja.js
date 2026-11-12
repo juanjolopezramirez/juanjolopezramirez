@@ -13,11 +13,14 @@ import { colorValido } from './marcas.js';
 import { PAPEL_BASE, TINTA_SOBRE_PDF, tonosDe, variablesDe } from './colores.js';
 import { objeto } from '../comun.js';
 import { el, txt } from './tipos/ayuda.js';
+import { FUENTE_HEBREO } from './tipos/pasaje.js';
+
+const tieneClase = (n, c) => !!n && ((n.clase || '').split(' ').includes(c) || (n.hijos || []).some((h) => tieneClase(h, c)));
 
 /* Lo unico que el arbol puede pedir. La pagina de la vista vuelve a mirar estas listas. */
 export const ETIQUETAS_HOJA = new Set(['section', 'nav', 'div', 'figure', 'figcaption', 'img', 'p', 'h1', 'h2', 'h3',
   'ul', 'ol', 'li', 'blockquote', 'hr', 'br', 'a', 'span', 'strong', 'em', 'u', 's', 'sup', 'sub']);
-export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'href', 'id', 'start', 'data-tex']);
+export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'href', 'id', 'start', 'data-tex', 'dir', 'lang']);
 export const ESTILOS_HOJA = new Set(['color', 'background-color', 'font-size', 'font-family', 'text-align', 'width', 'height', 'left', 'top', 'transform', 'grid-template-columns']);
 
 /* Las formas en que el navegador escribe una letra. Con su nombre entero: «Noto Serif» no es «Noto Serif Hebrew». */
@@ -25,8 +28,13 @@ const conLetra = (f) => [`font-family: ${f};`, `font-family: ${f},`, `"${f}"`].m
 
 /* El libro por dentro: igual en el editor (raiz .libro) y en la hoja */
 export function cssLibro(config) {
-  const c = new ConfigPagina(config), b = c.cuerpo, t = c.titulos;
+  const c = new ConfigPagina(config), b = c.cuerpo, t = c.titulos, cap = c.capital, ci = c.cita;
   const letra = colorDeLetra(c, b.fuente) || 'var(--hoja-tinta)';
+  /* Una letra elegida para la capital ya trae su forma: engrosarla a la fuerza la deforma */
+  const capital = `initial-letter: ${cap.lineas}; font-weight: ${cap.fuente ? 400 : 700}; margin-right: ${cap.separaMm}mm;${cap.fuente ? ` font-family: ${familiaCss(cap.fuente)};` : ''}`;
+  const cita = `margin: 1em ${ci.sangriaMm}mm; font-style: ${ci.cursiva ? 'italic' : 'normal'};${ci.tamanoPct !== 100 ? ` font-size: ${ci.tamanoPct / 100}em;` : ''}${ci.fuente ? ` font-family: ${familiaCss(ci.fuente)};` : ''}`;
+  /* El hilo del pasaje: la tinta a medias con el papel. Asi sirve en papel claro y en papel oscuro. */
+  const hilo = 'color-mix(in srgb, var(--hoja-tinta) 45%, var(--hoja-papel))';
   /* Cada letra con su color. Lo que se pinto a mano va en el trozo mismo, y eso siempre manda. */
   const porLetra = Object.entries(c.letras).filter(([f]) => f !== b.fuente).map(([f, x]) => `${conLetra(f)} { color: ${x}; }`).join('\n');
   const porTitulo = [1, 2, 3].filter((n) => t[`t${n}`]).map((n) => `.libro h${n} { color: ${t[`t${n}`]}; }`).join('\n');
@@ -38,7 +46,8 @@ export function cssLibro(config) {
 .libro h1 { font-size: 1.9em; line-height: 1.2; margin: 0 0 .9em; break-after: avoid; }
 .libro h2 { font-size: 1.45em; line-height: 1.25; margin: 1em 0 .5em; break-after: avoid; }
 .libro h3 { font-size: 1.2em; line-height: 1.3; margin: 1em 0 .4em; break-after: avoid; }
-.libro .capital::first-letter { initial-letter: 3; font-weight: 700; margin-right: .06em; }
+.libro .capital::first-letter { ${capital} }
+.libro .capital { min-height: ${cap.lineas}lh; orphans: ${cap.lineas}; }
 .libro .imagen { margin: 1em 0; break-inside: avoid; }
 .libro .imagen img { display: block; max-width: 100%; height: auto; }
 .libro .imagen--izq { float: left; margin: .3em 1em .5em 0; }
@@ -47,7 +56,11 @@ export function cssLibro(config) {
 .libro .imagen figcaption { font-size: .85em; margin-top: .4em; }
 .libro .columnas { display: grid; gap: 6mm; margin: 1em 0; break-inside: avoid; }
 .libro .columna > :first-child { margin-top: 0; }
-.libro blockquote { margin: 1em 1.2em; font-style: italic; }
+.libro blockquote { ${cita} }
+.libro .pasaje { margin: 1.7em 0; padding: .95em 0 .85em; border-top: .75pt solid ${hilo}; border-bottom: .75pt solid ${hilo}; text-align: center; break-inside: avoid; }
+.libro .pasaje blockquote { margin: 0; font: 2em/1.3 ${familiaCss('Estonia')}; font-style: normal; white-space: pre-line; overflow-wrap: break-word; font-variant-ligatures: normal; font-feature-settings: normal; }
+.libro .pasaje figcaption { margin-top: .8em; font: .74em/1.3 ${familiaCss('Young Serif')}; font-style: normal; letter-spacing: .07em; color: color-mix(in srgb, var(--hoja-tinta) 68%, var(--hoja-papel)); }
+.libro .pasaje--hebreo blockquote { font: 1.25em/1.55 ${familiaCss(FUENTE_HEBREO)}; }
 .libro hr { border: 0; border-top: 1px solid #888; margin: 1.4em 0; }
 .libro ul, .libro ol { margin: 0 0 .7em; padding-left: 1.4em; }
 .libro a { color: var(--hoja-enlace); }
@@ -115,5 +128,9 @@ export function aHoja(obra, capitulos, o = {}) {
     const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres });
     nodos.push(el('section', `capitulo${propio ? ` papel-${nombre(propio)}` : ''}`, hijos, { id: `cap-${i + 1}` }));
   });
-  return { css: cssImpresion(config, usados), nodos: [el('div', 'libro', nodos)], fuentes: obra.fuentes || [], titulo: obra.titulo || '', idioma: obra.idioma || 'es' };
+  const libro = el('div', 'libro', nodos);
+  /* El hebreo de un pasaje necesita su letra, aunque el libro no la tenga en su lista */
+  const fuentes = [...(obra.fuentes || [])];
+  if (tieneClase(libro, 'pasaje--hebreo') && !fuentes.includes(FUENTE_HEBREO)) fuentes.push(FUENTE_HEBREO);
+  return { css: cssImpresion(config, usados), nodos: [libro], fuentes, titulo: obra.titulo || '', idioma: obra.idioma || 'es' };
 }

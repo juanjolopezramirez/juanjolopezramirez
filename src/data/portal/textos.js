@@ -158,6 +158,10 @@ export const PORTAL_TEXTOS = {
       taller: {
         sinBase: 'El Taller aún no está conectado. Pruébalo en modo demo.',
         tituloNuevo: 'Título de tu nuevo libro', crear: 'Crear', sinObras: 'Aún no hay libros. Escribe un título y empieza.',
+        objPasaje: 'Pasaje bíblico', pasajeTexto: 'El pasaje', pasajeTextoAyuda: 'Un renglón por versículo, si quieres.',
+        pasajeReferencia: 'Referencia', pasajeReferenciaAyuda: 'Juan 3:16', pasajeHebreo: 'Si lo escribes en hebreo, va de derecha a izquierda y con su propia letra.',
+        capitalYCitas: 'Capital y citas', capitalLineas: 'Alto (en renglones)', capitalSepara: 'Espacio a su lado (mm)',
+        citas: 'Citas', citaTamano: 'Tamaño (%)', citaSangria: 'Margen a los lados (mm)', citaCursiva: 'En cursiva',
         borrarLibro: 'Borrar «{titulo}»', borrarPregunta: '¿Borrar «{titulo}»?', borrarMidiendo: 'Midiendo cuánto ocupa…',
         borrarCuanto: 'Se borran sus capítulos, sus copias guardadas y {n} archivos ({peso}). No se puede deshacer.',
         borrarSinArchivos: 'Se borran sus capítulos y sus copias guardadas. No tiene imágenes ni PDF. No se puede deshacer.',

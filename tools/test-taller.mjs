@@ -491,6 +491,44 @@ await ok('lo que el editor deja: numero de inicio de una lista, titulos en hebre
   assert.equal(new ConfigPagina({ cuerpo: { interlinea: 1.45 } }).cuerpo.interlinea, 1.45);
 });
 
+console.log('capital, citas y pasaje');
+await ok('capital y citas: sin datos quedan como siempre; lo de mas se queda en el borde; una letra rara no pasa', () => {
+  const base = new ConfigPagina({});
+  assert.deepEqual(base.capital, { fuente: '', lineas: 3, separaMm: 1.2 });
+  assert.deepEqual(base.cita, { fuente: '', tamanoPct: 100, sangriaMm: 4.7, cursiva: true });
+  const c = new ConfigPagina({ capital: { fuente: 'Estonia', lineas: 9, separaMm: 50 }, cita: { fuente: 'x");}', tamanoPct: 300, sangriaMm: -4, cursiva: false } });
+  assert.deepEqual(c.capital, { fuente: 'Estonia', lineas: 3, separaMm: 6 });
+  assert.deepEqual(c.cita, { fuente: '', tamanoPct: 160, sangriaMm: 0, cursiva: false });
+  assert.deepEqual(new ConfigPagina(c.aDatos()).capital, c.capital);
+  const css = cssLibro(c.aDatos());
+  assert.ok(css.includes('initial-letter: 3; font-weight: 400; margin-right: 6mm; font-family: "Estonia"'));
+  assert.ok(css.includes('.libro blockquote { margin: 1em 0mm; font-style: normal; font-size: 1.6em; }'));
+  assert.ok(cssLibro({}).includes('initial-letter: 3; font-weight: 700; margin-right: 1.2mm; }'));
+  assert.ok(cssLibro({}).includes('.libro blockquote { margin: 1em 4.7mm; font-style: italic; }'));
+});
+await ok('el pasaje: texto con renglones, referencia en una linea, hebreo de derecha a izquierda y con su letra en el PDF', async () => {
+  const pasaje = await import('../src/scripts/contenido/taller/tipos/pasaje.js');
+  const d = pasaje.datos('pasaje', { texto: 'Uno\r\nDos‮', referencia: ' Juan\n3:16 ' });
+  assert.deepEqual(d, { texto: 'Uno\nDos', referencia: 'Juan 3:16' });
+  assert.equal(pasaje.datos('pasaje', { texto: 'x'.repeat(5000) }).texto.length, pasaje.TEXTO_MAX);
+  const es = pasaje.piezaDePasaje(d);
+  assert.equal(es.clase, 'pasaje');
+  assert.deepEqual(es.hijos.map((h) => h.tag), ['blockquote', 'figcaption']);
+  const he = pasaje.piezaDePasaje({ texto: 'שְׁמַע', referencia: '' });
+  assert.equal(he.clase, 'pasaje pasaje--hebreo');
+  assert.deepEqual(he.hijos[0].attrs, { dir: 'rtl', lang: 'he' });
+  assert.equal(he.hijos.length, 1);
+  assert.equal(pasaje.piezaDePasaje({ texto: 'El Nombre (יהוה) es santo y bueno', referencia: '' }).clase, 'pasaje');
+  assert.equal(pasaje.datos('pasaje', { texto: 'שמע‏' }).texto, 'שמע‏');
+  assert.equal(pasaje.piezaDePasaje({ texto: '\n\nUno\n\n\n', referencia: '' }).hijos[0].hijos[0].texto, 'Uno');
+  assert.ok(ATRIBUTOS_HOJA.has('dir') && ATRIBUTOS_HOJA.has('lang'));
+  const cap = (texto) => ({ contenido: { version: 2, doc: { type: 'doc', content: [{ type: 'pasaje', attrs: { texto, referencia: 'R' } }] } } });
+  const obra = { pagina: {}, fuentes: ['Young Serif', 'Estonia'] };
+  assert.ok(aHoja(obra, [cap('שְׁמַע')]).fuentes.includes(pasaje.FUENTE_HEBREO));
+  assert.ok(!aHoja(obra, [cap('Oye, Israel')]).fuentes.includes(pasaje.FUENTE_HEBREO));
+  assert.ok(JSON.stringify(aHoja(obra, [cap('Oye')]).nodos).includes('"figcaption"'));
+});
+
 console.log('borrar un libro');
 await ok('borrar se lleva capitulos, piezas y copias; un libro que ya no esta dice noExiste; restaurar no pierde su copia', async () => {
   const r = new RepositorioTallerMemoria();
