@@ -55,7 +55,7 @@ class Consulta {
     if (this.accion === 'select') q = `select ${this.columnas === '*' ? '*' : cols(this.columnas)} from ${t}${donde()}${this.orden.length ? ` order by ${this.orden.join(',')}` : ''}${this.tope ? ` limit ${this.tope}` : ''}`;
     if (this.accion === 'insert') { const k = Object.keys(this.valores); q = `insert into ${t} (${k.map(ident).join(',')}) values (${k.map((x) => { p.push(this.valor(x)); return `$${p.length}`; }).join(',')})${vuelta}`; }
     if (this.accion === 'update') { const k = Object.keys(this.valores); q = `update ${t} set ${k.map((x) => { p.push(this.valor(x)); return `${ident(x)} = $${p.length}`; }).join(',')}${donde()}${vuelta}`; }
-    if (this.accion === 'delete') q = `delete from ${t}${donde()}`;
+    if (this.accion === 'delete') q = `delete from ${t}${donde()}${vuelta}`;
     try {
       const r = await db.query(q, p);
       let data = r.rows;

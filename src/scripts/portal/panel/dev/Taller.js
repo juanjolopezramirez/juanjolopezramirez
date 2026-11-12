@@ -27,6 +27,8 @@ import { Formulas } from './taller/Formulas.js';
 import { bajarLibro, entregar, nombreDeArchivo } from './taller/Descarga.js';
 import { SelectorColor } from './taller/SelectorColor.js';
 import { Selector } from './taller/Selector.js';
+import { BorrarLibro } from './taller/BorrarLibro.js';
+import { icono } from './taller/iconos.js';
 import { familiaCss } from '../../../contenido/taller/fuentes.js';
 import { RECIENTES_MAX, textosPocoVisibles } from '../../../contenido/taller/colores.js';
 
@@ -101,6 +103,14 @@ export class Taller extends Seccion {
     this.imagenes = new Imagenes((r) => ctx.be.taller.bajar(r));
     if (import.meta.env.DEV) window.__imagenesTaller = this.imagenes;
     q('[data-tal-crear]').addEventListener('submit', (e) => { e.preventDefault(); this.crear(e.currentTarget); });
+    this.borrador = new BorrarLibro(q('[data-tal-borrar]'), {
+      tx: this.tx,
+      be: () => this.be,
+      textoDe: (c) => this.ctx.textoDe(c),
+      copia: (id) => this.copiaDe(id),
+      /* El libro ya se borro: aunque la lista no se pueda volver a pedir, el aviso se ve */
+      alBorrar: async (aviso) => { try { await this.cargarLista(); } catch (e) { /* la lista vieja se queda */ } finally { this.avisar(aviso); } }
+    });
     m('[data-tal-volver]').addEventListener('click', () => this.volver());
     m('[data-tal-titulo]').addEventListener('change', (e) => { this.obra.titulo = e.target.value.trim() || this.obra.titulo; e.target.value = this.obra.titulo; this.guardarObra(); });
     m('[data-tal-deshacer]').addEventListener('click', () => this.historia('undo'));
@@ -165,7 +175,17 @@ export class Taller extends Seccion {
       b.className = 'tal-obra';
       b.textContent = o.titulo;
       b.addEventListener('click', () => this.abrirObra(o.id));
-      li.append(b);
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'tal-accion tal-accion--aviso tal-obra__borrar';
+      const nombre = (this.tx.borrarLibro || '').split('{titulo}').join(o.titulo);
+      x.setAttribute('aria-label', nombre);
+      x.title = nombre;
+      x.append(icono('eliminar'));
+      /* Mientras ese libro se abre no se borra: la mesa quedaria sobre un libro que ya no existe */
+      x.addEventListener('click', () => { if (!this.abriendo && !this.obra) this.borrador.abrir({ id: o.id, titulo: o.titulo }); });
+      li.className = 'tal-obra-fila';
+      li.append(b, x);
       this.lista.append(li);
       if (o.id === enfocar) b.focus();
     }
@@ -664,6 +684,14 @@ export class Taller extends Seccion {
   }
 
   /* ---- Copias ---- */
+  /* La copia completa de un libro desde la lista (antes de borrarlo): con imagenes y PDF dentro */
+  async copiaDe(id) {
+    const r = await this.be.taller.abrir(id);
+    if (r.error) return r;
+    const faltan = await bajarLibro({ obra: r.obra, capitulos: r.capitulos, piezas: r.piezas, conArchivos: true, bajar: (x) => this.be.taller.bajar(x), rutasDe });
+    return { ok: true, faltan };
+  }
+
   async bajar() {
     const quedo = await this.vaciarTodo();
     const r = await this.be.taller.abrir(this.obra.id);
@@ -759,6 +787,7 @@ export class Taller extends Seccion {
   /* `sesion` detiene un libro que se estaba abriendo: tras salir, no se pinta */
   olvidar() {
     this.sesion++;
+    if (this.borrador) this.borrador.cerrarYa();
     if (this.obra) this.cerrarObra();
     clearTimeout(this.relojImagenes);
     this.imagenes.olvidar();

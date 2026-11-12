@@ -491,6 +491,49 @@ await ok('lo que el editor deja: numero de inicio de una lista, titulos en hebre
   assert.equal(new ConfigPagina({ cuerpo: { interlinea: 1.45 } }).cuerpo.interlinea, 1.45);
 });
 
+console.log('borrar un libro');
+await ok('borrar se lleva capitulos, piezas y copias; un libro que ya no esta dice noExiste; restaurar no pierde su copia', async () => {
+  const r = new RepositorioTallerMemoria();
+  const { id } = await r.crearObra({ titulo: 'Uno' });
+  const otro = (await r.crearObra({ titulo: 'Dos' })).id;
+  await r.crearPieza({ obraId: id, nombre: 'p' });
+  await r.copia(id, 'manual');
+  await r.copia(otro, 'manual');
+  assert.ok((await r.borrarObra(id)).ok);
+  assert.equal((await r.abrir(id)).error, 'noExiste');
+  assert.equal([...r.piezasM.values()].filter((p) => p.obraId === id).length, 0);
+  assert.equal((await r.versiones(id)).filas.length, 0);
+  assert.equal((await r.versiones(otro)).filas.length, 1);
+  assert.equal((await r.borrarObra(id)).error, 'noExiste');
+  const [v] = (await r.versiones(otro)).filas;
+  assert.ok((await r.restaurar(v.id)).ok);
+  assert.equal((await r.versiones(otro)).filas.length, 2);
+});
+await ok('en la base, borrar sin filas borradas (reglas que no dejan) no es «listo»', async () => {
+  const con = (data) => new RepositorioTallerSupabase({ from: () => ({ delete: () => ({ eq: () => ({ select: () => Promise.resolve({ data, error: null }) }) }) }) });
+  assert.ok((await con([{ id: 'a' }]).borrarObra('a')).ok);
+  assert.equal((await con([]).borrarObra('a')).error, 'noExiste');
+});
+await ok('los archivos de un libro: todas las carpetas, de a paginas, y nunca fuera de su carpeta', async () => {
+  const { listarObra, nombresDeObra, enTandas, pesoLegible, POR_PAGINA } = await import('../src/scripts/contenido/taller/ArchivosObra.js');
+  const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  const muchos = Array.from({ length: POR_PAGINA + 5 }, (_, i) => ({ name: `p${i}.webp`, id: `x${i}`, metadata: { size: 10 } }));
+  const arbol = { [id]: [{ name: 'img', id: null }, { name: 'pdf', id: null }], [`${id}/img`]: [{ name: 'a.webp', id: '1', metadata: { size: 1000 } }], [`${id}/pdf`]: muchos };
+  const pedidas = [];
+  const listar = async (carpeta, desde) => { pedidas.push(`${carpeta}@${desde}`); return { data: (arbol[carpeta] || []).slice(desde, desde + POR_PAGINA), error: null }; };
+  const r = await listarObra(listar, id);
+  assert.equal(r.archivos.length, POR_PAGINA + 6);
+  assert.equal(r.archivos[0].ruta, `taller/${id}/img/a.webp`);
+  assert.ok(pedidas.includes(`${id}/pdf@${POR_PAGINA}`));
+  assert.equal((await listarObra(listar, '../otro')).error, 'invalido');
+  assert.equal((await listarObra(async () => ({ data: null, error: { message: 'x' } }), id)).error, 'red');
+  assert.deepEqual(nombresDeObra([`taller/${id}/img/a.webp`, `taller/${id}/img/a.webp`, 'taller/otro/x.webp', `taller/${id}/../x`, `taller/${id}/`, 5], id), [`${id}/img/a.webp`]);
+  assert.deepEqual(nombresDeObra([`taller/${id}/a`], 'malo'), []);
+  assert.deepEqual(enTandas([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+  assert.equal(pesoLegible(15.1 * 1024 * 1024), '15,1 MB');
+  assert.equal(pesoLegible(0), '0 KB');
+});
+
 console.log('la puerta de los bloques');
 await ok('un tipo sin pruebas para la compilacion', async () => {
   const { TIPOS } = await import('../src/scripts/contenido/taller/tipos/indice.js');

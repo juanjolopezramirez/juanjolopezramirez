@@ -10,10 +10,26 @@
 .taller { display: grid; gap: 1rem; min-width: 0; }
 .tal-fila { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .tal-fila .portal__entrada { flex: 1 1 14rem; min-width: 0; }
+.tal-lista { display: grid; gap: 1rem; }
 .tal-crear { display: grid; gap: .4rem; max-width: 34rem; }
 .tal-obras { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; max-width: 34rem; }
 .tal-obra { width: 100%; min-height: 48px; padding: .6rem .9rem; text-align: left; font: inherit; color: inherit; background: transparent; border: 1px solid var(--raya-fuerte); border-radius: 10px; cursor: pointer; }
 .tal-obra:hover { border-color: var(--tiza); }
+.tal-obra-fila { display: flex; gap: .5rem; align-items: stretch; }
+.tal-obra-fila .tal-obra { flex: 1 1 auto; min-width: 0; }
+.tal-obra-fila .tal-obra__borrar { flex: none; width: 48px; height: auto; min-height: 48px; border-radius: 10px; color: var(--tiza-2); }
+
+/* ---- Borrar un libro: una ventana sobria; el unico rojo es el boton que no tiene vuelta ---- */
+.tal-borrar { width: min(30rem, calc(100vw - 2rem)); box-sizing: border-box; padding: 0; background: var(--consola-alta); color: var(--tiza); border: 1px solid var(--raya-fuerte); border-radius: 14px; box-shadow: 0 24px 60px -20px rgb(var(--sombra-rgb) / .9); }
+.tal-borrar::backdrop { background: rgb(0 0 0 / .55); }
+.tal-borrar__caja { display: grid; gap: .7rem; padding: 1.3rem 1.3rem 1.1rem; }
+.tal-borrar__titulo { margin: 0; font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
+.tal-borrar__texto { margin: 0; color: var(--tiza-2); line-height: 1.5; }
+.tal-borrar__caja > .portal__boton--suave { justify-self: start; }
+.tal-borrar__estado { margin: 0; min-height: 1.4em; color: var(--tiza-2); }
+.tal-borrar__botones { justify-content: flex-end; }
+.tal-borrar__si:not(:disabled) { background: var(--alerta); border-color: var(--alerta); color: #fff; }
+.tal-borrar__si:disabled, .tal-borrar button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ---- La mesa ---- */
 .tal-mesa { position: fixed; inset: 0; z-index: 1000; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto; gap: 0; background: var(--consola); color: var(--tiza); font: 13px/1.4 var(--mono); }

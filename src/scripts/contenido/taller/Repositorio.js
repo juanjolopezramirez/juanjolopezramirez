@@ -55,9 +55,15 @@ export class RepositorioTallerMemoria {
     return { ok: true, rev };
   }
   async guardarObra(datos, pestana) { return this.guardar(this.obrasM, datos, pestana); }
-  async borrarObra(id) {
-    this.obrasM.delete(id);
+  quitarFilas(id) {
+    const habia = this.obrasM.delete(id);
     for (const m of [this.capitulosM, this.piezasM]) for (const [k, v] of m) if (v.obraId === id) m.delete(k);
+    return habia;
+  }
+  async borrarObra(id) {
+    if (!this.quitarFilas(id)) return { error: 'noExiste' };
+    /* Como en la base (on delete cascade): sus copias se van con el */
+    this.versionesL = this.versionesL.filter((v) => v.obraId !== id);
     return { ok: true };
   }
   async crearCapitulo(obraId, titulo = '') {
@@ -103,7 +109,7 @@ export class RepositorioTallerMemoria {
     /* Como en la base: `rev` sigue subiendo y `pestana` queda vacia, asi otra pestaña recibe conflicto */
     const revs = new Map([...this.obrasM, ...this.capitulosM, ...this.piezasM].map(([k, x]) => [k, x.rev]));
     const subir = (x) => ({ ...x, rev: (revs.get(x.id) || 0) + 1, pestana: null });
-    await this.borrarObra(v.obraId);
+    this.quitarFilas(v.obraId);
     this.obrasM.set(obra.id, subir(obra));
     capitulos.forEach((c) => this.capitulosM.set(c.id, subir(c)));
     piezas.forEach((p) => this.piezasM.set(p.id, subir(p)));
@@ -168,7 +174,12 @@ export class RepositorioTallerSupabase {
   guardarCapitulo(d, pestana) { return this.cas('taller_capitulos', d.id, d.rev, CAMPOS.capitulo(d), pestana); }
   guardarPieza(d, pestana) { return this.cas('taller_piezas', d.id, d.rev, CAMPOS.pieza(d), pestana); }
 
-  async borrarObra(id) { return this.quitar('taller_obras', id); }
+  /* Si las reglas no dejan borrar, la base no da error: borra cero filas. Por eso se pide la fila borrada */
+  async borrarObra(id) {
+    const r = await this.pedir(this.sb.from('taller_obras').delete().eq('id', id).select('id'));
+    if (r.error) return r;
+    return Array.isArray(r.data) && r.data.length === 1 ? { ok: true } : { error: 'noExiste' };
+  }
   async borrarCapitulo(id) { return this.quitar('taller_capitulos', id); }
   async borrarPieza(id) { return this.quitar('taller_piezas', id); }
   async quitar(tabla, id) {

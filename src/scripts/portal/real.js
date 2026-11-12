@@ -16,6 +16,7 @@ import { RepositorioSupabase } from '../contenido/Repositorio.js';
 import { RepositorioTallerSupabase } from '../contenido/taller/Repositorio.js';
 import { revisarArchivo } from './archivos.js';
 import { ubicacion } from '../contenido/Almacen.js';
+import { ES_ID_OBRA, POR_PAGINA, POR_TANDA, enTandas, listarObra, nombresDeObra } from '../contenido/taller/ArchivosObra.js';
 import { SEMANAS_HISTORIA, validarLectura, validarPiedra } from './tablero.js';
 import { IDS_DOMINIOS } from '../../data/portal/tablero.js';
 
@@ -321,6 +322,24 @@ export async function abrirReal(cfg, lang) {
           const { data, error } = await sb.storage.from('taller').download(donde.nombre);
           return error || !data ? { error: 'red' } : { ok: true, blob: data };
         } catch (e) { return { error: 'red' }; }
+      },
+      /* Todo lo que guarda un libro en el cajon, con su peso: para decir cuanto libera y para borrarlo */
+      archivos(obraId) {
+        return listarObra((carpeta, desde) => sb.storage.from('taller').list(carpeta, { limit: POR_PAGINA, offset: desde, sortBy: { column: 'name', order: 'asc' } }), obraId);
+      },
+      /* Borra solo dentro de `taller/<obraId>/`. Devuelve cuantos no se pudieron quitar. */
+      async borrarArchivos(obraId, rutas) {
+        if (!ES_ID_OBRA.test(String(obraId))) return { error: 'invalido' };
+        const nombres = nombresDeObra(rutas, obraId);
+        let quitados = 0;
+        for (const tanda of enTandas(nombres, POR_TANDA)) {
+          try {
+            const { data, error } = await sb.storage.from('taller').remove(tanda);
+            if (!error && Array.isArray(data)) quitados += data.length;
+          } catch (e) { /* esa tanda queda contada como no quitada */ }
+        }
+        /* Lo que el filtro aparto (nombres raros) tambien queda: se cuenta, no se calla */
+        return { ok: true, faltan: new Set(rutas).size - quitados };
       }
     }),
 

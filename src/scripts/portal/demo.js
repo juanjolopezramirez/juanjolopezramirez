@@ -24,6 +24,7 @@ import { SEMANAS_HISTORIA, semanaDe, sumarSemanas, validarLectura, validarPiedra
 import { IDS_DOMINIOS } from '../../data/portal/tablero.js';
 import { revisarArchivo } from './archivos.js';
 import { RepositorioTallerMemoria } from '../contenido/taller/Repositorio.js';
+import { ES_ID_OBRA, nombresDeObra } from '../contenido/taller/ArchivosObra.js';
 
 const PRESETS = ['entrar', 'pendiente', 'rechazado', 'miembro', 'admin', 'admin2fa'];
 const CODIGO_DEMO = '123456';
@@ -243,7 +244,19 @@ export function abrirDemo() {
         const prueba = window.__pruebaImagenes || {};
         if (prueba.demora) await new Promise((ok) => { setTimeout(ok, prueba.demora); });
         if (prueba.fallos > 0) { prueba.fallos--; return { error: 'red' }; }
-        return subidos.has(ruta) ? { ok: true, blob: subidos.get(ruta) } : { error: 'red' }; }
+        return subidos.has(ruta) ? { ok: true, blob: subidos.get(ruta) } : { error: 'red' }; },
+      async archivos(obraId) {
+        if (!ES_ID_OBRA.test(String(obraId))) return { error: 'invalido' };
+        await espera(150);
+        const pre = `taller/${obraId}/`;
+        return { ok: true, archivos: [...subidos].filter(([r]) => r.startsWith(pre)).map(([ruta, a]) => ({ ruta, peso: a.size || 0 })) };
+      },
+      async borrarArchivos(obraId, rutas) {
+        if (!ES_ID_OBRA.test(String(obraId))) return { error: 'invalido' };
+        await espera(150);
+        nombresDeObra(rutas, obraId).forEach((n) => subidos.delete(`taller/${n}`));
+        return { ok: true, faltan: 0 };
+      }
     }),
 
     /* Tablero en memoria: la misma forma que el de verdad (real.js), con las mismas validaciones */

@@ -158,6 +158,13 @@ export const PORTAL_TEXTOS = {
       taller: {
         sinBase: 'El Taller aún no está conectado. Pruébalo en modo demo.',
         tituloNuevo: 'Título de tu nuevo libro', crear: 'Crear', sinObras: 'Aún no hay libros. Escribe un título y empieza.',
+        borrarLibro: 'Borrar «{titulo}»', borrarPregunta: '¿Borrar «{titulo}»?', borrarMidiendo: 'Midiendo cuánto ocupa…',
+        borrarCuanto: 'Se borran sus capítulos, sus copias guardadas y {n} archivos ({peso}). No se puede deshacer.',
+        borrarSinArchivos: 'Se borran sus capítulos y sus copias guardadas. No tiene imágenes ni PDF. No se puede deshacer.',
+        borrarNoMide: 'No pude medir sus archivos. Revisa tu conexión antes de borrar.',
+        borrarCopia: 'Bajar una copia antes', borrarBajando: 'Bajando la copia…', borrarCopiaLista: 'Copia bajada. Está en tus descargas.',
+        borrarEscribe: 'Para confirmar, escribe el título del libro', borrarSi: 'Borrar para siempre', borrando: 'Borrando…',
+        libroBorrado: 'Libro borrado. Liberaste {peso}.', libroBorradoQuedan: 'Libro borrado, pero {n} archivos no se pudieron quitar. Solo ocupan espacio.',
         volver: 'Libros', tituloObra: 'Título del libro', sacarPdf: 'Hacer el PDF', tituloVentana: 'Taller de libros', verLibro: 'Ver como libro', volverEscribir: 'Volver a escribir',
         deshacer: 'Deshacer', rehacer: 'Rehacer', anterior: 'Página anterior', siguiente: 'Página siguiente', pliegoDos: 'Páginas {a} y {b} de {total}',
         celular: 'Aquí solo puedes leer. Para escribir, usa un computador.',

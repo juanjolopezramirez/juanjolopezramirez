@@ -33,7 +33,9 @@
      · borrarInvitacion(correo) · leer(tabla)
 
    y `taller`, Developer-Mode → Taller (panel/dev/Taller.js; la forma esta en contenido/taller/Repositorio.js,
-   mas subir(ruta, archivo) y bajar(ruta) del cajon privado; supabase/012_taller.sql; solo el admin)
+   mas subir(ruta, archivo) y bajar(ruta) del cajon privado, y archivos(obraId) → { archivos: [{ ruta, peso }] }
+   y borrarArchivos(obraId, rutas) → { faltan } para borrar un libro entero (contenido/taller/ArchivosObra.js);
+   supabase/012_taller.sql; solo el admin)
 
    y `tablero`, Self-Mode → Tablero (panel/Tablero.js; supabase/009_tablero.sql; solo el admin):
      lecturas(semana)            { ok, filas: [{ clave, cargue, nota }] } | { error }   (semana = su lunes, «2026-10-26»)

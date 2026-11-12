@@ -19,6 +19,21 @@ const { tx } = Astro.props;
     </form>
     <ul class="tal-obras" role="list" data-tal-obras></ul>
     <p class="portal__nota" data-tal-sin-obras hidden>{tx.sinObras}</p>
+    <!-- Borrar un libro (taller/BorrarLibro.js): cuanto ocupa, una copia antes, y el titulo escrito para confirmar -->
+    <dialog class="tal-borrar" data-tal-borrar aria-labelledby="tal-borrar-titulo" aria-describedby="tal-borrar-cuanto">
+      <form class="tal-borrar__caja" data-tal-borrar-form novalidate>
+        <h2 class="tal-borrar__titulo" id="tal-borrar-titulo" data-tal-borrar-titulo></h2>
+        <p class="tal-borrar__texto" id="tal-borrar-cuanto" data-tal-borrar-cuanto></p>
+        <button class="portal__boton portal__boton--suave" type="button" data-tal-borrar-copia>{tx.borrarCopia}</button>
+        <label class="portal__etiqueta" for="tal-borrar-escribe">{tx.borrarEscribe}</label>
+        <input class="portal__entrada" id="tal-borrar-escribe" data-tal-borrar-escribe maxlength="200" autocomplete="off" spellcheck="false" />
+        <p class="tal-borrar__estado" data-tal-borrar-estado role="status"></p>
+        <div class="tal-fila tal-borrar__botones">
+          <button class="portal__boton portal__boton--suave" type="button" data-tal-borrar-no>{tx.cancelar}</button>
+          <button class="portal__boton tal-borrar__si" type="submit" data-tal-borrar-si disabled>{tx.borrarSi}</button>
+        </div>
+      </form>
+    </dialog>
   </div>
 
   <div class="tal-mesa dev" data-tal-mesa lang="es" hidden>
