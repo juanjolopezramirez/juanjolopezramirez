@@ -34,7 +34,7 @@ function igualar(a, b) {
 export class Propiedades {
   constructor(caja, { tx, mesa }) {
     Object.assign(this, { caja, tx, mesa });
-    caja.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); this.mesa.aLaHoja(); } });
+    caja.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); this.volver(); } });
     /* Mientras alguien escribe en un campo, nada le cambia el valor; al guardarlo vuelve a mandar lo guardado */
     caja.addEventListener('input', (e) => { e.target.dataset.escribiendo = '1'; }, true);
     caja.addEventListener('change', (e) => { delete e.target.dataset.escribiendo; }, true);
@@ -190,7 +190,13 @@ export class Propiedades {
     pintar();
     if (!dentro) return;
     const igual = [...this.caja.querySelectorAll(CONTROLES)].find((n) => !fuera(n) && nombre(n) === clave);
-    if (igual) igual.focus(); else this.mesa.aLaHoja();
+    if (igual) igual.focus(); else this.volver();
+  }
+
+  /* Al salir del panel: a la hoja, o a las miniaturas si se hablaba de varias (ir a la hoja las soltaria) */
+  volver() {
+    if (this.dueno === 'varias') this.mesa.minis.entrar();
+    else this.mesa.aLaHoja();
   }
 
   /* ---- Lo elegido ---- */
@@ -251,6 +257,18 @@ export class Propiedades {
       this.conIcono('duplicar', tx.duplicarPagina, () => this.mesa.duplicarPagina(v)), this.armado('eliminar', tx.eliminarPagina, tx.eliminarPaginaSeguro, () => this.mesa.borrarPagina(v))
     );
     l.append(crear('p', 'tal-rotulo', tx.agregar), agregar, crear('p', 'tal-rotulo', tx.estaPagina), pagina);
+  }
+
+  /* Varias paginas elegidas en las miniaturas. Los botones leen la eleccion al pulsarse: nunca una vieja. */
+  deVarias(n) { this.rehacer(() => this.poner(() => this.pintarVarias(n), 'varias', `varias:${n}`)); }
+
+  pintarVarias(n) {
+    const tx = this.tx, l = this.lienzo, cuenta = (t) => t.replace('{n}', String(n)), ac = crear('div', 'tal-acciones');
+    ac.append(
+      this.conIcono('duplicar', cuenta(tx.duplicarVarias), () => this.mesa.duplicarVarias()),
+      this.armado('eliminar', cuenta(tx.eliminarVarias), cuenta(tx.eliminarVariasSeguro), () => this.mesa.borrarVarias())
+    );
+    l.append(crear('h2', '', cuenta(tx.elegidas)), crear('p', '', tx.variasAyuda), ac, this.accion(tx.quitarEleccion, () => this.mesa.soltarEleccion(true)));
   }
 
   /* Lo que hace un boton, en la linea o en una pagina libre */

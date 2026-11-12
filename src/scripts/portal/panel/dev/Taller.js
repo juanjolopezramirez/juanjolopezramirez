@@ -423,10 +423,7 @@ export class Taller extends Seccion {
     if (this.conflictos.length) this.conflicto.focus(); else v.editor.view.dom.focus();
   }
 
-  historia(cmd) {
-    const h = this.mesa.hojaActiva, e = h ? h.editor : (this.mesa.activo && this.mesa.activo.editor);
-    if (e) e.commands[cmd]();
-  }
+  historia(cmd) { this.mesa.historia(cmd); }
 
   /* ---- La pagina del libro ---- */
   prepararPagina() {

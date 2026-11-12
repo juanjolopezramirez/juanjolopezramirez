@@ -19,6 +19,7 @@ import { PaginaLibre } from './nodos/paginaLibre.js';
 import { Formula } from './nodos/formula.js';
 import { Boton } from './nodos/boton.js';
 import { Pasaje } from './nodos/pasaje.js';
+import { META_PAGINA } from './Varias.js';
 import { POR_NODO } from '../../../../contenido/taller/tipos/indice.js';
 
 const MARGEN_BARRA_PX = 80;
@@ -61,7 +62,7 @@ function fragmentoLimpio(f) {
 /* LA GUARDA DE LAS PAGINAS. Una pagina libre no cabe en una seleccion de texto: Ctrl+A y borrar, o escribir
    encima, se llevarian paginas enteras sin que nadie lo pidiera. Solo las borra quien dice que borra una
    pagina (`META_PAGINA`). Deshacer si puede, porque Ctrl+Y la trae de vuelta, pero se avisa. */
-export const META_PAGINA = 'tallerPagina';
+export { META_PAGINA };
 /* Se cuentan, no se siguen una por una: guardar una pagina libre la reemplaza entera, y seguirla la bloquearia.
    Solo se entra a las columnas, que pueden llevarlas: asi no se recorre todo el texto en cada tecla. */
 const paginasLibres = (doc) => {

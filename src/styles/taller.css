@@ -153,6 +153,10 @@
 .mini:hover { background: rgb(var(--luz) / .05); }
 .mini[aria-current="true"] { background: rgb(var(--prompt-rgb) / .16); }
 .mini[draggable="true"] { cursor: grab; }
+/* Elegida: un borde por dentro, que no mueve nada y se ve tambien en colores forzados */
+.mini[aria-selected="true"] { outline: 2px solid var(--prompt); outline-offset: -2px; background: rgb(var(--prompt-rgb) / .1); }
+.mini[aria-selected="true"] .mini__n { color: var(--prompt); font-weight: 700; }
+.tal-menu__op--armada { background: rgb(255 59 59 / .14); font-weight: 600; }
 .mini__n { font-size: 11px; color: var(--tiza-2); text-align: right; padding-top: .15rem; }
 .mini__hoja { display: block; background: var(--hoja-papel, #fff); box-shadow: 0 1px 4px rgb(0 0 0 / .5); overflow: hidden; }
 .punto { position: absolute; right: 16px; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--alerta); box-shadow: 0 0 0 2px #fff; }
@@ -328,4 +332,5 @@
   .tal-ic[aria-pressed="true"] { background: Highlight; color: HighlightText; }
   .tal-sel__op:hover, .tal-sel__op--activa { forced-color-adjust: none; background: Highlight; color: HighlightText; }
   .tal-sel__op[aria-selected="true"]::before { content: "• " / ""; }
+  .mini[aria-selected="true"] { outline-color: Highlight; }
 }

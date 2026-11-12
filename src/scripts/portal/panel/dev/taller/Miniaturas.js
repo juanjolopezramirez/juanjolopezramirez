@@ -6,6 +6,7 @@
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const ESCALA = .2;
 const ANCHO_MAX = 112;            // lo que cabe en la columna, para hojas grandes como carta u oficio
+const DESARMAR_MS = 3000;         // lo mismo que el boton rojo del panel
 
 export class Miniaturas {
   constructor(caja, mesa) {
@@ -27,6 +28,8 @@ export class Miniaturas {
 
   /* Las copias de las paginas llevan el texto del libro: no se quedan al cerrarlo */
   vaciar() {
+    clearTimeout(this.relojSupr);
+    this.relojSupr = 0;
     this.arrastrado = null;
     this.visor.disconnect();
     this.pedidas = new Map();
@@ -44,9 +47,13 @@ export class Miniaturas {
       if (p.vivo !== cap) {
         cap = p.vivo;
         grupo = crear('div', 'bloque-mini');
+        grupo.setAttribute('role', 'none');
         if (cap) {
           const c = cap;
           const t = crear('div', 'cap-mini', `▤ ${c.cap.titulo || `${m.tx.capitulo} ${m.vivos.indexOf(c) + 1}`}`);
+          t.setAttribute('role', 'treeitem');
+          t.setAttribute('aria-level', '1');
+          t.setAttribute('aria-selected', 'false');
           t.draggable = true;
           t.tabIndex = -1;
           t.title = m.tx.arrastrarCapitulo;
@@ -58,7 +65,10 @@ export class Miniaturas {
       }
       const b = crear('div', 'mini');
       b.tabIndex = -1;
-      b.setAttribute('role', 'button');
+      /* Un arbol que deja elegir varias: el capitulo arriba y sus paginas debajo */
+      b.setAttribute('role', 'treeitem');
+      b.setAttribute('aria-level', p.vivo ? '2' : '1');
+      b.setAttribute('aria-selected', String(m.estaElegida(p)));
       b.setAttribute('aria-label', `${m.tx.pagina2} ${n}`);
       b.dataset.n = String(n);
       b.append(crear('span', 'mini__n', String(n)), crear('span', 'mini__hoja'));
@@ -70,7 +80,14 @@ export class Miniaturas {
         b.addEventListener('dragstart', (e) => { this.arrastrado = { vista: v }; e.dataTransfer.setData('text/plain', 'pagina'); e.dataTransfer.effectAllowed = 'move'; });
         if (m.segura && m.seSale(v)) { b.append(crear('span', 'punto')); b.setAttribute('aria-label', `${m.tx.pagina2} ${n}. ${m.tx.fueraDeZona}`); }
       }
-      b.addEventListener('click', () => m.irA(Number(b.dataset.n)));
+      /* Como en las presentaciones: clic elige una, Mayus+clic las de en medio, Ctrl+clic suma o quita una */
+      b.addEventListener('mousedown', (e) => { if (e.shiftKey) e.preventDefault(); });
+      b.addEventListener('click', (e) => {
+        const k = Number(b.dataset.n), modo = e.shiftKey ? 'rango' : e.ctrlKey || e.metaKey ? 'alternar' : 'uno';
+        m.elegirMini(k - 1, modo);
+        if (modo === 'uno') m.irA(k);
+        else this.enfocar(k);   // Mayus+clic no mueve el foco solo: Supr y las flechas siguen desde aqui
+      });
       grupo.append(b);
       pedidas.set(b, p);
     }
@@ -108,6 +125,10 @@ export class Miniaturas {
     });
   }
 
+  marcarEleccion() {
+    for (const [b, p] of this.pedidas) b.setAttribute('aria-selected', String(this.mesa.estaElegida(p)));
+  }
+
   /* ---- El teclado: una sola parada, flechas para recorrer y Alt+flecha para mover ---- */
   entrar() { (this.caja.querySelector('.mini[tabindex="0"]') || this.caja.querySelector('.mini')).focus(); }
 
@@ -121,6 +142,7 @@ export class Miniaturas {
   async alTeclear(e) {
     const t = e.target, lista = [...this.caja.querySelectorAll('.cap-mini, .mini')], i = lista.indexOf(t);
     if (i < 0) return;
+    if (this.eligiendo(e, t, lista, i)) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (t.dataset.n) { this.mesa.irA(Number(t.dataset.n)); this.mesa.entrarEnPagina(Number(t.dataset.n)); }
@@ -136,6 +158,43 @@ export class Miniaturas {
     if (!p || !p.vista) { this.mesa.decir(this.mesa.tx.paginaDeTexto); return; }
     await this.mesa.moverPaso(p.vista, d);
     this.enfocar(n + d);
+  }
+
+  /* Las teclas de elegir. Devuelve true si la tecla era suya. Supr pide dos pulsaciones, como el boton rojo. */
+  eligiendo(e, t, lista, i) {
+    const m = this.mesa, tx = m.tx, n = Number(t.dataset.n), ctrl = e.ctrlKey || e.metaKey, tecla = e.key.toLowerCase();
+    const borrar = e.key === 'Delete' || e.key === 'Backspace';
+    if (!borrar) { clearTimeout(this.relojSupr); this.relojSupr = 0; }
+    if (ctrl && (tecla === 'z' || tecla === 'y')) { e.preventDefault(); m.historia(tecla === 'y' || e.shiftKey ? 'redo' : 'undo'); return true; }
+    if (e.key === 'Escape' && m.cuantasElegidas()) { e.preventDefault(); m.soltarEleccion(true); return true; }
+    if (!n) return false;
+    if (ctrl && tecla === 'a') { e.preventDefault(); m.elegirMini(n - 1, 'todas'); return true; }
+    if (ctrl && e.key === ' ') { e.preventDefault(); m.elegirMini(n - 1, 'alternar'); return true; }
+    if (e.shiftKey && !e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      const o = lista[i + (e.key === 'ArrowUp' ? -1 : 1)];
+      if (!o || !o.dataset.n) return true;
+      if (!m.eleccion.ancla) m.elegirMini(n - 1, 'uno');
+      lista.forEach((x) => { x.tabIndex = x === o ? 0 : -1; });
+      o.focus();
+      m.elegirMini(Number(o.dataset.n) - 1, 'rango');
+      return true;
+    }
+    if (borrar) {
+      const p = m.paginas[n - 1];
+      if (!p || !m.estaElegida(p)) return false;
+      e.preventDefault();
+      /* La tecla sostenida no confirma, y si lo elegido cambio desde la primera pulsacion se pregunta de nuevo */
+      if (e.repeat) return true;
+      if (this.relojSupr && this.armadaCon === m.eleccion) { clearTimeout(this.relojSupr); this.relojSupr = 0; m.borrarVarias(); return true; }
+      clearTimeout(this.relojSupr);
+      this.armadaCon = m.eleccion;
+      const k = m.cuantasElegidas();
+      m.decir(k > 1 ? tx.suprVarias.replace('{n}', String(k)) : tx.suprUna);
+      this.relojSupr = setTimeout(() => { this.relojSupr = 0; }, DESARMAR_MS);
+      return true;
+    }
+    return false;
   }
 
   entrarAlCapitulo(c) {

@@ -572,6 +572,73 @@ await ok('los archivos de un libro: todas las carpetas, de a paginas, y nunca fu
   assert.equal(pesoLegible(0), '0 KB');
 });
 
+console.log('varias paginas a la vez');
+{
+  const { Schema } = await import('@tiptap/pm/model');
+  const { EditorState } = await import('@tiptap/pm/state');
+  const { history, undo, redo } = await import('@tiptap/pm/history');
+  const V = await import('../src/scripts/portal/panel/dev/taller/Varias.js');
+  const s = new Schema({ nodes: { doc: { content: 'block+' }, text: { group: 'inline' }, paragraph: { group: 'block', content: 'inline*' },
+    paginaLibre: { group: 'block', atom: true, attrs: { nombre: { default: '' }, objetos: { default: [] } } },
+    columnas: { group: 'block', content: 'columna+' }, columna: { content: 'block+' } } });
+  const P = (n) => s.nodes.paginaLibre.create({ nombre: n, objetos: [{ id: `o${n}` }] }), T = (t) => s.nodes.paragraph.create(null, s.text(t));
+  const original = s.nodes.doc.create(null, [T('a'), P('1'), P('2'), T('b'), P('3'), s.nodes.columnas.create(null, [s.nodes.columna.create(null, [P('4')])])]);
+  const libres = [];
+  original.descendants((x) => { if (x.type.name === 'paginaLibre') libres.push(x); });
+  const nombres = (d) => { const o = []; d.descendants((x) => { if (x.type.name === 'paginaLibre') o.push(x.attrs.nombre); }); return o.join(''); };
+  const nuevo = () => ({ st: EditorState.create({ doc: original, plugins: [history()] }) });
+  const hacer = (c, tr) => { c.st = c.st.apply(tr); };
+  const atras = (c) => undo(c.st, (tr) => hacer(c, tr)), adelante = (c) => redo(c.st, (tr) => hacer(c, tr));
+
+  await ok('elegir de la 2 a la 5: solo libres, solo de un capitulo, y avisa si se salia', () => {
+    const a = {}, b = {}, lista = [{ vivo: a, nodo: null }, { vivo: a, nodo: 'p1' }, { vivo: a, nodo: null }, { vivo: a, nodo: 'p2' }, { vivo: b, nodo: 'q1' }];
+    assert.deepEqual(V.rango(lista, 1, 3), { nodos: ['p1', 'p2'], fuera: false });
+    assert.deepEqual(V.rango(lista, 3, 1), { nodos: ['p1', 'p2'], fuera: false });
+    assert.deepEqual(V.rango(lista, 1, 4), { nodos: ['p1', 'p2'], fuera: true });
+    assert.deepEqual(V.alternar(['p1', 'p2'], 'p1'), ['p2']);
+    assert.deepEqual(V.alternar(['p2'], 'p1'), ['p2', 'p1']);
+    assert.deepEqual(V.todasDelCapitulo(lista, a), ['p1', 'p2']);
+  });
+  await ok('borrar tres paginas: un solo Ctrl+Z las devuelve en su orden, y Ctrl+Y las vuelve a quitar', () => {
+    const c = nuevo(), tr = V.trBorrar(c.st, [libres[0], libres[2], libres[3]]);
+    assert.equal(tr.getMeta(V.META_PAGINA), true);
+    hacer(c, tr);
+    assert.equal(nombres(c.st.doc), '2');
+    assert.ok(atras(c));
+    assert.ok(c.st.doc.eq(original));
+    adelante(c);
+    assert.equal(nombres(c.st.doc), '2');
+  });
+  await ok('borrar la unica pagina de una columna deja la columna con un parrafo', () => {
+    const c = nuevo();
+    hacer(c, V.trBorrar(c.st, [libres[3]]));
+    c.st.doc.check();
+    assert.equal(nombres(c.st.doc), '123');
+  });
+  await ok('dos borrados seguidos son dos Ctrl+Z', () => {
+    const c = nuevo();
+    hacer(c, V.trBorrar(c.st, [libres[0]]));
+    hacer(c, V.trBorrar(c.st, [libres[1]]));
+    assert.equal(nombres(c.st.doc), '34');
+    atras(c);
+    assert.equal(nombres(c.st.doc), '234');
+  });
+  await ok('duplicar dos: las copias van juntas tras la ultima, son otras, y un Ctrl+Z las quita', () => {
+    const c = nuevo(), r = V.trDuplicar(c.st, [libres[2], libres[0]]);
+    hacer(c, r.tr);
+    assert.equal(nombres(c.st.doc), '123134');
+    assert.equal(V.posicionesDe(c.st.doc, r.copias).length, 2);
+    assert.notEqual(r.copias[0].attrs.objetos, libres[0].attrs.objetos);
+    atras(c);
+    assert.ok(c.st.doc.eq(original));
+  });
+  await ok('nada elegido que siga en el capitulo: no se hace nada', () => {
+    const c = nuevo();
+    assert.equal(V.trBorrar(c.st, [P('x')]), null);
+    assert.equal(V.trDuplicar(c.st, []), null);
+  });
+}
+
 console.log('la puerta de los bloques');
 await ok('un tipo sin pruebas para la compilacion', async () => {
   const { TIPOS } = await import('../src/scripts/contenido/taller/tipos/indice.js');

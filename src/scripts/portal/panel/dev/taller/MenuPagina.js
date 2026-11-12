@@ -7,8 +7,9 @@ const crear = (tag, clase, texto) => { const e = document.createElement(tag); if
 const BORDE = 8;
 
 export class MenuPagina {
-  constructor(raiz, { tx }) {
+  constructor(raiz, { tx, decir }) {
     this.tx = tx;
+    this.decir = decir;
     this.caja = crear('div', 'tal-menu');
     this.caja.popover = 'auto';
     this.caja.setAttribute('role', 'menu');
@@ -38,10 +39,21 @@ export class MenuPagina {
     b.append(crear('span', '', i.texto));
     if (i.apagado) { b.setAttribute('aria-disabled', 'true'); if (i.ayuda) b.title = i.ayuda; return b; }
     b.addEventListener('click', () => {
+      /* Borrar pide un segundo clic: el primero solo lo pone en rojo y cambia lo que dice */
+      if (i.confirmar && !b.dataset.armado) { this.armar(b, i.texto, i.confirmar); return; }
       if (!i.queda) this.cerrar(false);
       i.fn();
     });
     return b;
+  }
+
+  armar(b, texto, confirmar) {
+    const nombre = b.lastChild;
+    b.dataset.armado = '1';
+    b.classList.add('tal-menu__op--armada');
+    nombre.textContent = confirmar;
+    if (this.decir) this.decir(confirmar);
+    b.addEventListener('blur', () => { delete b.dataset.armado; b.classList.remove('tal-menu__op--armada'); nombre.textContent = texto; }, { once: true });
   }
 
   colocar() {

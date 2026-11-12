@@ -6,7 +6,7 @@
    de pagina. Con la escala, lo que se ve en cualquier zoom es lo que sale en el PDF. */
 import { Selection } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
-import { META_PAGINA } from './Editor.js';
+import { META_PAGINA, alternar, posicionesDe, rango, todasDelCapitulo, trBorrar, trDuplicar } from './Varias.js';
 import { Capitulo } from '../../../../contenido/taller/Obra.js';
 import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
@@ -21,6 +21,7 @@ const crear = (tag, clase, texto) => { const e = document.createElement(tag); if
 const tope = (v, a, b) => Math.min(b, Math.max(a, v));
 const PINTAR_MS = 400;
 const ZOOM_MIN = .25, ZOOM_MAX = 3;
+const SIN_ELEGIR = Object.freeze({ vivo: null, nodos: [], ancla: null });
 
 export class Mesa {
   constructor(raiz, o) {
@@ -33,6 +34,7 @@ export class Mesa {
     this.activo = null;                       // el ultimo capitulo con el cursor
     this.hojaActiva = null;
     this.imagenElegida = null;
+    this.eleccion = SIN_ELEGIR;               // las paginas elegidas en las miniaturas: { vivo, nodos, ancla }
     const q = (s) => raiz.querySelector(s);
     this.q = q;
     this.fondo = q('[data-tal-fondo]');
@@ -41,7 +43,7 @@ export class Mesa {
     this.estilo = raiz.querySelector('style') || raiz.appendChild(crear('style'));
     this.prop = new Propiedades(q('[data-tal-panel]'), { tx: this.tx, mesa: this });
     this.minis = new Miniaturas(q('[data-tal-miniaturas]'), this);
-    this.menu = new MenuPagina(raiz, { tx: this.tx });
+    this.menu = new MenuPagina(raiz, { tx: this.tx, decir: (t) => this.decir(t) });
     this.fondo.addEventListener('scroll', () => requestAnimationFrame(() => this.alDesplazar()));
     this.fondo.addEventListener('pointerdown', (e) => { if (e.target === this.fondo || e.target === this.caja || e.target === this.lienzo) this.soltarTodo(); });
     this.fondo.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); this.zoom(this.z - Math.sign(e.deltaY) * .1); } }, { passive: false });
@@ -89,6 +91,7 @@ export class Mesa {
     this.minis.vaciar();
     this.prop.ocultar();
     this.activo = null; this.hojaActiva = null; this.imagenElegida = null;
+    this.eleccion = SIN_ELEGIR;
     this.raiz.removeAttribute('style');
     clearTimeout(this.reloj);
     this.q('[data-t-segura]').checked = false;
@@ -141,8 +144,125 @@ export class Mesa {
       for (const f of v.filas) this.paginas.push({ vivo: v, ...f });
     }
     this.pintarIndice(reparto);
+    this.podarEleccion();
     this.minis.pintar();
     this.contar();
+  }
+
+  /* Deshacer y rehacer van al capitulo de lo ultimo tocado: la hoja elegida, o el capitulo activo */
+  historia(cmd) {
+    const h = this.hojaActiva, e = h ? h.editor : (this.activo && this.activo.editor);
+    if (e) e.commands[cmd]();
+  }
+
+  /* ---- Varias paginas elegidas ---- */
+  /* Despues de escribir, guardar o deshacer, se queda lo que sigue en su capitulo */
+  podarEleccion() {
+    const { vivo, nodos, ancla } = this.eleccion;
+    if (!nodos.length && !ancla) return;
+    const hay = new Set(this.paginas.filter((p) => p.vivo === vivo && p.vista).map((p) => p.vista.node));
+    const quedan = nodos.filter((n) => hay.has(n));
+    if (quedan.length === nodos.length && (!ancla || hay.has(ancla))) return;
+    this.eleccion = quedan.length || hay.has(ancla) ? { vivo, nodos: quedan, ancla: hay.has(ancla) ? ancla : quedan[0] } : SIN_ELEGIR;
+    this.panelDeEleccion();
+  }
+
+  cuantasElegidas() { return this.eleccion.nodos.length; }
+  estaElegida(p) { return !!p.vista && p.vivo === this.eleccion.vivo && this.eleccion.nodos.includes(p.vista.node); }
+
+  /* `modo`: 'uno' (clic), 'rango' (Mayus+clic) o 'alternar' (Ctrl+clic). Solo paginas libres de un capitulo. */
+  elegirMini(i, modo) {
+    const tx = this.tx, p = this.paginas[i], e = this.eleccion;
+    if (!p) return;
+    const nodo = p.vista ? p.vista.node : null;
+    let nueva = null, aviso = '';
+    if (modo === 'alternar') {
+      if (!nodo) { this.decir(tx.soloLibres); return; }
+      if (e.nodos.length && e.vivo !== p.vivo) { this.decir(tx.soloUnCapitulo); return; }
+      nueva = { vivo: p.vivo, nodos: alternar(e.nodos, nodo), ancla: nodo };
+    } else if (modo === 'rango' && e.ancla) {
+      const lista = this.paginas.map((q) => ({ vivo: q.vivo, nodo: q.vista ? q.vista.node : null }));
+      const a = lista.findIndex((q) => q.nodo === e.ancla);
+      if (a >= 0) {
+        const r = rango(lista, a, i);
+        if (r.fuera) aviso = tx.soloUnCapitulo;
+        nueva = { vivo: lista[a].vivo, nodos: r.nodos, ancla: e.ancla };
+      }
+    } else if (modo === 'todas') {
+      if (!p.vivo) return;
+      nueva = { vivo: p.vivo, nodos: todasDelCapitulo(this.paginas.map((q) => ({ vivo: q.vivo, nodo: q.vista ? q.vista.node : null })), p.vivo), ancla: nodo };
+    }
+    if (!nueva) {
+      nueva = nodo ? { vivo: p.vivo, nodos: [nodo], ancla: nodo } : SIN_ELEGIR;
+      /* El panel no puede hablar de una pagina mientras la elegida es otra */
+      if (this.hojaActiva || this.imagenElegida) this.soltarElegidos();
+    }
+    this.eleccion = nueva;
+    this.panelDeEleccion();
+    this.minis.marcarEleccion();
+    if (modo !== 'uno') this.decirEleccion(aviso);
+  }
+
+  /* La cuenta, y si hace falta por que no entraron todas: en un solo aviso, para que uno no tape al otro */
+  decirEleccion(aviso = '') {
+    const n = this.cuantasElegidas(), tx = this.tx;
+    const cuenta = n === 0 ? tx.eleccionVacia : n === 1 ? tx.elegidaUna : `${tx.elegidas.replace('{n}', String(n))}.`;
+    this.decir(aviso ? `${cuenta} ${aviso}` : cuenta);
+  }
+
+  /* Con dos o mas, el panel habla de ellas; con una sola, la mesa sigue como siempre */
+  panelDeEleccion() {
+    const n = this.cuantasElegidas();
+    if (n > 1) {
+      if (this.hojaActiva || this.imagenElegida) this.soltarElegidos();
+      this.prop.deVarias(n);
+    } else if (this.prop.dueno === 'varias') this.prop.ocultar();
+  }
+
+  soltarEleccion(avisar = false) {
+    if (!this.eleccion.nodos.length && !this.eleccion.ancla) return;
+    this.eleccion = SIN_ELEGIR;
+    this.panelDeEleccion();
+    this.minis.marcarEleccion();
+    if (avisar) this.decirEleccion();
+  }
+
+  /* Lo elegido que sigue en su capitulo, si se puede tocar. Si no, se dice por que no. */
+  eleccionParaCambiar() {
+    const { vivo, nodos } = this.eleccion;
+    if (!vivo || !nodos.length) return null;
+    if (!vivo.editor.isEditable) { this.decir(this.tx.variasQuietas); return null; }
+    this.confirmarEdicion();
+    const vivos = posicionesDe(vivo.editor.state.doc, nodos).map((x) => x.nodo);
+    return vivos.length ? { vivo, nodos: vivos } : null;
+  }
+
+  /* Todas en una sola transaccion: un Ctrl+Z (o el boton Deshacer) las devuelve en su orden */
+  borrarVarias() {
+    const el = this.eleccionParaCambiar();
+    if (!el) return;
+    const e = el.vivo.editor, n = el.nodos.length;
+    e.view.dispatch(trBorrar(e.state, el.nodos));
+    this.activo = el.vivo;
+    this.hojaActiva = null;
+    this.eleccion = SIN_ELEGIR;
+    this.prop.ocultar();
+    this.medir();
+    this.decir(n > 1 ? this.tx.variasBorradas.replace('{n}', String(n)) : this.tx.paginaBorrada);
+  }
+
+  /* Las copias quedan elegidas: asi se pueden mover o borrar enseguida */
+  duplicarVarias() {
+    const el = this.eleccionParaCambiar();
+    if (!el) return;
+    const e = el.vivo.editor, r = trDuplicar(e.state, el.nodos);
+    e.view.dispatch(r.tr);
+    this.activo = el.vivo;
+    this.hojaActiva = null;
+    this.eleccion = { vivo: el.vivo, nodos: r.copias, ancla: r.copias[0] };
+    this.medir();
+    this.panelDeEleccion();
+    this.decir(r.copias.length > 1 ? this.tx.variasDuplicadas.replace('{n}', String(r.copias.length)) : this.tx.paginaDuplicada);
   }
 
   entradasDeIndice() { return this.vivos.map((v, i) => ({ titulo: v.cap.titulo, pagina: v.primera, capitulo: i + 1 })).filter((f) => f.titulo); }
@@ -177,7 +297,8 @@ export class Mesa {
       [this.fondo, () => this.aLaHoja()],
       [this.prop.caja, () => this.prop.entrar()],
       [this.q('.tal-pie'), () => this.q('.tal-pie input, .tal-pie button').focus()]
-    ].filter(([n]) => !n.hidden);
+    /* Con varias paginas elegidas, ir a la hoja las soltaria: de las miniaturas se pasa directo al panel */
+    ].filter(([n]) => !n.hidden && !(n === this.fondo && this.cuantasElegidas() > 1));
     const hoy = partes.findIndex(([n]) => n.contains(document.activeElement));
     partes[(hoy + d + partes.length) % partes.length][1]();
   }
@@ -230,12 +351,20 @@ export class Mesa {
       return [ir, { texto: tx.libreAqui, icono: 'hoja', fn: () => this.ponerLibreAqui(p), apagado: !p.vivo.editor.isEditable }, { raya: true },
         { texto: tx.moverA, icono: 'mover', apagado: true, ayuda: tx.paginaDeTexto }, { texto: tx.eliminarPagina, icono: 'eliminar', apagado: true, ayuda: tx.paginaDeTexto }];
     }
-    const h = p.vista, quieta = h.bloqueada;
+    const h = p.vista, quieta = h.bloqueada, k = this.cuantasElegidas();
+    if (k > 1 && this.estaElegida(p)) {
+      const cuenta = (t) => t.replace('{n}', String(k));
+      return [ir,
+        { texto: cuenta(tx.duplicarVarias), icono: 'duplicar', apagado: quieta, fn: () => this.duplicarVarias() },
+        { raya: true },
+        /* Solo si siguen siendo las que dice el boton */
+        { texto: cuenta(tx.eliminarVarias), icono: 'eliminar', aviso: true, apagado: quieta, confirmar: cuenta(tx.eliminarVariasSeguro), fn: () => { if (this.cuantasElegidas() === k) this.borrarVarias(); } }];
+    }
     return [ir,
       { texto: tx.duplicarPagina, icono: 'duplicar', apagado: quieta, fn: () => { this.activoDe(h); this.duplicarPagina(h); this.decir(tx.paginaDuplicada); } },
       { texto: tx.moverA, icono: 'mover', apagado: quieta, queda: true, fn: () => this.menu.mover({ actual: n, total: this.paginas.length, primera: this.primeraDeTexto(), alMover: (d) => this.moverHasta(h, d) }) },
       { raya: true },
-      { texto: tx.eliminarPagina, icono: 'eliminar', aviso: true, apagado: quieta, fn: () => { this.activoDe(h); this.borrarPagina(h); } }];
+      { texto: tx.eliminarPagina, icono: 'eliminar', aviso: true, apagado: quieta, confirmar: tx.eliminarPaginaSeguro, fn: () => { this.activoDe(h); this.borrarPagina(h); } }];
   }
 
   abrirMenu(i, e, origen, antes = []) {
@@ -328,8 +457,8 @@ export class Mesa {
   alEscribir(v) { this.programar(); this.alMoverCursor(v); }
   alMoverCursor(v) { if (this.activo === v && this.cinta) this.cinta.actualizar(); }
   entrarACinta() { if (this.cinta) this.cinta.entrar(); }
-  alEnfocarEditor(v) { this.activo = v; this.soltarElegidos(); if (this.cinta) this.cinta.actualizar(); this.alActivo(v); }
-  alEnfocarHoja(h) { this.hojaActiva = h; this.vistas.forEach((o) => { if (o !== h && o.elegido) o.elegir(''); }); this.activoDe(h); this.alElegir(h); this.alActivo(this.activo); }
+  alEnfocarEditor(v) { this.activo = v; this.soltarEleccion(); this.soltarElegidos(); if (this.cinta) this.cinta.actualizar(); this.alActivo(v); }
+  alEnfocarHoja(h) { this.soltarEleccion(); this.hojaActiva = h; this.vistas.forEach((o) => { if (o !== h && o.elegido) o.elegir(''); }); this.activoDe(h); this.alElegir(h); this.alActivo(this.activo); }
   activoDe(h) { const v = this.vivos.find((x) => x.editor === h.editor); if (v) this.activo = v; }
   alElegir(h) { this.hojaActiva = h; this.vistas.forEach((o) => o.hoja.classList.toggle('hoja--activa', o === h)); this.prop.deHoja(h); }
   alMoverObjeto(h) { /* el panel se pone al dia al soltar */ if (!h) this.prop.ocultar(); }
@@ -496,8 +625,9 @@ export class Mesa {
   async borrarPagina(h) {
     if (h.bloqueada) return;
     const e = h.editor, pos = h.getPos(), i = this.paginas.findIndex((p) => p.vista === h), tr = e.state.tr.delete(pos, pos + 1).setMeta(META_PAGINA, true);
-    /* El cursor queda junto a lo borrado: si no, la vista saltaria a donde estaba antes */
-    e.view.dispatch(tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(pos)))));
+    /* El cursor queda junto a lo borrado: si no, la vista saltaria a donde estaba antes. `closeHistory`: dos
+       paginas borradas seguidas son dos Ctrl+Z, no uno que traiga las dos. */
+    e.view.dispatch(closeHistory(tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(pos))))));
     this.prop.ocultar();
     this.hojaActiva = null;
     this.medir();
