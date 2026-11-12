@@ -69,7 +69,26 @@
 .tal-grupo[hidden] { display: none; }
 .tal-sep { width: 1px; height: 22px; background: var(--raya); margin: 0 .3rem; }
 .tal-ctl { height: 32px; box-sizing: border-box; max-width: 11rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 6px; padding: 0 .35rem; }
-.tal-ctl option { color: #111; background: #fff; }
+/* ---- Los selectores propios (Selector.js): el <select> queda escondido y sigue mandando ---- */
+.tal-sel__nativo { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.tal-pagina label, .tal-cinta .tal-grupo { position: relative; }
+.tal-sel { display: inline-flex; align-items: center; justify-content: space-between; gap: .45rem; height: 32px; min-width: 6.5rem; max-width: 12rem; box-sizing: border-box; padding: 0 .55rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 8px; color: var(--tiza); font: inherit; font-size: 12px; cursor: pointer; transition: border-color .12s var(--ease), background .12s var(--ease); }
+.tal-sel:hover, .tal-sel[aria-expanded="true"] { border-color: var(--prompt); background: rgb(var(--prompt-rgb) / .08); }
+.tal-sel__texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tal-sel__flecha { flex: none; width: 5px; height: 5px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); opacity: .7; transition: transform .12s var(--ease); }
+.tal-sel[aria-expanded="true"] .tal-sel__flecha { transform: rotate(225deg); margin-top: 3px; }
+.tal-sel__lista { position: fixed; inset: auto; margin: 0; max-width: 20rem; max-height: min(60dvh, 22rem); overflow-y: auto; scrollbar-width: thin; box-sizing: border-box; padding: .3rem; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 10px; box-shadow: 0 16px 36px -14px rgb(var(--sombra-rgb) / .8); color: var(--tiza); opacity: 0; transform: translateY(-3px); transition: opacity .11s var(--ease), transform .11s var(--ease), display .11s allow-discrete, overlay .11s allow-discrete; }
+.tal-sel__lista:popover-open { display: grid; gap: 1px; opacity: 1; transform: none; }
+@starting-style { .tal-sel__lista:popover-open { opacity: 0; transform: translateY(-3px); } }
+.tal-sel__op { padding: .4rem .6rem; border-radius: 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+/* Una letra manuscrita a 13 px no se lee: las que se ven en su propia fuente van mas grandes */
+.tal-sel__op[style*="font-family"] { font-size: 16px; padding-block: .35rem; }
+.tal-sel__op:hover, .tal-sel__op--activa { background: rgb(var(--prompt-rgb) / .16); }
+.tal-sel__op[aria-selected="true"] { color: var(--prompt); font-weight: 600; }
+.tal-campo { display: inline-flex; align-items: center; }
+.tal-campo .tal-ctl { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.tal-sel__abrir { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 32px; box-sizing: border-box; padding: 0; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-left: 0; border-radius: 0 6px 6px 0; color: var(--tiza); cursor: pointer; }
+.tal-sel__abrir:hover { color: var(--prompt); }
 .tal-ctl--num { width: 4.2rem; }
 .tal-ctl[aria-invalid="true"], .tal-b-panel [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
 .tal-pagina { display: flex; flex-wrap: wrap; gap: .3rem .6rem; align-items: end; }
@@ -140,7 +159,8 @@
 .hoja--activa { box-shadow: 0 0 0 2px var(--prompt), 0 6px 22px rgb(0 0 0 / .55); }
 .hoja--indice { padding: var(--mt) var(--mr) var(--mb) var(--ml); box-sizing: border-box; user-select: auto; }
 .indice__fila { display: flex; justify-content: space-between; gap: 1em; width: 100%; padding: .15em 0; background: none; border: 0; color: inherit !important; font: inherit !important; cursor: pointer; text-align: left; }
-.corrida { width: var(--W); box-sizing: border-box; padding: var(--mt) var(--mr) 0 var(--ml); position: relative;
+/* `isolation`: sin ella el clic sobre una pagina libre cae en su contenedor y no en sus objetos (lo hacia el filtro de sombra, que se quito por costoso) */
+.corrida { width: var(--W); box-sizing: border-box; padding: var(--mt) var(--mr) 0 var(--ml); position: relative; isolation: isolate;
   background: repeating-linear-gradient(to bottom, var(--hoja-papel, #fff) 0, var(--hoja-papel, #fff) var(--H), transparent var(--H), transparent calc(var(--H) + var(--gap))); }
 .flujo { width: var(--ancho); column-width: var(--ancho); column-height: var(--alto); column-wrap: wrap; column-gap: 0; row-gap: var(--salto); column-fill: auto; outline: none; caret-color: var(--hoja-tinta, #111); }
 .pie { position: absolute; left: 0; width: 100%; text-align: center; font: 12px var(--mono); color: var(--hoja-tinta, #555); opacity: .7; pointer-events: none; }
@@ -276,7 +296,7 @@
 @media (max-width: 52rem) { .tal-cuerpo { grid-template-columns: 120px minmax(0, 1fr); } .tal-tope { flex-wrap: wrap; } .tal-avance { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .hoja--cargando::after { animation: none; }
-  .tal-menu, .tal-panel, .tal-panel__dentro, .tal-color__panel, .tal-btn, .tal-btn::before, .tal-accion, .tal-seg__op, .tal-color__m, .tal-color__boton { transition: none; animation: none; }
+  .tal-sel, .tal-sel__lista, .tal-sel__flecha, .tal-menu, .tal-panel, .tal-panel__dentro, .tal-color__panel, .tal-btn, .tal-btn::before, .tal-accion, .tal-seg__op, .tal-color__m, .tal-color__boton { transition: none; animation: none; }
   .tal-btn:active, .tal-accion:active, .tal-color__m:hover { transform: none; }
 }
 @media (forced-colors: active) {
