@@ -32,8 +32,13 @@ const anclaDe = (prefijo, semilla) => {
 };
 
 /* JSON ({ type: 'heading', content: [] }) o nodo vivo ({ type: { name }, content: Fragment }) */
-const tipoDe = (n) => (typeof n.type === 'string' ? n.type : (n.type && n.type.name) || '');
-const hijosDe = (n) => (Array.isArray(n.content) ? n.content : (n.content && Array.isArray(n.content.content) ? n.content.content : []));
+/* Un hueco (null) en un JSON guardado no rompe nada: no es de ningun tipo y no tiene hijos */
+const tipoDe = (n) => (n && typeof n === 'object' ? (typeof n.type === 'string' ? n.type : (n.type && n.type.name) || '') : '');
+const hijosDe = (n) => {
+  if (!n || typeof n !== 'object') return [];
+  const l = Array.isArray(n.content) ? n.content : (n.content && Array.isArray(n.content.content) ? n.content.content : []);
+  return l.filter((x) => x && typeof x === 'object');
+};
 const ENTRAR = new Set(['columnas', 'columna']);
 const textoDe = (n) => {
   let t = '';
@@ -51,14 +56,40 @@ function recorrer(doc, fn) {
 /* El primer titulo de arriba nombra al capitulo cuando no se le puso nombre a mano (como Migrar.tituloDe) */
 const nombreDelCapitulo = (c) => (c.tituloPropio ? null : hijosDe(c.doc || {}).find((n) => tipoDe(n) === 'heading') || null);
 
-/* `capitulos`: [{ ancla: 'cap-N', titulo, enIndice, tituloPropio, doc }] en el orden del libro.
+/* LA PORTADA: el primer capitulo, cuando el libro la tiene. `portada` es la de ConfigPagina:
+   'si' y 'no' los eligio el autor; 'auto' la reconoce sola: un libro de varios capitulos cuyo primero empieza con
+   una pagina de diseño o de PDF, sin nombre puesto a mano y sin ningun titulo en su texto. */
+export function hayPortada(capitulos, portada) {
+  const c = capitulos[0];
+  if (!c || portada === 'no') return false;
+  if (portada === 'si') return true;
+  if (capitulos.length < 2 || c.tituloPropio) return false;
+  /* Un renglon vacio antes de la primera pagina no cuenta: un capitulo nuevo empieza con uno */
+  const hijos = hijosDe(c.doc || {}), primero = hijos.find((n) => !(tipoDe(n) === 'paragraph' && !textoDe(n)));
+  if (!primero || tipoDe(primero) !== 'paginaLibre') return false;
+  let titulo = false;
+  recorrer(c.doc, (_, t) => { if (t === 'heading') titulo = true; });
+  return !titulo;
+}
+
+/* Delante de que capitulo va el contenido: el elegido (`indice.antesDe`, su id), o el primero. Nunca antes de la
+   portada. Puede ser `capitulos.length`: al final, si la portada es todo el libro. */
+export function lugarDelIndice(capitulos, indice, conPortada) {
+  const minimo = conPortada ? 1 : 0;
+  const k = capitulos.findIndex((c) => c.id && indice && c.id === indice.antesDe);
+  return Math.min(Math.max(k, minimo), Math.max(capitulos.length, minimo));
+}
+
+/* `capitulos`: [{ id, ancla: 'cap-N', titulo, enIndice, tituloPropio, doc }] en el orden del libro.
    Entra cada capitulo con nombre que no se oculto (nivel 1) y, si se piden, sus subtemas (nivel 2): los Título 1 y
    Título 2 del texto y las paginas libres a las que se les puso nombre. El titulo que da nombre al capitulo no se
-   repite como subtema. Los Título 3 nunca. Un ancla repetida en el libro solo cuenta la primera vez. */
-export function entradasDe(capitulos, { subtemas = true } = {}) {
+   repite como subtema. Los Título 3 nunca. Un ancla repetida en el libro solo cuenta la primera vez.
+   La portada (`portada: true`, el primer capitulo) nunca sale. */
+export function entradasDe(capitulos, { subtemas = true, portada = false } = {}) {
   const vistas = new Set(), lista = [];
-  for (const c of capitulos) {
+  for (const [k, c] of capitulos.entries()) {
     if (lista.length >= ENTRADAS_MAX) break;
+    if (portada && k === 0) continue;
     const nombreCap = textoIndice(c.titulo, TEXTO_FILA_MAX);
     if (c.enIndice === false || !nombreCap) continue;
     lista.push({ nivel: 1, titulo: nombreCap, ancla: c.ancla });

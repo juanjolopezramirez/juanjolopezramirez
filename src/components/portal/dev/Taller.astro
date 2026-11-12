@@ -228,6 +228,7 @@ const { tx } = Astro.props;
               <label><span>{tx.lugarNumero}</span><select class="tal-ctl" name="lugar">
                 <option value="pie-centro">{tx.lugares.centro}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
               </select></label>
+              <label class="tal-marca"><input name="portada" type="checkbox" /><span>{tx.primeraEsPortada}</span></label>
               <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
               <!-- Lo del contenido solo se ve cuando el libro lo lleva -->
               <div class="tal-b-grupo" data-tal-indice-opciones>

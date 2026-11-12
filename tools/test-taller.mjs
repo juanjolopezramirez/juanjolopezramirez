@@ -214,6 +214,44 @@ console.log('el contenido del libro');
     /* Sin «ver», sin hoja */
     assert.ok(!aHoja(new Obra({ pagina: {} }).aDatos(), caps(), { indice: { numeros: {}, reparto: [6] } }).nodos[0].hijos.some((n) => n.tag === 'nav'));
   });
+  await ok('portada: se reconoce sola, se elige a mano, no sale en el contenido y el contenido va despues de ella', async () => {
+    const { capitulosParaIndice } = await import('../src/scripts/contenido/taller/hoja.js');
+    const pdf = { id: 'c0', titulo: '', contenido: { doc: { type: 'doc', content: [libre('', ''), libre('', '')] } } };
+    const conTitulo = { id: 'c0', titulo: 'Intro', contenido: { doc: { type: 'doc', content: [libre('', ''), h('Intro', 1, 't-0000000f')] } } };
+    const libro = [pdf, ...caps().slice(1)];
+    assert.equal(I.hayPortada(capitulosParaIndice(libro), 'auto'), true);
+    assert.equal(I.hayPortada(capitulosParaIndice([pdf]), 'auto'), false, 'un libro de un solo capitulo no es todo portada');
+    assert.equal(I.hayPortada(capitulosParaIndice([conTitulo, ...caps().slice(1)]), 'auto'), false);
+    assert.equal(I.hayPortada(capitulosParaIndice(caps().slice(1)), 'auto'), false, 'un libro que empieza con texto');
+    assert.equal(I.hayPortada(capitulosParaIndice(libro), 'no'), false);
+    assert.equal(I.hayPortada(capitulosParaIndice(caps().slice(1)), 'si'), true);
+    assert.equal(I.hayPortada([], 'si'), false);
+    /* Un capitulo nuevo empieza con un renglon vacio antes de la pagina del PDF: sigue siendo portada */
+    const conVacio = { ...pdf, contenido: { doc: { type: 'doc', content: [{ type: 'paragraph' }, libre('', '')] } } };
+    assert.equal(I.hayPortada(capitulosParaIndice([conVacio, ...caps().slice(1)]), 'auto'), true);
+    const conTexto = { ...pdf, contenido: { doc: { type: 'doc', content: [parrafo('Hola'), libre('', '')] } } };
+    assert.equal(I.hayPortada(capitulosParaIndice([conTexto, ...caps().slice(1)]), 'auto'), false);
+    /* Un hueco (null) en un libro guardado no rompe nada */
+    const roto = { id: 'r', titulo: '', contenido: { doc: { type: 'doc', content: [null, { type: 'columnas', content: [null] }, libre('', '')] } } };
+    assert.doesNotThrow(() => I.hayPortada(capitulosParaIndice([roto, ...caps().slice(1)]), 'auto'));
+    assert.doesNotThrow(() => I.entradasDe(capitulosParaIndice([roto, ...caps().slice(1)])));
+    const cs = capitulosParaIndice(libro);
+    assert.equal(I.lugarDelIndice(cs, { antesDe: '' }, true), 1);
+    assert.equal(I.lugarDelIndice(cs, { antesDe: 'c0' }, true), 1, 'nunca antes de la portada');
+    assert.equal(I.lugarDelIndice(cs, { antesDe: 'c3' }, true), 2);
+    assert.equal(I.lugarDelIndice(cs, { antesDe: 'nada' }, false), 0);
+    assert.equal(I.lugarDelIndice(cs.slice(0, 1), { antesDe: '' }, true), 1, 'la portada es todo el libro: al final');
+    /* Con «Mostrar en el contenido» y todo, la portada no sale */
+    const nombrada = [{ ...pdf, titulo: 'Tapa' }, ...caps().slice(1)];
+    assert.ok(!I.entradasDe(capitulosParaIndice(nombrada), { portada: true }).some((f) => f.ancla === 'cap-1'));
+    assert.ok(I.entradasDe(capitulosParaIndice(nombrada), { portada: false }).some((f) => f.ancla === 'cap-1'));
+    const hj = aHoja(new Obra({ pagina: { indice: { ver: true }, portada: 'auto' } }).aDatos(), libro, { indice: { numeros: {}, reparto: [9] } });
+    assert.deepEqual(hj.nodos[0].hijos.map((n) => n.tag), ['section', 'nav', 'section', 'section']);
+    const sola = aHoja(new Obra({ pagina: { indice: { ver: true }, portada: 'si' } }).aDatos(), [{ ...pdf, titulo: 'Tapa' }], { indice: { numeros: {}, reparto: [9] } });
+    assert.ok(!sola.nodos[0].hijos.some((n) => n.tag === 'nav'), 'sin capitulos fuera de la portada no hay contenido');
+    assert.deepEqual([true, false, 'si', 'no', 'x', undefined].map((v) => new ConfigPagina({ portada: v }).portada), ['si', 'no', 'si', 'no', 'auto', 'auto']);
+    assert.equal(new ConfigPagina(new ConfigPagina({ portada: 'no' }).aDatos()).portada, 'no');
+  });
   await ok('ConfigPagina: el indice de antes (true) sigue, y lo raro no pasa', () => {
     assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '' });
     assert.equal(new ConfigPagina({}).indice.ver, false);
@@ -738,7 +776,7 @@ await ok('cada ajuste del libro es del formulario, este donde este en la cinta',
   assert.ok(ini > 0 && fin > ini);
   const dentro = astro.slice(ini, fin);
   /* Lo que leerPagina lee del formulario: dentro de el, o fuera con form="tal-pagina-f" */
-  const nombres = ['tamano', 'anchoMm', 'altoMm', 'anchoPx', 'altoPx', 'fuente', 'tamanoPt', 'interlinea', 'idioma', 'numerosVer', 'lugar', 'indice', 'indiceTitulo', 'indiceAntes', 'indiceSubtemas', 'indicePuntos', 'imprenta',
+  const nombres = ['tamano', 'anchoMm', 'altoMm', 'anchoPx', 'altoPx', 'fuente', 'tamanoPt', 'interlinea', 'idioma', 'numerosVer', 'lugar', 'portada', 'indice', 'indiceTitulo', 'indiceAntes', 'indiceSubtemas', 'indicePuntos', 'imprenta',
     'capitalEstilo', 'capitalFuente', 'capitalLineas', 'capitalSepara', 'citaFuente', 'citaTamano', 'citaSangria', 'citaCursiva'];
   for (const n of nombres) {
     /* «Agregar letra» tiene su propio formulario con un campo «fuente»: ese no es del libro */

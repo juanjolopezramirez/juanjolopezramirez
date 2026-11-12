@@ -46,6 +46,8 @@ export class Miniaturas {
     this.caja.replaceChildren();
     this.escala = Math.min(ESCALA, ANCHO_MAX / m.px.W);
     let grupo = null, cap, n = 0;
+    /* La portada del libro se llama asi, no «Capítulo 1», y los demas sin nombre cuentan desde despues de ella */
+    const portada = m.vivos.length && m.conPortada() ? m.vivos[0] : null;
     for (const p of m.paginas) {
       n++;
       if (p.vivo !== cap) {
@@ -54,15 +56,17 @@ export class Miniaturas {
         grupo.setAttribute('role', 'none');
         if (cap) {
           const c = cap;
-          const t = crear('div', 'cap-mini', `▤ ${c.cap.titulo || `${m.tx.capitulo} ${m.vivos.indexOf(c) + 1}`}`);
+          const nombre = c === portada ? m.tx.portada : c.cap.titulo || `${m.tx.capitulo} ${m.vivos.indexOf(c) + (portada ? 0 : 1)}`;
+          const t = crear('div', 'cap-mini', `▤ ${nombre}`);
           t.setAttribute('role', 'treeitem');
           t.setAttribute('aria-level', '1');
           t.setAttribute('aria-selected', 'false');
-          t.draggable = true;
+          t.draggable = c !== portada;
           t.tabIndex = -1;
           t.title = m.tx.arrastrarCapitulo;
-          /* Fuera del contenido (una portada, por ejemplo): se ve apagado y lo dice */
-          if (!c.enIndice) { t.classList.add('cap-mini--fuera'); t.title = `${m.tx.fueraDelContenido}. ${m.tx.arrastrarCapitulo}`; t.setAttribute('aria-description', m.tx.fueraDelContenido); }
+          if (c === portada) { t.classList.add('cap-mini--portada'); t.title = m.tx.arrastrarPortada; }
+          /* Fuera del contenido: se ve apagado y lo dice */
+          else if (!c.enIndice) { t.classList.add('cap-mini--fuera'); t.title = `${m.tx.fueraDelContenido}. ${m.tx.arrastrarCapitulo}`; t.setAttribute('aria-description', m.tx.fueraDelContenido); }
           t.capitulo = c;
           t.addEventListener('dragstart', (e) => { this.arrastrado = { capitulo: c }; e.dataTransfer.setData('text/plain', 'capitulo'); e.dataTransfer.effectAllowed = 'move'; });
           grupo.append(t);

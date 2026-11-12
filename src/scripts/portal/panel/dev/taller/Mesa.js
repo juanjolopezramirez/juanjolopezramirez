@@ -11,7 +11,7 @@ import { Capitulo } from '../../../../contenido/taller/Obra.js';
 import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
-import { entradasDe, hojasDeIndice, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
+import { entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { CapituloVivo } from './CapituloVivo.js';
@@ -143,9 +143,13 @@ export class Mesa {
 
   /* El capitulo delante del cual va el contenido (0 = al comienzo, o si el elegido ya no esta) */
   lugarDelIndice() {
-    const id = new ConfigPagina(this.obra().pagina).indice.antesDe;
-    return Math.max(0, this.vivos.findIndex((v) => v.cap.id === id));
+    const c = new ConfigPagina(this.obra().pagina), caps = this.capitulosParaIndice();
+    return lugarDelIndiceDe(caps, c.indice, hayPortada(caps, c.portada));
   }
+
+  /* El primer capitulo es la portada del libro (la regla es la misma de la hoja de impresion) */
+  conPortada() { return hayPortada(this.capitulosParaIndice(), new ConfigPagina(this.obra().pagina).portada); }
+  esPortada(v) { return this.vivos[0] === v && this.conPortada(); }
 
   medir() {
     const p = this.px, entradas = this.entradasDeIndice(), reparto = this.repartoDeIndice(entradas), ind = reparto.length, antes = this.lugarDelIndice();
@@ -158,7 +162,7 @@ export class Mesa {
       n += v.medir(n + 1, p, this.z, this.segura);
       for (const f of v.filas) this.paginas.push({ vivo: v, ...f });
     });
-    if (!this.vivos.length) meterIndice();
+    if (antes >= this.vivos.length) meterIndice();
     this.pintarIndice(entradas, reparto, antes);
     this.podarEleccion();
     this.minis.pintar();
@@ -366,11 +370,13 @@ export class Mesa {
   /* Lo que va en el contenido: los capitulos con nombre que no se ocultaron (una portada, por ejemplo). El numero
      de capitulo sigue siendo su lugar en el libro: asi lo nombra la hoja de impresion (#cap-N). */
   /* Los capitulos como los lee IndiceLibro (igual que hoja.capitulosParaIndice), con el texto vivo del editor */
-  capitulosParaIndice() { return this.vivos.map((v, i) => ({ ancla: `cap-${i + 1}`, titulo: v.cap.titulo, enIndice: v.enIndice, tituloPropio: v.tituloPropio, doc: v.editor.state.doc })); }
+  capitulosParaIndice() { return this.vivos.map((v, i) => ({ id: v.cap.id, ancla: `cap-${i + 1}`, titulo: v.cap.titulo, enIndice: v.enIndice, tituloPropio: v.tituloPropio, doc: v.editor.state.doc })); }
 
   entradasDeIndice() {
-    const ind = new ConfigPagina(this.obra().pagina).indice;
-    return ind.ver ? entradasDe(this.capitulosParaIndice(), { subtemas: ind.subtemas }) : [];
+    const c = new ConfigPagina(this.obra().pagina), ind = c.indice;
+    if (!ind.ver) return [];
+    const caps = this.capitulosParaIndice();
+    return entradasDe(caps, { subtemas: ind.subtemas, portada: hayPortada(caps, c.portada) });
   }
 
   opcionesDeIndice() {
@@ -416,7 +422,9 @@ export class Mesa {
       return h;
     });
     const sitio = this.vivos[antes];
-    if (sitio) sitio.caja.before(...cajas); else this.lienzo.prepend(...cajas);
+    if (sitio) sitio.caja.before(...cajas);
+    else if (this.vivos.length) this.lienzo.append(...cajas);     // la portada es todo el libro: al final
+    else this.lienzo.prepend(...cajas);
   }
 
   /* F6 pasa entre las partes de la mesa, como en Word */
@@ -684,7 +692,11 @@ export class Mesa {
     const p = this.paginas[n - 1], sig = this.paginas[n];
     if (!p) return { vivo: this.vivos[0], pos: 0 };
     /* Despues del contenido es el comienzo del capitulo que lo sigue (puede ir a mitad del libro) */
-    if (p.indice) return { vivo: this.vivos[this.lugarDelIndice()] || this.vivos[0], pos: 0 };
+    if (p.indice) {
+      const sigue = this.vivos[this.lugarDelIndice()], ultimo = this.vivos[this.vivos.length - 1];
+      if (sigue) return { vivo: sigue, pos: 0 };
+      return ultimo ? { vivo: ultimo, pos: ultimo.editor.state.doc.content.size } : { vivo: this.vivos[0], pos: 0 };
+    }
     if (p.vista) return { vivo: p.vivo, pos: p.vista.getPos() + 1 };
     if (!sig || sig.vivo !== p.vivo) return { vivo: p.vivo, pos: p.vivo.editor.state.doc.content.size };
     return { vivo: p.vivo, pos: sig.vista ? sig.vista.getPos() : p.vivo.posicionDeFila(sig.fila, this.px, this.z) };
@@ -917,7 +929,14 @@ export class Mesa {
     return i >= 1 && i < doc.childCount ? i : null;
   }
 
+  /* Una portada que se reconocio sola queda fija antes de cambiarla: con nombre o con un titulo unido ya no se
+     reconoceria, y dejaria de ser portada sin que nadie lo pidiera */
+  fijarPortada(v) {
+    if (this.esPortada(v) && new ConfigPagina(this.obra().pagina).portada === 'auto') this.alPortada('si', true);
+  }
+
   renombrarCapitulo(v, titulo) {
+    this.fijarPortada(v);
     v.tituloPropio = tituloLimpio(titulo);
     v.cap.titulo = v.tituloPropio || tituloDe(v.editor.getJSON());
     v.guardado.marcar();
@@ -936,12 +955,21 @@ export class Mesa {
   abrirMenuCapitulo(v, e, origen) {
     e.preventDefault();
     const tx = this.tx, k = this.vivos.indexOf(v), quieto = !v.editor.isEditable, con = e.clientX || e.clientY, r = origen.getBoundingClientRect();
+    const portada = this.conPortada();
     const items = [
       { texto: tx.cambiarNombre, queda: true, apagado: quieto, fn: () => this.menu.pedirTexto({ etiqueta: tx.nombreCapitulo, valor: v.tituloPropio, ayuda: tx.nombreCapituloAyuda, alListo: (t) => this.renombrarCapitulo(v, t) }) },
-      { texto: v.enIndice ? tx.ocultarDelContenido : tx.mostrarEnContenido, apagado: quieto, fn: () => this.alternarEnIndice(v) },
-      ...(k > 0 ? [{ raya: true }, { texto: tx.unirConAnterior, apagado: quieto, confirmar: tx.unirSeguro, fn: () => this.unirConAnterior(v) }] : [])
+      /* La portada nunca sale en el contenido: ahi no hay nada que mostrar u ocultar */
+      ...(k === 0 && portada ? [] : [{ texto: v.enIndice ? tx.ocultarDelContenido : tx.mostrarEnContenido, apagado: quieto, fn: () => this.alternarEnIndice(v) }]),
+      ...(k === 0 ? [{ texto: portada ? tx.noEsPortada : tx.esPortada, apagado: quieto, fn: () => this.alPortada(portada ? 'no' : 'si') }] : []),
+      ...(k > 0 ? [{ raya: true }, this.opcionUnir(v, quieto)] : [])
     ];
     this.menu.abrir(con ? e.clientX : r.left + 16, con ? e.clientY : r.top + 16, items, origen, () => this.minis.entrarAlCapitulo(v));
+  }
+
+  /* «Unir con el anterior». Si el anterior es la portada, el aviso dice que esas paginas dejan el contenido. */
+  opcionUnir(v, quieto) {
+    const tx = this.tx, conPortada = this.vivos.indexOf(v) === 1 && this.conPortada();
+    return { texto: tx.unirConAnterior, apagado: quieto, confirmar: conPortada ? tx.unirConPortadaSeguro : tx.unirSeguro, fn: () => { if (conPortada) this.fijarPortada(this.vivos[0]); this.unirConAnterior(v); } };
   }
 
   /* Lo de capitulos en el menu de una pagina: aqui empieza uno, o unir con el de antes si ya es la primera. Se
@@ -949,7 +977,7 @@ export class Mesa {
   accionesDeCapitulo(i) {
     const tx = this.tx, p = this.paginas[i], v = p.vivo, quieto = !v.editor.isEditable;
     if (this.paginas.findIndex((q) => q.vivo === v) === i) {
-      return this.vivos.indexOf(v) > 0 ? [{ texto: tx.unirConAnterior, icono: 'subir', apagado: quieto, confirmar: tx.unirSeguro, fn: () => this.unirConAnterior(v) }] : [];
+      return this.vivos.indexOf(v) > 0 ? [{ ...this.opcionUnir(v, quieto), icono: 'subir' }] : [];
     }
     const punto = this.puntoDeCorte(i);
     if (!punto) return [];
@@ -1051,16 +1079,21 @@ export class Mesa {
 
   moverCapitulo(v, n) {
     const p = n ? this.paginas[n - 1] : null;
+    /* La portada siempre va primero: ni se mueve, ni nada se pone delante de ella (lo soltado ahi va despues) */
+    const portada = this.conPortada() ? this.vivos[0] : null;
+    if (v === portada) { this.decir(this.tx.portadaPrimero); return; }
     /* Soltado sobre el contenido: delante del capitulo al que precede */
-    const antes = p ? (p.vivo || this.vivos[this.lugarDelIndice()] || this.vivos[0]) : null;
-    if (antes === v) return;
+    let antes = p ? (p.vivo || this.vivos[this.lugarDelIndice()] || null) : null;
+    const corrida = antes === portada && portada !== null;
+    if (corrida) antes = this.vivos[1] || null;
+    if (antes === v) { if (corrida) this.decir(this.tx.portadaPrimero); return; }
     this.vivos = this.vivos.filter((x) => x !== v);
     const i = antes ? this.vivos.indexOf(antes) : this.vivos.length;
     this.vivos.splice(i, 0, v);
     this.lienzo.insertBefore(v.caja, antes ? antes.caja : null);
     this.ordenar();
     this.medir();
-    this.decir(this.tx.capituloMovido);
+    this.decir(corrida ? `${this.tx.capituloMovido} ${this.tx.portadaPrimero}` : this.tx.capituloMovido);
   }
 
   /* Una imagen del texto pasa a su propia pagina libre, exacta */

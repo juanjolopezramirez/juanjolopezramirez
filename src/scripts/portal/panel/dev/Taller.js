@@ -265,6 +265,8 @@ export class Taller extends Seccion {
     /* Un capitulo que sale de la mesa (unido, o uno nuevo que no se pudo guardar) no se queda en la barra de estado */
     this.mesa.alQuitarVivo = (v) => { this.estados.delete(v); this.conflictos = this.conflictos.filter((c) => c !== v); };
     this.mesa.capitalDelLibro = () => ({ ...this.obra.pagina.capital, fuentes: this.obra.fuentes });
+    /* «Es la portada» / «No es la portada» desde el menu del primer capitulo: es un ajuste del libro */
+    this.mesa.alPortada = (valor, callado) => this.ponerPortada(valor, callado);
     this.cinta = this.cinta || new Cinta(this.m('[data-tal-cinta]'), {
       tx: this.tx, fuentes: this.obra.fuentes, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null),
       alError: (c) => this.error(c),
@@ -551,16 +553,43 @@ export class Taller extends Seccion {
     f.elements.citaCursiva.checked = c.cita.cursiva;
   }
 
-  /* Delante de que capitulo va el contenido. Antes del primero es «al comienzo». */
+  /* Delante de que capitulo va el contenido. Antes del primero es «al comienzo»; con portada, «después de la
+     portada» (nunca antes de ella). */
   llenarAntesDe() {
-    const s = this.m('[data-tal-pagina]').elements.indiceAntes, id = this.obra.pagina.indice.antesDe;
-    const vivos = this.mesa ? this.mesa.vivos : [];
+    const f = this.m('[data-tal-pagina]'), s = f.elements.indiceAntes, id = this.obra.pagina.indice.antesDe;
+    const vivos = this.mesa ? this.mesa.vivos : [], portada = !!this.mesa && vivos.length > 0 && this.mesa.conPortada();
     const opcion = (valor, texto) => { const o = document.createElement('option'); o.value = valor; o.textContent = texto; return o; };
-    const nombre = (v, n) => `${n}. ${(v.cap.titulo || `${this.tx.capitulo} ${n}`).slice(0, 60)}`;
-    s.replaceChildren(opcion('', this.tx.indiceAlComienzo), ...vivos.slice(1).map((v, i) => opcion(v.cap.id, nombre(v, i + 2))));
-    s.value = vivos.slice(1).some((v) => v.cap.id === id) ? id : '';
+    /* El mismo nombre que en las miniaturas: sin nombre, «Capítulo N» contando desde despues de la portada */
+    const nombre = (v, k) => (v.cap.titulo || `${this.tx.capitulo} ${k + (portada ? 0 : 1)}`).slice(0, 60);
+    const desde = portada ? 2 : 1;
+    s.replaceChildren(opcion('', portada ? this.tx.despuesDePortada : this.tx.indiceAlComienzo), ...vivos.slice(desde).map((v, i) => opcion(v.cap.id, nombre(v, i + desde))));
+    s.value = vivos.slice(desde).some((v) => v.cap.id === id) ? id : '';
     /* Sin capitulos abiertos aun, la lista no sabe nada: leerPagina conserva lo guardado */
     s.dataset.lleno = vivos.length ? '1' : '';
+    /* La casilla muestra lo que hoy vale (tambien cuando la reconoce sola); leerPagina solo guarda si se cambio */
+    const p = f.elements.portada, vale = this.obra.pagina.portada === 'si' || (this.obra.pagina.portada === 'auto' && portada);
+    p.checked = vale;
+    p.dataset.mostrado = vale ? '1' : '';
+  }
+
+  /* Lo elegido en «Va antes de». Lo guardado se conserva si la lista aun no sabe de capitulos, o si la lista no lo
+     muestra (con portada, «antes del segundo» es «después de la portada»: si la portada se quita, vuelve a valer). */
+  antesDeElegido(s) {
+    const guardado = this.obra.pagina.indice.antesDe;
+    if (!s.dataset.lleno) return guardado;
+    if (s.value === '' && guardado && ![...s.options].some((o) => o.value === guardado)) return guardado;
+    return s.value;
+  }
+
+  /* La portada, desde el menu del capitulo o la casilla: se guarda con el libro y la mesa se vuelve a medir */
+  /* `callado`: la fija la mesa sola (al renombrar la portada o unirle un capitulo); no hay nada nuevo que decir */
+  ponerPortada(valor, callado = false) {
+    this.obra.pagina = new ConfigPagina({ ...this.obra.pagina.aDatos(), portada: valor });
+    this.guardarObra();
+    if (callado) return;
+    this.mesa.medir();
+    this.llenarAntesDe();
+    this.decir(valor === 'si' ? this.tx.portadaSi : this.tx.portadaNo);
   }
 
   /* La sencilla tiene un solo alto: el campo de renglones no aplica */
@@ -592,10 +621,12 @@ export class Taller extends Seccion {
       anchoMm: n('anchoMm'), altoMm: n('altoMm'),
       margenes: { sup: n('sup'), inf: n('inf'), izq: n('izq'), der: n('der') },
       numeros: { ver: f.elements.numerosVer.checked, lugar: f.elements.lugar.value },
+      /* La casilla de la portada solo manda si se toco: si no, sigue 'auto' (la reconoce sola) */
+      portada: f.elements.portada.checked === !!f.elements.portada.dataset.mostrado ? this.obra.pagina.portada : f.elements.portada.checked ? 'si' : 'no',
       indice: {
         ver: f.elements.indice.checked, titulo: f.elements.indiceTitulo.value, subtemas: f.elements.indiceSubtemas.checked,
         puntos: f.elements.indicePuntos.checked,
-        antesDe: f.elements.indiceAntes.dataset.lleno ? f.elements.indiceAntes.value : this.obra.pagina.indice.antesDe
+        antesDe: this.antesDeElegido(f.elements.indiceAntes)
       },
       cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },
       capital: {
@@ -618,6 +649,8 @@ export class Taller extends Seccion {
     this.mesa.vivos.forEach((v) => v.editor.view.dom.setAttribute('lang', this.obra.idioma));
     this.guardarObra();
     this.mesa.repintarHojas();
+    /* La portada y la lista de «Va antes de» como quedaron */
+    this.llenarAntesDe();
     if (this.mesa.hojaActiva) this.mesa.alElegir(this.mesa.hojaActiva);
     /* Si el panel habla de la capital, dice como quedo */
     this.mesa.refrescarCapital();

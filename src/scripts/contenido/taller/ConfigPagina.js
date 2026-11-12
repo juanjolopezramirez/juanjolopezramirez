@@ -61,6 +61,8 @@ export class ConfigPagina {
       /* El capitulo delante del cual va ('' = al comienzo del libro). Si ya no existe, va al comienzo. */
       antesDe: typeof ind.antesDe === 'string' && /^[A-Za-z0-9-]{1,40}$/.test(ind.antesDe) ? ind.antesDe : ''
     };
+    /* La primera hoja como portada: 'auto' la reconoce sola (IndiceLibro.hayPortada); 'si' y 'no' los elige el autor */
+    this.portada = o.portada === true || o.portada === 'si' ? 'si' : o.portada === false || o.portada === 'no' ? 'no' : 'auto';
     this.imprenta = o.imprenta === true;
     this.papel = colorValido(o.papel);
     this.letras = letrasValidas(o.letras);
@@ -133,7 +135,7 @@ export class ConfigPagina {
   aDatos() {
     return {
       anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice }, cuerpo: { ...this.cuerpo },
-      imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      portada: this.portada, imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
       capital: { ...this.capital }, cita: { ...this.cita }
     };
   }

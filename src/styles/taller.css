@@ -295,6 +295,8 @@
 .tal-menu__ayuda { margin: 0; font-size: 11px; color: var(--tiza-2); }
 /* Un capitulo que no sale en el contenido (una portada): apagado, y en cursiva */
 .cap-mini--fuera { font-style: italic; opacity: .7; }
+/* La portada no se arrastra: siempre va primero */
+.cap-mini--portada { cursor: default; color: var(--tiza); letter-spacing: .02em; }
 .tal-menu__mover input { width: 100%; height: 30px; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; padding: 0 .4rem; color: var(--tiza); font: inherit; }
 .tal-menu__mover [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
 .tal-menu__fila { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; }

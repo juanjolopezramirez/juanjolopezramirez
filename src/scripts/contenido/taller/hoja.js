@@ -15,7 +15,7 @@ import { objeto } from '../comun.js';
 import { el } from './tipos/ayuda.js';
 import { FUENTE_HEBREO } from './tipos/pasaje.js';
 import { FORMAS } from './iconosBoton.js';
-import { entradasDe, hojasDeIndice, tituloDeIndice } from './IndiceLibro.js';
+import { entradasDe, hayPortada, hojasDeIndice, lugarDelIndice, tituloDeIndice } from './IndiceLibro.js';
 
 const tieneClase = (n, c) => !!n && ((n.clase || '').split(' ').includes(c) || (n.hijos || []).some((h) => tieneClase(h, c)));
 
@@ -156,18 +156,19 @@ ${cssLibro(config)}`;
 /* Lo que el contenido necesita de cada capitulo: igual que lo arma la mesa (Mesa.capitulosParaIndice) */
 export const capitulosParaIndice = (capitulos) => capitulos.map((c, i) => {
   const x = objeto(c.contenido);
-  return { ancla: `cap-${i + 1}`, titulo: c.titulo || '', enIndice: x.enIndice !== false, tituloPropio: typeof x.titulo === 'string' ? x.titulo : '', doc: objeto(x.doc) };
+  return { id: c.id || '', ancla: `cap-${i + 1}`, titulo: c.titulo || '', enIndice: x.enIndice !== false, tituloPropio: typeof x.titulo === 'string' ? x.titulo : '', doc: objeto(x.doc) };
 });
 
 /* `capitulos` ya en orden. `o`: { imagenes: {ruta: data:…}, indice: { numeros: {ancla: pagina}, reparto: [filas por hoja] } }.
    Los numeros y el reparto los mide la mesa; las filas salen de los capitulos mismos, con la misma regla. */
 export function aHoja(obra, capitulos, o = {}) {
   const config = new ConfigPagina(obra.pagina), ind = config.indice;
-  const entradas = ind.ver && o.indice ? entradasDe(capitulosParaIndice(capitulos), { subtemas: ind.subtemas }) : [];
+  const caps = capitulosParaIndice(capitulos), portada = hayPortada(caps, config.portada);
+  const entradas = ind.ver && o.indice ? entradasDe(caps, { subtemas: ind.subtemas, portada }) : [];
   const indice = entradas.length ? hojasDeIndice(entradas, o.indice.numeros, o.indice.reparto, { titulo: tituloDeIndice(ind, obra.idioma), puntos: ind.puntos }) : [];
   const nodos = [];
   const usados = { capitulos: new Set(), libres: new Set() };
-  const antes = Math.max(0, capitulos.findIndex((c) => c.id && c.id === ind.antesDe));
+  const antes = lugarDelIndice(caps, ind, portada);
   capitulos.forEach((c, i) => {
     if (i === antes) nodos.push(...indice);
     const propio = colorValido(objeto(c.contenido).papel);
@@ -175,7 +176,7 @@ export function aHoja(obra, capitulos, o = {}) {
     const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres });
     nodos.push(el('section', `capitulo${propio ? ` papel-${nombre(propio)}` : ''}`, hijos, { id: `cap-${i + 1}` }));
   });
-  if (!capitulos.length) nodos.push(...indice);
+  if (antes >= capitulos.length) nodos.push(...indice);
   const libro = el('div', 'libro', nodos);
   /* El hebreo de un pasaje necesita su letra, aunque el libro no la tenga en su lista */
   const fuentes = [...(obra.fuentes || [])];
