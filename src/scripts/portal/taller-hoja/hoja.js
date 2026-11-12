@@ -61,8 +61,11 @@ window.addEventListener('message', async (e) => {
     if (typeof m.titulo === 'string' && m.titulo) document.title = m.titulo;
     if (/^[a-z]{2}$/.test(m.idioma)) document.documentElement.lang = m.idioma;
     await fuentes(Array.isArray(m.fuentes) ? m.fuentes : []);
+    /* El CSS del libro nunca trae nada de fuera: si lo trae, no es el nuestro */
+    const css = String(m.css);
+    if (/@import|url\s*\(/i.test(css)) throw new Error('css');
     const estilo = document.createElement('style');
-    estilo.textContent = String(m.css);
+    estilo.textContent = css;
     document.head.append(estilo);
     const destino = document.querySelector('#destino');
     destino.replaceChildren(...(m.nodos || []).map(armar).filter(Boolean));

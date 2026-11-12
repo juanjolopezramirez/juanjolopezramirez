@@ -494,17 +494,45 @@ await ok('lo que el editor deja: numero de inicio de una lista, titulos en hebre
 console.log('capital, citas y pasaje');
 await ok('capital y citas: sin datos quedan como siempre; lo de mas se queda en el borde; una letra rara no pasa', () => {
   const base = new ConfigPagina({});
-  assert.deepEqual(base.capital, { fuente: '', lineas: 3, separaMm: 1.2 });
+  assert.deepEqual(base.capital, { estilo: 'hundida', fuente: '', lineas: 3, separaMm: 'auto' });
   assert.deepEqual(base.cita, { fuente: '', tamanoPct: 100, sangriaMm: 4.7, cursiva: true });
   const c = new ConfigPagina({ capital: { fuente: 'Estonia', lineas: 9, separaMm: 50 }, cita: { fuente: 'x");}', tamanoPct: 300, sangriaMm: -4, cursiva: false } });
-  assert.deepEqual(c.capital, { fuente: 'Estonia', lineas: 3, separaMm: 6 });
+  assert.deepEqual(c.capital, { estilo: 'hundida', fuente: 'Estonia', lineas: 3, separaMm: 6 });
   assert.deepEqual(c.cita, { fuente: '', tamanoPct: 160, sangriaMm: 0, cursiva: false });
   assert.deepEqual(new ConfigPagina(c.aDatos()).capital, c.capital);
   const css = cssLibro(c.aDatos());
-  assert.ok(css.includes('initial-letter: 3; font-weight: 400; margin-right: 6mm; font-family: "Estonia"'));
+  assert.ok(css.includes('initial-letter: 3; font-weight: 400; font-family: "Estonia", Georgia, serif; margin: 0 6mm .6mm 0;'));
   assert.ok(css.includes('.libro blockquote { margin: 1em 0mm; font-style: normal; font-size: 1.6em; }'));
-  assert.ok(cssLibro({}).includes('initial-letter: 3; font-weight: 700; margin-right: 1.2mm; }'));
+  assert.ok(cssLibro({}).includes('initial-letter: 3; font-weight: 700; margin: 0 7.15pt .6mm 0;'));
   assert.ok(cssLibro({}).includes('.libro blockquote { margin: 1em 4.7mm; font-style: italic; }'));
+});
+await ok('la capital: libros de antes, sus tres estilos y nada fuera de la caja del texto', () => {
+  /* Un libro de antes: sin estilo es hundida, y su 1,2 mm de siempre pasa a automatico; 5 renglones se conservan */
+  assert.deepEqual(new ConfigPagina({ capital: { lineas: 5, separaMm: 1.2 } }).capital, { estilo: 'hundida', fuente: '', lineas: 5, separaMm: 'auto' });
+  assert.equal(new ConfigPagina({ capital: { estilo: '<x>', separaMm: 'mucho' } }).capital.estilo, 'hundida');
+  assert.equal(new ConfigPagina({ capital: { separaMm: 'mucho' } }).capital.separaMm, 'auto');
+  assert.equal(new ConfigPagina({ capital: { separaMm: 2.5 } }).capital.separaMm, 2.5);
+  /* Quien hoy escribe 1,2 mm lo conserva, y vuelve igual al guardarse */
+  const doce = new ConfigPagina({ capital: { estilo: 'hundida', separaMm: 1.2 } });
+  assert.equal(doce.capital.separaMm, 1.2);
+  assert.equal(new ConfigPagina(doce.aDatos()).capital.separaMm, 1.2);
+  /* La caja se mide igual en la mesa (border-box) y en la hoja de impresion */
+  assert.ok(cssLibro({ capital: { fuente: 'Petemoss' } }).includes('.libro .capital { box-sizing: content-box; min-height: 3lh;'));
+  const css = (capital, tamanoPt = 11) => cssLibro({ capital, cuerpo: { tamanoPt } });
+  /* El espacio automatico crece con la letra y con el cuerpo */
+  assert.ok(css({ lineas: 2 }).includes('margin: 0 5.5pt .6mm 0;'));
+  assert.ok(css({ lineas: 4 }).includes('margin: 0 8.8pt .6mm 0;'));
+  assert.ok(css({ lineas: 3 }, 12).includes('margin: 0 7.8pt .6mm 0;'));
+  assert.ok(css({ lineas: 3 }).includes('.libro .capital { box-sizing: content-box; min-height: 3lh; orphans: 3; }'));
+  /* Con una letra propia (suele traer adornos) la hundida deja aire arriba */
+  assert.ok(css({ lineas: 3, fuente: 'Petemoss' }).includes('.libro .capital { box-sizing: content-box; min-height: 3lh; orphans: 3; padding-top: .4lh; }'));
+  /* La elevada sube dentro del aire que reserva su parrafo */
+  const e = css({ estilo: 'elevada', lineas: 3 });
+  assert.ok(e.includes('initial-letter: 3 1;') && e.includes('.libro .capital { box-sizing: content-box; padding-top: 2lh; }'));
+  /* La sencilla tiene un solo alto en renglones, igual con cualquier letra */
+  const s = css({ estilo: 'sencilla', lineas: 4, fuente: 'Estonia' });
+  assert.ok(s.includes('initial-letter: 1.7 1;') && s.includes('.libro .capital { box-sizing: content-box; padding-top: 0.7lh; }'));
+  assert.ok(!s.includes('initial-letter: 4'));
 });
 await ok('el pasaje: texto con renglones, referencia en una linea, hebreo de derecha a izquierda y con su letra en el PDF', async () => {
   const pasaje = await import('../src/scripts/contenido/taller/tipos/pasaje.js');

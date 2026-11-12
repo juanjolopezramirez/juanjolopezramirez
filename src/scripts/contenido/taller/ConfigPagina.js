@@ -26,7 +26,10 @@ export const TAMANOS = [
   { id: '5x8', nombre: '5 × 8 pulgadas (127 × 203 mm)', anchoMm: 127, altoMm: 203.2 }
 ];
 export const LUGARES_NUMERO = ['pie-centro', 'pie-exterior', 'pie-interior'];
+/* El panel ofrece 2 a 4 renglones; 5 solo se conserva en los libros que ya lo tenian */
 export const CAPITAL_LINEAS = [2, 3, 4, 5];
+/* Hundida: baja junto a sus renglones. Elevada: se apoya en el primero y sube. Sencilla: una letra algo mayor. */
+export const CAPITAL_ESTILOS = ['hundida', 'elevada', 'sencilla'];
 
 /* El color de cada letra del libro: { fuente: color }. Se lee con `colorDeLetra`: una fuente puede llamarse «constructor» */
 export const colorDeLetra = (c, fuente) => (tiene(c.letras, fuente) ? c.letras[fuente] : '');
@@ -61,9 +64,12 @@ export class ConfigPagina {
        Una letra vacia es la del libro. */
     const cap = objeto(o.capital), ci = objeto(o.cita);
     this.capital = {
+      estilo: CAPITAL_ESTILOS.includes(cap.estilo) ? cap.estilo : 'hundida',
       fuente: nombreDeFuente(cap.fuente) ? cap.fuente : '',
       lineas: CAPITAL_LINEAS.includes(cap.lineas) ? cap.lineas : 3,
-      separaMm: entre(cap.separaMm, 0, 6, 1.2)
+      /* 'auto' crece con la letra. 1,2 mm era el de antes, que el panel escribia siempre: en un libro guardado
+         antes de los estilos (sin `estilo`) pasa a automatico. Quien hoy escribe 1,2 lo conserva. */
+      separaMm: cap.estilo === undefined && cap.separaMm === 1.2 ? 'auto' : entre(cap.separaMm, 0, 6, 'auto')
     };
     this.cita = {
       fuente: nombreDeFuente(ci.fuente) ? ci.fuente : '',

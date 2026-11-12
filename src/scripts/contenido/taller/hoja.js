@@ -26,12 +26,37 @@ export const ESTILOS_HOJA = new Set(['color', 'background-color', 'font-size', '
 /* Las formas en que el navegador escribe una letra. Con su nombre entero: «Noto Serif» no es «Noto Serif Hebrew». */
 const conLetra = (f) => [`font-family: ${f};`, `font-family: ${f},`, `"${f}"`].map((v) => `.libro [style*='${v}']`).concat(`.libro [style$='font-family: ${f}']`).join(', ');
 
+/* LA CAPITAL. Todo en CSS del libro: la mesa y el PDF la miden igual y cortan la pagina en la misma palabra.
+   - El espacio a su lado crece con ella (en 'auto'): 1,2 mm fijos la dejaban pegada al texto cuando era grande.
+   - Nada sale de la caja del texto: la elevada y la sencilla suben dentro de un aire que el parrafo reserva
+     arriba, y una letra elegida aparte (suele traer adornos) recibe un poco de aire sobre la hundida.
+   - La sencilla se mide en renglones y no en em: asi sale del mismo alto con cualquier letra (Estonia es chica).
+   - `box-sizing` va escrito: el portal mide con border-box y la hoja de impresion no; con alto minimo y aire
+     arriba, un parrafo corto mediria distinto en la mesa y en el PDF. */
+export const SENCILLA_RENGLONES = 1.7;
+/* `cap` es el de ConfigPagina (ya limpio). Aun asi, lo que va al CSS es un numero o no va. */
+export function estiloCapital(cap, cuerpoPt) {
+  const espacio = (factor) => (Number.isFinite(cap.separaMm) ? `${cap.separaMm}mm` : `${Math.round(cuerpoPt * factor * 100) / 100}pt`);
+  /* Una letra elegida para la capital ya trae su forma: engrosarla a la fuerza la deforma */
+  const letra = `font-weight: ${cap.fuente ? 400 : 700};${cap.fuente ? ` font-family: ${familiaCss(cap.fuente)};` : ''}`;
+  const n = cap.lineas;
+  if (cap.estilo === 'sencilla') {
+    return { capital: `initial-letter: ${SENCILLA_RENGLONES} 1; ${letra} margin-right: ${espacio(0.08)};`, conCapital: `padding-top: ${Math.round((SENCILLA_RENGLONES - 1) * 100) / 100}lh;` };
+  }
+  if (cap.estilo === 'elevada') {
+    return { capital: `initial-letter: ${n} 1; ${letra} margin-right: ${espacio(0.15)};`, conCapital: `padding-top: ${n - 1}lh;` };
+  }
+  return {
+    capital: `initial-letter: ${n}; ${letra} margin: 0 ${espacio(0.5 + 0.15 * (n - 2))} .6mm 0;`,
+    conCapital: `min-height: ${n}lh; orphans: ${n};${cap.fuente ? ' padding-top: .4lh;' : ''}`
+  };
+}
+
 /* El libro por dentro: igual en el editor (raiz .libro) y en la hoja */
 export function cssLibro(config) {
   const c = new ConfigPagina(config), b = c.cuerpo, t = c.titulos, cap = c.capital, ci = c.cita;
   const letra = colorDeLetra(c, b.fuente) || 'var(--hoja-tinta)';
-  /* Una letra elegida para la capital ya trae su forma: engrosarla a la fuerza la deforma */
-  const capital = `initial-letter: ${cap.lineas}; font-weight: ${cap.fuente ? 400 : 700}; margin-right: ${cap.separaMm}mm;${cap.fuente ? ` font-family: ${familiaCss(cap.fuente)};` : ''}`;
+  const { capital, conCapital } = estiloCapital(cap, b.tamanoPt);
   const cita = `margin: 1em ${ci.sangriaMm}mm; font-style: ${ci.cursiva ? 'italic' : 'normal'};${ci.tamanoPct !== 100 ? ` font-size: ${ci.tamanoPct / 100}em;` : ''}${ci.fuente ? ` font-family: ${familiaCss(ci.fuente)};` : ''}`;
   /* El hilo del pasaje: la tinta a medias con el papel. Asi sirve en papel claro y en papel oscuro. */
   const hilo = 'color-mix(in srgb, var(--hoja-tinta) 45%, var(--hoja-papel))';
@@ -47,7 +72,7 @@ export function cssLibro(config) {
 .libro h2 { font-size: 1.45em; line-height: 1.25; margin: 1em 0 .5em; break-after: avoid; }
 .libro h3 { font-size: 1.2em; line-height: 1.3; margin: 1em 0 .4em; break-after: avoid; }
 .libro .capital::first-letter { ${capital} }
-.libro .capital { min-height: ${cap.lineas}lh; orphans: ${cap.lineas}; }
+.libro .capital { box-sizing: content-box; ${conCapital} }
 .libro .imagen { margin: 1em 0; break-inside: avoid; }
 .libro .imagen img { display: block; max-width: 100%; height: auto; }
 .libro .imagen--izq { float: left; margin: .3em 1em .5em 0; }
