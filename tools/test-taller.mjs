@@ -231,6 +231,19 @@ console.log('el contenido del libro');
     assert.equal(I.hayPortada(capitulosParaIndice([conVacio, ...caps().slice(1)]), 'auto'), true);
     const conTexto = { ...pdf, contenido: { doc: { type: 'doc', content: [parrafo('Hola'), libre('', '')] } } };
     assert.equal(I.hayPortada(capitulosParaIndice([conTexto, ...caps().slice(1)]), 'auto'), false);
+    /* Un PDF traido con la forma vieja (paginasPdf) tambien es portada */
+    const vieja = { ...pdf, contenido: { doc: { type: 'doc', content: [{ type: 'paginasPdf', attrs: {} }] } } };
+    assert.equal(I.hayPortada(capitulosParaIndice([vieja, ...caps().slice(1)]), 'auto'), true);
+    /* Se fija la primera vez que se reconoce sola; nunca si ya la eligio el autor, ni sin portada */
+    assert.equal(I.debeFijarPortada(capitulosParaIndice(libro), 'auto'), true);
+    assert.equal(I.debeFijarPortada(capitulosParaIndice(libro), 'si'), false);
+    assert.equal(I.debeFijarPortada(capitulosParaIndice(libro), 'no'), false);
+    assert.equal(I.debeFijarPortada(capitulosParaIndice(caps().slice(1)), 'auto'), false);
+    /* Una pagina arriba y texto debajo: se reconoce como portada, pero no se fija (puede estar escribiendo) */
+    const escribiendo = { ...pdf, contenido: { doc: { type: 'doc', content: [libre('', ''), parrafo('Aquí empiezo a escribir')] } } };
+    assert.equal(I.hayPortada(capitulosParaIndice([escribiendo, ...caps().slice(1)]), 'auto'), true);
+    assert.equal(I.debeFijarPortada(capitulosParaIndice([escribiendo, ...caps().slice(1)]), 'auto'), false);
+    assert.equal(I.debeFijarPortada(capitulosParaIndice([conVacio, ...caps().slice(1)]), 'auto'), true, 'renglones vacios no cuentan');
     /* Un hueco (null) en un libro guardado no rompe nada */
     const roto = { id: 'r', titulo: '', contenido: { doc: { type: 'doc', content: [null, { type: 'columnas', content: [null] }, libre('', '')] } } };
     assert.doesNotThrow(() => I.hayPortada(capitulosParaIndice([roto, ...caps().slice(1)]), 'auto'));

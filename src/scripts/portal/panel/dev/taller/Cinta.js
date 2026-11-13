@@ -67,8 +67,11 @@ export class Cinta {
     raiz.querySelectorAll('[data-b-imagen]').forEach((b) => b.addEventListener('click', () => img.click()));
     img.addEventListener('change', () => { if (img.files[0]) alImagen(img.files[0]); img.value = ''; });
     const pdf = this.q('[data-b-pdf-archivo]');
-    raiz.querySelectorAll('[data-b-pdf]').forEach((b) => b.addEventListener('click', () => pdf.click()));
-    pdf.addEventListener('change', () => { if (pdf.files[0]) alPdf(pdf.files[0]); pdf.value = ''; });
+    /* El mismo archivo sirve para paginas sueltas o para la portada (que siempre va al comienzo del libro) */
+    this.pedirPdf = (modo = '') => { this.modoPdf = modo; pdf.click(); };
+    raiz.querySelectorAll('[data-b-pdf]').forEach((b) => b.addEventListener('click', () => this.pedirPdf('')));
+    raiz.querySelectorAll('[data-b-portada]').forEach((b) => b.addEventListener('click', () => this.pedirPdf('portada')));
+    pdf.addEventListener('change', () => { if (pdf.files[0]) alPdf(pdf.files[0], { portada: this.modoPdf === 'portada' }); pdf.value = ''; this.modoPdf = ''; });
     raiz.querySelectorAll('[data-insertar]').forEach((b) => b.addEventListener('click', () => alInsertar(b.dataset.insertar)));
     this.pintarSimbolos();
     this.prepararTeclado();

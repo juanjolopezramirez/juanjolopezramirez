@@ -41,7 +41,11 @@ export async function importarPdf(archivo, { be, obra, tx, imagenes, sigue, alPr
       if (r.error) { alError(r.error); return; }
       if (!sigue()) return;
       await imagenes.poner(fondo, g.blob);
-      alPagina({ nombre: archivo.name.replace(/\.pdf$/i, ''), fondo, pdf: ruta, anchoMm: m.anchoMm, altoMm: m.altoMm, ajuste, texto: g.texto, alt: '', caja: g.caja, sangre: g.sangre, objetos: [] });
+      if (!sigue()) return;
+      /* Se espera: la primera pagina de una portada crea su capitulo, y la segunda tiene que llegar despues.
+         `false` es «para»: lo que falta no se lee ni se sube. */
+      const sigo = await alPagina({ nombre: archivo.name.replace(/\.pdf$/i, ''), fondo, pdf: ruta, anchoMm: m.anchoMm, altoMm: m.altoMm, ajuste, texto: g.texto, alt: '', caja: g.caja, sangre: g.sangre, objetos: [] });
+      if (sigo === false) return;
     }
     alDecir(tx.pdfListo);
   } catch (e) {

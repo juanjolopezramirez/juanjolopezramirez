@@ -11,7 +11,7 @@ import { Capitulo } from '../../../../contenido/taller/Obra.js';
 import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
-import { entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
+import { debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { CapituloVivo } from './CapituloVivo.js';
@@ -164,6 +164,8 @@ export class Mesa {
     });
     if (antes >= this.vivos.length) meterIndice();
     this.pintarIndice(entradas, reparto, antes);
+    /* Una portada reconocida sola queda fija la primera vez (solo quien puede editar la guarda) */
+    if (this.editable && this.alPortada && debeFijarPortada(this.capitulosParaIndice(), new ConfigPagina(this.obra().pagina).portada)) this.alPortada('si', true);
     this.podarEleccion();
     this.minis.pintar();
     this.pintarEleccion();
@@ -731,6 +733,56 @@ export class Mesa {
     return this.ponerLibre(attrs);
   }
 
+  /* LA PORTADA DESDE UN PDF. La primera pagina va al comienzo de la portada que ya hay, o de un capitulo nuevo al
+     comienzo del libro; las demas la siguen (ponerPaginaDePdf). El capitulo se crea con la primera pagina (si se
+     cancela antes, no se crea), y si algo falla despues de crearlo, se borra. Nada de la portada vieja se borra:
+     sus paginas quedan para elegirlas despues. */
+  async primeraDePortada(attrs, sigue) {
+    if (this.moviendo) { this.decir(this.tx.moverEspera); return null; }
+    let v = this.conPortada() ? this.vivos[0] : null, nueva = false;
+    /* Una portada que solo se mira (por un conflicto, por ejemplo) no recibe paginas que no se guardarian */
+    if (v && !v.editor.isEditable) { this.decir(this.tx.variasQuietas); return null; }
+    const viejas = v ? libresDe(v.editor.state.doc) : [];
+    if (!v) {
+      const r = await this.be.taller.crearCapitulo(this.obra().id);
+      if (r.error) { if (sigue()) this.alFalla(r.error); return null; }
+      /* Si el libro se cerro mientras tanto, el capitulo recien creado no se queda vacio en la base */
+      if (!sigue()) { await this.be.taller.borrarCapitulo(r.fila.id); return null; }
+      v = new CapituloVivo(new Capitulo(r.fila), this);
+      this.vivos.unshift(v);
+      this.lienzo.insertBefore(v.caja, this.vivos[1] ? this.vivos[1].caja : null);
+      nueva = true;
+      /* Sin el orden guardado, al volver a abrir quedaria al final: mejor no dejarlo */
+      const ordenado = await this.ordenar();
+      if (!ordenado || !sigue() || !this.vivos.includes(v)) {
+        if (this.vivos.includes(v)) { this.quitarVivo(v); if (sigue()) { await this.ordenar(); this.medir(); } }
+        await this.be.taller.borrarCapitulo(v.cap.id);
+        return null;
+      }
+    }
+    const e = v.editor, h = this.meterPagina(e, 0, attrs);
+    if (!h) return null;
+    /* Un capitulo nuevo trae un renglon vacio: despues de la portada seria una hoja en blanco */
+    const d = e.state.doc, ultimo = d.lastChild;
+    if (nueva && d.childCount > 1 && ultimo.type.name === 'paragraph' && !ultimo.content.size) {
+      e.view.dispatch(e.state.tr.delete(d.content.size - ultimo.nodeSize, d.content.size).setMeta('addToHistory', false));
+    }
+    if (this.alPortada) this.alPortada('si', true);
+    this.programar();
+    return { h, viejas, vivo: v };
+  }
+
+  /* Las paginas de la portada anterior quedan elegidas: el autor decide si las borra */
+  elegirNodos(vivo, nodos) {
+    const hay = new Set(libresDe(vivo.editor.state.doc));
+    const quedan = nodos.filter((n) => hay.has(n));
+    if (!quedan.length) return 0;
+    this.eleccion = { vivo, nodos: quedan, ancla: quedan[0] };
+    this.medir();
+    this.panelDeEleccion();
+    return quedan.length;
+  }
+
   hojaParaObjeto() { return this.hojaActiva || this.ponerLibre({ nombre: this.tx.paginaLibre, objetos: [] }); }
 
   insertar(que) {
@@ -961,6 +1013,7 @@ export class Mesa {
       /* La portada nunca sale en el contenido: ahi no hay nada que mostrar u ocultar */
       ...(k === 0 && portada ? [] : [{ texto: v.enIndice ? tx.ocultarDelContenido : tx.mostrarEnContenido, apagado: quieto, fn: () => this.alternarEnIndice(v) }]),
       ...(k === 0 ? [{ texto: portada ? tx.noEsPortada : tx.esPortada, apagado: quieto, fn: () => this.alPortada(portada ? 'no' : 'si') }] : []),
+      ...(k === 0 ? [{ texto: portada ? tx.cambiarPortadaPdf : tx.subirPortadaPdf, apagado: quieto, fn: () => this.alPedirPortada() }] : []),
       ...(k > 0 ? [{ raya: true }, this.opcionUnir(v, quieto)] : [])
     ];
     this.menu.abrir(con ? e.clientX : r.left + 16, con ? e.clientY : r.top + 16, items, origen, () => this.minis.entrarAlCapitulo(v));

@@ -178,6 +178,7 @@ const { tx } = Astro.props;
           <div class="tal-b-panel tal-b-panel--menu">
             <button class="tal-btn" type="button" data-insertar="libre">{tx.paginaLibre}</button>
             <button class="tal-btn" type="button" data-b-pdf>{tx.paginasDePdf}</button>
+            <button class="tal-btn" type="button" data-b-portada title={tx.portadaPdfAyuda}>{tx.portadaPdf}</button>
             <button class="tal-btn" type="button" data-insertar="capitulo">{tx.capituloNuevo}</button>
           </div>
         </details>

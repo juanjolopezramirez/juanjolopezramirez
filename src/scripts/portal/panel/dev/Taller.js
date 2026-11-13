@@ -267,11 +267,12 @@ export class Taller extends Seccion {
     this.mesa.capitalDelLibro = () => ({ ...this.obra.pagina.capital, fuentes: this.obra.fuentes });
     /* «Es la portada» / «No es la portada» desde el menu del primer capitulo: es un ajuste del libro */
     this.mesa.alPortada = (valor, callado) => this.ponerPortada(valor, callado);
+    this.mesa.alPedirPortada = () => this.cinta.pedirPdf('portada');
     this.cinta = this.cinta || new Cinta(this.m('[data-tal-cinta]'), {
       tx: this.tx, fuentes: this.obra.fuentes, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null),
       alError: (c) => this.error(c),
       alImagen: (a) => this.subirImagen(a),
-      alPdf: (a) => this.traerPdf(a),
+      alPdf: (a, o) => this.traerPdf(a, o),
       alNuevaFuente: (n) => this.agregarFuente(n),
       alInsertar: (q) => this.mesa.insertar(q),
       alVolver: () => this.mesa.aLaHoja(),
@@ -751,13 +752,31 @@ export class Taller extends Seccion {
   }
 
   /* Si el libro se cierra a medio camino, lo que falta no entra en el siguiente */
-  async traerPdf(archivo) {
-    let anterior = null, primera = null;
+  /* `portada`: el PDF es la portada del libro y va siempre al comienzo, se mire la pagina que se mire */
+  async traerPdf(archivo, { portada = false } = {}) {
+    /* Uno a la vez: dos portadas a la vez crearian dos capitulos */
+    if (this.importando) { this.decir(this.tx.pdfEspera); return; }
+    this.importando = true;
+    try { await this.traerPdfYa(archivo, portada); } finally { this.importando = false; }
+  }
+
+  async traerPdfYa(archivo, portada) {
+    let anterior = null, primera = null, cuantas = 0, deLaPortada = null, empezada = false;
     const turno = this.turnoObra, sigue = () => turno === this.turnoObra;
     await importarPdf(archivo, {
       be: this.be, obra: this.obra.aDatos(), tx: this.tx, imagenes: this.imagenes, sigue,
       alProporcion: (m) => this.preguntarProporcion(m, sigue),
-      alPagina: (a) => { anterior = this.mesa.ponerPaginaDePdf(a, anterior); primera = primera || anterior; },
+      /* `false` detiene la lectura: sin capitulo para la portada no se suben las paginas que faltan */
+      alPagina: async (a) => {
+        if (portada && !empezada) {
+          empezada = true;
+          deLaPortada = await this.mesa.primeraDePortada(a, sigue);
+          if (!deLaPortada) return false;
+          anterior = deLaPortada.h;
+        } else anterior = this.mesa.ponerPaginaDePdf(a, anterior);
+        primera = primera || anterior;
+        cuantas++;
+      },
       alAviso: (t) => { if (sigue()) this.avance.textContent = t; },
       alDecir: (t) => this.decir(t),
       alError: (c) => this.error(c)
@@ -768,7 +787,12 @@ export class Taller extends Seccion {
     const n = this.mesa.paginas.findIndex((p) => p.vista === primera) + 1;
     if (n < 1) return;
     if (!document.activeElement.closest('.flujo, .hoja')) this.mesa.irA(n);
-    this.decir(this.tx.pdfQuedo.replace('{n}', String(n)));
+    if (!portada) { this.decir(this.tx.pdfQuedo.replace('{n}', String(n))); return; }
+    this.llenarAntesDe();
+    /* La portada vieja no se borra sola: sus paginas quedan elegidas para que el autor decida */
+    const viejas = deLaPortada && deLaPortada.viejas.length ? this.mesa.elegirNodos(deLaPortada.vivo, deLaPortada.viejas) : 0;
+    const subida = cuantas === 1 ? this.tx.portadaSubidaUna : this.tx.portadaSubida.replace('{n}', String(cuantas));
+    this.decir([subida, viejas === 1 ? this.tx.portadaViejaUna : viejas ? this.tx.portadaVieja : ''].filter(Boolean).join(' '));
   }
 
   /* El PDF tiene otra proporcion que el libro: decide el fundador. Ajustar el libro cambia todas sus hojas. */

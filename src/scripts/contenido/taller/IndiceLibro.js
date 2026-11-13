@@ -66,11 +66,20 @@ export function hayPortada(capitulos, portada) {
   if (capitulos.length < 2 || c.tituloPropio) return false;
   /* Un renglon vacio antes de la primera pagina no cuenta: un capitulo nuevo empieza con uno */
   const hijos = hijosDe(c.doc || {}), primero = hijos.find((n) => !(tipoDe(n) === 'paragraph' && !textoDe(n)));
-  if (!primero || tipoDe(primero) !== 'paginaLibre') return false;
+  /* `paginasPdf` es la forma vieja de un PDF traido (antes de pasar a paginas libres): tambien es portada */
+  if (!primero || !['paginaLibre', 'paginasPdf'].includes(tipoDe(primero))) return false;
   let titulo = false;
   recorrer(c.doc, (_, t) => { if (t === 'heading') titulo = true; });
   return !titulo;
 }
+
+/* Una portada que el Taller reconocio solo queda fija ('si') la primera vez: despues, escribirle un titulo encima o
+   borrarle una pagina no la vuelve capitulo. Solo «No es la portada» la quita.
+   Se fija solo si no hay duda: el primer capitulo es nada mas que paginas de diseño o de PDF (y renglones vacios).
+   Uno donde se esta escribiendo (una pagina arriba y texto debajo) sigue en 'auto'. */
+const SOLO_PAGINAS = new Set(['paginaLibre', 'paginasPdf']);
+export const debeFijarPortada = (capitulos, portada) => portada === 'auto' && hayPortada(capitulos, 'auto')
+  && hijosDe(capitulos[0].doc || {}).every((n) => SOLO_PAGINAS.has(tipoDe(n)) || (tipoDe(n) === 'paragraph' && !textoDe(n)));
 
 /* Delante de que capitulo va el contenido: el elegido (`indice.antesDe`, su id), o el primero. Nunca antes de la
    portada. Puede ser `capitulos.length`: al final, si la portada es todo el libro. */
