@@ -5,15 +5,13 @@
    Un libro de 300 paginas no puede tener 300 copias vivas: las 300 hojas existen, vacias y del mismo tamaño,
    y solo las del pliego que se ve y las de sus vecinos tienen la copia dibujada (pliegos.js → ventana).
 
-   Tres gustos, que se recuerdan en este navegador: tapa dura o revista, ver el lomo en perspectiva, y el
+   Tres gustos, que se recuerdan mientras la pestaña siga abierta: tapa dura o revista, ver el lomo en perspectiva, y el
    sonido de la hoja. Con el lomo a la vista el libro se mira en 3D y ya no se arrastra con el raton: se pasa
    con las flechas, los botones y un clic a cada lado, porque la libreria mide el raton en un plano plano. */
 import { cantoDe, lomoDe, ladoDe, paginasDe, pliegoDe, pliegoVecino, ventana } from './pliegos.js';
 
 const crear = (tag, clase) => { const e = document.createElement(tag); if (clase) e.className = clase; return e; };
 const LIGERA = 850, PESADA = 1300, CALMA = 300;   // lo que tarda una hoja (ms): la del lector de la web
-const PREF = 'taller-ver-libro';
-
 /* La libreria se pide una vez, y solo al abrir el primer libro */
 let libreria = null;
 const traerLibreria = () => {
@@ -21,13 +19,10 @@ const traerLibreria = () => {
   return libreria;
 };
 
-const leerPref = () => {
-  try {
-    const p = JSON.parse(localStorage.getItem(PREF) || '{}') || {};
-    return { dura: p.dura !== false, lomo: p.lomo === true, sonido: p.sonido === true };
-  } catch (e) { return { dura: true, lomo: false, sonido: false }; }
-};
-const guardarPref = (p) => { try { localStorage.setItem(PREF, JSON.stringify(p)); } catch (e) { /* sin almacenamiento: no se recuerda */ } };
+/* Los tres gustos duran lo que la pestaña: el portal no guarda nada en el navegador (tools/test-portal.mjs lo exige) */
+const gustos = { dura: true, lomo: false, sonido: false };
+const leerPref = () => ({ ...gustos });
+const guardarPref = (p) => Object.assign(gustos, { dura: p.dura !== false, lomo: p.lomo === true, sonido: p.sonido === true });
 
 export class VistaLibro {
   constructor(caja, { mesa, tx, titulo }) {
