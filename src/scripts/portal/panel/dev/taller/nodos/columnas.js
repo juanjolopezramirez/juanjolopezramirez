@@ -6,7 +6,7 @@ export const Columna = Node.create({
   content: 'block+',
   isolating: true,
   parseHTML() { return [{ tag: 'div[data-columna]' }]; },
-  renderHTML() { return ['div', { 'data-columna': '1', class: 'tal-columna' }, 0]; }
+  renderHTML() { return ['div', { 'data-columna': '1', class: 'columna tal-columna' }, 0]; }
 });
 
 export const Columnas = Node.create({
@@ -26,7 +26,7 @@ export const Columnas = Node.create({
   parseHTML() { return [{ tag: 'div[data-columnas]' }]; },
   renderHTML({ node }) {
     const anchos = Array.isArray(node.attrs.anchos) ? node.attrs.anchos : [1, 1];
-    return ['div', { 'data-columnas': '1', 'data-anchos': anchos.join(' '), class: 'tal-columnas', style: `grid-template-columns:${anchos.map((x) => `${x}fr`).join(' ')}` }, 0];
+    return ['div', { 'data-columnas': '1', 'data-anchos': anchos.join(' '), class: 'columnas tal-columnas', style: `grid-template-columns:${anchos.map((x) => `${x}fr`).join(' ')}` }, 0];
   },
   addCommands() {
     return {

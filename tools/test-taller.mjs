@@ -24,6 +24,8 @@ import { estiloSeguro, ponerEstilo } from '../src/scripts/contenido/taller/armar
 import * as A from '../src/scripts/contenido/taller/aspectoBoton.js';
 import * as I from '../src/scripts/contenido/taller/IndiceLibro.js';
 import { revisarTiposTaller } from './revisar-tipos-taller.mjs';
+import { grupoDe, gruposDe, paginaDe, planCambio, totalDe } from '../src/scripts/contenido/taller/OrigenPdf.js';
+import { partirEnTres, planRango } from '../src/scripts/portal/panel/dev/taller/Partir.js';
 
 let bien = 0, mal = 0;
 async function ok(nombre, fn) {
@@ -419,7 +421,7 @@ console.log('el contenido del libro');
     }
   });
   await ok('ConfigPagina: el indice de antes (true) sigue, y lo raro no pasa', () => {
-    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '', plantilla: 'clasico', orden: false, imagen: { ruta: '', altoPct: 30, ajuste: 'cubrir' }, portadas: false, verRol: false });
+    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '', plantilla: 'clasico', orden: false, imagen: { ruta: '', altoPct: 30, ajuste: 'cubrir' }, portadas: false, verRol: false, negrita: { n1: false, n2: false } });
     assert.equal(new ConfigPagina({}).indice.ver, false);
     const raro = new ConfigPagina({ indice: { ver: 'si', titulo: `  Mi\u0007  índice ${'x'.repeat(300)}`, subtemas: false, puntos: 0, antesDe: '../x;y' } }).indice;
     assert.equal(raro.ver, false);
@@ -1598,6 +1600,398 @@ console.log('papeles, palabra propia, subetapa y encabezado');
     assert.match(libro({ imprenta: true, cabeza: { ver: true, distanciaMm: 5 } }, cap('X')).css, /padding-top: 30\.9px/);
   });
 }
+
+console.log('de que PDF viene una hoja, cambiar el PDF y marcar un tramo');
+await ok('paginaDe: el numero guardado, o el del nombre del fondo en los libros viejos', () => {
+  const O = 'taller/o1/pdf/';
+  assert.equal(paginaDe({ fondo: `${O}p0003-1a2b3c4d5e6f7a8b.webp`, pdf: `${O}original-aa.pdf`, pdfPagina: 7 }), 7, 'manda el numero guardado');
+  assert.equal(paginaDe({ fondo: `${O}p0003-1a2b3c4d5e6f7a8b.webp`, pdf: `${O}original-aa.pdf` }), 3, 'viejo: sale del nombre');
+  assert.equal(paginaDe({ fondo: `${O}p0012-ff.jpg`, pdf: `${O}original-aa.pdf`, pdfPagina: 0 }), 12);
+  assert.equal(paginaDe({ fondo: 'taller/o1/img/abc.webp', pdf: `${O}original-aa.pdf` }), 0, 'una imagen cualquiera no dice pagina');
+  assert.equal(paginaDe({ fondo: `${O}p0003-aa.webp`, pdf: '' }), 0, 'sin PDF no es de un PDF');
+  assert.equal(paginaDe({ fondo: '', pdf: `${O}original-aa.pdf`, pdfPagina: 4 }), 0, 'sin dibujo tampoco');
+  for (const malo of [-1, 0, 1.5, 201, 1e9, '3', null, {}, [3]]) assert.equal(paginaDe({ fondo: `${O}p0005-aa.webp`, pdf: `${O}x.pdf`, pdfPagina: malo }), 5, `pdfPagina ${JSON.stringify(malo)} se ignora`);
+  assert.equal(paginaDe(null), 0);
+  assert.equal(paginaDe('x'), 0);
+  assert.equal(grupoDe({ fondo: `${O}p0001-aa.webp`, pdf: `${O}original-aa.pdf` }), `${O}original-aa.pdf`);
+  assert.equal(grupoDe({ fondo: `${O}p0001-aa.webp` }), '');
+});
+await ok('paginaLibre.datos guarda pdfPagina y sobra limpios', () => {
+  const d = (a) => POR_NODO.get('paginaLibre').datos('paginaLibre', a);
+  assert.equal(d({ pdfPagina: 4, sobra: true }).pdfPagina, 4);
+  assert.equal(d({ pdfPagina: 4, sobra: true }).sobra, true);
+  assert.equal(d({ pdfPagina: 4 }).sobra, false);
+  assert.equal(d({ pdfPagina: '4', sobra: 'si' }).pdfPagina, 0);
+  assert.equal(d({ pdfPagina: '4', sobra: 'si' }).sobra, false);
+  assert.equal(d({ pdfPagina: 1e9 }).pdfPagina, 0);
+});
+await ok('gruposDe junta por PDF, en orden, y deja aparte las que sobran', () => {
+  const A = { fondo: 'taller/o/pdf/p0001-aa.webp', pdf: 'taller/o/pdf/original-1.pdf' }, B = { fondo: 'taller/o/pdf/p0001-bb.webp', pdf: 'taller/o/pdf/original-2.pdf' };
+  const g = gruposDe([{ clave: 'c1', attrs: A }, { clave: 'c1', attrs: null }, { clave: 'c2', attrs: { ...B, pdfPagina: 9 } }, { clave: 'c2', attrs: { ...A, pdfPagina: 2 } }, { clave: 'c2', attrs: { ...A, sobra: true } }]);
+  assert.deepEqual(g.map((x) => [x.pdf.endsWith('1.pdf') ? 1 : 2, x.sobra, x.paginas.length, x.claves.size]), [[1, false, 2, 2], [2, false, 1, 1], [1, true, 1, 1]]);
+  assert.deepEqual(g[0].paginas.map((q) => [q.i, q.pagina]), [[0, 1], [3, 2]]);
+  assert.deepEqual(gruposDe([]), []);
+  assert.deepEqual(gruposDe(null), []);
+});
+await ok('planCambio: igual, con mas y con menos paginas', () => {
+  const viejas = (...n) => n.map((pagina) => ({ pagina }));
+  assert.deepEqual(planCambio(viejas(1, 2, 3), 3), { modo: 'numero', asignar: [{ i: 0, n: 1 }, { i: 1, n: 2 }, { i: 2, n: 3 }], sobran: [], nuevas: [] });
+  const mas = planCambio(viejas(1, 2, 3), 5);
+  assert.deepEqual(mas.asignar.length, 3);
+  assert.deepEqual(mas.nuevas, [4, 5]);
+  assert.deepEqual(mas.sobran, []);
+  const menos = planCambio(viejas(1, 2, 3, 4), 2);
+  assert.deepEqual(menos.asignar, [{ i: 0, n: 1 }, { i: 1, n: 2 }]);
+  assert.deepEqual(menos.sobran, [2, 3]);
+  assert.deepEqual(menos.nuevas, []);
+});
+await ok('planCambio: una hoja movida sigue siendo su pagina; una borrada se queda borrada', () => {
+  /* En el libro van 3, 1, 2: la que esta primera recibe la pagina 3 del PDF nuevo */
+  assert.deepEqual(planCambio([{ pagina: 3 }, { pagina: 1 }, { pagina: 2 }], 3).asignar, [{ i: 0, n: 3 }, { i: 1, n: 1 }, { i: 2, n: 2 }]);
+  /* Se borro la 2: no vuelve; solo se agregan las que pasan de la ultima que habia */
+  const p = planCambio([{ pagina: 1 }, { pagina: 3 }], 4);
+  assert.deepEqual(p.asignar, [{ i: 0, n: 1 }, { i: 1, n: 3 }]);
+  assert.deepEqual(p.nuevas, [4]);
+  /* Con el numero de pagina 5 de un PDF que ahora tiene 3: sobra solo esa */
+  const q = planCambio([{ pagina: 1 }, { pagina: 5 }, { pagina: 2 }], 3);
+  assert.deepEqual(q.sobran, [1]);
+  assert.deepEqual(q.nuevas, []);
+});
+await ok('planCambio: sin numeros (o repetidos) va por orden; nunca revienta', () => {
+  const o = planCambio([{ pagina: 0 }, { pagina: 0 }, { pagina: 0 }], 2);
+  assert.equal(o.modo, 'orden');
+  assert.deepEqual(o.asignar, [{ i: 0, n: 1 }, { i: 1, n: 2 }]);
+  assert.deepEqual(o.sobran, [2]);
+  /* Un numero repetido (hoja duplicada) ya no manda al modo por orden: va por numero, las dos con la misma pagina nueva */
+  assert.equal(planCambio([{ pagina: 2 }, { pagina: 2 }], 3).modo, 'numero');
+  assert.equal(planCambio([{ pagina: 1 }, { pagina: 0 }, { pagina: 3 }], 3).modo, 'orden', 'un numero que falta si manda al modo por orden');
+  assert.deepEqual(planCambio([{ pagina: 1 }, { pagina: 2 }], 0), { modo: 'numero', asignar: [], sobran: [0, 1], nuevas: [] });
+  assert.deepEqual(planCambio(null, 3).asignar, []);
+  assert.deepEqual(planCambio([{ pagina: 1 }], NaN).asignar, []);
+});
+await ok('planCambio: una hoja duplicada recibe la misma pagina nueva y las demas no se corren', () => {
+  /* Libro: p1, p2, p3 y una copia de p2 detras de p2 */
+  const d = planCambio([{ pagina: 1 }, { pagina: 2 }, { pagina: 2 }, { pagina: 3 }], 3);
+  assert.equal(d.modo, 'numero');
+  assert.deepEqual(d.asignar, [{ i: 0, n: 1 }, { i: 1, n: 2 }, { i: 2, n: 2 }, { i: 3, n: 3 }]);
+  assert.deepEqual(d.sobran, []);
+  assert.deepEqual(d.nuevas, []);
+  /* Ademas se borro la p1 */
+  const b = planCambio([{ pagina: 2 }, { pagina: 2 }, { pagina: 3 }], 4);
+  assert.deepEqual(b.asignar, [{ i: 0, n: 2 }, { i: 1, n: 2 }, { i: 2, n: 3 }]);
+  assert.deepEqual(b.nuevas, [4]);
+  /* Una copia de la p3 en un PDF que se acorta a 2: las dos copias sobran */
+  assert.deepEqual(planCambio([{ pagina: 3 }, { pagina: 3 }, { pagina: 1 }], 2).sobran, [0, 1]);
+});
+await ok('planCambio: lo que se borro del final del PDF viejo no vuelve (total del PDF viejo)', () => {
+  /* El PDF viejo tenia 4; se borro la 4. Un PDF nuevo de 4 paginas no la trae de vuelta */
+  const a = planCambio([{ pagina: 1, total: 4 }, { pagina: 2, total: 4 }, { pagina: 3, total: 4 }], 4);
+  assert.deepEqual(a.nuevas, []);
+  assert.equal(a.asignar.length, 3);
+  /* Si el nuevo pasa del total viejo, solo entran las que pasan */
+  assert.deepEqual(planCambio([{ pagina: 1, total: 4 }, { pagina: 2, total: 4 }, { pagina: 3, total: 4 }], 6).nuevas, [5, 6]);
+  /* Sin total guardado (libros de antes) se sigue por la ultima que se ve */
+  assert.deepEqual(planCambio([{ pagina: 1 }, { pagina: 2 }, { pagina: 3 }], 4).nuevas, [4]);
+  /* Un total raro se ignora */
+  assert.deepEqual(planCambio([{ pagina: 1, total: -3 }, { pagina: 2, total: 'x' }], 3).nuevas, [3]);
+});
+await ok('pdfTotal: se guarda limpio y gruposDe lo lleva', () => {
+  const d = (a) => POR_NODO.get('paginaLibre').datos('paginaLibre', a);
+  assert.equal(d({ pdfTotal: 12 }).pdfTotal, 12);
+  for (const malo of [0, -1, 1.5, 201, '3', null, {}]) assert.equal(d({ pdfTotal: malo }).pdfTotal, 0);
+  const A = { fondo: 'taller/o/pdf/p0001-aa.webp', pdf: 'taller/o/pdf/original-1.pdf', pdfTotal: 7 };
+  assert.equal(totalDe(A), 7);
+  assert.equal(totalDe({ ...A, pdf: '' }), 0);
+  assert.equal(gruposDe([{ clave: 1, attrs: A }])[0].paginas[0].total, 7);
+});
+await ok('escalaDePagina: una pagina de medida absurda no cuelga la pestaña', async () => {
+  const { escalaDePagina, LADO_PX_MAX, AREA_PX_MAX } = await import('../src/scripts/portal/panel/dev/taller/Pdf.js');
+  const px = { ancho: 1748, alto: 2480 };                       // A5 a 300 ppp
+  /* Una pagina como la del libro: a su escala de siempre */
+  assert.ok(Math.abs(escalaDePagina(419.5, 595.3, px) - 4.1667) < 0.01);
+  /* 1 x 14400 puntos: el dibujo seria de miles de millones de pixeles */
+  assert.equal(escalaDePagina(1, 14400, px), 0);
+  assert.equal(escalaDePagina(14400, 1, px), 0);
+  /* Un poco mas alta que la primera: se baja la escala, nunca se pasa de los topes */
+  const e = escalaDePagina(300, 1400, px);
+  assert.ok(e > 0 && 300 * e <= LADO_PX_MAX + 1 && 1400 * e <= LADO_PX_MAX + 1 && 300 * 1400 * e * e <= AREA_PX_MAX * 1.001);
+  /* El libro mas grande (420 x 420 mm a 300 ppp) pasa entero */
+  const gr = { ancho: 4961, alto: 4961 };
+  assert.ok(escalaDePagina(595, 595, gr) > 0);
+  for (const malo of [[0, 10], [10, 0], [NaN, 5], [-5, 5], [Infinity, 5]]) assert.equal(escalaDePagina(malo[0], malo[1], px), 0, JSON.stringify(malo));
+  assert.equal(escalaDePagina(100, 100, null), 0);
+});
+const bl = (t) => ({ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: t }] });
+const pg = (k) => ({ type: 'paginaLibre', attrs: { nombre: `p${k}` } });
+await ok('planRango: el tramo, con los renglones vacios pegados', () => {
+  const vacio = { type: 'paragraph' };
+  assert.deepEqual(planRango([pg(1), pg(2), pg(3)], 0, 2), { desde: 0, hasta: 2, antes: false, despues: false, todo: true });
+  assert.deepEqual(planRango([pg(1), pg(2), pg(3)], 1, 1), { desde: 1, hasta: 1, antes: true, despues: true, todo: false });
+  /* Un renglon vacio al final o al comienzo cuenta como parte del tramo: no queda una hoja en blanco sola */
+  assert.equal(planRango([pg(1), pg(2), vacio], 0, 1).todo, true);
+  assert.equal(planRango([vacio, pg(1), pg(2)], 1, 2).todo, true);
+  assert.equal(planRango([pg(1), vacio, vacio, pg(2)], 0, 0).hasta, 2, 'toma los vacios pegados, no los que ya van con otra hoja');
+  for (const [d, h] of [[-1, 1], [0, 3], [2, 1], [0.5, 1], [NaN, 0]]) assert.equal(planRango([pg(1), pg(2), pg(3)], d, h), null);
+  assert.equal(planRango(null, 0, 0), null);
+});
+await ok('partirEnTres: antes, tramo y despues, y juntos arman el original', () => {
+  const doc = { type: 'doc', content: [bl('A'), pg(1), pg(2), pg(3), bl('B'), pg(4)] };
+  const t = partirEnTres(doc, 2, 3);
+  assert.deepEqual(t.antes.content.map((b) => b.type), ['heading', 'paginaLibre']);
+  assert.deepEqual(t.medio.content.map((b) => b.attrs && b.attrs.nombre), ['p2', 'p3']);
+  assert.deepEqual(t.despues.content.map((b) => b.type), ['heading', 'paginaLibre']);
+  assert.deepEqual([...t.antes.content, ...t.medio.content, ...t.despues.content], doc.content);
+  /* Al comienzo: sin parte de antes. Al final: sin parte de despues. */
+  const ini = partirEnTres(doc, 0, 1);
+  assert.equal(ini.antes, null);
+  assert.equal(ini.medio.content.length, 2);
+  assert.equal(ini.despues.content.length, 4);
+  const fin = partirEnTres(doc, 4, 5);
+  assert.equal(fin.despues, null);
+  assert.equal(fin.antes.content.length, 4);
+  /* Todo el capitulo: nada que partir */
+  const todo = partirEnTres(doc, 0, 5);
+  assert.equal(todo.plan.todo, true);
+  assert.equal(todo.antes, null);
+  assert.equal(todo.despues, null);
+  assert.equal(partirEnTres({ type: 'doc', content: [] }, 0, 0), null);
+  assert.equal(partirEnTres(null, 0, 0), null);
+  /* Lo devuelto es una copia: tocarlo no cambia el original */
+  t.medio.content[0].attrs.nombre = 'x';
+  assert.equal(doc.content[2].attrs.nombre, 'p2');
+});
+
+console.log('el lomo, el aviso y la negrita del contenido (ronda 2)');
+const { limpiarLomo, estiloDeLomo, LOMO_GROSOR, LOMO_TEXTO_MAX } = await import('../src/scripts/contenido/taller/LomoLibro.js');
+const { limpiarAviso, textoDeAviso, colorDeAviso, AVISO_SEGUNDOS, AVISO_TEXTO_MAX } = await import('../src/scripts/contenido/taller/AvisoLibro.js');
+const LOMO_VACIO = { texto: '', color: '', tinta: '', grosor: 'auto', tapas: { delante: '', detras: '' } };
+await ok('lomo: un libro viejo (sin lomo) queda con lo de siempre, y lo raro tambien', () => {
+  assert.deepEqual(new ConfigPagina({}).lomo, LOMO_VACIO);
+  for (const raro of [null, 7, 'x', [], [1, 2], { tapas: 5 }, { tapas: [] }, JSON.parse('{"__proto__": {"color": "#ff0000"}}')]) assert.deepEqual(limpiarLomo(raro), LOMO_VACIO, JSON.stringify(raro));
+});
+await ok('lomo: el texto es corto y limpio; los colores son de colorValido', () => {
+  const l = limpiarLomo({ texto: `  Mi\u0007 libro‮ ${'x'.repeat(100)}`, color: '#1F3B2C', tinta: 'rgb(1, 2, 3)', tapas: { delante: 'red', detras: 'url(x)' } });
+  assert.ok(l.texto.startsWith('Mi libro') && l.texto.length <= LOMO_TEXTO_MAX && !/[\u0007‮]/.test(l.texto));
+  assert.equal(l.color, '#1f3b2c');
+  assert.equal(l.tinta, '#010203');
+  assert.deepEqual(l.tapas, { delante: '', detras: '' });
+  assert.equal(limpiarLomo({ texto: 'a'.repeat(39) + '😀' }).texto, 'a'.repeat(39));      // medio emoji no queda
+});
+await ok('lomo: el grueso es «auto» o milimetros entre 4 y 40; lo que se pasa se queda en el tope', () => {
+  const g = (v) => limpiarLomo({ grosor: v }).grosor;
+  assert.equal(g(undefined), 'auto');
+  assert.equal(g('12'), 'auto');
+  assert.equal(g(NaN), 'auto');
+  assert.equal(g(Infinity), 'auto');
+  assert.equal(g(null), 'auto');
+  assert.equal(g(3), LOMO_GROSOR.min);
+  assert.equal(g(-50), LOMO_GROSOR.min);
+  assert.equal(g(100), LOMO_GROSOR.max);
+  assert.equal(g(12.34), 12.3);
+  assert.equal(g(4), 4);
+  assert.equal(g(40), 40);
+});
+await ok('lomo: guarda y vuelve igual, y aDatos entrega copias', () => {
+  const dato = { texto: 'Ahavá', color: '#7a1f2b', tinta: '#fbf6e9', grosor: 18.5, tapas: { delante: '#111111', detras: '#222222' } };
+  const c = new ConfigPagina({ lomo: dato });
+  assert.deepEqual(c.lomo, dato);
+  const otra = new ConfigPagina(JSON.parse(JSON.stringify(c.aDatos())));
+  assert.deepEqual(otra.lomo, dato);
+  c.aDatos().lomo.tapas.delante = '#ffffff';
+  c.aDatos().lomo.texto = 'otro';
+  assert.equal(c.lomo.tapas.delante, '#111111');
+  assert.equal(c.lomo.texto, 'Ahavá');
+});
+await ok('lomo: sin nada elegido se pinta como siempre; con color, la letra se escoge sola y las tapas lo siguen', () => {
+  const e0 = estiloDeLomo(undefined, 'Mi libro', { autoPx: 14 });
+  assert.deepEqual(e0, { texto: 'Mi libro', color: '', tinta: '', grosorPx: 14, delante: '', detras: '' });
+  const claro = estiloDeLomo({ color: '#fbf6e9' }, '');
+  assert.equal(claro.tinta, '#111111');
+  assert.equal(claro.delante, '#fbf6e9');
+  assert.equal(claro.detras, '#fbf6e9');
+  assert.equal(estiloDeLomo({ color: '#1e3a34' }, '').tinta, '#ffffff');
+  assert.ok(contraste(claro.tinta, claro.color) >= 4.5);
+  /* La letra elegida manda; una tapa elegida manda sobre el lomo */
+  const propio = estiloDeLomo({ color: '#fbf6e9', tinta: '#7a1f2b', tapas: { delante: '#000000' } }, '');
+  assert.equal(propio.tinta, '#7a1f2b');
+  assert.equal(propio.delante, '#000000');
+  assert.equal(propio.detras, '#fbf6e9');
+});
+await ok('lomo: el texto sin escribir es el titulo del libro; el grueso en mm cuenta con el ancho de la pagina', () => {
+  assert.equal(estiloDeLomo({}, 'T'.repeat(300)).texto.length, 120);
+  assert.equal(estiloDeLomo({ texto: 'Mio' }, 'Otro').texto, 'Mio');
+  /* 20 mm a 2 px por mm = 40 px; nunca menos de 6, ni mas de 35 % de la pagina */
+  assert.equal(estiloDeLomo({ grosor: 20 }, '', { pxPorMm: 2, ancho: 600 }).grosorPx, 40);
+  assert.equal(estiloDeLomo({ grosor: 4 }, '', { pxPorMm: 0.1, ancho: 600 }).grosorPx, 6);
+  assert.equal(estiloDeLomo({ grosor: 40 }, '', { pxPorMm: 20, ancho: 300 }).grosorPx, 105);
+  assert.equal(estiloDeLomo({}, '', { autoPx: 17, pxPorMm: 20 }).grosorPx, 17);
+});
+await ok('aviso: sin nada, los textos de siempre; lo raro no pasa', () => {
+  const v = limpiarAviso(undefined);
+  assert.deepEqual(v, { copiado: '', enlace: '', falla: '', fondo: '', tinta: '', lugar: 'abajo', segundos: AVISO_SEGUNDOS.siNo });
+  assert.deepEqual(new ConfigPagina({}).aviso, v);
+  for (const raro of [null, 3, 'x', [], { lugar: 'izquierda', segundos: '4', fondo: 'blue', tinta: 5, copiado: 9, enlace: [], falla: {} }]) assert.deepEqual(limpiarAviso(raro), v, JSON.stringify(raro));
+  const d = { copiado: 'Copiado' };
+  assert.equal(textoDeAviso({}, 'copiado', { copiado: 'Copiado.' }), 'Copiado.');
+  assert.equal(textoDeAviso({ copiado: ' Listo ' }, 'copiado', { copiado: 'Copiado.' }), 'Listo');
+  assert.equal(textoDeAviso({ copiado: 'x' }, 'otro', d), '');
+  assert.equal(textoDeAviso({ enlace: 'x' }, 'constructor', d), '');
+});
+await ok('aviso: los segundos van de 1,5 a 6; el lugar es arriba o abajo; los textos son cortos y limpios', () => {
+  const s = (v) => limpiarAviso({ segundos: v }).segundos;
+  assert.equal(s(0.2), AVISO_SEGUNDOS.min);
+  assert.equal(s(-3), AVISO_SEGUNDOS.min);
+  assert.equal(s(99), AVISO_SEGUNDOS.max);
+  assert.equal(s(2.26), 2.3);
+  assert.equal(s(NaN), AVISO_SEGUNDOS.siNo);
+  assert.equal(s(Infinity), AVISO_SEGUNDOS.siNo);
+  assert.equal(s(null), AVISO_SEGUNDOS.siNo);
+  assert.equal(limpiarAviso({ lugar: 'arriba' }).lugar, 'arriba');
+  assert.equal(limpiarAviso({ lugar: 'abajo' }).lugar, 'abajo');
+  assert.equal(limpiarAviso({ lugar: 'ARRIBA' }).lugar, 'abajo');
+  const a = limpiarAviso({ copiado: `\u0000Hecho‮ ${'y'.repeat(200)}`, falla: 'a'.repeat(59) + '😀' });
+  assert.ok(a.copiado.startsWith('Hecho') && a.copiado.length <= AVISO_TEXTO_MAX && !/[\u0000‮]/.test(a.copiado));
+  assert.equal(a.falla, 'a'.repeat(59));
+});
+await ok('aviso: los colores son de colorValido, la letra se escoge sola sobre el fondo, y vuelve igual', () => {
+  assert.deepEqual(colorDeAviso({}), { fondo: '', tinta: '' });
+  assert.deepEqual(colorDeAviso({ fondo: '#111111' }), { fondo: '#111111', tinta: '#ffffff' });
+  assert.deepEqual(colorDeAviso({ fondo: '#fbf6e9' }), { fondo: '#fbf6e9', tinta: '#111111' });
+  assert.deepEqual(colorDeAviso({ fondo: '#fbf6e9', tinta: '#7a1f2b' }), { fondo: '#fbf6e9', tinta: '#7a1f2b' });
+  assert.deepEqual(colorDeAviso({ fondo: 'url(x)', tinta: 'red' }), { fondo: '', tinta: '' });
+  const dato = { copiado: 'Listo', enlace: 'Abri el enlace', falla: 'No pude', fondo: '#1f3b2c', tinta: '#ffffff', lugar: 'arriba', segundos: 4.5 };
+  assert.deepEqual(new ConfigPagina(JSON.parse(JSON.stringify(new ConfigPagina({ aviso: dato }).aDatos()))).aviso, dato);
+  const c = new ConfigPagina({ aviso: dato });
+  c.aDatos().aviso.copiado = 'otro';
+  assert.equal(c.aviso.copiado, 'Listo');
+});
+await ok('la pagina con lo nuevo cabe en los 8000 bytes de la base, aun con todo al maximo', () => {
+  /* jsonb::text escribe «": »y «, »: un espacio de mas por cada dos puntos y cada coma */
+  const pg = (v) => {
+    if (Array.isArray(v)) return `[${v.map(pg).join(', ')}]`;
+    if (v && typeof v === 'object') return `{${Object.entries(v).map(([k, x]) => `${JSON.stringify(k)}: ${pg(x)}`).join(', ')}}`;
+    return JSON.stringify(v);
+  };
+  const letras = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`Fuente numero ${String(i).padStart(2, '0')} con nombre largo`, '#aabbcc']));
+  const max = new ConfigPagina({
+    letras, colores: Array(12).fill('#aabbcc'), titulos: { t1: '#aabbcc', t2: '#aabbcc', t3: '#aabbcc' }, papel: '#aabbcc',
+    lomo: { texto: '漢'.repeat(60), color: '#aabbcc', tinta: '#aabbcc', grosor: 40, tapas: { delante: '#aabbcc', detras: '#aabbcc' } },
+    aviso: { copiado: '漢'.repeat(80), enlace: '漢'.repeat(80), falla: '漢'.repeat(80), fondo: '#aabbcc', tinta: '#aabbcc', lugar: 'arriba', segundos: 6 },
+    indice: { ver: true, titulo: '漢'.repeat(200), antesDe: 'x'.repeat(40), negrita: { n1: true, n2: true }, imagen: { ruta: '', altoPct: 60 } },
+    rotulo: { ver: true, palabra: '漢'.repeat(60) }
+  }).aDatos();
+  const bytes = Buffer.byteLength(pg(max), 'utf8');
+  assert.ok(bytes <= 8000, `la pagina pesa ${bytes} bytes`);
+});
+await ok('contenido: la negrita de cada nivel vale «apagada» y lo raro tampoco la enciende', () => {
+  assert.deepEqual(new ConfigPagina({}).indice.negrita, { n1: false, n2: false });
+  assert.deepEqual(new ConfigPagina({ indice: true }).indice.negrita, { n1: false, n2: false });
+  for (const raro of [1, 'si', [], {}, null, { n1: 'true', n2: 1 }, { n1: [true] }]) assert.deepEqual(new ConfigPagina({ indice: { ver: true, negrita: raro } }).indice.negrita, { n1: false, n2: false }, JSON.stringify(raro));
+  const c = new ConfigPagina({ indice: { ver: true, negrita: { n1: true, n2: false } } });
+  assert.deepEqual(c.indice.negrita, { n1: true, n2: false });
+  assert.deepEqual(new ConfigPagina(JSON.parse(JSON.stringify(c.aDatos()))).indice.negrita, { n1: true, n2: false });
+  c.aDatos().indice.negrita.n2 = true;
+  assert.equal(c.indice.negrita.n2, false);
+});
+await ok('contenido: sin negrita las hojas salen EXACTAMENTE como antes; con ella solo se agregan las dos clases', () => {
+  const e = [{ nivel: 1, titulo: 'Uno', ancla: 'cap-1' }, { nivel: 2, titulo: 'Sub', ancla: 'cap-2' }];
+  const clases = (o) => I.hojasDeIndice(e, { 'cap-1': 1, 'cap-2': 2 }, [2], o).map((n) => n.clase);
+  assert.deepEqual(clases({}), ['indice']);
+  assert.deepEqual(clases({ negrita: undefined }), ['indice']);
+  assert.deepEqual(clases({ negrita: { n1: false, n2: false } }), ['indice']);
+  assert.deepEqual(clases({ plantilla: 'tarjetas' }), ['indice indice--tarjetas']);
+  assert.deepEqual(clases({ plantilla: 'tabla', orden: true }), ['indice indice--tabla indice--orden']);
+  assert.deepEqual(clases({ negrita: { n1: true } }), ['indice indice--cap-negrita']);
+  assert.deepEqual(clases({ negrita: { n2: true } }), ['indice indice--sub-negrita']);
+  assert.deepEqual(clases({ plantilla: 'linea', negrita: { n1: true, n2: true } }), ['indice indice--linea indice--cap-negrita indice--sub-negrita']);
+  /* Lo raro no enciende nada */
+  assert.deepEqual(clases({ negrita: { n1: 'si', n2: 1 } }), ['indice']);
+  assert.deepEqual(I.negritaDe('x'), { n1: false, n2: false });
+  assert.deepEqual(I.opcionesDeIndice({ plantilla: 'clasico', negrita: { n1: true } }, 'es').negrita, { n1: true, n2: false });
+});
+await ok('contenido: la negrita se dibuja con CSS del libro (mesa y PDF por igual), solo por nivel, y las filas de antes no pesan', async () => {
+  const css = cssLibro(new ConfigPagina({}));
+  assert.ok(/\.libro \.indice--cap-negrita \.indice__fila--1, \.libro \.indice--sub-negrita \.indice__fila--2 \{ font-weight: 700; \}/.test(css));
+  /* Lo que hoy pesa es solo el numero de la tabla: ninguna otra regla de filas pone peso */
+  const filas = css.split('\n').filter((l) => /\.indice__fila/.test(l) && /font-weight/.test(l));
+  assert.equal(filas.length, 1);
+  assert.ok(!/url\(/.test(css));
+});
+await ok('la hoja de impresion con negrita lleva la clase en el nav del contenido, y sin ella no', () => {
+  const caps = [{ id: 'c1', titulo: 'Uno', contenido: { doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'a' }] }] } } }, { id: 'c2', titulo: 'Dos', contenido: { doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'b' }] }] } } }];
+  const html = (negrita) => JSON.stringify(aHoja({ id: 'o', titulo: 'T', idioma: 'es', pagina: { indice: { ver: true, negrita } } }, caps, { indice: { numeros: { 'cap-1': 1, 'cap-2': 2 }, reparto: [2] } }).nodos);
+  assert.ok(!html({ n1: false, n2: false }).includes('negrita'));
+  assert.ok(html({ n1: true, n2: false }).includes('indice--cap-negrita'));
+  assert.ok(!html({ n1: true, n2: false }).includes('indice--sub-negrita'));
+});
+
+console.log('el viaje de «Ver como libro»');
+await ok('viaje: sin paginas, con una, o ya ahi, no hay nada que pasar', async () => {
+  const { planDeViaje } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  const nada = { dir: 0, distancia: 0, salto: null, pasos: [] };
+  assert.deepEqual(planDeViaje(0, 5, 0), nada);
+  assert.deepEqual(planDeViaje(0, 0, 1), nada);
+  assert.deepEqual(planDeViaje(0, 9, 1), nada);
+  assert.deepEqual(planDeViaje(3, 3, 40), nada);
+  assert.deepEqual(planDeViaje(2, 1, 40), nada);          // la 2 es del pliego de la 1 (1 y 2)
+  assert.deepEqual(planDeViaje(NaN, NaN, 5), nada);
+  assert.deepEqual(planDeViaje(1, 2, -4), nada);
+});
+await ok('viaje: libros de 2 y de 3 paginas', async () => {
+  const { planDeViaje } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  /* 2 paginas: [0] y [1] */
+  assert.deepEqual(planDeViaje(0, 1, 2), { dir: 1, distancia: 1, salto: null, pasos: [1] });
+  assert.deepEqual(planDeViaje(1, 0, 2), { dir: -1, distancia: 1, salto: null, pasos: [0] });
+  /* 3 paginas: [0] y [1,2] */
+  assert.deepEqual(planDeViaje(0, 2, 3), { dir: 1, distancia: 1, salto: null, pasos: [1] });
+  assert.deepEqual(planDeViaje(1, 0, 3), { dir: -1, distancia: 1, salto: null, pasos: [0] });
+  assert.deepEqual(planDeViaje(2, 0, 3), { dir: -1, distancia: 1, salto: null, pasos: [0] });
+});
+await ok('viaje: cerca, todas las hojas giran; lejos, se salta hasta diez antes y giran las ultimas diez', async () => {
+  const { planDeViaje, pliegoDe, paginasDe } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  /* 40 paginas: [0] [1,2] [3,4] … [37,38] [39] */
+  const cerca = planDeViaje(0, 7, 40);
+  assert.deepEqual(cerca, { dir: 1, distancia: 4, salto: null, pasos: [1, 3, 5, 7] });
+  const lejos = planDeViaje(0, 39, 40);
+  assert.equal(lejos.distancia, 20);
+  assert.equal(lejos.dir, 1);
+  assert.equal(lejos.pasos.length, 10);
+  assert.equal(lejos.pasos[9], 39);
+  assert.equal(lejos.salto, 19);
+  assert.deepEqual(lejos.pasos, [21, 23, 25, 27, 29, 31, 33, 35, 37, 39]);
+  /* Hacia atras */
+  const atras = planDeViaje(39, 0, 40);
+  assert.equal(atras.dir, -1);
+  assert.deepEqual(atras.pasos, [17, 15, 13, 11, 9, 7, 5, 3, 1, 0]);
+  assert.equal(atras.salto, 19);
+  /* Exactamente el tope: gira todo; uno mas: salta uno */
+  assert.equal(planDeViaje(0, 19, 40).salto, null);
+  assert.equal(planDeViaje(0, 19, 40).pasos.length, 10);
+  assert.equal(planDeViaje(0, 21, 40).salto, 1);
+  assert.equal(planDeViaje(0, 21, 40).pasos.length, 10);
+  /* Cada paso es el pliego vecino del anterior, y el salto el vecino de lo que no se gira */
+  for (const [d, h, n] of [[0, 300, 301], [250, 3, 301], [1, 100, 101], [5, 6, 7]]) {
+    const p = planDeViaje(d, h, n);
+    let k = p.salto != null ? p.salto : pliegoDe(d, n);
+    for (const x of p.pasos) { assert.ok(Math.abs(x - k) >= 1 && Math.abs(x - k) <= 2, `${d}→${h}: ${k}→${x}`); k = x; }
+    assert.equal(k, pliegoDe(h, n));
+    assert.ok(paginasDe(k, n).includes(Math.min(h, n - 1)) || h >= n);
+  }
+});
+await ok('viaje: un destino fuera del libro cae en el borde, y el tope siempre es al menos uno', async () => {
+  const { planDeViaje } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  assert.deepEqual(planDeViaje(0, 999, 6).pasos, [1, 3, 5]);
+  assert.equal(planDeViaje(5, -40, 6).pasos.at(-1), 0);
+  /* movimiento reducido: una sola hoja, despues de saltar a su vecino */
+  const uno = planDeViaje(0, 39, 40, { tope: 1 });
+  assert.deepEqual(uno.pasos, [39]);
+  assert.equal(uno.salto, 37);
+  assert.deepEqual(planDeViaje(0, 1, 40, { tope: 1 }), { dir: 1, distancia: 1, salto: null, pasos: [1] });
+  for (const tope of [0, -3, NaN, 0.4, undefined]) assert.ok(planDeViaje(0, 39, 40, { tope }).pasos.length >= 1, String(tope));
+  assert.equal(planDeViaje(0, 39, 40, { tope: 0 }).pasos.length, 1);
+  assert.equal(planDeViaje(0, 39, 40, { tope: 3 }).pasos.length, 3);
+  assert.equal(planDeViaje(0, 39, 40, { tope: Infinity }).pasos.length, 10);
+});
 
 console.log('la puerta de los bloques');
 await ok('un tipo sin pruebas para la compilacion', async () => {

@@ -12,6 +12,7 @@ import { limpiarObjetos, OBJETOS_MAX, TEXTO_CUADRO_MAX } from '../../../../conte
 import { botonIncompleto, claseDeBoton, estiloDeBoton, hijosDeBoton } from '../../../../contenido/taller/tipos/boton.js';
 import { armar, ponerEstilo } from '../../../../contenido/taller/armar.js';
 import { TINTA_SOBRE_PDF, variablesDe } from '../../../../contenido/taller/colores.js';
+import { grupoDe, paginaDe } from '../../../../contenido/taller/OrigenPdf.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const tope = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -114,6 +115,12 @@ export class HojaLibre {
       hoja.append(f);
     }
     for (const o of this.objetos) hoja.append(this.pintarObjeto(o));
+    /* El sello de PDF es solo de la mesa («PDF · 3», o «Sobra del PDF anterior»): no recibe el puntero, las copias
+       lo quitan y el PDF del libro se arma con los datos, asi que nunca sale impreso */
+    if (grupoDe(attrs)) {
+      const k = paginaDe(attrs), tx = this.mesa.tx;
+      hoja.append(crear('span', `sello-pdf${attrs.sobra ? ' sello-pdf--sobra' : ''}`, attrs.sobra ? tx.selloSobra : k ? tx.selloPdf.replace('{n}', String(k)) : tx.miniPdf));
+    }
     const m = this.mesa.margenes();
     if (this.mesa.segura) {
       const s = crear('div', 'seg');

@@ -12,13 +12,14 @@ import { ConfigPagina, colorDeLetra } from '../../../../contenido/taller/ConfigP
 import { familiaCss } from '../../../../contenido/taller/fuentes.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
-import { AL_FINAL, debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, palabraLimpia, PALABRA_MAX, ROLES, rotulosDe } from '../../../../contenido/taller/IndiceLibro.js';
+import { AL_FINAL, debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, palabraLimpia, PALABRA_MAX, ROLES, rolLimpio, rotulosDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
+import { grupoDe, gruposDe, planCambio } from '../../../../contenido/taller/OrigenPdf.js';
 import { contextosDeCabeza, textoDeCabeza } from '../../../../contenido/taller/CabezaLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { datosDeBoton } from '../../../../contenido/taller/tipos/boton.js';
 import { CapituloVivo, piePagina } from './CapituloVivo.js';
-import { cortar, unir, tieneTitulo } from './Partir.js';
+import { cortar, unir, tieneTitulo, partirEnTres } from './Partir.js';
 import { limpiarContenido, cabeEnElCapitulo, tituloLimpio } from '../../../../contenido/taller/TextoLibro.js';
 import { tituloDe } from '../../../../contenido/taller/Migrar.js';
 import { Miniaturas } from './Miniaturas.js';
@@ -195,6 +196,7 @@ export class Mesa {
   medir() {
     const p = this.px, entradas = this.entradasDeIndice(), reparto = this.repartoDeIndice(entradas), ind = reparto.length, antes = this.lugarDelIndice();
     this.paginas = [];
+    this.gruposCache = null;
     let n = 0;
     const meterIndice = () => { for (let i = 0; i < ind; i++) this.paginas.push({ vivo: null, fila: i, vista: null, indice: true }); n += ind; };
     const pie = this.pie(), portada = this.conPortada(), cabeza = this.cabezas();
@@ -260,8 +262,10 @@ export class Mesa {
   }
   estaElegida(p) { return !!p.vista && p.vivo === this.eleccion.vivo && this.eleccion.nodos.includes(p.vista.node); }
 
-  /* `modo`: 'uno' (clic), 'rango' (Mayus+clic) o 'alternar' (Ctrl+clic). Solo paginas libres de un capitulo. */
-  elegirMini(i, modo) {
+  /* `modo`: 'uno' (clic), 'rango' (Mayus+clic) o 'alternar' (Ctrl+clic). Solo paginas libres de un capitulo.
+     `visibles`: los indices de las hojas que se ven en la columna; un rango no toma las que no se ven (en «PDF» faltan las
+     hojas de en medio que no son de un PDF). */
+  elegirMini(i, modo, visibles = null) {
     const tx = this.tx, p = this.paginas[i], e = this.eleccion;
     if (!p) return;
     const nodo = p.vista ? p.vista.node : null;
@@ -274,7 +278,7 @@ export class Mesa {
       const lista = this.paginas.map((q) => ({ vivo: q.vivo, nodo: q.vista ? q.vista.node : null }));
       const a = lista.findIndex((q) => q.nodo === e.ancla);
       if (a >= 0) {
-        const r = rango(lista, a, i);
+        const r = rango(visibles ? lista.map((q, k) => (k === a || visibles.has(k) ? q : { vivo: q.vivo, nodo: null })) : lista, a, i);
         if (r.fuera) aviso = tx.soloUnCapitulo;
         nueva = { vivo: lista[a].vivo, nodos: r.nodos, ancla: e.ancla };
       }
@@ -491,6 +495,26 @@ export class Mesa {
     return numeros;
   }
 
+  /* A DONDE SE PUEDE IR en «Ver como libro»: la portada, el contenido, cada capitulo (con su papel o su rotulo) y sus
+     subtemas, cada uno con su pagina (1 es la primera). No depende de que el libro lleve contenido; salen en el orden
+     del libro. `nivel` 1 es un capitulo, 2 un subtema. */
+  destinos() {
+    const c = new ConfigPagina(this.obra().pagina), caps = this.capitulosParaIndice(), portada = hayPortada(caps, c.portada), tx = this.tx;
+    if (!this.paginas.length) return [];
+    const numeros = this.numerosDeIndice(), lista = [];
+    const pagina = (ancla) => (Number.isInteger(numeros[ancla]) && numeros[ancla] >= 1 && numeros[ancla] <= this.paginas.length ? numeros[ancla] : 0);
+    const portadaPag = portada ? pagina('cap-1') : 0;
+    if (portadaPag) lista.push({ nivel: 1, texto: tx.portada, pagina: portadaPag });
+    const contenido = this.paginas.findIndex((q) => q.indice) + 1;
+    if (contenido > 0 && c.indice.ver) lista.push({ nivel: 1, texto: tituloDeIndice(c.indice, this.idioma()), pagina: contenido });
+    for (const f of entradasDe(caps, { subtemas: true, portada, rotulo: c.rotulo, idioma: this.idioma(), verRol: true })) {
+      const n = pagina(f.ancla), texto = f.rotulo && f.titulo && f.rotulo !== f.titulo ? `${f.rotulo} · ${f.titulo}` : (f.rotulo || f.titulo);
+      if (n && texto) lista.push({ nivel: f.nivel === 2 ? 2 : 1, texto: texto.slice(0, 120), pagina: n });
+    }
+    /* Por orden de pagina; con la misma pagina, el que ya iba antes */
+    return lista.map((x, i) => [x, i]).sort((a, b) => a[0].pagina - b[0].pagina || a[1] - b[1]).map(([x]) => x);
+  }
+
   /* El mismo arbol que imprime la hoja (hojasDeIndice + armar): la mesa y el PDF no pueden diferir.
      Un clic en una fila lleva a su pagina. `datosDeIndice` es lo que la hoja de impresion recibe. */
   pintarIndice(entradas, reparto, antes) {
@@ -592,6 +616,8 @@ export class Mesa {
           actual: this.primeraElegida() + 1, total: this.paginas.length, etiqueta: cuenta(tx.moverVariasA), alMover: (d) => this.moverVarias(d),
           primera: p.vivo.primera, ultima: this.paginas.findLastIndex((q) => q.vivo === p.vivo) + 2 - k
         }) },
+        /* El rango: unas hojas que son la introduccion, la conclusion... (se parte el capitulo si hace falta) */
+        { texto: tx.marcarComo, icono: 'lista', apagado: quieta, queda: true, fn: () => this.menuDeRolesRango(this.menu.x, this.menu.y, this.menu.origen) },
         { raya: true },
         /* Solo si siguen siendo las que dice el boton */
         { texto: cuenta(tx.eliminarVarias), icono: 'eliminar', aviso: true, apagado: quieta, confirmar: cuenta(tx.eliminarVariasSeguro), fn: () => { if (this.cuantasElegidas() === k) this.borrarVarias(); } }];
@@ -599,9 +625,74 @@ export class Mesa {
     return [ir,
       { texto: tx.duplicarPagina, icono: 'duplicar', apagado: quieta, fn: () => { this.activoDe(h); this.duplicarPagina(h); this.decir(tx.paginaDuplicada); } },
       { texto: tx.moverA, icono: 'mover', apagado: quieta, queda: true, fn: () => this.menu.mover({ actual: n, total: this.paginas.length, primera: this.primeraDeTexto(), alMover: (d) => this.moverHasta(h, d) }) },
+      ...this.accionesDePdf(p, quieta),
       ...this.accionesDeCapitulo(i),
       { raya: true },
       { texto: tx.eliminarPagina, icono: 'eliminar', aviso: true, apagado: quieta, confirmar: tx.eliminarPaginaSeguro, fn: () => { this.activoDe(h); this.borrarPagina(h); } }];
+  }
+
+  /* ---- De que PDF viene una pagina ---- */
+  /* Los PDF del libro, en el orden en que aparecen (una sola vez por cambio de medida) */
+  gruposDePdf() {
+    if (!this.gruposCache) this.gruposCache = gruposDe(this.paginas.map((q) => ({ clave: q.vivo, attrs: q.vista ? q.vista.node.attrs : null })));
+    return this.gruposCache;
+  }
+
+  grupoDePagina(p) {
+    const a = p.vista ? p.vista.node.attrs : null;
+    return a && grupoDe(a) ? this.gruposDePdf().find((g) => g.paginas.some((q) => this.paginas[q.i] === p)) || null : null;
+  }
+
+  /* Lo del PDF en el menu de una pagina: elegir todas las del mismo PDF, cambiarlo, o quedarse con una que sobra */
+  accionesDePdf(p, quieta) {
+    const tx = this.tx, g = this.grupoDePagina(p);
+    if (!g) return [];
+    const items = [
+      { texto: tx.pdfElegirTodasMenu, icono: 'lista', fn: () => this.elegirTodasDelPdf(g, p.vivo) },
+      { texto: tx.cambiarPdf, icono: 'subir', apagado: quieta || !this.alPedirCambioPdf, fn: () => this.pedirCambioPdf(g) }
+    ];
+    if (g.sobra) items.push({ texto: tx.quitarMarcaSobra, apagado: quieta, fn: () => this.quitarSobra(p) });
+    return items;
+  }
+
+  /* Un clic derecho sobre un PDF de la lista «PDF» */
+  abrirMenuPdf(g, e, origen) {
+    e.preventDefault();
+    const tx = this.tx, con = e.clientX || e.clientY, r = origen.getBoundingClientRect();
+    const quieta = g.paginas.some((q) => !this.paginas[q.i].vivo.editor.isEditable);
+    const items = [
+      { texto: tx.pdfElegirTodasMenu, icono: 'lista', fn: () => this.elegirTodasDelPdf(g, null) },
+      { texto: tx.cambiarPdf, icono: 'subir', apagado: quieta || !this.alPedirCambioPdf, fn: () => this.pedirCambioPdf(g) }
+    ];
+    this.menu.abrir(con ? e.clientX : r.left + 16, con ? e.clientY : r.top + 16, items, origen, () => this.minis.entrar());
+  }
+
+  /* «Elegir todas las de este PDF»: solo las de un capitulo (cada capitulo tiene su propio Ctrl+Z). Si el PDF esta en
+     varios, el de `preferido` (el que se mira) o, si no, el que mas tiene. */
+  elegirTodasDelPdf(g, preferido) {
+    const tx = this.tx, porCap = new Map();
+    for (const q of g.paginas) { const v = this.paginas[q.i] && this.paginas[q.i].vivo; if (v) porCap.set(v, [...(porCap.get(v) || []), q]); }
+    const vivo = preferido && porCap.has(preferido) ? preferido : [...porCap.keys()].sort((a, b) => porCap.get(b).length - porCap.get(a).length)[0];
+    if (!vivo) return;
+    const dellas = porCap.get(vivo), nodos = dellas.map((q) => this.paginas[q.i].vista.node);
+    if (this.hojaActiva || this.imagenElegida) this.soltarElegidos();
+    this.eleccion = { vivo, nodos, ancla: nodos[0] };
+    this.panelDeEleccion();
+    this.pintarEleccion();
+    this.irA(dellas[0].i + 1);
+    const otras = g.paginas.length - dellas.length;
+    this.decir([nodos.length === 1 ? tx.elegidaUna : `${tx.elegidas.replace('{n}', String(nodos.length))}.`, otras ? tx.pdfEnOtros.replace('{n}', String(otras)) : ''].filter(Boolean).join(' '));
+  }
+
+  /* «Quedarme con esta hoja»: deja de ser una de las que sobran */
+  quitarSobra(p) {
+    const h = p.vista;
+    if (!h || h.bloqueada || !h.node.attrs.sobra) return;
+    const e = h.editor, pos = h.getPos();
+    if (typeof pos !== 'number') return;
+    e.view.dispatch(closeHistory(e.state.tr.setNodeMarkup(pos, null, { ...h.node.attrs, sobra: false })));
+    this.medir();
+    this.decir(this.tx.sobraQuitada);
   }
 
   abrirMenu(i, e, origen, antes = []) {
@@ -1226,6 +1317,203 @@ export class Mesa {
     this.decir(this.tx.indiceDespuesDicho);
   }
 
+  /* ---- Cambiar el PDF de unas paginas ---- */
+  /* El menu pide un PDF nuevo para el grupo `g` (el selector de archivos lo abre Taller). Se recuerda cual por su PDF, no por
+     sus hojas: mientras el archivo sube, las hojas pueden moverse o tocarse. */
+  pedirCambioPdf(g) {
+    const tx = this.tx;
+    if (!this.alPedirCambioPdf) return;
+    if (this.moviendo) { this.decir(tx.moverEspera); return; }
+    if (this.hayQuietas(g)) { this.decir(tx.variasQuietas); return; }
+    this.cambioPedido = { pdf: g.pdf, sobra: g.sobra };
+    this.alPedirCambioPdf();
+  }
+
+  hayQuietas(g) { return g.paginas.some((q) => { const v = this.paginas[q.i] && this.paginas[q.i].vivo; return !v || !v.editor.isEditable; }); }
+  grupoPedido(pedido) { return pedido ? this.gruposDePdf().find((g) => g.pdf === pedido.pdf && g.sobra === pedido.sobra) || null : null; }
+
+  /* Ya con el PDF nuevo leido y subido (`nuevas`: sus paginas, en orden): se hace una copia de todo el libro y se cambian,
+     de una vez, las paginas del PDF viejo. Cada pagina conserva lo suyo: su nombre en el contenido y su ancla, sus objetos
+     y botones, su color, su ajuste y su descripcion. Solo cambian el dibujo, el texto que se saco de el, la caja y la medida.
+     - Si el PDF nuevo tiene mas paginas, van despues de la ultima del grupo.
+     - Si tiene menos, las que sobran se quedan marcadas: nunca se borra nada solo.
+     - Los archivos viejos no se borran: «deshacer» y las copias los necesitan.
+     - `alAjustar`: si el autor eligio ajustar el libro a la proporcion del PDF, el tamaño se cambia aqui, ya con todo subido y
+       con la copia hecha, y no antes: si algo falla o se cancela, el libro queda con su tamaño.
+     Devuelve true si cambio algo. `r`: lo que dijo la subida ({ paginas, preguntado, ajuste }). */
+  async cambiarPdf(pedido, nuevas, r, alAjustar = null) {
+    const tx = this.tx;
+    if (this.moviendo) { this.decir(tx.moverEspera); return false; }
+    this.moviendo = true;
+    try {
+      let g = this.grupoPedido(pedido);
+      if (!g) { this.decir(tx.cambioSinGrupo); return false; }
+      if (nuevas.length !== r.paginas || !nuevas.length) { this.decir(tx.cambioFalla); return false; }
+      if (this.hayQuietas(g)) { this.decir(tx.variasQuietas); return false; }
+      this.confirmarEdicion();
+      /* Lo ultimo escrito, a salvo antes de la copia */
+      const vivos = [...g.claves];
+      for (const v of vivos) {
+        v.guardado.marcar();
+        if (!(await v.guardado.vaciar())) { if (this.vivos.includes(v)) this.alFalla('noGuardado'); return false; }
+      }
+      if (this.alCopiaSegura && !(await this.alCopiaSegura())) return false;
+      /* De aqui hasta cambiarlo todo no hay esperas: lo que se escribio mientras tanto se vuelve a mirar */
+      g = this.grupoPedido(pedido);
+      if (!g || this.hayQuietas(g)) { this.decir(g ? tx.variasQuietas : tx.cambioSinGrupo); return false; }
+      const plan = planCambio(g.paginas.map((q) => ({ pagina: q.pagina, total: q.total })), nuevas.length);
+      if (!plan.asignar.length) { this.decir(tx.cambioSinPaginas); return false; }
+      const cambios = (d) => ({ nombre: d.nombre, fondo: d.fondo, pdf: d.pdf, pdfPagina: d.pdfPagina, pdfTotal: d.pdfTotal, anchoMm: d.anchoMm, altoMm: d.altoMm, texto: d.texto, caja: d.caja, sangre: d.sangre, sobra: false, ...(r.preguntado ? { ajuste: r.ajuste } : {}) });
+      const nodoDe = (q) => this.paginas[q.i].vista.node;
+      /* Primero se busca cada pagina por su nodo en su capitulo; si alguna no esta, no se toca ninguna */
+      const trabajo = new Map();
+      const de = (v) => { if (!trabajo.has(v)) trabajo.set(v, []); return trabajo.get(v); };
+      for (const { i, n } of plan.asignar) de(this.paginas[g.paginas[i].i].vivo).push({ nodo: nodoDe(g.paginas[i]), attrs: cambios(nuevas[n - 1]) });
+      for (const i of plan.sobran) de(this.paginas[g.paginas[i].i].vivo).push({ nodo: nodoDe(g.paginas[i]), attrs: { sobra: true } });
+      const ultima = g.paginas[g.paginas.length - 1], vivoFinal = this.paginas[ultima.i].vivo, nodoFinal = nodoDe(ultima);
+      const ajusteNuevas = r.preguntado ? r.ajuste : nodoFinal.attrs.ajuste;
+      const listos = [];
+      for (const [v, lista] of trabajo) {
+        const e = v.editor, pos = posicionesDe(e.state.doc, lista.map((x) => x.nodo));
+        if (pos.length !== lista.length) { this.decir(tx.cambioSinGrupo); return false; }
+        listos.push({ v, e, pos, lista });
+      }
+      let finalPos = -1;
+      if (plan.nuevas.length) {
+        const f = posicionesDe(vivoFinal.editor.state.doc, [nodoFinal])[0];
+        if (!f) { this.decir(tx.cambioSinGrupo); return false; }
+        finalPos = f.pos + f.nodo.nodeSize;
+      }
+      const paginasNuevas = (e) => plan.nuevas.map((n) => e.schema.nodes.paginaLibre.create({ ...nuevas[n - 1], ajuste: ajusteNuevas }));
+      for (const { v, e, pos, lista } of listos) {
+        const tr = e.state.tr;
+        for (const { pos: lugar, nodo } of pos) {
+          const x = lista.find((y) => y.nodo === nodo);
+          tr.setNodeMarkup(lugar, null, { ...nodo.attrs, ...x.attrs });
+        }
+        if (v === vivoFinal && plan.nuevas.length) tr.insert(finalPos, paginasNuevas(e));
+        e.view.dispatch(closeHistory(tr.setMeta(META_PAGINA, true)));
+      }
+      if (plan.nuevas.length && !trabajo.has(vivoFinal)) {
+        const e = vivoFinal.editor;
+        e.view.dispatch(closeHistory(e.state.tr.insert(finalPos, paginasNuevas(e)).setMeta(META_PAGINA, true)));
+      }
+      if (alAjustar) alAjustar();
+      this.soltarElegidos();
+      this.soltarEleccion();
+      this.medir();
+      const n = plan.asignar.length;
+      this.decir([
+        n === 1 ? tx.pdfCambiadoUna : tx.pdfCambiado.replace('{n}', String(n)),
+        plan.nuevas.length ? (plan.nuevas.length === 1 ? tx.pdfCambiadoNuevaUna : tx.pdfCambiadoNuevas.replace('{n}', String(plan.nuevas.length))) : '',
+        plan.sobran.length ? (plan.sobran.length === 1 ? tx.pdfCambiadoSobraUna : tx.pdfCambiadoSobran.replace('{n}', String(plan.sobran.length))) : '',
+        /* Una transaccion por capitulo: Ctrl+Z deshace de a uno, y es mejor saberlo antes de apretarlo */
+        g.claves.size > 1 ? tx.pdfCambiadoVarios.replace('{n}', String(g.claves.size)) : ''
+      ].filter(Boolean).join(' '));
+      return true;
+    } finally { this.moviendo = false; }
+  }
+
+  /* ---- Marcar un tramo de hojas como introduccion, conclusion… ---- */
+  /* La lista de papeles para las hojas elegidas (la misma del capitulo, pero esta parte el capitulo si hace falta) */
+  menuDeRolesRango(x, y, origen) {
+    const tx = this.tx, v = this.eleccion.vivo, quieto = !v || !v.editor.isEditable;
+    /* El foco vuelve a la hoja donde estaba la eleccion: se anota ahora, porque al cerrarse el menu la eleccion ya se solto */
+    const primera = this.primeraElegida();
+    const items = [
+      ...ROLES.map((r) => ({ texto: tx.roles[r], apagado: quieto, fn: () => this.marcarRango(r) })),
+      { texto: tx.rolOtro, queda: true, apagado: quieto, fn: () => this.menu.pedirTexto({ etiqueta: tx.rolOtroEtiqueta, valor: '', ayuda: tx.rolOtroAyuda, max: PALABRA_MAX, alListo: (t) => { if (palabraLimpia(t)) this.marcarRango('custom', t); } }) },
+      { raya: true },
+      { texto: tx.rolQuitarCap, apagado: quieto || !v || !v.rol, fn: () => this.marcarRango('') }
+    ];
+    this.menu.abrir(x, y, items, origen, () => { if (primera >= 0) this.minis.enfocar(primera + 1); });
+  }
+
+  /* Las hojas elegidas pasan a ser, juntas, un capitulo con ese papel. Si ya eran todo el capitulo, solo se le pone el papel.
+     Si no, el capitulo se parte en hasta tres: antes / las elegidas / despues. Lo de antes y lo de despues siguen siendo del
+     capitulo de siempre (su nombre, su palabra, su papel); lo de despues, si no trae titulo propio, queda fuera del contenido
+     (es la continuacion). Las elegidas no llevan nombre: las nombra su papel. Nada se pierde: se guarda todo, se hace una
+     copia, se crean y guardan las partes nuevas, se ordenan, y solo entonces se quita lo repetido del capitulo de antes. */
+  async marcarRango(rol, rolTexto = '') {
+    const tx = this.tx, el = this.eleccionParaCambiar();
+    if (!el) return;
+    const v = el.vivo, e = v.editor;
+    if (!rol) { this.ponerRol(v, ''); return; }
+    const doc = e.state.doc, bloques = [];
+    for (const { pos } of posicionesDe(doc, el.nodos)) {
+      const q = doc.resolve(pos);
+      if (q.depth > 0) { this.decir(tx.rangoEnColumnas); return; }
+      bloques.push(q.index(0));
+    }
+    /* Solo un tramo seguido: partir el capitulo entre la primera y la ultima cambiaria tambien las de en medio que no se eligieron */
+    const unicos = [...new Set(bloques)];
+    if (Math.max(...bloques) - Math.min(...bloques) + 1 !== unicos.length) { this.decir(tx.rangoNoSeguidas); return; }
+    const foto = e.getJSON(), partes = partirEnTres(foto, Math.min(...bloques), Math.max(...bloques));
+    if (!partes) { this.decir(tx.rangoNoSePudo); return; }
+    const { plan } = partes, limpio = rolLimpio(rol, rolTexto);
+    if (!limpio.rol) return;
+    if (this.esPortada(v) && !plan.antes) { this.decir(tx.portadaSinPapel); return; }
+    if (plan.todo) { this.ponerRol(v, limpio.rol, limpio.rolTexto); return; }
+    if (this.moviendo) { this.decir(tx.moverEspera); return; }
+    this.moviendo = true;
+    e.setEditable(false, false);
+    const sigue = () => this.vivos.includes(v) && !e.isDestroyed, creados = [];
+    /* Un capitulo nuevo con su parte, ya guardado. Si falla, no queda ninguno de los que se alcanzaron a crear. */
+    const crearParte = async (docParte, propios) => {
+      const r = await this.be.taller.crearCapitulo(this.obra().id, propios.titulo || '');
+      if (!sigue()) return null;
+      if (r.error) { this.alFalla(r.error); return null; }
+      const cap = new Capitulo(r.fila);
+      cap.contenido = limpiarContenido({ doc: docParte, papel: v.papel, ...propios }).contenido;
+      const nuevo = new CapituloVivo(cap, this);
+      nuevo.guardado.marcar();
+      creados.push(nuevo);
+      if (!(await nuevo.guardado.vaciar()) || !sigue()) { if (sigue()) this.alFalla('noGuardado'); return null; }
+      return nuevo;
+    };
+    const limpiarCreados = async () => {
+      for (const c of creados) { this.quitarVivo(c); await this.be.taller.borrarCapitulo(c.cap.id); }
+    };
+    try {
+      this.confirmarEdicion();
+      const firma = JSON.stringify(foto);
+      v.guardado.marcar();
+      if (!(await v.guardado.vaciar())) { if (sigue()) this.alFalla('noGuardado'); return; }
+      if (!sigue() || (this.alCopiaSegura && !(await this.alCopiaSegura())) || !sigue()) return;
+      const medioPropios = { titulo: '', enIndice: true, numerar: true, rol: limpio.rol, rolTexto: limpio.rolTexto, palabra: '' };
+      const conTitulo = !!partes.despues && tieneTitulo(partes.despues);
+      const despuesPropios = { titulo: conTitulo ? '' : (v.tituloPropio || v.cap.titulo || ''), enIndice: conTitulo ? v.enIndice : false, numerar: v.numerar, rol: v.rol, rolTexto: v.rolTexto, palabra: v.palabra };
+      const medio = plan.antes ? await crearParte(partes.medio, medioPropios) : v;
+      if (!medio) { await limpiarCreados(); return; }
+      const despues = partes.despues ? await crearParte(partes.despues, despuesPropios) : null;
+      if (partes.despues && !despues) { await limpiarCreados(); return; }
+      const nuevos = [plan.antes ? medio : null, despues].filter(Boolean);
+      this.vivos.splice(this.vivos.indexOf(v) + 1, 0, ...nuevos);
+      const despuesDeV = v.caja.nextSibling;
+      for (const n of nuevos) this.lienzo.insertBefore(n.caja, despuesDeV);
+      const ordenado = await this.ordenar();
+      if (!sigue()) return;
+      if (!ordenado || JSON.stringify(e.getJSON()) !== firma) { this.medir(); this.decir(tx.capituloRepetido); return; }
+      /* Las partes ya estan a salvo: se quita de este capitulo lo que paso a ellas, sin rastro en «deshacer» */
+      const desde = posicionDeBloque(e.state.doc, plan.antes ? plan.desde : plan.hasta + 1);
+      e.view.dispatch(e.state.tr.delete(desde, e.state.doc.content.size).setMeta(META_PAGINA, true).setMeta('addToHistory', false));
+      if (!plan.antes) v.ponerPropios({ ...v.propios(), rol: limpio.rol, rolTexto: limpio.rolTexto });
+      this.soltarElegidos();
+      this.soltarEleccion();
+      v.guardado.marcar();
+      const cabeza = await v.guardado.vaciar();
+      if (!sigue()) return;
+      this.activo = medio;
+      this.medir();
+      this.irA(medio.primera);
+      this.minis.entrarAlCapitulo(medio);
+      this.decir(cabeza ? tx.rangoMarcado : tx.rangoMarcadoPendiente);
+    } finally {
+      if (sigue()) e.setEditable(this.editable && !v.guardado.parado, false);
+      this.moviendo = false;
+    }
+  }
+
   /* ---- Borrar y mover ---- */
   async borrarPagina(h) {
     if (h.bloqueada) return;
@@ -1387,7 +1675,9 @@ export class Mesa {
   }
 
   /* ---- Copias para la vista de libro y las miniaturas ---- */
-  clon(p, esc) {
+  /* `o.acciones`: un WeakMap donde cada boton de la copia queda con lo que hace (sus datos ya limpios). La copia es
+     inerte: el visor encuentra el boton por donde cae el clic. */
+  clon(p, esc, o = {}) {
     const c = crear('span', 'clon libro'), fuente = p.vista ? p.vista.hoja : p.vivo ? p.vivo.caja : this.raiz;
     c.style.cssText = `width:${this.px.W * esc}px;height:${this.px.H * esc}px`;
     /* Lo que la copia no cubre es papel: blanco solo si el libro es blanco */
@@ -1405,16 +1695,53 @@ export class Mesa {
       const f = d.querySelector('.flujo');
       if (f) f.removeAttribute('contenteditable');
     }
-    d.querySelectorAll('.marco, .fantasma, .guia, .seg, .sale, .asa, .hoja__falla').forEach((n) => n.remove());
+    /* Los botones, antes de quitar nada: la hoja y su copia tienen entonces las mismas piezas, en el mismo orden */
+    if (o.acciones && !p.indice) this.emparejarBotones(p, p.vista ? p.vista.hoja : p.vivo.caja, d, o.acciones);
+    /* Una imagen que aun no llego no tiene direccion: sin esto se veria su texto alternativo (el de toda una pagina de PDF) */
+    d.querySelectorAll('img:not([src])').forEach((i) => { i.alt = ''; });
+    /* Los sellos de PDF son de la mesa: ni la miniatura ni «Ver como libro» los llevan (y el PDF se arma con los datos) */
+    d.querySelectorAll('.marco, .fantasma, .guia, .seg, .sale, .asa, .hoja__falla, .sello-pdf').forEach((n) => n.remove());
     [d, ...d.querySelectorAll('.hoja--cargando')].forEach((n) => n.classList.remove('hoja--cargando'));
     /* La marca de elegida es de la mesa: ni la copia de una hoja ni la de un capitulo entero la llevan */
     [d, ...d.querySelectorAll('.hoja--elegida')].forEach((n) => n.classList.remove('hoja--elegida'));
     const baja = p.vista || p.indice ? 0 : p.fila * (this.px.H + this.px.gap);
+    /* Una copia no repite los `id` de la hoja (los titulos son anclas del contenido): dos del mismo nombre en la pagina confunden al navegador y a los lectores de pantalla */
+    [d, ...d.querySelectorAll('[id]')].forEach((n) => n.removeAttribute('id'));
     d.classList.add('clon__dentro');
     d.style.transform = `scale(${esc}) translateY(${-baja}px)`;
     d.removeAttribute('tabindex');
     c.inert = true;
     c.append(d);
     return c;
+  }
+
+  /* Cada boton de la copia `copia` queda con lo que hace el de la hoja `origen`: sus datos ya limpios (`datosDeBoton`).
+     En el texto el boton sabe su nodo; en una pagina libre se busca su objeto por su id. Un boton suelto se mide por su
+     pieza de adentro (su marco no tiene alto). */
+  emparejarBotones(p, origen, copia, acciones) {
+    const SEL = '.obj--boton, .boton-suelto, .boton:not(.boton--suelta):not(.obj)';
+    const a = origen.querySelectorAll(SEL), b = copia.querySelectorAll(SEL);
+    if (a.length !== b.length) return;
+    /* La copia de una hoja de texto es una fila del capitulo: solo cuentan los botones que caen en esa fila */
+    let arriba = -Infinity, abajo = Infinity;
+    if (p.vivo && !p.vista) {
+      const px = this.px;
+      arriba = origen.getBoundingClientRect().top + p.fila * (px.H + px.gap) * this.z;
+      abajo = arriba + px.H * this.z;
+    }
+    a.forEach((e, i) => {
+      const r = (e.classList.contains('boton-suelto') ? e.querySelector('.boton--suelta') || e : e).getBoundingClientRect(), medio = r.top + r.height / 2;
+      if (medio < arriba || medio > abajo) return;
+      let datos = null;
+      if (e.vistaBoton) datos = datosDeBoton(e.vistaBoton.node.attrs);
+      else if (e.dataset.o) {
+        for (const h of this.vistas) {
+          const obj = h.hoja.contains(e) && h.objetos.find((x) => x.id === e.dataset.o);
+          if (obj) { datos = datosDeBoton(obj); break; }
+        }
+      }
+      const visual = b[i].classList.contains('boton-suelto') ? b[i].querySelector('.boton--suelta') : b[i];
+      if (datos && visual) acciones.set(visual, datos);
+    });
   }
 }

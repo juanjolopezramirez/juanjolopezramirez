@@ -118,8 +118,12 @@
 .tal-ctl--num { width: 4.2rem; }
 .tal-ctl[aria-invalid="true"], .tal-b-panel [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
 /* Diseño: una fila, como Inicio. Cada control lleva su nombre corto al lado, no encima. */
-.tal-pagina { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
-.tal-corto { display: inline-flex; align-items: center; gap: .35rem; font-size: 11px; color: var(--tiza-2); white-space: nowrap; }
+.tal-pagina { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .3rem; }
+.tal-corto { display: inline-flex; align-items: center; gap: .2rem; font-size: 11px; color: var(--tiza-2); white-space: nowrap; }
+/* Con el lomo son diez controles: se aprietan los huecos y los numeros para que sigan en UNA fila a 1280 px (la cinta no cambia de alto) */
+.tal-pagina .tal-corto .tal-ctl--num { width: 3.6rem; }
+.tal-pagina .tal-corto .tal-sel { min-width: 5.5rem; max-width: 9rem; }
+.tal-pagina > .tal-btn, .tal-pagina > .tal-b-mas > summary.tal-btn { padding-inline: .55rem; }
 .tal-colores { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .7rem; }
 .tal-colores__uno { display: grid; gap: .1rem; font-size: 11px; color: var(--tiza-2); }
 .tal-color { min-width: 0; }
@@ -269,8 +273,10 @@
 .tal-tipografia .tal-marca, .tal-tipografia .tal-ayuda { grid-column: 1 / -1; }
 .tal-tipografia [hidden] { display: none; }
 .llave { background: #FFE36B; color: #111; border-bottom: 2px dotted #111; border-radius: 2px; padding: 0 1px; }
-.tal-columnas { display: grid; gap: 1rem; margin: 1em 0; }
-.tal-columna { min-width: 0; padding: .4rem; outline: 1px dashed #bbb; }
+/* Las columnas llevan tambien las clases del libro (`.libro .columnas`, hoja.js): el hueco, el margen y el corte son los mismos que en el
+   PDF, y la raya de guia es un contorno que no ocupa lugar (un relleno cambiaria el alto y la mesa dejaria de coincidir con el PDF) */
+.tal-columnas { display: grid; }
+.tal-columna { min-width: 0; outline: 1px dashed #bbb; outline-offset: 3px; }
 .flujo .imagen { position: relative; cursor: pointer; }
 .flujo .imagen img { width: 100%; }
 .flujo .imagen:has(.hoja__falla) { min-height: 64px; }
@@ -330,6 +336,58 @@
 .cap-mini--fuera { font-style: italic; opacity: .7; }
 /* La portada no se arrastra: siempre va primero */
 .cap-mini--portada { cursor: default; color: var(--tiza); letter-spacing: .02em; }
+
+/* ---- La barra de la izquierda en tres vistas (Hojas, Capítulos, PDF) ---- */
+.tal-lateral { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; border-right: 1px solid var(--raya); }
+.tal-lateral > .tal-miniaturas { border-right: 0; min-height: 0; }
+.tal-vistas { display: grid; grid-template-columns: 5fr 8fr 4fr; gap: 2px; margin: .5rem .35rem .15rem; padding: 2px; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 9px; }
+.tal-vistas button { height: 26px; min-width: 0; padding: 0 .1rem; border: 0; border-radius: 7px; background: transparent; color: var(--tiza-2); font: inherit; font-size: 10.5px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background .12s var(--ease), color .12s var(--ease); }
+.tal-vistas button:hover { color: var(--tiza); }
+.tal-vistas button[aria-checked="true"] { background: rgb(var(--prompt-rgb) / .2); color: var(--tiza); font-weight: 700; }
+/* El papel del capitulo se ve como una etiqueta al final de su nombre (el texto de la fila no cambia) */
+.cap-mini { display: flex; align-items: center; gap: .35rem; }
+.cap-mini__nombre { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cap-mini[data-rol]::after { content: attr(data-rol); flex: none; max-width: 6.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--prompt); color: var(--prompt); }
+/* Una hoja que viene de un PDF lleva su marca; la que sobra del PDF anterior, la suya en rojo */
+.mini[data-pdf]::after { content: attr(data-pdf); position: absolute; right: 4px; bottom: 4px; font: 700 9px/1 var(--mono); padding: 2px 4px; border-radius: 3px; background: rgb(15 15 15 / .78); color: #fff; pointer-events: none; }
+.mini--sobra[data-pdf]::after { background: #B3261E; }
+.mini--fila { grid-template-columns: 26px minmax(0, 1fr); align-items: center; padding: .2rem .25rem; margin-left: .9rem; }
+.mini--fila::after { display: none; }
+.mini--fila .mini__n { padding-top: 0; }
+.mini__etiqueta { font-size: 11px; color: var(--tiza-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini--sobra .mini__etiqueta { color: #FF8A80; }
+.mini-ayuda { margin: .35rem .1rem 0; font-size: 10.5px; line-height: 1.4; color: var(--tiza-2); }
+.mini-vacio { margin: 0; padding: .4rem .3rem; font-size: 11px; line-height: 1.4; color: var(--tiza-2); }
+/* «Capítulos»: una fila por capitulo */
+.cap-fila { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); grid-template-areas: "f n" ". d" ". p"; align-items: center; column-gap: .2rem; row-gap: .15rem; padding: .35rem .4rem; border: 1px solid var(--raya); border-radius: 8px; background: rgb(var(--luz) / .03); cursor: pointer; }
+.cap-fila:hover { background: rgb(var(--luz) / .06); }
+.cap-fila[aria-current="true"] { border-color: var(--prompt); background: rgb(var(--prompt-rgb) / .14); }
+.tal-lateral .cap-fila__flecha { grid-area: f; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--tiza-2); font-size: 11px; line-height: 1; cursor: pointer; }
+.tal-lateral .cap-fila__flecha:hover { color: var(--tiza); background: rgb(var(--luz) / .1); }
+.cap-fila__nombre { grid-area: n; min-width: 0; font-size: 12px; font-weight: 600; color: var(--tiza); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cap-fila__datos { grid-area: d; font-size: 10.5px; color: var(--tiza-2); }
+.cap-fila__pie { grid-area: p; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; min-width: 0; }
+.tal-lateral .cap-fila__rol { max-width: 100%; padding: 1px 8px; border: 1px dashed var(--raya-fuerte); border-radius: 999px; background: transparent; color: var(--tiza-2); font: inherit; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.tal-lateral .cap-fila__rol:hover { border-color: var(--prompt); color: var(--tiza); }
+.tal-lateral .cap-fila__rol--puesto { border-style: solid; border-color: var(--prompt); color: var(--prompt); }
+.marca-cap { padding: 0 .4rem; border: 1px solid var(--raya-fuerte); border-radius: 999px; font-size: 9.5px; color: var(--tiza-2); }
+.marca-cap--sobra { border-color: #B3261E; color: #FF8A80; }
+.cap-fila--fuera .cap-fila__nombre { font-style: italic; opacity: .7; }
+.cap-fila--portada { cursor: pointer; }
+.cap-fila--indice { grid-template-columns: minmax(0, 1fr); grid-template-areas: "n"; }
+.cap-fila--indice .cap-fila__nombre { font-weight: 500; color: var(--tiza-2); }
+/* «PDF»: un encabezado por PDF con sus dos acciones */
+.pdf-cab { display: grid; gap: .2rem; padding: .4rem .45rem; border: 1px solid var(--raya); border-radius: 8px; background: rgb(var(--luz) / .03); cursor: pointer; }
+.pdf-cab:hover { background: rgb(var(--luz) / .06); }
+.pdf-cab--sobra { border-color: #B3261E; }
+.pdf-cab__titulo { font-size: 12px; font-weight: 600; color: var(--tiza); }
+.pdf-cab__nombre { min-width: 0; font-size: 10.5px; color: var(--tiza-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-cab__acciones { display: flex; flex-wrap: wrap; gap: .3rem; }
+.tal-lateral .pdf-cab__boton { padding: 2px 8px; border: 1px solid var(--raya-fuerte); border-radius: 6px; background: transparent; color: var(--tiza); font: inherit; font-size: 10.5px; cursor: pointer; }
+.tal-lateral .pdf-cab__boton:hover { border-color: var(--prompt); }
+/* El sello de PDF de una hoja: solo de la mesa. No recibe el puntero y la copia de la hoja lo quita. */
+.sello-pdf { position: absolute; left: 8px; top: 8px; z-index: 4; padding: 4px 8px; border-radius: 999px; background: rgb(15 15 15 / .72); box-shadow: 0 0 0 1px rgb(255 255 255 / .35); color: #fff; font: 700 11px/1 var(--mono); letter-spacing: .02em; pointer-events: none; user-select: none; }
+.sello-pdf--sobra { background: #B3261E; }
 .tal-menu__mover input { width: 100%; height: 30px; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 7px; padding: 0 .4rem; color: var(--tiza); font: inherit; }
 .tal-menu__mover [aria-invalid="true"] { outline: 2px dashed var(--tiza); }
 .tal-menu__fila { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; }
@@ -386,11 +444,44 @@
 .tal-zoom { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
 
 /* ---- Ver como libro ---- */
-.tal-vista-libro { position: fixed; inset: 0; z-index: 70; background: rgb(6 9 7 / .97); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+/* Fondo parejo: con un poco de transparencia se veian, borrosas, la cinta y las miniaturas que quedan detras */
+.tal-vista-libro { position: fixed; inset: 0; z-index: 70; background: rgb(6 9 7); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
 .tal-vista-libro[hidden] { display: none; }
 .tal-vl-tope { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; padding: .6rem 1rem; }
 .tal-vl-gustos { margin-left: auto; display: flex; flex-wrap: wrap; gap: .4rem; }
 .tal-vl-gustos .tal-btn[aria-pressed="true"] { background: var(--consola-alta); border-color: var(--raya-fuerte); color: var(--tiza); }
+/* «Ir a…»: una lista que cuelga del boton */
+.tal-vl-ir { position: relative; }
+.tal-vl-ir__lista { position: absolute; z-index: 5; top: calc(100% + .35rem); left: 0; width: min(24rem, calc(100vw - 2rem)); max-height: min(60vh, 28rem); overflow: auto; display: grid; gap: .1rem; padding: .35rem; box-sizing: border-box; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); border-radius: 10px; box-shadow: 0 18px 40px rgb(0 0 0 / .6); }
+.tal-vl-ir__lista[hidden] { display: none; }
+.tal-vl-ir__op { display: flex; align-items: baseline; gap: .6rem; width: 100%; padding: .4rem .55rem; border: 0; border-radius: 6px; background: transparent; color: var(--tiza); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.tal-vl-ir__op--2 { padding-left: 1.5rem; color: var(--tiza-2); }
+.tal-vl-ir__op:hover, .tal-vl-ir__op:focus-visible { background: rgb(var(--prompt-rgb) / .18); outline: none; }
+.tal-vl-ir__op:focus-visible { box-shadow: inset 0 0 0 2px var(--prompt); }
+.tal-vl-ir__texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tal-vl-ir__pag { flex: none; font-variant-numeric: tabular-nums; color: var(--tiza-2); }
+.tal-vl-ir__nada { margin: 0; padding: .5rem; font-size: 12px; color: var(--tiza-2); }
+/* Los botones del libro en las hojas que se ven: para el teclado */
+.tal-vl-botones { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .6rem; padding: .5rem 1rem .7rem; font-size: 12px; color: var(--tiza-2); }
+.tal-vl-botones[hidden] { display: none; }
+.tal-vl-botones__lista { display: flex; flex-wrap: wrap; gap: .4rem; }
+/* El aviso: una franja chica sobre el libro. Sus colores y su lugar los pone el libro. */
+.tal-vl-aviso { position: absolute; left: 50%; z-index: 6; max-width: min(32rem, calc(100vw - 2rem)); padding: .55rem 1rem; border-radius: 999px; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); color: var(--tiza); font-size: 14px; font-weight: 600; text-align: center; box-shadow: 0 10px 28px rgb(0 0 0 / .5); transform: translate(-50%, 6px); opacity: 0; transition: opacity .18s var(--ease, ease), transform .18s var(--ease, ease); pointer-events: none; }
+.tal-vl-aviso[hidden] { display: none; }
+.tal-vl-aviso--abajo { bottom: 1.2rem; }
+.tal-vl-aviso--arriba { top: 4.2rem; }
+.tal-vl-aviso--visible { opacity: 1; transform: translate(-50%, 0); }
+.tal-vl-aviso-d { width: min(26rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; }
+.tal-vl-aviso-d .tal-colores { grid-template-columns: 1fr 1fr; }
+.tal-vl-aviso-d__muestra { display: grid; place-items: center; min-height: 4rem; border-radius: 10px; background: rgb(255 255 255 / .04); border: 1px dashed var(--raya-fuerte); }
+.tal-vl-aviso-d__muestra .tal-vl-aviso { position: static; opacity: 1; transform: none; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .tal-vl-aviso { transition: none; } }
+/* El lomo, en la cinta: se dibuja con lo que se elige */
+.tal-lomo { width: 22rem; }
+.tal-lomo__muestra { justify-self: start; display: flex; align-items: center; justify-content: center; box-sizing: content-box; height: 6.5rem; width: var(--lomo-w, 2.4rem); border-style: solid; border-width: 0 6px; border-color: transparent; border-left-color: var(--tapa-delante, #1f3b2c); border-right-color: var(--tapa-detras, #1f3b2c); border-radius: 3px; background: var(--lomo-color, #1f3b2c); color: var(--lomo-tinta, rgb(241 239 233 / .85)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); overflow: hidden; }
+.tal-lomo__muestra span { writing-mode: vertical-rl; max-height: 100%; padding-block: .35rem; box-sizing: border-box; font-size: 11px; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tal-lomo__campos { display: grid; grid-template-columns: 1fr 7rem; gap: .5rem .7rem; }
+.tal-lomo__campos .tal-colores { grid-column: 1 / -1; }
 /* El libro que gira es el del lector de la web (styles/hojeo.css). Aqui, el escenario: una camara con
    perspectiva para ver el lomo, y el libro que se ladea segun donde este. */
 .tal-vl-escena { display: flex; align-items: center; justify-content: center; min-height: 0; padding-bottom: 1rem; perspective: 2200px; perspective-origin: 50% 35%; }
@@ -425,7 +516,7 @@
 /* El celular se conoce por el dedo y no por el ancho: quien amplia la pantalla sigue escribiendo */
 @media (hover: none) and (pointer: coarse) {
   .tal-celular { display: block; }
-  .tal-cinta, .tal-miniaturas { display: none; }
+  .tal-cinta, .tal-lateral { display: none; }
   .tal-cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 52rem) { .tal-cuerpo { grid-template-columns: 120px minmax(0, 1fr); } .tal-tope { flex-wrap: wrap; } .tal-avance { display: none; } }

@@ -28,6 +28,30 @@ export function pliegoVecino(i, n, d) {
   return v[0] <= 0 ? null : pliegoDe(v[0] - 1, n);
 }
 
+/* EL VIAJE A UNA PAGINA: de donde se esta (`desde`, un pliego por su primera pagina) a donde se quiere ir (`hacia`:
+   cualquier pagina). Devuelve los pliegos que se van pasando, de uno en uno, y hacia donde:
+     { dir: 1 | -1 | 0, distancia, salto, pasos }
+   - `pasos`: el pliego en que cae cada hoja que gira, en orden (el ultimo es el de la pagina pedida).
+   - `salto`: si hay mas pliegos que `tope`, el libro SALTA primero (sin girar) a este pliego, el que queda `tope` antes
+     del destino, y solo se giran los ultimos `tope`. null si todo se gira.
+   Sin paginas, o ya ahi: `dir` 0 y nada que pasar. */
+export function planDeViaje(desde, hacia, n, { tope = 10 } = {}) {
+  const nada = { dir: 0, distancia: 0, salto: null, pasos: [] };
+  if (!(n > 0)) return nada;
+  const d = pliegoDe(desde, n), h = pliegoDe(hacia, n);
+  if (d === h) return nada;
+  const dir = h > d ? 1 : -1, camino = [];
+  /* Tope de seguridad: ningun libro tiene mas pliegos que paginas */
+  for (let k = pliegoVecino(d, n, dir); k != null && camino.length <= n; k = pliegoVecino(k, n, dir)) {
+    camino.push(k);
+    if (k === h) break;
+  }
+  const maximo = Number.isFinite(tope) ? Math.max(1, Math.floor(tope)) : 10;
+  if (camino.length <= maximo) return { dir, distancia: camino.length, salto: null, pasos: camino };
+  const saltados = camino.length - maximo;
+  return { dir, distancia: camino.length, salto: camino[saltados - 1], pasos: camino.slice(saltados) };
+}
+
 /* Cuantos pliegos tiene el libro */
 export function totalPliegos(n) {
   let t = 0;

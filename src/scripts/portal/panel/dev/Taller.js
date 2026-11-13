@@ -23,7 +23,7 @@ import { VistaLibro } from './taller/VistaLibro.js';
 import { Imagenes } from './taller/Imagenes.js';
 import { Vista } from './taller/Vista.js';
 import { cargarFuente } from './taller/Fuentes.js';
-import { importarPdf } from './taller/Importar.js';
+import { importarPdf, subirPdf } from './taller/Importar.js';
 import { Formulas } from './taller/Formulas.js';
 import { bajarLibro, entregar, nombreDeArchivo } from './taller/Descarga.js';
 import { SelectorColor } from './taller/SelectorColor.js';
@@ -34,6 +34,7 @@ import { familiaCss } from '../../../contenido/taller/fuentes.js';
 import { RECIENTES_MAX, textosPocoVisibles, variablesDe } from '../../../contenido/taller/colores.js';
 import { AL_FINAL, hojasDeIndice } from '../../../contenido/taller/IndiceLibro.js';
 import { armar } from '../../../contenido/taller/armar.js';
+import { estiloDeLomo } from '../../../contenido/taller/LomoLibro.js';
 
 const COPIA_MS = 10 * 60 * 1000;
 const ARMADO_MS = 5000;
@@ -100,7 +101,7 @@ export class Taller extends Seccion {
     this.avance = m('[data-tal-avance]');
     this.errorEl = m('[data-tal-error]');
     this.imagenes = new Imagenes((r) => ctx.be.taller.bajar(r));
-    if (import.meta.env.DEV) window.__imagenesTaller = this.imagenes;
+    if (import.meta.env.DEV) { window.__imagenesTaller = this.imagenes; window.__taller = this; }
     q('[data-tal-crear]').addEventListener('submit', (e) => { e.preventDefault(); this.crear(e.currentTarget); });
     this.borrador = new BorrarLibro(q('[data-tal-borrar]'), {
       tx: this.tx,
@@ -260,6 +261,8 @@ export class Taller extends Seccion {
     /* «Es la portada» / «No es la portada» desde el menu del primer capitulo: es un ajuste del libro */
     this.mesa.alPortada = (valor, callado) => this.ponerPortada(valor, callado);
     this.mesa.alPedirPortada = () => this.cinta.pedirPdf('portada');
+    /* «Cambiar el PDF…»: el selector de archivos; lo que pasa despues lo hace `traerPdf` con { cambiar } */
+    this.mesa.alPedirCambioPdf = () => this.cinta.pedirPdf('cambiar');
     /* «Poner el contenido después de esta hoja» (menu de una hoja): delante de este capitulo, o al final */
     this.mesa.alIndiceAntes = (id) => this.ponerIndiceAntes(id);
     this.cinta = this.cinta || new Cinta(this.m('[data-tal-cinta]'), {
@@ -278,7 +281,18 @@ export class Taller extends Seccion {
     this.mesa.editable = !enTelefono();
     this.mesa.cinta = this.cinta;
     this.mesa.formulas = this.formulas;
-    this.vistaLibro = this.vistaLibro || new VistaLibro(this.m('[data-tal-vista-libro]'), { mesa: this.mesa, tx: this.tx, titulo: () => (this.obra ? this.obra.titulo : '') });
+    /* El visor lee del libro su lomo y su aviso, y guarda el aviso por el camino de siempre (`guardarObra`) */
+    const libro = {
+      config: () => (this.obra ? this.obra.pagina : null),
+      puedeCambiar: () => !!(this.obra && this.mesa && this.mesa.editable),
+      cambiar: (parche) => {
+        if (!this.obra || !this.mesa || !this.mesa.editable) return false;
+        this.obra.pagina = new ConfigPagina({ ...this.obra.pagina.aDatos(), ...parche });
+        this.guardarObra();
+        return true;
+      }
+    };
+    this.vistaLibro = this.vistaLibro || new VistaLibro(this.m('[data-tal-vista-libro]'), { mesa: this.mesa, tx: this.tx, titulo: () => (this.obra ? this.obra.titulo : ''), libro, recientes: () => (this.obra ? this.obra.pagina.colores : []), alColor: (c) => this.recordarColor(c) });
     this.vistaLibro.mesa = this.mesa;
     this.mesa.vistaLibro = this.vistaLibro;
     await document.fonts.ready;
@@ -523,6 +537,7 @@ export class Taller extends Seccion {
     f.elements.indice.checked = c.indice.ver; f.elements.indiceTitulo.value = c.indice.titulo;
     f.elements.indiceSubtemas.checked = c.indice.subtemas; f.elements.indicePuntos.checked = c.indice.puntos; f.elements.indiceVerRol.checked = c.indice.verRol;
     this.ponerCabeza(c);
+    this.ponerLomo(c);
     this.ponerPlantilla(c.indice);
     this.ponerRotulo(c.rotulo);
     this.llenarAntesDe();
@@ -643,7 +658,8 @@ export class Taller extends Seccion {
       hoja.className = 'libro tal-plantilla__hoja';
       for (const [k, x] of Object.entries(papel)) hoja.style.setProperty(k, x);
       const orden = f.elements.indiceOrden.checked || v === 'tabla';
-      hoja.append(armar(hojasDeIndice(ejemplo, { 'cap-1': 3, 'cap-2': 5, 'cap-3': 9 }, [3], { titulo: c.indice.titulo || tx.indiceTitulo, puntos: c.indice.puntos, plantilla: v, orden })[0]));
+      const negrita = { n1: f.elements.indiceNegritaCap.checked, n2: f.elements.indiceNegritaSub.checked };
+      hoja.append(armar(hojasDeIndice(ejemplo, { 'cap-1': 3, 'cap-2': 5, 'cap-3': 9 }, [3], { titulo: c.indice.titulo || tx.indiceTitulo, puntos: c.indice.puntos, plantilla: v, orden, negrita })[0]));
       m.replaceChildren(hoja);
       /* Una muestra no se toca: sus filas son enlaces de verdad, y no deben recibir el foco ni cambiar la pagina */
       m.inert = true;
@@ -683,6 +699,7 @@ export class Taller extends Seccion {
     f.elements.indiceImagen.value = ind.imagen.ruta;
     f.elements.indiceImagenAlto.value = String(IMAGEN_INDICE_ALTOS.reduce((a, b) => (Math.abs(b - ind.imagen.altoPct) < Math.abs(a - ind.imagen.altoPct) ? b : a)));
     f.elements.indiceImagenAjuste.value = ind.imagen.ajuste;
+    f.elements.indiceNegritaCap.checked = ind.negrita.n1; f.elements.indiceNegritaSub.checked = ind.negrita.n2;
     this.m('[data-tal-indice-portadas]').hidden = ind.plantilla !== 'tarjetas';
     this.m('[data-tal-indice-sin-imagen]').disabled = !ind.imagen.ruta;
   }
@@ -730,6 +747,7 @@ export class Taller extends Seccion {
       indice: {
         ver: f.elements.indice.checked, titulo: f.elements.indiceTitulo.value, subtemas: f.elements.indiceSubtemas.checked,
         puntos: f.elements.indicePuntos.checked, verRol: f.elements.indiceVerRol.checked,
+        negrita: { n1: f.elements.indiceNegritaCap.checked, n2: f.elements.indiceNegritaSub.checked },
         antesDe: this.antesDeElegido(f.elements.indiceAntes),
         plantilla: f.elements.indicePlantilla.value, orden: f.elements.indiceOrden.checked, portadas: f.elements.indicePortadas.checked,
         /* Solo una imagen de este libro */
@@ -742,6 +760,8 @@ export class Taller extends Seccion {
         distanciaMm: f.elements.cabezaDistancia.value === '' ? undefined : n('cabezaDistancia'),
         tamanoPt: f.elements.cabezaTamano.value === '' ? undefined : n('cabezaTamano')
       },
+      /* El texto y el grueso del lomo vienen de aqui; sus colores, de los selectores (ya estan en `pagina.lomo`) */
+      lomo: { ...this.obra.pagina.lomo, texto: f.elements.lomoTexto.value, grosor: f.elements.lomoGrosor.value === '' ? 'auto' : n('lomoGrosor') },
       cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },
       capital: {
         estilo: f.elements.capitalEstilo.value, fuente: f.elements.capitalFuente.value, lineas: n('capitalLineas'),
@@ -762,6 +782,7 @@ export class Taller extends Seccion {
     this.m('[data-tal-indice-opciones]').hidden = !nueva.indice.ver;
     this.ponerPlantilla(nueva.indice);
     this.ponerCabeza(nueva, true);
+    this.ponerLomo(nueva, true);
     if (this.m('[data-tal-indice-dialogo]').open) this.pintarMuestras();
     /* «Otra…» sin escribir aun: se queda elegida mientras se escribe la palabra */
     if (f.elements.rotuloPalabra.value !== '*') this.ponerRotulo(nueva.rotulo); else { f.elements.rotuloOtro.value = nueva.rotulo.palabra; this.mostrarRotulo(); }
@@ -794,6 +815,55 @@ export class Taller extends Seccion {
       ...this.obra.fuentes.map((f) => selector(f, colorDeLetra(p(), f), libro((c) => { if (c) p().letras[f] = c; else delete p().letras[f]; }))[0])
     ];
     this.m('[data-tal-colores]').replaceChildren(...filas);
+    this.pintarLomo();
+  }
+
+  /* EL LOMO: sus cuatro colores (lomo, letra y las dos tapas) son selectores; el texto y el grueso son campos del
+     formulario (leerPagina). Cada color se guarda por el camino de siempre y la muestra se dibuja de nuevo. */
+  pintarLomo() {
+    const tx = this.tx, p = () => this.obra.pagina;
+    const cambiar = (parche) => {
+      const l = p().lomo;
+      this.obra.pagina = new ConfigPagina({ ...p().aDatos(), lomo: { ...l, ...parche, tapas: { ...l.tapas, ...(parche.tapas || {}) } } });
+      this.guardarObra();
+      this.pintarMuestraLomo();
+    };
+    const fila = (etiqueta, valor, alCambiar) => {
+      const s = new SelectorColor({ tx, etiqueta, valor, recientes: () => p().colores, alCambiar: (c) => { this.recordarColor(c); alCambiar(c); } });
+      const l = document.createElement('div');
+      l.className = 'tal-colores__uno';
+      l.append(Object.assign(document.createElement('span'), { textContent: etiqueta }), s.nodo);
+      return l;
+    };
+    const lomo = p().lomo;
+    this.m('[data-tal-lomo-colores]').replaceChildren(
+      fila(tx.lomoColor, lomo.color, (c) => cambiar({ color: c })),
+      fila(tx.lomoTinta, lomo.tinta, (c) => cambiar({ tinta: c })),
+      fila(tx.lomoTapaDelante, lomo.tapas.delante, (c) => cambiar({ tapas: { delante: c } })),
+      fila(tx.lomoTapaDetras, lomo.tapas.detras, (c) => cambiar({ tapas: { detras: c } }))
+    );
+    this.pintarMuestraLomo();
+  }
+
+  /* El texto y el grueso como estan guardados (el campo que tiene el foco no se pisa), y la muestra del lomo */
+  ponerLomo(c, escribiendo = false) {
+    const f = this.m('[data-tal-pagina]');
+    if (!escribiendo || document.activeElement !== f.elements.lomoTexto) f.elements.lomoTexto.value = c.lomo.texto;
+    if (!escribiendo || document.activeElement !== f.elements.lomoGrosor) f.elements.lomoGrosor.value = c.lomo.grosor === 'auto' ? '' : c.lomo.grosor;
+    f.elements.lomoTexto.placeholder = this.obra && this.obra.titulo ? this.obra.titulo : this.tx.lomoTextoAuto;
+    this.pintarMuestraLomo();
+  }
+
+  /* El lomo en pequeño, con lo elegido: el color, la letra, el grueso y las tapas a los lados */
+  pintarMuestraLomo() {
+    const m = this.m('[data-tal-lomo-muestra]');
+    if (!m || !this.obra) return;
+    const c = this.obra.pagina, e = estiloDeLomo(c.lomo, this.obra.titulo, {});
+    const poner = (k, v) => { if (v) m.style.setProperty(k, v); else m.style.removeProperty(k); };
+    poner('--lomo-color', e.color); poner('--lomo-tinta', e.tinta);
+    poner('--tapa-delante', e.delante); poner('--tapa-detras', e.detras);
+    poner('--lomo-w', c.lomo.grosor === 'auto' ? '' : `${Math.round(14 + c.lomo.grosor * 1.6)}px`);
+    m.querySelector('span').textContent = e.texto;
   }
 
   ponerPapelCapitulo(c) {
@@ -871,11 +941,43 @@ export class Taller extends Seccion {
 
   /* Si el libro se cierra a medio camino, lo que falta no entra en el siguiente */
   /* `portada`: el PDF es la portada del libro y va siempre al comienzo, se mire la pagina que se mire */
-  async traerPdf(archivo, { portada = false } = {}) {
+  async traerPdf(archivo, { portada = false, cambiar = false } = {}) {
     /* Uno a la vez: dos portadas a la vez crearian dos capitulos */
     if (this.importando) { this.decir(this.tx.pdfEspera); return; }
     this.importando = true;
-    try { await this.traerPdfYa(archivo, portada); } finally { this.importando = false; }
+    try { await (cambiar ? this.cambiarPdfYa(archivo) : this.traerPdfYa(archivo, portada)); } finally { this.importando = false; }
+  }
+
+  /* CAMBIAR EL PDF de unas paginas que ya estan: primero se lee y se sube todo (si algo falla, ninguna pagina del libro se
+     toco); recien despues la mesa las cambia en su lugar, con una copia de seguridad antes. */
+  async cambiarPdfYa(archivo) {
+    const mesa = this.mesa, pedido = mesa.cambioPedido, tx = this.tx;
+    mesa.cambioPedido = null;
+    const g = pedido && mesa.grupoPedido(pedido);
+    if (!g) { this.decir(tx.cambioSinGrupo); return; }
+    if (mesa.hayQuietas(g)) { this.decir(tx.variasQuietas); return; }
+    if (mesa.moviendo) { this.decir(tx.moverEspera); return; }
+    const turno = this.turnoObra, sigue = () => turno === this.turnoObra, nuevas = [];
+    this.decir(tx.cambiandoPdf);
+    const r = await subirPdf(archivo, {
+      be: this.be, obra: this.obra.aDatos(), tx, imagenes: this.imagenes, sigue,
+      /* El tamaño del libro no cambia hasta que la mesa cambie las hojas (y ya haya copia): si algo falla, queda como estaba */
+      alProporcion: (m) => this.preguntarProporcion(m, sigue, true),
+      alPagina: (a) => { nuevas.push(a); },
+      alAviso: (t) => { if (sigue()) this.avance.textContent = t; },
+      alDecir: (t) => this.decir(t),
+      alError: (c) => this.error(c)
+    });
+    if (!r || !sigue()) return;
+    await mesa.cambiarPdf(pedido, nuevas, r, r.pagina ? () => this.ajustarLibro(r.pagina) : null);
+  }
+
+  /* El libro toma la proporcion del PDF (la que se eligio al preguntar) */
+  ajustarLibro(pagina) {
+    this.obra.pagina = new ConfigPagina(pagina);
+    this.ponerPagina();
+    this.guardarObra();
+    this.mesa.repintarHojas();
   }
 
   async traerPdfYa(archivo, portada) {
@@ -914,7 +1016,7 @@ export class Taller extends Seccion {
   }
 
   /* El PDF tiene otra proporcion que el libro: decide el fundador. Ajustar el libro cambia todas sus hojas. */
-  async preguntarProporcion(m, sigue) {
+  async preguntarProporcion(m, sigue, diferir = false) {
     const caja = this.m('[data-tal-proporcion]'), imagenes = this.mesa.imagenesPuestas();
     if (this.responder) this.responder('no');
     this.m('[data-pr-nota]').textContent = imagenes ? this.tx.pdfEstiraImagenes.replace('{n}', String(imagenes)) : '';
@@ -932,10 +1034,8 @@ export class Taller extends Seccion {
     const nueva = new ConfigPagina({ ...p.aDatos(), anchoMm: ancho });
     if (ancho < LADO_MIN || ancho > LADO_MAX) { this.error('tamanoFuera'); return null; }
     if (nueva.errores().length) { this.error('margenes'); return null; }
-    this.obra.pagina = nueva;
-    this.ponerPagina();
-    this.guardarObra();
-    this.mesa.repintarHojas();
+    /* `diferir`: solo se dice cual es el tamaño; quien llama lo pone cuando ya subio todo */
+    if (!diferir) this.ajustarLibro(nueva.aDatos());
     return { ajuste: 'contener', pagina: nueva.aDatos() };
   }
 
@@ -962,7 +1062,10 @@ export class Taller extends Seccion {
     const alts = caps.reduce((s, c) => s + sinAlt(c.contenido.doc || {}), 0);
     const tenues = caps.reduce((s, c) => s + textosPocoVisibles(c.contenido, this.obra.pagina.papel), 0);
     const sangran = this.obra.pagina.imprenta && caps.some((c) => (c.contenido.doc.content || []).some((n) => n.type === 'paginaLibre' && n.attrs.sangre));
+    /* Las hojas que quedaron de un PDF anterior se imprimen y se numeran: se avisa antes de sacarlas */
+    const sobran = caps.reduce((s, c) => s + (c.contenido.doc.content || []).filter((n) => n.type === 'paginaLibre' && n.attrs && n.attrs.sobra === true).length, 0);
     const dice = [
+      sobran ? (sobran === 1 ? this.tx.sobraEnLibro : this.tx.sobranEnLibro.replace('{n}', String(sobran))) : '',
       sangran ? this.tx.imprentaSangre : '',
       tenues ? this.tx.colorPocoVisible.replace('{n}', String(tenues)) : '',
       llaves.length ? this.tx.llavesEnPdf.replace('{llaves}', llaves.map((x) => `{${x}}`).join(', ')) : '',

@@ -321,7 +321,11 @@ export class Propiedades {
       this.conIcono('duplicar', cuenta(tx.duplicarVarias), () => m.duplicarVarias()),
       this.armado('eliminar', cuenta(tx.eliminarVarias), cuenta(tx.eliminarVariasSeguro), () => m.borrarVarias())
     );
-    l.append(ac, this.accion(tx.quitarEleccion, () => m.soltarEleccion(true)));
+    /* El rango: estas hojas son la introduccion, la conclusion… (si no son todo el capitulo, se parte) */
+    const marca = this.accion(`${tx.marcarComoBoton} ▾`, () => { const x = marca.getBoundingClientRect(); m.menuDeRolesRango(x.left, x.bottom + 2, marca); });
+    marca.setAttribute('aria-haspopup', 'menu');
+    marca.dataset.marcarRol = '';
+    l.append(ac, marca, crear('p', '', tx.marcarComoAyuda), this.accion(tx.quitarEleccion, () => m.soltarEleccion(true)));
   }
 
   /* Lo que hace un boton, en la linea o en una pagina libre */

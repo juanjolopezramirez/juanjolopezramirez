@@ -57,6 +57,8 @@
   border-radius: 1px 5px 5px 1px;
 }
 .flip[data-at="front"] .flip__board--r { --board: var(--board-front); }
+/* Al final, el carton de la izquierda es la contratapa */
+.flip[data-at="back"] .flip__board--l { --board: var(--board-back); }
 .flip[data-at="front"] .flip__board--l,
 .flip[data-at="back"] .flip__board--r { opacity: 0; transform: scaleX(.96); }
 
@@ -136,7 +138,7 @@
   border-radius: 0 3px 3px 0;
   background:
     linear-gradient(90deg, rgb(0 0 0 / .45), rgb(0 0 0 / 0) 24%, rgb(255 255 255 / .12) 50%, rgb(0 0 0 / 0) 72%, rgb(0 0 0 / .4)),
-    var(--board-front);
+    var(--lomo-color, var(--board-front));
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08);
 }
 [data-lomo="si"] .flip__lomo { display: block; }
@@ -148,7 +150,7 @@
   writing-mode: vertical-rl;
   font-size: min(calc(var(--lomo, 12px) * .5), 15px);
   letter-spacing: .08em;
-  color: rgb(241 239 233 / .85);
+  color: var(--lomo-tinta, rgb(241 239 233 / .85));
   white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
 }
 /* Visto desde la izquierda (la tapa) el plano del lomo da la espalda: el titulo se lee al reves. Desde la

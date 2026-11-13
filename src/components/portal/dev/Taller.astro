@@ -266,8 +266,20 @@ const { tx } = Astro.props;
               </div>
             </div>
           </details>
+          <!-- El lomo y las tapas de «Ver como libro»: el texto, los colores y el grueso -->
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.lomoMenu}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel tal-b-panel--der tal-lomo">
+              <div class="tal-lomo__muestra" data-tal-lomo-muestra role="img" aria-label={tx.lomoMuestra}><span data-tal-lomo-muestra-texto></span></div>
+              <div class="tal-lomo__campos">
+                <label><span>{tx.lomoTexto}</span><input class="tal-ctl" name="lomoTexto" type="text" maxlength="40" placeholder={tx.lomoTextoAuto} autocomplete="off" /></label>
+                <label><span>{tx.lomoGrosor}</span><input class="tal-ctl tal-ctl--num" name="lomoGrosor" type="number" min="4" max="40" step="0.5" placeholder={tx.lomoGrosorAuto} /></label>
+                <div class="tal-colores" data-tal-lomo-colores></div>
+              </div>
+              <p class="tal-ayuda">{tx.lomoAyuda}</p>
+            </div>
+          </details>
           <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.colores}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
-            <div class="tal-b-panel tal-b-panel--colores"><div class="tal-colores" data-tal-colores></div></div>
+            <div class="tal-b-panel tal-b-panel--der tal-b-panel--colores"><div class="tal-colores" data-tal-colores></div></div>
           </details>
           <button class="tal-btn" type="button" data-tal-mas-ajustes>{tx.masAjustes}</button>
           <!-- Lo que se pone una vez: la medida exacta (mm y px para Figma) y el idioma -->
@@ -302,6 +314,8 @@ const { tx } = Astro.props;
             <label class="tal-marca"><input name="indiceSubtemas" type="checkbox" /><span>{tx.indiceSubtemas}</span></label>
             <label class="tal-marca"><input name="indicePuntos" type="checkbox" /><span>{tx.indicePuntos}</span></label>
             <label class="tal-marca"><input name="indiceVerRol" type="checkbox" /><span>{tx.indiceVerRol}</span></label>
+            <label class="tal-marca"><input name="indiceNegritaCap" type="checkbox" /><span>{tx.indiceNegritaCap}</span></label>
+            <label class="tal-marca"><input name="indiceNegritaSub" type="checkbox" /><span>{tx.indiceNegritaSub}</span></label>
             <p class="tal-rotulo">{tx.indiceImagen}</p>
             <div class="tal-indice-d__imagen">
               <button class="tal-btn" type="button" data-tal-indice-imagen>{tx.indiceImagenPoner}</button>
@@ -318,7 +332,14 @@ const { tx } = Astro.props;
     </div>
 
     <div class="tal-cuerpo">
-      <aside class="tal-miniaturas" data-tal-miniaturas role="tree" aria-multiselectable="true" aria-label={tx.paginasDelLibro} aria-describedby="tal-ayuda-minis"></aside>
+      <div class="tal-lateral">
+        <div class="tal-vistas" data-tal-vistas role="radiogroup" aria-label={tx.vistasDeLaBarra}>
+          <button type="button" role="radio" data-vista="hojas" aria-checked="true">{tx.vistaHojas}</button>
+          <button type="button" role="radio" data-vista="capitulos" aria-checked="false" tabindex="-1">{tx.vistaCapitulos}</button>
+          <button type="button" role="radio" data-vista="pdf" aria-checked="false" tabindex="-1">{tx.vistaPdf}</button>
+        </div>
+        <aside class="tal-miniaturas" data-tal-miniaturas role="tree" aria-multiselectable="true" aria-label={tx.paginasDelLibro} aria-describedby="tal-ayuda-minis"></aside>
+      </div>
       <p id="tal-ayuda-minis" class="sr-only" hidden>{tx.ayudaMiniaturas}</p>
       <main class="tal-fondo" data-tal-fondo>
         <div class="tal-lienzo-caja" data-tal-lienzo-caja><div class="tal-lienzo" data-tal-lienzo></div></div>
@@ -346,13 +367,48 @@ const { tx } = Astro.props;
         <button class="tal-ic" type="button" data-vl-ant aria-label={tx.anterior}>‹</button>
         <span data-vl-dice aria-live="polite"></span>
         <button class="tal-ic" type="button" data-vl-sig aria-label={tx.siguiente}>›</button>
+        <!-- A donde ir: una lista de las partes del libro; elegir una gira las hojas hasta ella -->
+        <span class="tal-vl-ir">
+          <button class="tal-btn" type="button" data-vl-ir aria-haspopup="true" aria-expanded="false" aria-controls="tal-vl-ir-lista" title={tx.vlIrAyuda}>{tx.vlIr}</button>
+          <div class="tal-vl-ir__lista" id="tal-vl-ir-lista" data-vl-ir-lista role="menu" aria-label={tx.vlIrCapitulos} hidden></div>
+        </span>
         <span class="tal-vl-gustos">
           <button class="tal-btn" type="button" data-vl-tapa aria-pressed="true">{tx.vlTapa}</button>
           <button class="tal-btn" type="button" data-vl-lomo aria-pressed="false">{tx.vlLomo}</button>
           <button class="tal-btn" type="button" data-vl-sonido aria-pressed="false">{tx.vlSonido}</button>
+          <button class="tal-btn" type="button" data-vl-aviso title={tx.vlAvisoAyuda}>{tx.vlAviso}</button>
         </span>
       </div>
       <div class="tal-vl-escena" data-vl-escena></div>
+      <!-- Los botones de las hojas que se ven, para quien no usa el raton -->
+      <div class="tal-vl-botones" data-vl-botones hidden><span class="tal-vl-botones__rotulo" id="tal-vl-botones-t">{tx.vlBotones}</span><span class="tal-vl-botones__lista" data-vl-botones-lista role="group" aria-labelledby="tal-vl-botones-t"></span></div>
+      <!-- El aviso de lo que hizo un boton: una franja chica, dentro del visor (lo de afuera esta inerte) -->
+      <div class="tal-vl-aviso tal-vl-aviso--abajo" data-vl-aviso-franja role="status" aria-live="polite"></div>
+      <!-- Como se ve y que dice ese aviso: tambien dentro del visor, para que el foco no salga de el -->
+      <dialog class="tal-ajustes tal-vl-aviso-d" data-vl-aviso-d aria-labelledby="tal-vl-aviso-t">
+        <h2 class="tal-ajustes__titulo" id="tal-vl-aviso-t">{tx.avisoTitulo}</h2>
+        <p class="tal-ayuda">{tx.avisoAyuda}</p>
+        <div data-vl-aviso-solo-leer class="tal-ayuda" hidden>{tx.avisoSoloLeer}</div>
+        <label><span>{tx.avisoCasos.copiado}</span><input class="tal-ctl" type="text" maxlength="60" data-vl-aviso-c="copiado" placeholder={tx.avisoCopiado} autocomplete="off" /></label>
+        <label><span>{tx.avisoCasos.enlace}</span><input class="tal-ctl" type="text" maxlength="60" data-vl-aviso-c="enlace" placeholder={tx.avisoEnlace} autocomplete="off" /></label>
+        <label><span>{tx.avisoCasos.falla}</span><input class="tal-ctl" type="text" maxlength="60" data-vl-aviso-c="falla" placeholder={tx.avisoFalla} autocomplete="off" /></label>
+        <div class="tal-colores" data-vl-aviso-colores></div>
+        <div class="tal-ajustes__fila">
+          <fieldset class="tal-campo-seg"><legend>{tx.avisoLugar}</legend>
+            <div class="tal-seg">
+              <label class="tal-seg__op"><input class="sr-only" type="radio" name="vl-aviso-lugar" value="arriba" data-vl-aviso-lugar />{tx.avisoArriba}</label>
+              <label class="tal-seg__op"><input class="sr-only" type="radio" name="vl-aviso-lugar" value="abajo" data-vl-aviso-lugar />{tx.avisoAbajo}</label>
+            </div>
+          </fieldset>
+          <label><span>{tx.avisoSegundos}</span><input class="tal-ctl tal-ctl--num" type="number" min="1.5" max="6" step="0.5" data-vl-aviso-segundos /></label>
+        </div>
+        <div class="tal-vl-aviso-d__muestra" data-vl-aviso-muestra aria-hidden="true"></div>
+        <div class="tal-fila">
+          <button class="tal-btn" type="button" data-vl-aviso-probar>{tx.avisoProbar}</button>
+          <button class="tal-btn" type="button" data-vl-aviso-cancelar>{tx.cancelar}</button>
+          <button class="tal-btn tal-btn--fuerte" type="button" data-vl-aviso-listo>{tx.listo}</button>
+        </div>
+      </dialog>
     </div>
 
     <div class="tal-formula" data-tal-formula role="dialog" aria-label={tx.formula} hidden>

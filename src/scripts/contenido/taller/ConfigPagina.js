@@ -7,6 +7,8 @@ import { nombreDeFuente, FUENTES_MAX } from './fuentes.js';
 import { colorValido } from './marcas.js';
 import { RECIENTES_MAX } from './colores.js';
 import { textoIndice, TITULO_INDICE_MAX, PALABRA_MAX, PLANTILLAS } from './IndiceLibro.js';
+import { limpiarLomo } from './LomoLibro.js';
+import { limpiarAviso } from './AvisoLibro.js';
 
 export const LADO_MIN = 50;
 export const LADO_MAX = 420;
@@ -91,7 +93,9 @@ export class ConfigPagina {
       imagen: imagenDeIndice(ind.imagen),
       portadas: ind.portadas === true,
       /* El papel del capitulo (Introducción…) delante de su nombre, aunque los rotulos esten apagados */
-      verRol: ind.verRol === true
+      verRol: ind.verRol === true,
+      /* Negrita en las filas de cada nivel: capitulos (n1) y subtemas (n2). Apagadas, las filas salen como siempre. */
+      negrita: { n1: objeto(ind.negrita).n1 === true, n2: objeto(ind.negrita).n2 === true }
     };
     /* EL ENCABEZADO: una linea arriba de cada hoja de texto («Capítulo 2 · Nombre · Introducción · Actividades»).
        Apagado hasta que el autor lo pida. Cada parte se enciende aparte; la distancia es desde el borde de arriba
@@ -111,6 +115,9 @@ export class ConfigPagina {
     /* La primera hoja como portada: 'auto' la reconoce sola (IndiceLibro.hayPortada); 'si' y 'no' los elige el autor */
     this.portada = o.portada === true || o.portada === 'si' ? 'si' : o.portada === false || o.portada === 'no' ? 'no' : 'auto';
     this.imprenta = o.imprenta === true;
+    /* El lomo y las tapas de «Ver como libro», y el aviso de sus botones: datos limpios (LomoLibro.js, AvisoLibro.js) */
+    this.lomo = limpiarLomo(o.lomo);
+    this.aviso = limpiarAviso(o.aviso);
     this.papel = colorValido(o.papel);
     this.letras = letrasValidas(o.letras);
     this.titulos = Object.fromEntries(['t1', 't2', 't3'].map((k) => [k, colorValido(objeto(o.titulos)[k])]));
@@ -188,8 +195,8 @@ export class ConfigPagina {
 
   aDatos() {
     return {
-      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen } }, cuerpo: { ...this.cuerpo },
-      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes } }, portada: this.portada, imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen }, negrita: { ...this.indice.negrita } }, cuerpo: { ...this.cuerpo },
+      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes } }, portada: this.portada, imprenta: this.imprenta, lomo: { ...this.lomo, tapas: { ...this.lomo.tapas } }, aviso: { ...this.aviso }, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
       capital: { ...this.capital }, cita: { ...this.cita }
     };
   }

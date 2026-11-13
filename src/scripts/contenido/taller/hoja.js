@@ -159,6 +159,7 @@ const cssBaseDe = (letra, b, capital, conCapital, cita, hilo) => `.libro, .libro
 .libro .indice__fila { display: flex; align-items: baseline; gap: .4em; color: inherit; text-decoration: none; margin: 0 0 .3em; break-inside: avoid; }
 .libro .indice__fila--2 { padding-left: 1.3em; font-size: .92em; }
 .libro .indice__fila--2 + .indice__fila--1 { margin-top: .7em; }
+.libro .indice--cap-negrita .indice__fila--1, .libro .indice--sub-negrita .indice__fila--2 { font-weight: 700; }
 .libro .indice__texto { min-width: 0; }
 .libro .indice__rotulo:not(:last-child)::after { content: " · "; }
 .libro .indice__puntos { flex: 1 1 auto; min-width: 1.5em; border-bottom: .12em dotted currentColor; opacity: .45; }

@@ -233,10 +233,15 @@ export const tituloDeIndice = (indice, idioma) => (indice && indice.titulo) || (
 /* Las opciones de las hojas del contenido (las de ConfigPagina.indice), iguales en la mesa y en el PDF.
    `imagenes`: { ruta: src } de las que ya estan; la que falta deja su caja vacia. */
 export const conMinis = (ind) => !!ind && ind.plantilla === 'tarjetas' && ind.portadas === true;
+/* La negrita de las filas, por nivel: capitulos (n1) y subtemas (n2). Sin nada, las filas salen como siempre. */
+export const negritaDe = (v) => {
+  const o = v && typeof v === 'object' ? v : {};
+  return { n1: o.n1 === true, n2: o.n2 === true };
+};
 export function opcionesDeIndice(ind, idioma, imagenes = {}) {
   const i = ind || {}, ruta = i.imagen && i.imagen.ruta;
   const src = (r) => (imagenes && Object.prototype.hasOwnProperty.call(imagenes, r) ? imagenes[r] : '');
-  return { titulo: tituloDeIndice(i, idioma), puntos: i.puntos, plantilla: i.plantilla, orden: i.orden === true, minis: conMinis(i), imagenes, imagen: ruta ? src(ruta) : null };
+  return { titulo: tituloDeIndice(i, idioma), puntos: i.puntos, plantilla: i.plantilla, orden: i.orden === true, minis: conMinis(i), imagenes, imagen: ruta ? src(ruta) : null, negrita: negritaDe(i.negrita) };
 }
 
 /* La pagina de un ancla: solo un numero entero propio (nunca algo heredado, como «__proto__») */
@@ -284,7 +289,8 @@ export function hojasDeIndice(entradas, numeros, reparto, o = {}) {
   const fila = (f) => filaDeIndice(f, numeroDe(numeros, f.ancla), o.puntos !== false, opciones);
   const plantilla = PLANTILLAS.includes(o.plantilla) ? o.plantilla : 'clasico';
   /* Clasico sin numero delante: el mismo nav de siempre */
-  const clase = plantilla === 'clasico' && !opciones.orden ? 'indice' : `indice indice--${plantilla}${opciones.orden ? ' indice--orden' : ''}`;
+  const neg = negritaDe(o.negrita), negrita = `${neg.n1 ? ' indice--cap-negrita' : ''}${neg.n2 ? ' indice--sub-negrita' : ''}`;
+  const clase = (plantilla === 'clasico' && !opciones.orden ? 'indice' : `indice indice--${plantilla}${opciones.orden ? ' indice--orden' : ''}`) + negrita;
   const arriba = () => [
     ...(typeof o.imagen === 'string' ? [el('figure', 'indice__imagen', [imagenDe('indice__foto', o.imagen)])] : []),
     el('h1', 'indice__titulo', [txt(o.titulo || 'Contenido')])

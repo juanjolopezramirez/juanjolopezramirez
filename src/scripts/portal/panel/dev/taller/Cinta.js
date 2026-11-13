@@ -67,11 +67,12 @@ export class Cinta {
     raiz.querySelectorAll('[data-b-imagen]').forEach((b) => b.addEventListener('click', () => img.click()));
     img.addEventListener('change', () => { if (img.files[0]) alImagen(img.files[0]); img.value = ''; });
     const pdf = this.q('[data-b-pdf-archivo]');
-    /* El mismo archivo sirve para paginas sueltas o para la portada (que siempre va al comienzo del libro) */
+    /* El mismo archivo sirve para paginas sueltas, para la portada (que siempre va al comienzo del libro) o para cambiar
+       el PDF de unas paginas que ya estan en el libro ('cambiar') */
     this.pedirPdf = (modo = '') => { this.modoPdf = modo; pdf.click(); };
     raiz.querySelectorAll('[data-b-pdf]').forEach((b) => b.addEventListener('click', () => this.pedirPdf('')));
     raiz.querySelectorAll('[data-b-portada]').forEach((b) => b.addEventListener('click', () => this.pedirPdf('portada')));
-    pdf.addEventListener('change', () => { if (pdf.files[0]) alPdf(pdf.files[0], { portada: this.modoPdf === 'portada' }); pdf.value = ''; this.modoPdf = ''; });
+    pdf.addEventListener('change', () => { if (pdf.files[0]) alPdf(pdf.files[0], { portada: this.modoPdf === 'portada', cambiar: this.modoPdf === 'cambiar' }); pdf.value = ''; this.modoPdf = ''; });
     raiz.querySelectorAll('[data-insertar]').forEach((b) => b.addEventListener('click', () => alInsertar(b.dataset.insertar)));
     this.pintarSimbolos();
     this.prepararTeclado();

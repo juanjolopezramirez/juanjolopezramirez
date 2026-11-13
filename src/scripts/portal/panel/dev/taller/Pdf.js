@@ -77,10 +77,26 @@ async function aArchivo(canvas) {
   return { blob: await pedir('image/jpeg', 0.9), ext: 'jpg' };
 }
 
+/* La escala para pintar una pagina de `ancho` x `alto` puntos a la medida del libro `px`. Solo la pagina 1 se midio al abrir:
+   las otras pueden traer cualquier medida (una de 1 x 14400 puntos haria un dibujo de miles de millones de pixeles y
+   colgaria la pestaña). Si no cabe en los topes, se baja la escala; si habria que bajarla a menos de la mitad, la pagina no
+   se pinta (devuelve 0). El tope de area deja pasar el libro mas grande (420 x 420 mm a 300 ppp, 24,6 millones de pixeles). */
+export const LADO_PX_MAX = 8192;
+export const AREA_PX_MAX = 25e6;
+export function escalaDePagina(ancho, alto, px) {
+  if (!(ancho > 0) || !(alto > 0) || !px || !(px.ancho > 0) || !(px.alto > 0)) return 0;
+  const quiere = Math.max(px.ancho / ancho, px.alto / alto);
+  const tope = Math.min(LADO_PX_MAX / ancho, LADO_PX_MAX / alto, Math.sqrt(AREA_PX_MAX / (ancho * alto)));
+  const e = Math.min(quiere, tope);
+  return Number.isFinite(e) && e > 0 && e >= quiere / 2 ? e : 0;
+}
+
 export async function leerPagina(doc, n, px) {
   const p = await doc.getPage(n);
   const v1 = p.getViewport({ scale: 1 });
-  const v = p.getViewport({ scale: Math.max(px.ancho / v1.width, px.alto / v1.height) });
+  const escala = escalaDePagina(v1.width, v1.height, px);
+  if (!escala) { p.cleanup(); throw new Error('pagina fuera de medida'); }
+  const v = p.getViewport({ scale: escala });
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(v.width);
   canvas.height = Math.ceil(v.height);

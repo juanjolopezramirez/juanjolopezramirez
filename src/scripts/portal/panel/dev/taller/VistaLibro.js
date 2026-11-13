@@ -1,22 +1,43 @@
 /* VER COMO LIBRO: el libro abierto con el giro de hoja y el lomo del lector de la web. Es el mismo motor
    (StPageFlip, `page-flip`), la misma hoja que se dobla desde la esquina y los mismos estilos (hojeo.css).
-   Solo mira: lo que se ve son copias de las hojas de la mesa.
+   Lo que se ve son copias de las hojas de la mesa; con ellas se mira, y los botones del libro funcionan.
 
    Un libro de 300 paginas no puede tener 300 copias vivas: las 300 hojas existen, vacias y del mismo tamaño,
    y solo las del pliego que se ve y las de sus vecinos tienen la copia dibujada (pliegos.js → ventana).
 
    Tres gustos, que se recuerdan mientras la pestaña siga abierta: tapa dura o revista, ver el lomo en perspectiva, y el
    sonido de la hoja. Con el lomo a la vista el libro se mira en 3D y ya no se arrastra con el raton: se pasa
-   con las flechas, los botones y un clic a cada lado, porque la libreria mide el raton en un plano plano. */
-import { cantoDe, lomoDe, ladoDe, paginasDe, pliegoDe, pliegoVecino, ventana } from './pliegos.js';
+   con las flechas, los botones y un clic a cada lado, porque la libreria mide el raton en un plano plano.
 
-const crear = (tag, clase) => { const e = document.createElement(tag); if (clase) e.className = clase; return e; };
+   IR A UNA PARTE (la lista «Ir a…», una fila del contenido, Inicio y Fin): las hojas giran una tras otra, rapido
+   (pliegos.js → planDeViaje); si hay mas de diez pliegos, el libro salta sin girar hasta diez antes del destino.
+   El motor gira una hoja a la vez: la siguiente sale cuando la anterior cae.
+
+   LOS LIBROS DEL LOMO Y DEL AVISO son del libro (ConfigPagina.lomo / .aviso): el lomo y las tapas se pintan de
+   lo que el autor eligio en la cinta, y el aviso (lo que dice y como se ve al tocar un boton) se cambia aqui mismo. */
+import { cantoDe, lomoDe, ladoDe, paginasDe, pliegoDe, pliegoVecino, planDeViaje, ventana } from './pliegos.js';
+import { SelectorColor } from './SelectorColor.js';
+import { enlaceDeBoton } from '../../../../contenido/taller/tipos/boton.js';
+import { estiloDeLomo } from '../../../../contenido/taller/LomoLibro.js';
+import { AVISO_CASOS, colorDeAviso, limpiarAviso, textoDeAviso } from '../../../../contenido/taller/AvisoLibro.js';
+
+const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const LIGERA = 850, PESADA = 1300, CALMA = 300;   // lo que tarda una hoja (ms): la del lector de la web
+const RAPIDA = 95, RAPIDA_DURA = 150;            // y cuando pasan muchas seguidas
+const TOPE_VIAJE = 10;                            // pliegos que giran de verdad en un viaje; el resto se salta
+const FRANJA_SALE_MS = 220;
 /* La libreria se pide una vez, y solo al abrir el primer libro */
 let libreria = null;
 const traerLibreria = () => {
   if (!libreria) libreria = import('page-flip').catch((e) => { libreria = null; throw e; });
   return libreria;
+};
+
+/* Lo primero de un texto, en una linea, para decirlo en un aviso (el original nunca se corta) */
+const CORTO = 80;
+const textoCorto = (t) => {
+  const letras = Array.from(String(t == null ? '' : t).replace(/\s+/g, ' ').trim());
+  return letras.length > CORTO ? `${letras.slice(0, CORTO).join('')}…` : letras.join('');
 };
 
 /* Los tres gustos duran lo que la pestaña: el portal no guarda nada en el navegador (tools/test-portal.mjs lo exige) */
@@ -25,8 +46,11 @@ const leerPref = () => ({ ...gustos });
 const guardarPref = (p) => Object.assign(gustos, { dura: p.dura !== false, lomo: p.lomo === true, sonido: p.sonido === true });
 
 export class VistaLibro {
-  constructor(caja, { mesa, tx, titulo }) {
-    Object.assign(this, { caja, mesa, tx, titulo: titulo || (() => '') });
+  /* `libro`: { config() → ConfigPagina | null, puedeCambiar(), cambiar(parche) } lo que el visor lee y guarda del libro */
+  constructor(caja, { mesa, tx, titulo, libro, recientes, alColor }) {
+    Object.assign(this, { caja, mesa, tx, titulo: titulo || (() => ''), libroDe: libro || { config: () => null, puedeCambiar: () => false, cambiar: () => false } });
+    this.recientes = recientes || (() => []);
+    this.alColor = alColor || (() => {});
     this.escena = caja.querySelector('[data-vl-escena]');
     this.dice = caja.querySelector('[data-vl-dice]');
     this.bAnt = caja.querySelector('[data-vl-ant]');
@@ -34,6 +58,13 @@ export class VistaLibro {
     this.bTapa = caja.querySelector('[data-vl-tapa]');
     this.bLomo = caja.querySelector('[data-vl-lomo]');
     this.bSonido = caja.querySelector('[data-vl-sonido]');
+    this.bIr = caja.querySelector('[data-vl-ir]');
+    this.menuIr = caja.querySelector('[data-vl-ir-lista]');
+    this.bAviso = caja.querySelector('[data-vl-aviso]');
+    this.franja = caja.querySelector('[data-vl-aviso-franja]');
+    this.tira = caja.querySelector('[data-vl-botones]');
+    this.tiraLista = caja.querySelector('[data-vl-botones-lista]');
+    this.dAviso = caja.querySelector('[data-vl-aviso-d]');
     this.pref = leerPref();
     caja.tabIndex = -1;       // adonde va el foco si ningun boton sirve
     this.calma = matchMedia('(prefers-reduced-motion: reduce)');
@@ -42,10 +73,14 @@ export class VistaLibro {
     this.libro = null;
     this.hojas = [];
     this.vivas = new Map();   // pagina → su copia dibujada
+    this.acciones = new WeakMap();   // boton de una copia → lo que hace (datos ya limpios)
     this.pliego = 0;          // el pliego que se ve (por su primera pagina)
     this.n = 0;
     this.pesada = false;
-    this.salto = null;
+    this.viaje = null;        // { plan, k, parar, gen, actual, reloj }: mientras giran hojas una tras otra
+    this.pendiente = null;    // lo que se pidio mientras algo giraba: se hace al caer la hoja
+    this.nombreDestino = '';
+    this.pruebas = 0;
 
     caja.querySelector('[data-vl-cerrar]').addEventListener('click', () => this.cerrar());
     this.bAnt.addEventListener('click', () => this.paso(-1));
@@ -53,6 +88,12 @@ export class VistaLibro {
     this.bTapa.addEventListener('click', () => { this.pref.dura = !this.pref.dura; this.cambioDePref(true); });
     this.bLomo.addEventListener('click', () => { this.pref.lomo = !this.pref.lomo; this.cambioDePref(false); });
     this.bSonido.addEventListener('click', () => { this.pref.sonido = !this.pref.sonido; this.cambioDePref(false); });
+    this.bIr.addEventListener('click', () => (this.menuIr.hidden ? this.abrirIr() : this.cerrarIr(true)));
+    this.bIr.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' && this.menuIr.hidden) { e.preventDefault(); e.stopPropagation(); this.abrirIr(); } });
+    this.menuIr.addEventListener('keydown', (e) => this.teclaEnIr(e));
+    this.menuIr.parentElement.addEventListener('focusout', (e) => { if (!this.menuIr.hidden && !this.menuIr.parentElement.contains(e.relatedTarget)) this.cerrarIr(false); });
+    this.bAviso.addEventListener('click', () => this.abrirAviso());
+    this.prepararAviso();
     this.pintarPref();
 
     /* Un clic es un clic solo si el dedo no arrastro: despues de arrastrar una hoja tambien llega «click» */
@@ -63,19 +104,27 @@ export class VistaLibro {
     this.escena.addEventListener('click', (e) => {
       const a = this.abajo;
       this.abajo = null;
+      if (this.cierraLista) { this.cierraLista = false; return; }
       if (!this.fb || (a && Math.hypot(e.clientX - a.x, e.clientY - a.y) > 6)) return;
       if (this.irDesdeIndice(e)) return;
+      if (this.tocarBotonEn(e)) return;
       const r = this.libro.getBoundingClientRect();
       this.paso(e.clientX > r.left + r.width / 2 ? 1 : -1);
     });
     caja.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.cerrar(); return; }
+      /* Dentro de una ventana o de la lista «Ir a…» el teclado es de ellas: ni flechas ni Escape cierran el visor */
+      if (e.target.closest && e.target.closest('dialog, [data-vl-ir-lista]')) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (this.menuIr.hidden) this.cerrar(); else this.cerrarIr(true); return; }
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (d) { e.preventDefault(); this.paso(d); }
       else if (e.key === 'Home' && this.fb) { e.preventDefault(); this.irA(0); }
       else if (e.key === 'End' && this.fb) { e.preventDefault(); this.irA(this.n - 1); }
     });
   }
+
+  /* El libro del que se lee: su lomo, su aviso y su ancho */
+  config() { return this.libroDe.config(); }
+  avisoDelLibro() { const c = this.config(); return c ? limpiarAviso(c.aviso) : limpiarAviso({}); }
 
   /* ---- Abrir y cerrar ---- */
   abrir(desde) {
@@ -91,9 +140,18 @@ export class VistaLibro {
     const { signal } = this.ac;
     /* Al soltar un arrastre la libreria no avisa: se atiende aqui, donde se levanta el dedo */
     addEventListener('pointerup', () => { if (this.fb && this.fb.getState() === 'user_fold') this.aterrizar(true); }, { signal });
+    /* Un boton tocado con el raton no debe ademas girar la hoja si cae en una esquina: la libreria cree que se solto en el centro */
+    addEventListener('mouseup', (e) => this.alSoltar(e), { signal, capture: true });
+    /* Un dedo que se levanta sobre un boton: lo mismo, y el boton si funciona (la libreria cancela el toque y no llega «click») */
+    addEventListener('touchend', (e) => this.alSoltarDedo(e), { signal, capture: true });
+    /* El clic que cierra la lista «Ir a…» solo la cierra: no gira la hoja ni toca un boton que estuviera debajo */
+    addEventListener('pointerdown', (e) => {
+      this.cierraLista = !this.menuIr.hidden && !this.menuIr.parentElement.contains(e.target);
+      if (this.cierraLista) this.cerrarIr(false);
+    }, { signal, capture: true });
     addEventListener('resize', () => {
       clearTimeout(this.tResize);
-      this.tResize = setTimeout(() => { if (this.fb) this.armar(this.pliego).catch(() => {}); }, 180);
+      this.tResize = setTimeout(() => { if (this.fb) this.armar(this.viaje ? this.viaje.plan.pasos[this.viaje.plan.pasos.length - 1] : this.pliego).catch(() => {}); }, 180);
     }, { signal });
     this.caja.querySelector('[data-vl-cerrar]').focus();
     this.armar(0).catch(() => { this.dice.textContent = this.tx.vlFalla || ''; });
@@ -103,22 +161,34 @@ export class VistaLibro {
     this.gen++;
     clearTimeout(this.espera);
     clearTimeout(this.tResize);
+    clearTimeout(this.relojAviso);
+    this.frenarViaje();
+    this.pendiente = null;
+    this.cerrarIr(false);
+    if (this.dAviso.open) this.dAviso.close();
     if (this.ac) { this.ac.abort(); this.ac = null; }
     this.desmontar();
     (this.apartados || []).forEach((n) => { n.inert = false; });
     this.apartados = null;
     this.caja.hidden = true;
     this.escena.replaceChildren();
+    this.tira.hidden = true;
+    this.tiraLista.replaceChildren();
+    this.franja.classList.remove('tal-vl-aviso--visible');
+    this.franja.textContent = '';
     if (this.origen) this.origen.focus();
   }
 
   desmontar() {
+    this.frenarViaje();
+    /* Lo que se pidio para el libro de antes no se le hace al nuevo: saltaria sin que nadie lo pidiera */
+    this.pendiente = null;
+    this.nombreDestino = '';
     if (this.fb) { try { this.fb.destroy(); } catch (e) { /* ya no estaba */ } }
     this.fb = null;
     this.libro = null;
     this.hojas = [];
     this.vivas = new Map();
-    this.salto = null;
   }
 
   /* ---- Gustos ---- */
@@ -135,7 +205,7 @@ export class VistaLibro {
   cambioDePref(armarOtraVez) {
     guardarPref(this.pref);
     this.pintarPref();
-    if (armarOtraVez && this.fb) this.armar(this.pliego).catch(() => {});
+    if (armarOtraVez && this.fb) this.armar(this.viaje ? this.viaje.plan.pasos[this.viaje.plan.pasos.length - 1] : this.pliego).catch(() => {});
   }
 
   /* ---- Armar el libro ---- */
@@ -147,7 +217,7 @@ export class VistaLibro {
     this.desmontar();
     const n = this.mesa.paginas.length, p = this.mesa.px;
     this.n = n;
-    if (!n) { this.escena.replaceChildren(); this.dice.textContent = ''; this.bAnt.disabled = this.bSig.disabled = true; return; }
+    if (!n) { this.escena.replaceChildren(); this.dice.textContent = ''; this.bAnt.disabled = this.bSig.disabled = true; this.tira.hidden = true; return; }
 
     const blando = !this.pref.dura;
     /* El ancho de una pagina: lo que cabe a lo ancho (dos paginas) y a lo alto (la pagina y el carton que
@@ -157,12 +227,18 @@ export class VistaLibro {
     const over = Math.max(5, Math.round(pw * 0.018));
     const ph = Math.round(pw * p.H / p.W);
     this.pw = pw;
+    this.ph = ph;
     this.esc = pw / p.W;
+
+    /* El lomo y las tapas son del libro: lo que se eligio en la cinta (LomoLibro.js). Sin nada elegido, como siempre. */
+    const cfg = this.config();
+    const lomoE = estiloDeLomo(cfg ? cfg.lomo : null, this.titulo(), { autoPx: lomoDe(n, pw), pxPorMm: cfg && cfg.anchoMm > 0 ? pw / cfg.anchoMm : 1, ancho: pw });
 
     const libro = crear('div', 'flip');
     libro.style.width = pw * 2 + 'px';
     libro.style.setProperty('--over', over + 'px');
-    libro.style.setProperty('--lomo', lomoDe(n, pw) + 'px');
+    libro.style.setProperty('--lomo', lomoE.grosorPx + 'px');
+    for (const [k, v] of [['--board-front', lomoE.delante], ['--board-back', lomoE.detras], ['--lomo-color', lomoE.color], ['--lomo-tinta', lomoE.tinta]]) if (v) libro.style.setProperty(k, v);
     libro.dataset.tipo = blando ? 'blando' : 'duro';
     libro.setAttribute('role', 'group');
     libro.setAttribute('aria-label', this.titulo() || this.tx.verLibro);
@@ -176,9 +252,7 @@ export class VistaLibro {
     }
     const lomo = crear('div', 'flip__lomo');
     lomo.setAttribute('aria-hidden', 'true');
-    const rotulo = crear('span', 'flip__lomo-titulo');
-    rotulo.textContent = this.titulo();
-    lomo.append(rotulo);
+    lomo.append(crear('span', 'flip__lomo-titulo', lomoE.texto));
     const escenario = crear('div', 'flip__stage');
 
     for (let i = 0; i < n; i++) {
@@ -219,15 +293,21 @@ export class VistaLibro {
     if (blando) for (const i of [0, n - 1]) { try { fb.getPage(i).setDensity('soft'); } catch (e) { /* se queda como esta */ } }
     /* Un libro ya destruido (cambio de tamaño, cierre) puede avisar tarde: no se le hace caso */
     fb.on('init', () => { if (this.fb === fb) this.asentar(fb.getCurrentPageIndex(), 0); });
-    fb.on('flip', () => { if (this.fb === fb) { this.asentar(fb.getCurrentPageIndex(), 250); this.golpe(); } });
+    fb.on('flip', () => { if (this.fb === fb && !this.saltando) { this.asentar(fb.getCurrentPageIndex(), 250); this.golpe(); } });
     let antes = 'read';
     fb.on('changeState', (e) => {
       if (this.fb !== fb) return;
       if (e.data === 'flipping') this.aterrizar(false);
-      if (e.data === 'read' && antes !== 'read' && antes !== 'fold_corner') this.asentar(fb.getCurrentPageIndex(), 250);
+      if (e.data === 'read' && antes !== 'read' && antes !== 'fold_corner') {
+        this.asentar(fb.getCurrentPageIndex(), 250);
+        /* La hoja cayo: en un viaje sale la siguiente (en el cuadro que viene: la libreria aun cierra esta) */
+        if (this.viaje) { const v = this.viaje; requestAnimationFrame(() => { if (this.viaje === v) this.siguienteHoja(); }); }
+        else requestAnimationFrame(() => { if (this.fb === fb) this.alReposo(); });
+      }
       antes = e.data;
     });
     this.mostrar(en2, 0);
+    this.pintarBotones();
   }
 
   /* ---- Las copias vivas ---- */
@@ -240,22 +320,36 @@ export class VistaLibro {
     }
     for (const i of quiere) {
       if (this.vivas.has(i) || !this.hojas[i] || !this.mesa.paginas[i]) continue;
-      const c = this.mesa.clon(this.mesa.paginas[i], this.esc);
+      const c = this.nuevaCopia(i);
       this.hojas[i].append(c);
       this.vivas.set(i, c);
     }
   }
 
-  /* Llega una imagen o cambia lo medido: se vuelve a dibujar lo que se ve, sin armar el libro otra vez */
+  /* La copia de la hoja `i`, del tamaño EXACTO de su hoja del libro: la hoja mide px enteros y la copia, con la escala, una
+     fraccion menos; sin esto se veria una raya del papel de la hoja en el borde de abajo de una pagina oscura. */
+  nuevaCopia(i) {
+    const c = this.mesa.clon(this.mesa.paginas[i], this.esc, { acciones: this.acciones });
+    c.style.width = `${this.pw}px`;
+    c.style.height = `${this.ph}px`;
+    return c;
+  }
+
+  /* Llega una imagen o cambia lo medido: se vuelve a dibujar lo que se ve, sin armar el libro otra vez. Cada copia se
+     cambia por la nueva de una vez (sin pasar por la hoja vacia), asi no parpadea ni siquiera con una hoja girando. */
   refrescar() {
     if (this.caja.hidden || !this.fb || !this.mesa) return;
     clearTimeout(this.espera);
     this.espera = setTimeout(() => {
       if (this.caja.hidden || !this.fb || !this.mesa) return;
       if (this.mesa.paginas.length !== this.n) { this.armar(this.pliego).catch(() => {}); return; }
-      for (const c of this.vivas.values()) c.remove();
-      this.vivas = new Map();
-      this.llenar([this.pliego]);
+      for (const [i, viejo] of this.vivas) {
+        if (!this.mesa.paginas[i]) { viejo.remove(); this.vivas.delete(i); continue; }
+        const nuevo = this.nuevaCopia(i);
+        viejo.replaceWith(nuevo);
+        this.vivas.set(i, nuevo);
+      }
+      this.pintarBotones();
     }, 120);
   }
 
@@ -266,7 +360,10 @@ export class VistaLibro {
   /* ---- Pasar ---- */
   paso(d) {
     const fb = this.fb;
-    if (!fb || !this.quieto()) return;
+    if (!fb) return;
+    /* Si giran muchas hojas, la que se pide se hace cuando caiga la de ahora (y las que faltaban ya no giran) */
+    if (this.viaje) { this.pendiente = () => this.paso(d); this.viaje.parar = true; return; }
+    if (!this.quieto()) return;
     const dest = pliegoVecino(this.pliego, this.n, d);
     if (dest == null) return;
     this.llenar([this.pliego, dest]);
@@ -274,16 +371,81 @@ export class VistaLibro {
     if (d > 0) fb.flipNext('bottom'); else fb.flipPrev('bottom');
   }
 
-  irA(p) {
+  /* Ir a la pagina `p` (desde 0). `nombre`: como se llama el sitio, para decirlo al llegar. */
+  irA(p, nombre = '') {
     const fb = this.fb;
-    if (!fb || !this.quieto()) return;
-    const dest = pliegoDe(p, this.n);
-    if (dest === this.pliego) return;
-    this.llenar([this.pliego, dest]);
-    this.salto = dest;
-    this.pesada = false;
-    fb.getSettings().flippingTime = this.calma.matches ? CALMA : LIGERA;
-    fb.flip(dest);
+    if (!fb) return;
+    /* Pedido con algo girando: el ultimo pedido manda. La hoja de ahora termina de caer; las demas no giran. */
+    if (this.viaje || !this.quieto()) {
+      this.pendiente = () => this.irA(p, nombre);
+      if (this.viaje) this.viaje.parar = true;
+      return;
+    }
+    const plan = planDeViaje(this.pliego, pliegoDe(p, this.n), this.n, { tope: this.calma.matches ? 1 : TOPE_VIAJE });
+    if (!plan.pasos.length) { if (nombre) this.decirDestino(nombre); return; }
+    this.nombreDestino = nombre;
+    this.viaje = { plan, k: 0, parar: false, gen: this.gen, actual: null, reloj: setTimeout(() => this.terminarViaje(true), plan.pasos.length * 1500 + 2500) };
+    /* Lo que queda lejos se salta sin girar (en silencio: el viaje ya esta en marcha): las hojas que giran son las ultimas, ya con su pagina dibujada */
+    if (plan.salto != null) this.saltarA(plan.salto);
+    this.siguienteHoja();
+  }
+
+  /* El libro pasa de golpe al pliego `i`, sin girar */
+  saltarA(i) {
+    this.llenar([i]);
+    this.saltando = true;
+    try { this.fb.turnToPage(i); } catch (e) { /* ya estaba */ }
+    this.saltando = false;
+    this.mostrar(i, 0);
+  }
+
+  /* Gira la hoja que sigue del viaje. Si ya no hay (o se pidio otra cosa), el viaje termina. */
+  siguienteHoja() {
+    const v = this.viaje, fb = this.fb;
+    if (!v || !fb) return;
+    if (v.parar || v.gen !== this.gen || v.k >= v.plan.pasos.length) { this.terminarViaje(false); return; }
+    const dest = v.plan.pasos[v.k++];
+    v.actual = dest;
+    this.llenar([dest]);
+    this.pesar(v.plan.dir);
+    fb.getSettings().flippingTime = this.calma.matches ? CALMA : this.pesada ? RAPIDA_DURA : RAPIDA;
+    if (v.plan.dir > 0) fb.flipNext('bottom'); else fb.flipPrev('bottom');
+    /* Si la libreria no la giro (no habia a donde), el viaje no se queda esperando */
+    if (fb.getState() !== 'flipping') this.terminarViaje(false);
+  }
+
+  /* El viaje acabo (o se corto). Con `forzar`, algo no llego: el libro se pone en el destino de una vez. */
+  terminarViaje(forzar) {
+    const v = this.viaje;
+    if (!v) return;
+    this.frenarViaje();
+    const fb = this.fb;
+    if (fb && forzar) {
+      const fin = v.plan.pasos[v.plan.pasos.length - 1];
+      /* Si una hoja sigue girando (la pestaña estuvo oculta y el reloj de la libreria no corrio), primero se termina: saltar con
+         la hoja en el aire la deja a medias */
+      try { fb.getRender().finishAnimation(); } catch (e) { /* no habia nada girando */ }
+      try { this.saltarA(fin); } catch (e) { /* queda donde esta */ }
+    }
+    if (fb) {
+      fb.getSettings().flippingTime = this.calma.matches ? CALMA : LIGERA;
+      this.asentar(fb.getCurrentPageIndex(), 0);
+    }
+    this.alReposo();
+  }
+
+  /* Deja de girar: sin reloj y sin viaje (lo que giraba termina por si solo) */
+  frenarViaje() {
+    const v = this.viaje;
+    if (!v) return;
+    clearTimeout(v.reloj);
+    this.viaje = null;
+  }
+
+  /* El libro esta quieto: lo que se pidio mientras giraba se hace ahora */
+  alReposo() {
+    const f = this.pendiente;
+    if (f) { this.pendiente = null; f(); }
   }
 
   /* Una fila del contenido lleva a su pagina. Las copias son inertes: la fila se busca por donde cayo el clic. */
@@ -295,7 +457,8 @@ export class VistaLibro {
     });
     const n = fila && numeros[(fila.getAttribute('href') || '').slice(1)];
     if (!Number.isInteger(n) || n < 1) return false;
-    this.irA(n - 1);
+    const texto = fila.querySelector('.indice__texto');
+    this.irA(n - 1, texto ? texto.textContent.trim() : '');
     return true;
   }
 
@@ -317,7 +480,7 @@ export class VistaLibro {
   }
 
   /* Cuando la hoja echa a volar el libro se prepara para donde va a caer. Si venia del dedo ya lleva medio
-     camino hecho, se posa antes, y solo pasa si el pliegue cruzo el lomo. */
+     camino hecho, se posa antes, y solo pasa si el pliegue cruzo el lomo. En un viaje el destino ya se sabe. */
   aterrizar(arrastrada) {
     const fb = this.fb;
     if (!fb) return;
@@ -325,13 +488,12 @@ export class VistaLibro {
     const queda = arrastrada ? total * 0.5 : total;
     const c = fb.getFlipController().calc;
     let destino = null;
-    if (this.salto != null) destino = this.salto;
+    if (this.viaje && this.viaje.actual != null) destino = this.viaje.actual;
     else if (c && (!arrastrada || c.getPosition().x <= 0)) {
       const delante = c.getDirection() === 0;
       const i = fb.getCurrentPageIndex();
       destino = pliegoDe(delante ? (i === 0 ? 1 : i + 2) : i - 1, this.n);
     }
-    this.salto = null;
     if (destino != null) this.mostrar(destino, queda * 0.95);
     this.sonar(this.pesada);
   }
@@ -341,6 +503,7 @@ export class VistaLibro {
     const dest = pliegoDe(i, this.n);
     this.mostrar(dest, ms);
     this.llenar([dest]);
+    if (!this.viaje) this.pintarBotones();
   }
 
   /* Pone el libro en el pliego `i`: camara, cartones, canto, lomo, flechas y contador. Se llama cuando la hoja
@@ -359,12 +522,24 @@ export class VistaLibro {
     this.libro.style.setProperty('--stack-l', px(v[0] === 0 ? 0 : v[0]));
     this.libro.style.setProperty('--stack-r', px(n - 1 - v[v.length - 1]));
     this.puestosLosBotones(v[0] === 0, v[v.length - 1] >= n - 1);
+    /* Mientras giran muchas hojas no se dice nada: un lector de pantalla no tiene que leer cada una. Se dice al llegar. */
+    if (this.viaje) return;
     const num = v.map((x) => x + 1), total = String(n);
-    const dicho = num.length > 1
+    let dicho = num.length > 1
       ? this.tx.pliegoDos.replace('{a}', String(num[0])).replace('{b}', String(num[1])).replace('{total}', total)
       : this.tx.pagDe.replace('{n}', String(num[0])).replace('{total}', total);
+    if (this.nombreDestino) { dicho = this.tx.vlIrDicho.replace('{texto}', this.nombreDestino).replace('{resto}', dicho); this.nombreDestino = ''; }
     /* Un lector de pantalla repite lo que se reescribe aunque sea igual */
     if (this.dice.textContent !== dicho) this.dice.textContent = dicho;
+  }
+
+  /* Ya estaba donde se pedia: se dice igual a donde */
+  decirDestino(nombre) {
+    const v = paginasDe(this.pliego, this.n).map((x) => x + 1), total = String(this.n);
+    const resto = v.length > 1
+      ? this.tx.pliegoDos.replace('{a}', String(v[0])).replace('{b}', String(v[1])).replace('{total}', total)
+      : this.tx.pagDe.replace('{n}', String(v[0])).replace('{total}', total);
+    this.dice.textContent = this.tx.vlIrDicho.replace('{texto}', nombre).replace('{resto}', resto);
   }
 
   /* Un boton desactivado con el foco lo suelta, y el teclado deja de llegar al visor (Inicio, flechas, Esc).
@@ -388,13 +563,272 @@ export class VistaLibro {
     this.libro.classList.add('is-thud');
   }
 
+  /* El sonido de la hoja. En un viaje, una de cada tres y mas bajito: un frufru, no una rafaga. */
   sonar(pesada) {
     if (!this.pref.sonido || this.calma.matches) return;
+    const v = this.viaje;
+    if (v && !pesada && (v.k - 1) % 3 !== 0) return;
     try {
       const a = new Audio(import.meta.env.BASE_URL + 'sounds/' + (pesada ? 'cover.mp3' : 'page-flip.mp3'));
-      a.volume = pesada ? 0.7 : 0.5;
+      a.volume = v ? 0.3 : pesada ? 0.7 : 0.5;
       const r = a.play();
       if (r && r.catch) r.catch(() => { /* el navegador no dejo sonar: no pasa nada */ });
     } catch (e) { /* sin audio */ }
+  }
+
+  /* ---- «Ir a…» ---- */
+  abrirIr() {
+    if (!this.fb || !this.mesa) return;
+    const lista = this.mesa.destinos();
+    const ops = lista.map((d) => {
+      const b = crear('button', `tal-vl-ir__op${d.nivel === 2 ? ' tal-vl-ir__op--2' : ''}`);
+      b.type = 'button';
+      b.setAttribute('role', 'menuitem');
+      b.tabIndex = -1;
+      b.append(crear('span', 'tal-vl-ir__texto', d.texto), crear('span', 'tal-vl-ir__pag', String(d.pagina)));
+      b.addEventListener('click', () => { this.cerrarIr(true); this.irA(d.pagina - 1, d.texto); });
+      return b;
+    });
+    this.menuIr.replaceChildren(...(ops.length ? ops : [crear('p', 'tal-vl-ir__nada', this.tx.vlIrNada)]));
+    this.menuIr.hidden = false;
+    this.bIr.setAttribute('aria-expanded', 'true');
+    /* El foco va a donde se esta: la ultima parte que ya empezo */
+    const aqui = this.pliego + 1;
+    let k = 0;
+    lista.forEach((d, i) => { if (d.pagina <= aqui) k = i; });
+    if (ops[k]) { ops[k].tabIndex = 0; ops[k].focus(); ops[k].scrollIntoView({ block: 'nearest' }); }
+  }
+
+  cerrarIr(devolverFoco) {
+    if (this.menuIr.hidden) return;
+    this.menuIr.hidden = true;
+    this.bIr.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) this.bIr.focus();
+  }
+
+  teclaEnIr(e) {
+    const ops = [...this.menuIr.querySelectorAll('.tal-vl-ir__op')];
+    const hoy = ops.indexOf(document.activeElement);
+    const ir = (k) => { const b = ops[Math.max(0, Math.min(ops.length - 1, k))]; if (b) { ops.forEach((o) => { o.tabIndex = -1; }); b.tabIndex = 0; b.focus(); b.scrollIntoView({ block: 'nearest' }); } };
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.cerrarIr(true); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); ir(hoy + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); ir(hoy - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); e.stopPropagation(); ir(0); }
+    else if (e.key === 'End') { e.preventDefault(); e.stopPropagation(); ir(ops.length - 1); }
+  }
+
+  /* ---- Los botones del libro ---- */
+  /* Los botones de las hojas que se ven: cada uno con la pieza de su copia y lo que hace */
+  botonesVisibles() {
+    const lista = [];
+    for (const pg of paginasDe(this.pliego, this.n)) {
+      const c = this.vivas.get(pg);
+      if (!c) continue;
+      for (const el of c.querySelectorAll('.boton')) { const d = this.acciones.get(el); if (d) lista.push({ el, d }); }
+    }
+    return lista;
+  }
+
+  /* Lo que se ve de un boton: su caja, recortada a la de su hoja (la copia recorta lo que sale de ella: un boton fuera de la hoja no se ve) */
+  zonaDelBoton(el) {
+    const r = el.getBoundingClientRect(), hoja = el.closest('.clon');
+    if (!hoja) return r;
+    const h = hoja.getBoundingClientRect();
+    const left = Math.max(r.left, h.left), top = Math.max(r.top, h.top), right = Math.min(r.right, h.right), bottom = Math.min(r.bottom, h.bottom);
+    return right > left && bottom > top ? { left, top, right, bottom, width: right - left, height: bottom - top } : null;
+  }
+
+  /* El boton que esta bajo el clic (el mas chico si hay varios encimados). Una copia es inerte: se busca por donde cayo. */
+  botonEn(e) {
+    let mejor = null, area = Infinity;
+    for (const b of this.botonesVisibles()) {
+      const r = this.zonaDelBoton(b.el);
+      if (!r || !(r.width > 0 && r.height > 0) || e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) continue;
+      if (r.width * r.height < area) { mejor = b; area = r.width * r.height; }
+    }
+    return mejor;
+  }
+
+  tocarBotonEn(e) {
+    if (!this.quieto()) return false;
+    const b = this.botonEn(e);
+    if (!b) return false;
+    this.tocarBoton(b.d);
+    return true;
+  }
+
+  /* Se suelta el raton sobre un boton: se le dice a la libreria que fue en el centro, donde un clic no gira nada */
+  alSoltar(e) {
+    if (this.redirigiendo || !e.isTrusted || e.button !== 0 || !this.fb || !this.libro || this.pref.lomo || !this.quieto()) return;
+    if (!this.escena.contains(e.target) || !this.botonEn(e)) return;
+    e.stopImmediatePropagation();
+    const r = this.libro.getBoundingClientRect();
+    this.redirigiendo = true;
+    try { window.dispatchEvent(new MouseEvent('mouseup', { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0, bubbles: true })); } finally { this.redirigiendo = false; }
+  }
+
+  /* Un toque con el dedo: la libreria cancela el toque y, si lo hace en una esquina, le gira la hoja. Si el dedo cae (sin arrastrar)
+     sobre un boton, la libreria no se entera: se le borra el toque que tenia empezado y el boton hace lo suyo. */
+  alSoltarDedo(e) {
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t || !e.isTrusted || !this.fb || !this.libro || this.pref.lomo || !this.quieto() || !this.escena.contains(e.target)) return;
+    const a = this.abajo;
+    if (this.cierraLista || (a && Math.hypot(t.clientX - a.x, t.clientY - a.y) > 6)) return;
+    const b = this.botonEn({ clientX: t.clientX, clientY: t.clientY });
+    if (!b) return;
+    e.stopImmediatePropagation();
+    if (e.cancelable) e.preventDefault();
+    this.abajo = null;
+    try { const ui = this.fb.getUI(); if (ui) ui.touchPoint = null; this.fb.isUserTouch = false; } catch (er) { /* sin estado que borrar */ }
+    this.tocarBoton(b.d);
+  }
+
+  /* Lo que hace un boton: abre su enlace (solo https) o copia su texto. Y lo dice. */
+  tocarBoton(d) {
+    if (d.accion === 'copiar' && d.copia) this.copiar(d.copia);
+    else if (d.accion === 'enlace' && enlaceDeBoton(d.enlace)) this.abrirEnlace(enlaceDeBoton(d.enlace));
+    else this.avisar('falla', this.tx.vlBotonVacio);
+  }
+
+  async copiar(texto) {
+    let bien = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(texto); bien = true; }
+    } catch (e) { bien = false; }
+    this.avisar(bien ? 'copiado' : 'falla', '', undefined, bien ? textoCorto(texto) : '');
+  }
+
+  /* Un enlace de verdad, en otra pestaña y sin darle a la pagina de origen (noopener) */
+  abrirEnlace(url) {
+    /* Dos aperturas casi juntas (un toque que llega dos veces, un dedo nervioso) no abren dos pestañas */
+    const ahora = performance.now();
+    if (this.ultimoEnlace != null && ahora - this.ultimoEnlace < 600) return;
+    this.ultimoEnlace = ahora;
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.hidden = true;
+    this.caja.append(a);
+    a.click();
+    a.remove();
+    this.avisar('enlace');
+  }
+
+  /* Debajo del libro, los botones de las hojas que se ven, como botones de verdad: el teclado los alcanza */
+  pintarBotones() {
+    if (!this.fb) { this.tira.hidden = true; return; }
+    const lista = this.botonesVisibles();
+    this.tira.hidden = lista.length === 0;
+    const tx = this.tx;
+    this.tiraLista.replaceChildren(...lista.map(({ d }) => {
+      const b = crear('button', 'tal-btn', d.texto || tx.vlBotonSinTexto);
+      b.type = 'button';
+      const nombre = `${d.texto || tx.vlBotonSinTexto}: ${d.accion === 'copiar' ? `${tx.vlBotonCopia}${d.copia ? ` «${textoCorto(d.copia)}»` : ''}` : tx.vlBotonEnlace}`;
+      b.title = nombre;
+      b.setAttribute('aria-label', nombre);
+      b.addEventListener('click', () => this.tocarBoton(d));
+      return b;
+    }));
+  }
+
+  /* ---- El aviso ---- */
+  /* La franja que dice que paso. Es una zona viva (role="status"): se vacia y se vuelve a llenar para que se lea tambien
+     cuando repite lo mismo. `cfg` solo se pasa al probar (lo que aun no se guardo). */
+  avisar(caso, texto, cfg, detalle = '') {
+    const a = cfg || this.avisoDelLibro(), f = this.franja, tx = this.tx;
+    const base = texto || textoDeAviso(a, caso, { copiado: tx.avisoCopiado, enlace: tx.avisoEnlace, falla: tx.avisoFalla });
+    /* Lo que se copio, a la vista: un boton pudo traer otro texto que el que dice su rotulo (solo texto, nunca HTML) */
+    const dicho = detalle ? `${base} · «${detalle}»` : base;
+    this.vestirAviso(f, a);
+    clearTimeout(this.relojAviso);
+    f.classList.remove('tal-vl-aviso--visible');
+    f.textContent = '';
+    requestAnimationFrame(() => {
+      f.textContent = dicho;
+      f.classList.add('tal-vl-aviso--visible');
+    });
+    this.relojAviso = setTimeout(() => {
+      f.classList.remove('tal-vl-aviso--visible');
+      this.relojAviso = setTimeout(() => { f.textContent = ''; }, FRANJA_SALE_MS);
+    }, a.segundos * 1000);
+  }
+
+  /* Los colores y el lugar de un aviso (franja o muestra): '' es el de siempre */
+  vestirAviso(nodo, a) {
+    const c = colorDeAviso(a);
+    nodo.style.background = c.fondo;
+    nodo.style.color = c.tinta;
+    nodo.style.borderColor = c.fondo;
+    if (nodo === this.franja) {
+      nodo.classList.toggle('tal-vl-aviso--arriba', a.lugar === 'arriba');
+      nodo.classList.toggle('tal-vl-aviso--abajo', a.lugar !== 'arriba');
+    }
+  }
+
+  /* La ventana del aviso: sus campos dibujan una muestra al momento; solo «Listo» lo guarda en el libro */
+  prepararAviso() {
+    const d = this.dAviso, tx = this.tx;
+    this.cAviso = {};
+    for (const c of d.querySelectorAll('[data-vl-aviso-c]')) this.cAviso[c.dataset.vlAvisoC] = c;
+    this.lAviso = [...d.querySelectorAll('[data-vl-aviso-lugar]')];
+    this.sAviso = d.querySelector('[data-vl-aviso-segundos]');
+    this.muestraAviso = d.querySelector('[data-vl-aviso-muestra]');
+    const ps = (etiqueta, clave) => {
+      const s = new SelectorColor({ tx, etiqueta, valor: '', recientes: this.recientes, alCambiar: (c) => { this.alColor(c); this.borrador[clave] = c; this.pintarMuestraAviso(); } });
+      const l = crear('div', 'tal-colores__uno');
+      l.append(crear('span', '', etiqueta), s.nodo);
+      return [l, s];
+    };
+    const [lf, sf] = ps(tx.avisoFondo, 'fondo'), [lt, st] = ps(tx.avisoTinta, 'tinta');
+    this.colAviso = { fondo: sf, tinta: st };
+    d.querySelector('[data-vl-aviso-colores]').replaceChildren(lf, lt);
+    this.borrador = limpiarAviso({});
+    const leer = () => {
+      for (const k of AVISO_CASOS) this.borrador[k] = this.cAviso[k].value;
+      this.borrador.lugar = (this.lAviso.find((r) => r.checked) || { value: 'abajo' }).value;
+      this.borrador.segundos = this.sAviso.value === '' ? undefined : Number(this.sAviso.value);
+      this.pintarMuestraAviso();
+    };
+    for (const c of Object.values(this.cAviso)) c.addEventListener('input', leer);
+    for (const r of this.lAviso) r.addEventListener('change', leer);
+    this.sAviso.addEventListener('input', leer);
+    d.querySelector('[data-vl-aviso-probar]').addEventListener('click', () => {
+      const casos = AVISO_CASOS;
+      this.avisar(casos[this.pruebas++ % casos.length], '', limpiarAviso(this.borrador));
+    });
+    d.querySelector('[data-vl-aviso-cancelar]').addEventListener('click', () => d.close());
+    d.querySelector('[data-vl-aviso-listo]').addEventListener('click', () => {
+      if (this.libroDe.puedeCambiar()) this.libroDe.cambiar({ aviso: limpiarAviso(this.borrador) });
+      d.close();
+    });
+    /* Escape cierra solo la ventana: el visor no se entera */
+    d.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.stopPropagation(); });
+  }
+
+  abrirAviso() {
+    if (this.caja.hidden) return;
+    const d = this.dAviso, a = this.avisoDelLibro(), puede = this.libroDe.puedeCambiar();
+    this.borrador = { ...a };
+    for (const k of AVISO_CASOS) { this.cAviso[k].value = a[k]; this.cAviso[k].disabled = !puede; }
+    for (const r of this.lAviso) { r.checked = r.value === a.lugar; r.disabled = !puede; }
+    this.sAviso.value = a.segundos;
+    this.sAviso.disabled = !puede;
+    this.colAviso.fondo.poner(a.fondo);
+    this.colAviso.tinta.poner(a.tinta);
+    this.colAviso.fondo.boton.disabled = this.colAviso.tinta.boton.disabled = !puede;
+    d.querySelector('[data-vl-aviso-solo-leer]').hidden = puede;
+    d.querySelector('[data-vl-aviso-listo]').disabled = !puede;
+    this.pruebas = 0;
+    this.pintarMuestraAviso();
+    d.showModal();
+  }
+
+  /* La muestra de la ventana: la franja tal como queda con lo que se ha puesto */
+  pintarMuestraAviso() {
+    const a = limpiarAviso(this.borrador), m = this.muestraAviso, tx = this.tx;
+    const franja = crear('div', 'tal-vl-aviso tal-vl-aviso--visible', textoDeAviso(a, 'copiado', { copiado: tx.avisoCopiado }));
+    this.vestirAviso(franja, a);
+    m.replaceChildren(franja);
   }
 }

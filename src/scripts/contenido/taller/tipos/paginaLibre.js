@@ -7,6 +7,7 @@ import { limpiarObjetos, OBJETOS } from './objetos.js';
 import { colorValido } from '../marcas.js';
 import { PAPEL_BASE } from '../colores.js';
 import { esAncla, RE_ANCLA_PAGINA, textoIndice, TITULO_INDICE_MAX } from '../IndiceLibro.js';
+import { PAGINAS_MAX } from '../Pieza.js';
 
 export const tipo = 'paginaLibre';
 export const nodos = ['paginaLibre'];
@@ -23,6 +24,12 @@ export function datos(_, a) {
     nombre: texto(a.nombre, 120),
     fondo: rutaAlmacen(a.fondo, ['webp', 'jpg', 'png']) && a.fondo.startsWith('taller/') ? a.fondo : '',
     pdf: rutaAlmacen(a.pdf, ['pdf']) && a.pdf.startsWith('taller/') ? a.pdf : '',
+    /* Que pagina era en su PDF (0 = no se sabe: OrigenPdf la saca del nombre del fondo) y si quedo de un PDF anterior.
+       Solo la mesa los muestra: el PDF del libro no los dibuja. */
+    pdfPagina: Number.isInteger(a.pdfPagina) && a.pdfPagina >= 1 && a.pdfPagina <= PAGINAS_MAX ? a.pdfPagina : 0,
+    /* Cuantas paginas tenia ese PDF al subirlo (0 = no se sabe): el cambio de PDF no trae de vuelta lo que se borro del final */
+    pdfTotal: Number.isInteger(a.pdfTotal) && a.pdfTotal >= 1 && a.pdfTotal <= PAGINAS_MAX ? a.pdfTotal : 0,
+    sobra: a.sobra === true,
     anchoMm: positivo(a.anchoMm), altoMm: positivo(a.altoMm),
     ajuste: a.ajuste === 'cubrir' ? 'cubrir' : 'contener',
     texto: texto(a.texto, 20000), alt: texto(a.alt, 600),

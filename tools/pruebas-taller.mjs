@@ -28,6 +28,7 @@ export const CASOS = {
   },
   paginaLibre: {
     bueno: [{ type: 'paginaLibre', attrs: { fondo: 'taller/o/p/2.webp', titulo: 'Portada del capítulo', ancla: 'p-00ff00aa', objetos: [] } },
+      { type: 'paginaLibre', attrs: { fondo: 'taller/o/pdf/p0003-aa.webp', pdf: 'taller/o/pdf/original-aa.pdf', pdfPagina: 3, sobra: true, objetos: [] } },
       { type: 'paginaLibre', attrs: { fondo: 'taller/o/p/1.webp', objetos: [
       { id: 'o-abcd1234', tipo: 'imagen', ruta: 'taller/o/i.webp', x: 10, y: 10, w: 40, h: 30, rot: 12, crop: { l: .1, t: 0, r: .2, b: 0 } },
       { id: 'o-abcd1235', tipo: 'texto', texto: 'Hola', x: 5, y: 5, w: 50, h: 10, tam: '14pt', color: '#123456' },
@@ -35,6 +36,7 @@ export const CASOS = {
       { id: 'o-abcd1237', tipo: 'boton', texto: 'Copiar', accion: 'copiar', copia: 'Hola', x: 5, y: 80, w: 40, h: 7, fondo: '#123456', aspecto: { estilo: 'contorno', borde: 3, sombra: { tipo: 'suave' } } }
     ] } }],
     hostil: [{ type: 'paginaLibre', attrs: { titulo: { x: 1 }, ancla: 'p-x" onload="y', objetos: [] } },
+      { type: 'paginaLibre', attrs: { pdfPagina: { x: 1 }, sobra: '<script>', pdf: 'https://malo.com/x.pdf', objetos: [] } },
       { type: 'paginaLibre', attrs: { titulo: '<script>'.repeat(40), ancla: 'javascript:x' } },
       { type: 'paginaLibre', attrs: { fondo: 'https://malo.com/x.png', objetos: [
       { tipo: 'imagen', ruta: 'javascript:x', x: 'a', crop: { l: 9 } }, { tipo: 'script', texto: '<x>' },
