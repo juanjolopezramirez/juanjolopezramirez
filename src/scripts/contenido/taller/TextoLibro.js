@@ -12,6 +12,7 @@ import { POR_NODO } from './tipos/indice.js';
 import { colorValido, limpiarMarcas } from './marcas.js';
 import { el, txt } from './tipos/ayuda.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
+import { palabraLimpia, rolLimpio } from './IndiceLibro.js';
 
 export const TOPE_BYTES = 3 * 1000 * 1000;
 export const TOPE_NODOS = 50000;
@@ -37,9 +38,10 @@ function limpiarNodo(n, cuenta, prof, enColumnas) {
   const o = objeto(n);
   cuenta.nodos++;
   const tipo = POR_NODO.get(o.type);
-  if (!tipo || prof > PROFUNDIDAD_MAX || (o.type === 'columnas' && enColumnas)) {
+  if (!tipo || prof > PROFUNDIDAD_MAX || (o.type === 'columnas' && enColumnas) || (tipo.soloArriba && enColumnas)) {
     cuenta.descartados++;
-    const t = soloTexto(o);
+    /* Una franja de subetapa guarda su nombre en un atributo: dentro de columnas queda como texto */
+    const t = soloTexto(o) || (tipo && tipo.soloArriba ? textoLibro(objeto(o.attrs).texto) : '');
     return t ? [{ type: 'paragraph', attrs: { capital: false, alinear: '' }, content: [{ type: 'text', text: t }] }] : [];
   }
   const attrs = tipo.datos(o.type, objeto(o.attrs));
@@ -83,16 +85,20 @@ function enLinea(lista, cuenta) {
   return salida;
 }
 
-/* LO PROPIO DE UN CAPITULO, ademas de su texto y su papel: el nombre puesto a mano, si sale en el contenido y si
-   lleva numero. Un solo lugar los lee y los escribe: asi ninguna copia (guardar, unir, bajar, recargar) pierde uno.
-   Se guardan solo cuando no son los de siempre. */
+/* LO PROPIO DE UN CAPITULO, ademas de su texto y su color de papel: el nombre puesto a mano, si sale en el contenido, si
+   lleva numero, su papel en el libro (`rol`: prefacio, introduccion… o `custom` con `rolTexto`) y su palabra propia
+   (`palabra`: «Etapa»). Un solo lugar los lee y los escribe: asi ninguna copia (guardar, unir, bajar, recargar) pierde
+   uno. Se guardan solo cuando no son los de siempre. */
 export const propiosDe = (contenido) => {
   const x = objeto(contenido);
-  return { titulo: tituloLimpio(x.titulo), enIndice: x.enIndice !== false, numerar: x.numerar !== false };
+  return { titulo: tituloLimpio(x.titulo), enIndice: x.enIndice !== false, numerar: x.numerar !== false, ...rolLimpio(x.rol, x.rolTexto), palabra: palabraLimpia(x.palabra) };
 };
 export const propiosAGuardar = (p) => {
-  const x = objeto(p), titulo = tituloLimpio(x.titulo);
-  return { ...(titulo ? { titulo } : {}), ...(x.enIndice === false ? { enIndice: false } : {}), ...(x.numerar === false ? { numerar: false } : {}) };
+  const x = objeto(p), titulo = tituloLimpio(x.titulo), { rol, rolTexto } = rolLimpio(x.rol, x.rolTexto), palabra = palabraLimpia(x.palabra);
+  return {
+    ...(titulo ? { titulo } : {}), ...(x.enIndice === false ? { enIndice: false } : {}), ...(x.numerar === false ? { numerar: false } : {}),
+    ...(rol ? { rol } : {}), ...(rolTexto ? { rolTexto } : {}), ...(palabra ? { palabra } : {})
+  };
 };
 
 /* { contenido: { version, papel?, doc }, letras, nodos, descartados }. `papel` es el color del capitulo. */

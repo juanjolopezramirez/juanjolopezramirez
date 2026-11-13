@@ -12,9 +12,11 @@ import { ConfigPagina, colorDeLetra } from '../../../../contenido/taller/ConfigP
 import { familiaCss } from '../../../../contenido/taller/fuentes.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
-import { debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, rotulosDe } from '../../../../contenido/taller/IndiceLibro.js';
+import { AL_FINAL, debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, palabraLimpia, PALABRA_MAX, ROLES, rotulosDe } from '../../../../contenido/taller/IndiceLibro.js';
+import { contextosDeCabeza, textoDeCabeza } from '../../../../contenido/taller/CabezaLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
+import { datosDeBoton } from '../../../../contenido/taller/tipos/boton.js';
 import { CapituloVivo, piePagina } from './CapituloVivo.js';
 import { cortar, unir, tieneTitulo } from './Partir.js';
 import { limpiarContenido, cabeEnElCapitulo, tituloLimpio } from '../../../../contenido/taller/TextoLibro.js';
@@ -128,6 +130,7 @@ export class Mesa {
     /* El numero de pagina con la letra y la tinta del PDF (sin tinta propia, la del papel de cada hoja) */
     const c = new ConfigPagina(this.obra().pagina);
     s.setProperty('--pie-letra', familiaCss(c.cuerpo.fuente));
+    s.setProperty('--cabeza-pt', `${c.cabeza.tamanoPt}pt`);
     const tinta = colorDeLetra(c, c.cuerpo.fuente);
     if (tinta) s.setProperty('--pie-tinta', tinta); else s.removeProperty('--pie-tinta');
     this.estilo.textContent = cssLibro(this.obra().pagina);
@@ -175,6 +178,16 @@ export class Mesa {
     return lugarDelIndiceDe(caps, c.indice, hayPortada(caps, c.portada));
   }
 
+  /* El encabezado corrido (CabezaLibro): null si el libro no lo lleva; si no, `cabeza(k)` da lo que necesita el capitulo k
+     para dibujarlo en cada hoja de texto. Lo que dice sale del mismo calculo que usa la hoja de impresion. */
+  cabezas() {
+    const c = new ConfigPagina(this.obra().pagina);
+    if (!c.cabeza.ver) return null;
+    const caps = this.capitulosParaIndice(), contextos = contextosDeCabeza(caps, { rotulo: c.rotulo, idioma: this.idioma(), portada: hayPortada(caps, c.portada) });
+    const distancia = (c.cabeza.distanciaMm / 25.4) * 96;
+    return (k) => ({ distancia, inicial: contextos[k].inicial, texto: (sub) => textoDeCabeza(contextos[k], sub, c.cabeza.partes) });
+  }
+
   /* El primer capitulo es la portada del libro (la regla es la misma de la hoja de impresion) */
   conPortada() { return hayPortada(this.capitulosParaIndice(), new ConfigPagina(this.obra().pagina).portada); }
   esPortada(v) { return this.vivos[0] === v && this.conPortada(); }
@@ -184,11 +197,12 @@ export class Mesa {
     this.paginas = [];
     let n = 0;
     const meterIndice = () => { for (let i = 0; i < ind; i++) this.paginas.push({ vivo: null, fila: i, vista: null, indice: true }); n += ind; };
-    const pie = this.pie(), portada = this.conPortada();
+    const pie = this.pie(), portada = this.conPortada(), cabeza = this.cabezas();
     this.vivos.forEach((v, k) => {
       if (k === antes) meterIndice();
       v.primera = n + 1;
-      n += v.medir(n + 1, p, this.z, this.segura, { ...pie, portada: portada && k === 0 });
+      /* El encabezado va en las hojas de texto de todos los capitulos menos la portada */
+      n += v.medir(n + 1, p, this.z, this.segura, { ...pie, portada: portada && k === 0 }, cabeza && !(portada && k === 0) ? cabeza(k) : null);
       for (const f of v.filas) this.paginas.push({ vivo: v, ...f });
     });
     if (antes >= this.vivos.length) meterIndice();
@@ -199,7 +213,11 @@ export class Mesa {
     this.minis.pintar();
     this.pintarEleccion();
     this.contar();
+    this.revisarSueltos();
   }
+
+  /* Un boton suelto que ya no cabe en su hoja (su parrafo bajo) se marca: en el PDF se cortaria en el margen */
+  revisarSueltos() { this.lienzo.querySelectorAll('.boton-suelto').forEach((e) => { if (e.vistaBoton) e.vistaBoton.revisar(); }); }
 
   /* Deshacer y rehacer van al capitulo de lo ultimo tocado: la hoja elegida, o el capitulo activo */
   historia(cmd) {
@@ -401,13 +419,18 @@ export class Mesa {
   /* Lo que va en el contenido: los capitulos con nombre que no se ocultaron (una portada, por ejemplo). El numero
      de capitulo sigue siendo su lugar en el libro: asi lo nombra la hoja de impresion (#cap-N). */
   /* Los capitulos como los lee IndiceLibro (igual que hoja.capitulosParaIndice), con el texto vivo del editor */
-  capitulosParaIndice() { return this.vivos.map((v, i) => ({ id: v.cap.id, ancla: `cap-${i + 1}`, titulo: v.cap.titulo, enIndice: v.enIndice, numerar: v.numerar, tituloPropio: v.tituloPropio, doc: v.editor.state.doc })); }
+  capitulosParaIndice() {
+    return this.vivos.map((v, i) => {
+      const { titulo, ...propios } = v.propios();
+      return { id: v.cap.id, ancla: `cap-${i + 1}`, ...propios, titulo: v.cap.titulo, tituloPropio: titulo, doc: v.editor.state.doc };
+    });
+  }
 
   entradasDeIndice() {
     const c = new ConfigPagina(this.obra().pagina), ind = c.indice;
     if (!ind.ver) return [];
     const caps = this.capitulosParaIndice();
-    return entradasDe(caps, { subtemas: ind.subtemas, portada: hayPortada(caps, c.portada), rotulo: c.rotulo, idioma: this.idioma(), minis: conMinis(ind) });
+    return entradasDe(caps, { subtemas: ind.subtemas, portada: hayPortada(caps, c.portada), rotulo: c.rotulo, idioma: this.idioma(), minis: conMinis(ind), verRol: ind.verRol });
   }
 
   /* Como se llama cada capitulo en las miniaturas y en «Va antes de»: «Portada», «Capítulo 1 · El desierto»,
@@ -418,7 +441,9 @@ export class Mesa {
     return this.vivos.map((v, k) => {
       if (portada && k === 0) return tx.portada;
       const r = rs[k], nombre = v.cap.titulo;
-      if (r.rotulo) return nombre ? `${r.rotulo} · ${nombre}` : r.rotulo;
+      /* Un capitulo con papel se llama por el: «Introducción · Nombre» */
+      const rotulo = r.rotulo || r.rol;
+      if (rotulo) return nombre && nombre !== rotulo ? `${rotulo} · ${nombre}` : rotulo;
       return nombre || (r.numero ? `${tx.capitulo} ${r.numero}` : tx.capituloSinNombre);
     });
   }
@@ -857,6 +882,7 @@ export class Mesa {
     if (que === 'zona') { this.hojaParaObjeto().agregar({ tipo: 'zona', nombre: this.tx.zonaNueva, x: 16, y: 50, w: 68, h: 22, rot: 0, bloques: [] }); return; }
     if (que === 'boton') { this.ponerBoton(); return; }
     if (que === 'pasaje') { this.ponerPasaje(); return; }
+    if (que === 'subetapa') { this.ponerSubetapa(); return; }
     if (que === 'capitulo') this.nuevoCapitulo();
   }
 
@@ -876,6 +902,22 @@ export class Mesa {
     e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.pasaje.create({ texto: '', referencia: '' })));
     e.view.nodeDOM(pos).click();
     this.programar();
+  }
+
+  /* Una subetapa va siempre en el texto de arriba, en su propia linea (y abre hoja). Con un nombre de partida; el
+     panel se abre para cambiarlo. */
+  ponerSubetapa() {
+    const { vivo, pos } = this.puntoDeInsercion(), e = vivo.editor;
+    e.view.dispatch(e.state.tr.insert(pos, e.schema.nodes.subetapa.create({ texto: this.tx.subetapaEjemplo })));
+    e.view.nodeDOM(pos).click();
+    this.programar();
+  }
+
+  elegirSubetapa(v) {
+    if (this.imagenElegida === v || this.soloMirar(v.dom)) return;
+    this.soltarElegidos();
+    this.imagenElegida = v;
+    this.prop.deSubetapa(v);
   }
 
   pedirImagen() { this.alImagen(); }
@@ -981,6 +1023,7 @@ export class Mesa {
       this.irA(nuevo.primera);
       this.minis.entrarAlCapitulo(nuevo);
       this.decir(cabeza ? tx.capituloEmpieza : tx.capituloEmpiezaPendiente);
+      return true;
     } finally {
       /* Un capitulo que un conflicto dejo quieto sigue quieto */
       if (sigue()) e.setEditable(this.editable && !v.guardado.parado, false);
@@ -1023,6 +1066,8 @@ export class Mesa {
       this.soltarElegidos();
       this.soltarEleccion();
       this.quitarVivo(v);
+      /* El contenido iba delante de este capitulo: pasa al que le sigue (o al final), no al comienzo del libro */
+      if (this.alIndiceAntes && this.obra().pagina.indice.antesDe === v.cap.id) { const sig = this.vivos[k]; this.alIndiceAntes(sig ? sig.cap.id : AL_FINAL); }
       if (this.activo === v) this.activo = a;
       await this.ordenar();
       this.medir();
@@ -1070,6 +1115,35 @@ export class Mesa {
     this.decir(v.numerar ? this.tx.conNumeroDicho : this.tx.sinNumeroDicho);
   }
 
+  /* El papel del capitulo (prefacio, introduccion…): no cuenta en la numeracion. `rol` '' lo quita; 'custom' lleva su texto. */
+  ponerRol(v, rol, rolTexto = '') {
+    v.ponerPropios({ ...v.propios(), rol, rolTexto });
+    v.guardado.marcar();
+    this.medir();
+    this.decir(v.rol ? this.tx.rolPuesto : this.tx.rolQuitado);
+  }
+
+  /* La palabra propia del capitulo («Etapa»): con ella se rotula y cuenta aparte. Vacia = la del libro. */
+  ponerPalabra(v, palabra) {
+    v.palabra = palabraLimpia(palabra);
+    v.guardado.marcar();
+    this.medir();
+    const verRotulo = new ConfigPagina(this.obra().pagina).rotulo.ver;
+    this.decir(!v.palabra ? this.tx.palabraQuitada : verRotulo ? this.tx.palabraPuesta : this.tx.palabraSinRotulos);
+  }
+
+  /* La lista de papeles, en el mismo menu: los de siempre, «Otro…» (escribe el suyo) y «Quitar papel» */
+  menuDeRoles(v, x, y, origen) {
+    const tx = this.tx, quieto = !v.editor.isEditable;
+    const items = [
+      ...ROLES.map((r) => ({ texto: tx.roles[r], icono: v.rol === r ? 'ok' : undefined, radio: true, marcado: v.rol === r, apagado: quieto, fn: () => this.ponerRol(v, r) })),
+      { texto: tx.rolOtro, icono: v.rol === 'custom' ? 'ok' : undefined, radio: true, marcado: v.rol === 'custom', queda: true, apagado: quieto, fn: () => this.menu.pedirTexto({ etiqueta: tx.rolOtroEtiqueta, valor: v.rolTexto, ayuda: tx.rolOtroAyuda, max: PALABRA_MAX, alListo: (t) => { if (palabraLimpia(t)) this.ponerRol(v, 'custom', t); } }) },
+      { raya: true },
+      { texto: tx.rolQuitar, apagado: quieto || !v.rol, fn: () => this.ponerRol(v, '') }
+    ];
+    this.menu.abrir(x, y, items, origen, () => this.minis.entrarAlCapitulo(v));
+  }
+
   alternarEnIndice(v) {
     v.enIndice = !v.enIndice;
     v.guardado.marcar();
@@ -1087,6 +1161,11 @@ export class Mesa {
       /* La portada nunca sale en el contenido: ahi no hay nada que mostrar u ocultar */
       ...(k === 0 && portada ? [] : [{ texto: v.enIndice ? tx.ocultarDelContenido : tx.mostrarEnContenido, apagado: quieto, fn: () => this.alternarEnIndice(v) }]),
       ...(k === 0 && portada ? [] : [{ texto: v.numerar ? tx.sinNumero : tx.conNumero, apagado: quieto, fn: () => this.alternarNumero(v) }]),
+      /* El papel y la palabra no tienen sentido en la portada: no lleva numero */
+      ...(k === 0 && portada ? [] : [
+        { texto: v.rol ? `${tx.rolDelCapitulo}: ${v.rol === 'custom' ? v.rolTexto : tx.roles[v.rol]}…` : `${tx.rolDelCapitulo}…`, queda: true, apagado: quieto, fn: () => this.menuDeRoles(v, con ? e.clientX : r.left + 16, con ? e.clientY : r.top + 16, origen) },
+        { texto: v.palabra ? `${tx.palabraPropia}: ${v.palabra}…` : `${tx.palabraPropia}…`, queda: true, apagado: quieto || !!v.rol, ayuda: v.rol ? tx.palabraConRol : '', fn: () => this.menu.pedirTexto({ etiqueta: tx.palabraEtiqueta, valor: v.palabra, ayuda: tx.palabraAyuda, max: PALABRA_MAX, alListo: (t) => this.ponerPalabra(v, t) }) }
+      ]),
       ...(k === 0 ? [{ texto: portada ? tx.noEsPortada : tx.esPortada, apagado: quieto, fn: () => this.alPortada(portada ? 'no' : 'si') }] : []),
       ...(k === 0 ? [{ texto: portada ? tx.cambiarPortadaPdf : tx.subirPortadaPdf, apagado: quieto, fn: () => this.alPedirPortada() }] : []),
       ...(k > 0 ? [{ raya: true }, this.opcionUnir(v, quieto)] : [])
@@ -1104,17 +1183,47 @@ export class Mesa {
      mira solo el bloque y si lo que sigue trae un titulo: abrir un menu no copia el capitulo entero. */
   accionesDeCapitulo(i) {
     const tx = this.tx, p = this.paginas[i], v = p.vivo, quieto = !v.editor.isEditable;
+    const indice = this.opcionIndiceDespues(i);
     if (this.paginas.findIndex((q) => q.vivo === v) === i) {
-      return this.vivos.indexOf(v) > 0 ? [{ ...this.opcionUnir(v, quieto), icono: 'subir' }] : [];
+      return [...(this.vivos.indexOf(v) > 0 ? [{ ...this.opcionUnir(v, quieto), icono: 'subir' }] : []), ...indice];
     }
     const punto = this.puntoDeCorte(i);
-    if (!punto) return [];
+    if (!punto) return indice;
     let conTitulo = false;
     v.editor.state.doc.forEach((n, _, k) => { if (k >= punto.indice && n.type.name === 'heading') conTitulo = true; });
     /* Una cola sin titulo (una portada en PDF) necesita nombre: se pregunta antes de partir */
     return [{ texto: tx.empiezaAqui, icono: 'hoja', apagado: quieto, queda: !conTitulo, fn: () => (conTitulo
       ? this.empezarCapituloAqui(punto)
-      : this.menu.pedirTexto({ etiqueta: tx.comoSeLlama, valor: '', ayuda: tx.nombreCapituloAyuda, alListo: (t) => this.empezarCapituloAqui(punto, t) })) }];
+      : this.menu.pedirTexto({ etiqueta: tx.comoSeLlama, valor: '', ayuda: tx.nombreCapituloAyuda, alListo: (t) => this.empezarCapituloAqui(punto, t) })) }, ...indice];
+  }
+
+  /* «Poner el contenido después de esta hoja». El contenido vive entre capitulos: si la hoja es la ultima de su
+     capitulo, va delante del siguiente (o al final del libro); si no, el capitulo se parte justo despues de ella y
+     la cola, sin nombre y fuera del contenido, es la que viene detras. Nada se pierde: es el mismo partir de
+     «Este capítulo empieza aquí». */
+  opcionIndiceDespues(i) {
+    const tx = this.tx, p = this.paginas[i], sig = this.paginas[i + 1];
+    if (!p || p.indice || !p.vivo || !this.alIndiceAntes) return [];
+    if (sig && sig.indice) return [{ texto: tx.indiceYaAhi, icono: 'lista', apagado: true, fn: () => {} }];
+    if (sig && sig.vivo === p.vivo) {
+      const punto = this.puntoDeCorte(i + 1);
+      if (!punto) return [];
+      return [{ texto: tx.indiceDespues, icono: 'lista', apagado: !this.editable || !p.vivo.editor.isEditable, confirmar: tx.indiceDespuesParte, fn: () => this.indiceDespuesPartiendo(punto) }];
+    }
+    const destino = sig && sig.vivo ? sig.vivo.cap.id : AL_FINAL;
+    return [{ texto: tx.indiceDespues, icono: 'lista', apagado: !this.editable || !p.vivo.editor.isEditable, fn: () => { this.alIndiceAntes(destino); this.decir(tx.indiceDespuesDicho); } }];
+  }
+
+  async indiceDespuesPartiendo(punto) {
+    const v = punto.vivo, k = this.vivos.indexOf(v);
+    if (k < 0) return;
+    /* Si no se partio de verdad (no guardo, algo cambio, quedo repetido), el contenido se queda donde estaba */
+    if (!(await this.empezarCapituloAqui(punto, ''))) return;
+    const nuevo = this.vivos[this.vivos.indexOf(v) + 1];
+    if (!nuevo) return;
+    if (nuevo.enIndice) this.alternarEnIndice(nuevo);
+    this.alIndiceAntes(nuevo.cap.id);
+    this.decir(this.tx.indiceDespuesDicho);
   }
 
   /* ---- Borrar y mover ---- */
@@ -1224,18 +1333,42 @@ export class Mesa {
     this.decir(corrida ? `${this.tx.capituloMovido} ${this.tx.portadaPrimero}` : this.tx.capituloMovido);
   }
 
+  /* El lugar y el tamaño que un boton tiene ahora en su hoja, en la medida de la pagina libre (porcentajes, letra en pt):
+     se mide el boton de la mesa, no se inventa. Cabe en la caja del texto (nunca menos de 20 x 6 mm) y su centro no se mueve. */
+  medidaLibre(v) {
+    const base = { x: 30, y: 45, w: 40, h: 7, tam: '12pt' };
+    const c = new ConfigPagina(this.obra().pagina), p = this.px, m = c.aPorcentajes(), flujo = v.dom.closest('.flujo');
+    const caja = v.dom.querySelector('.boton--suelta') || v.dom, ancho = caja.offsetWidth, alto = caja.offsetHeight;
+    if (!flujo || !ancho || !alto) return base;
+    const z = this.z || 1, f = flujo.getBoundingClientRect(), r = caja.getBoundingClientRect(), anclaY = (v.dom.getBoundingClientRect().top - f.top) / z;
+    const paso = p.alto + p.mt + p.mb + p.gap, fila = Math.max(0, Math.floor((anclaY + 0.5) / paso));
+    const cx = p.ml + (r.left + r.width / 2 - f.left) / z, cy = p.mt + ((r.top + r.height / 2 - f.top) / z - fila * paso);
+    const letra = Math.round(parseFloat(getComputedStyle(caja).fontSize) * 0.75 * 2) / 2;
+    const w = Math.min(100 - m.izq - m.der, Math.max((20 / c.anchoMm) * 100, (ancho / p.W) * 100));
+    const h = Math.min(100 - m.sup - m.inf, Math.max((6 / c.altoMm) * 100, (alto / p.H) * 100));
+    const x = tope((cx / p.W) * 100 - w / 2, m.izq, 100 - m.der - w), y = tope((cy / p.H) * 100 - h / 2, m.sup, 100 - m.inf - h);
+    const num = (n) => Math.round(n * 100) / 100;
+    return { x: num(x), y: num(y), w: num(w), h: num(h), tam: letra >= 6 && letra <= 72 ? `${letra}pt` : base.tam };
+  }
+
   /* Una imagen del texto pasa a su propia pagina libre, exacta */
   pasarALibre(v) {
     const a = v.node.attrs, e = this.vivos.find((x) => x.editor.view.dom.contains(v.dom)).editor, pos = v.getPos();
-    const n = e.schema.nodes.paginaLibre.create({ nombre: this.tx.paginaLibre, objetos: [{
-      id: `o-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0')}`, tipo: 'imagen', ruta: a.ruta, x: 18, y: 16, w: 64, h: 40, rot: 0,
-      crop: { l: 0, t: 0, r: 0, b: 0 }, alt: a.alt, decorativa: a.decorativa
-    }] });
-    e.view.dispatch(e.state.tr.replaceWith(pos, pos + 1, n));
+    const id = `o-${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8, '0')}`;
+    /* Un boton lleva todo lo suyo (texto, accion, colores, icono, aspecto) a una pagina libre: ahi se mueve, se gira y se agranda sin ancla */
+    const objeto = v.node.type.name === 'boton'
+      ? { id, ...datosDeBoton(a), tipo: 'boton', ...this.medidaLibre(v), rot: a.suelto ? a.suelto.rot : 0 }
+      : { id, tipo: 'imagen', ruta: a.ruta, x: 18, y: 16, w: 64, h: 40, rot: 0, crop: { l: 0, t: 0, r: 0, b: 0 }, alt: a.alt, decorativa: a.decorativa };
+    if (e.state.doc.resolve(pos).depth) { this.decir(this.tx.pasarLibreEnColumnas); return; }
+    const n = e.schema.nodes.paginaLibre.create({ nombre: this.tx.paginaLibre, objetos: [objeto] });
+    e.view.dispatch(closeHistory(e.state.tr.replaceWith(pos, pos + 1, n)));
     this.imagenElegida = null;
     this.prop.ocultar();
     this.medir();
   }
+
+  /* El boton del texto cambio (arrastrado): el panel muestra lo nuevo */
+  alCambiarBoton(v) { if (this.imagenElegida === v) this.prop.deBoton(v); this.revisarSueltos(); }
 
   borrarImagen(v) {
     const e = this.vivos.find((x) => x.editor.view.dom.contains(v.dom)).editor, pos = v.getPos();

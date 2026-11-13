@@ -32,7 +32,7 @@ import { BorrarLibro } from './taller/BorrarLibro.js';
 import { icono } from './taller/iconos.js';
 import { familiaCss } from '../../../contenido/taller/fuentes.js';
 import { RECIENTES_MAX, textosPocoVisibles, variablesDe } from '../../../contenido/taller/colores.js';
-import { hojasDeIndice } from '../../../contenido/taller/IndiceLibro.js';
+import { AL_FINAL, hojasDeIndice } from '../../../contenido/taller/IndiceLibro.js';
 import { armar } from '../../../contenido/taller/armar.js';
 
 const COPIA_MS = 10 * 60 * 1000;
@@ -260,6 +260,8 @@ export class Taller extends Seccion {
     /* «Es la portada» / «No es la portada» desde el menu del primer capitulo: es un ajuste del libro */
     this.mesa.alPortada = (valor, callado) => this.ponerPortada(valor, callado);
     this.mesa.alPedirPortada = () => this.cinta.pedirPdf('portada');
+    /* «Poner el contenido después de esta hoja» (menu de una hoja): delante de este capitulo, o al final */
+    this.mesa.alIndiceAntes = (id) => this.ponerIndiceAntes(id);
     this.cinta = this.cinta || new Cinta(this.m('[data-tal-cinta]'), {
       tx: this.tx, fuentes: this.obra.fuentes, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null),
       alError: (c) => this.error(c),
@@ -276,7 +278,7 @@ export class Taller extends Seccion {
     this.mesa.editable = !enTelefono();
     this.mesa.cinta = this.cinta;
     this.mesa.formulas = this.formulas;
-    this.vistaLibro = this.vistaLibro || new VistaLibro(this.m('[data-tal-vista-libro]'), { mesa: this.mesa, tx: this.tx });
+    this.vistaLibro = this.vistaLibro || new VistaLibro(this.m('[data-tal-vista-libro]'), { mesa: this.mesa, tx: this.tx, titulo: () => (this.obra ? this.obra.titulo : '') });
     this.vistaLibro.mesa = this.mesa;
     this.mesa.vistaLibro = this.vistaLibro;
     await document.fonts.ready;
@@ -519,7 +521,8 @@ export class Taller extends Seccion {
     f.elements.tamanoPt.value = c.cuerpo.tamanoPt; f.elements.interlinea.value = c.cuerpo.interlinea;
     f.elements.numerosVer.checked = c.numeros.ver; f.elements.imprenta.checked = c.imprenta;
     f.elements.indice.checked = c.indice.ver; f.elements.indiceTitulo.value = c.indice.titulo;
-    f.elements.indiceSubtemas.checked = c.indice.subtemas; f.elements.indicePuntos.checked = c.indice.puntos;
+    f.elements.indiceSubtemas.checked = c.indice.subtemas; f.elements.indicePuntos.checked = c.indice.puntos; f.elements.indiceVerRol.checked = c.indice.verRol;
+    this.ponerCabeza(c);
     this.ponerPlantilla(c.indice);
     this.ponerRotulo(c.rotulo);
     this.llenarAntesDe();
@@ -558,8 +561,8 @@ export class Taller extends Seccion {
     const nombres = this.mesa ? this.mesa.nombresDeCapitulos() : [];
     const nombre = (v, k) => (nombres[k] || '').slice(0, 60);
     const desde = portada ? 2 : 1;
-    s.replaceChildren(opcion('', portada ? this.tx.despuesDePortada : this.tx.indiceAlComienzo), ...vivos.slice(desde).map((v, i) => opcion(v.cap.id, nombre(v, i + desde))));
-    s.value = vivos.slice(desde).some((v) => v.cap.id === id) ? id : '';
+    s.replaceChildren(opcion('', portada ? this.tx.despuesDePortada : this.tx.indiceAlComienzo), ...vivos.slice(desde).map((v, i) => opcion(v.cap.id, nombre(v, i + desde))), opcion(AL_FINAL, this.tx.indiceAlFinal));
+    s.value = id === AL_FINAL || vivos.slice(desde).some((v) => v.cap.id === id) ? id : '';
     /* Sin capitulos abiertos aun, la lista no sabe nada: leerPagina conserva lo guardado */
     s.dataset.lleno = vivos.length ? '1' : '';
     /* La casilla muestra lo que hoy vale (tambien cuando la reconoce sola); leerPagina solo guarda si se cambio */
@@ -575,6 +578,19 @@ export class Taller extends Seccion {
     if (!s.dataset.lleno) return guardado;
     if (s.value === '' && guardado && ![...s.options].some((o) => o.value === guardado)) return guardado;
     return s.value;
+  }
+
+  /* El contenido va delante del capitulo `id` (o al final del libro): se guarda, se enciende si estaba apagado y se mide */
+  ponerIndiceAntes(id) {
+    const d = this.obra.pagina.aDatos();
+    this.obra.pagina = new ConfigPagina({ ...d, indice: { ...(d.indice && typeof d.indice === 'object' ? d.indice : {}), ver: true, antesDe: id } });
+    this.guardarObra();
+    this.mesa.medir();
+    this.llenarAntesDe();
+    const f = this.m('[data-tal-pagina]');
+    if (f.elements.indice) f.elements.indice.checked = true;
+    const opciones = this.m('[data-tal-indice-opciones]');
+    if (opciones) opciones.hidden = false;
   }
 
   /* La portada, desde el menu del capitulo o la casilla: se guarda con el libro y la mesa se vuelve a medir */
@@ -671,6 +687,19 @@ export class Taller extends Seccion {
     this.m('[data-tal-indice-sin-imagen]').disabled = !ind.imagen.ruta;
   }
 
+  /* El encabezado: sus casillas y numeros como estan guardados. Mientras se escribe un numero se deja en paz (el campo
+     que tiene el foco no se pisa); el aviso dice si el margen de arriba no alcanza. */
+  ponerCabeza(c, escribiendo = false) {
+    const f = this.m('[data-tal-pagina]'), cb = c.cabeza;
+    f.elements.cabezaVer.checked = cb.ver;
+    f.elements.cabezaRotulo.checked = cb.partes.rotulo; f.elements.cabezaNombre.checked = cb.partes.nombre;
+    f.elements.cabezaRol.checked = cb.partes.rol; f.elements.cabezaSubetapa.checked = cb.partes.subetapa;
+    if (!escribiendo || document.activeElement !== f.elements.cabezaDistancia) f.elements.cabezaDistancia.value = cb.distanciaMm;
+    if (!escribiendo || document.activeElement !== f.elements.cabezaTamano) f.elements.cabezaTamano.value = cb.tamanoPt;
+    this.m('[data-tal-cabeza-opciones]').hidden = !cb.ver;
+    this.m('[data-tal-cabeza-aviso]').hidden = !c.cabezaApretada();
+  }
+
   mostrarRotulo() {
     const f = this.m('[data-tal-pagina]');
     this.m('[data-tal-rotulo-opciones]').hidden = !f.elements.rotuloVer.checked;
@@ -700,11 +729,18 @@ export class Taller extends Seccion {
       },
       indice: {
         ver: f.elements.indice.checked, titulo: f.elements.indiceTitulo.value, subtemas: f.elements.indiceSubtemas.checked,
-        puntos: f.elements.indicePuntos.checked,
+        puntos: f.elements.indicePuntos.checked, verRol: f.elements.indiceVerRol.checked,
         antesDe: this.antesDeElegido(f.elements.indiceAntes),
         plantilla: f.elements.indicePlantilla.value, orden: f.elements.indiceOrden.checked, portadas: f.elements.indicePortadas.checked,
         /* Solo una imagen de este libro */
         imagen: { ruta: f.elements.indiceImagen.value.startsWith(`taller/${this.obra.id}/img/`) ? f.elements.indiceImagen.value : '', altoPct: n('indiceImagenAlto'), ajuste: f.elements.indiceImagenAjuste.value }
+      },
+      /* Un campo vacio es «el de siempre»: la configuracion lo vuelve a poner */
+      cabeza: {
+        ver: f.elements.cabezaVer.checked,
+        partes: { rotulo: f.elements.cabezaRotulo.checked, nombre: f.elements.cabezaNombre.checked, rol: f.elements.cabezaRol.checked, subetapa: f.elements.cabezaSubetapa.checked },
+        distanciaMm: f.elements.cabezaDistancia.value === '' ? undefined : n('cabezaDistancia'),
+        tamanoPt: f.elements.cabezaTamano.value === '' ? undefined : n('cabezaTamano')
       },
       cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },
       capital: {
@@ -725,6 +761,7 @@ export class Taller extends Seccion {
     f.elements.indiceTitulo.value = nueva.indice.titulo;
     this.m('[data-tal-indice-opciones]').hidden = !nueva.indice.ver;
     this.ponerPlantilla(nueva.indice);
+    this.ponerCabeza(nueva, true);
     if (this.m('[data-tal-indice-dialogo]').open) this.pintarMuestras();
     /* «Otra…» sin escribir aun: se queda elegida mientras se escribe la palabra */
     if (f.elements.rotuloPalabra.value !== '*') this.ponerRotulo(nueva.rotulo); else { f.elements.rotuloOtro.value = nueva.rotulo.palabra; this.mostrarRotulo(); }

@@ -22,6 +22,14 @@ export function piePagina(n, top, p, lugar) {
   return e;
 }
 
+/* El encabezado de la hoja donde lo pone el PDF: una linea centrada entre los margenes, a `distancia` px del borde de
+   arriba de la hoja. Su letra y su tinta salen de las variables de la mesa (--pie-letra, --pie-tinta, --cabeza-pt). */
+export function cabezaPagina(texto, top, p, distancia) {
+  const e = crear('div', 'cabeza', texto);
+  Object.assign(e.style, { left: `${p.ml}px`, right: `${p.mr}px`, top: `${top + distancia}px` });
+  return e;
+}
+
 export class CapituloVivo {
   constructor(cap, mesa) {
     this.cap = cap;
@@ -37,7 +45,7 @@ export class CapituloVivo {
     leido.doc = conAnclas(leido.doc, cap.id);
     cap.contenido = leido;
     this.papel = leido.papel || '';
-    /* El nombre puesto a mano ('' = el primer titulo del texto), si sale en el contenido y si lleva numero */
+    /* El nombre puesto a mano ('' = el primer titulo del texto), si sale en el contenido, si lleva numero, su papel y su palabra */
     this.ponerPropios(propiosDe(leido));
     this.pintarPapel();
     this.guardado = new Autoguardado({ guardar: () => this.guardar(), alEstado: (e) => mesa.alEstado(this, e) });
@@ -55,8 +63,11 @@ export class CapituloVivo {
   get doc() { return this.editor.getJSON(); }
 
   /* Lo propio del capitulo (TextoLibro.propiosDe): todas las copias pasan por aqui */
-  propios() { return { titulo: this.tituloPropio, enIndice: this.enIndice, numerar: this.numerar }; }
-  ponerPropios(p) { this.tituloPropio = p.titulo || ''; this.enIndice = p.enIndice !== false; this.numerar = p.numerar !== false; }
+  propios() { return { titulo: this.tituloPropio, enIndice: this.enIndice, numerar: this.numerar, rol: this.rol, rolTexto: this.rolTexto, palabra: this.palabra }; }
+  ponerPropios(p) {
+    this.tituloPropio = p.titulo || ''; this.enIndice = p.enIndice !== false; this.numerar = p.numerar !== false;
+    this.rol = p.rol || ''; this.rolTexto = p.rolTexto || ''; this.palabra = p.palabra || '';
+  }
 
   /* El color de este capitulo. Sin el suyo, cada hoja hereda el del libro. */
   pintarPapel() {
@@ -80,8 +91,9 @@ export class CapituloVivo {
   }
 
   /* Cuantas hojas ocupa, cuales son libres, y sus numeros */
-  /* `pie`: { lugar, ver } como el libro; `portada`: sus hojas de texto no llevan numero (en el PDF tampoco) */
-  medir(numeroInicial, p, z, segura, pie = {}) {
+  /* `pie`: { lugar, ver } como el libro; `portada`: sus hojas de texto no llevan numero (en el PDF tampoco).
+     `cabeza`: null, o { distancia (px), inicial (la subetapa con que empieza), texto(subetapa) → lo que dice arriba }. */
+  medir(numeroInicial, p, z, segura, pie = {}, cabeza = null) {
     const f = this.editor.view.dom, paso = p.H + p.gap;
     const n = Math.max(1, Math.round((f.offsetHeight + (paso - p.alto)) / paso));
     this.caja.style.height = `${n * p.H + (n - 1) * p.gap}px`;
@@ -92,7 +104,8 @@ export class CapituloVivo {
       const fila = Math.round((v.dom.getBoundingClientRect().top - arriba) / z / paso);
       libres.set(fila, v);
     }
-    this.caja.querySelectorAll('.pie, .seg--texto').forEach((x) => x.remove());
+    this.caja.querySelectorAll('.pie, .cabeza, .seg--texto').forEach((x) => x.remove());
+    const subetapas = cabeza ? this.subetapasPorFila(arriba, z, paso) : [];
     this.filas = [];
     for (let i = 0; i < n; i++) {
       const vista = libres.get(i) || null;
@@ -100,6 +113,12 @@ export class CapituloVivo {
       if (vista) continue;
       const top = i * paso;
       if (pie.ver && !pie.portada) this.caja.append(piePagina(numeroInicial + i, top, p, pie.lugar));
+      if (cabeza) {
+        /* La subetapa que le toca: la ultima que empezo en esta hoja o antes */
+        const sub = subetapas.filter((s) => s.fila <= i).pop();
+        const texto = cabeza.texto(sub ? sub.texto : cabeza.inicial);
+        if (texto) this.caja.append(cabezaPagina(texto, top, p, cabeza.distancia));
+      }
       if (segura) {
         const s = crear('div', 'seg seg--texto');
         Object.assign(s.style, { left: `${p.ml}px`, right: `${p.mr}px`, top: `${top + p.mt}px`, height: `${p.alto}px` });
@@ -108,6 +127,16 @@ export class CapituloVivo {
       }
     }
     return n;
+  }
+
+  /* Las subetapas de arriba y la hoja en que cae cada una (siempre empieza la suya: el estilo corta la columna antes) */
+  subetapasPorFila(arriba, z, paso) {
+    const lista = [];
+    for (const b of this.editor.view.dom.children) {
+      if (!b.classList.contains('subetapa')) continue;
+      lista.push({ fila: Math.max(0, Math.floor((b.getBoundingClientRect().top - arriba) / z / paso + 0.001)), texto: b.dataset.texto || '' });
+    }
+    return lista;
   }
 
   /* El primer bloque que cae en una fila: ahi se suelta una pagina libre. Nunca parte un parrafo. */

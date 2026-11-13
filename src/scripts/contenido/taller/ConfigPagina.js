@@ -54,6 +54,12 @@ const mm = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.i
 /* Para la capital y las citas: lo que se pasa del borde se queda en el borde, no vuelve al valor de siempre */
 const entre = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v)) * pasos) / pasos : siNo);
 
+/* El encabezado corrido: distancia al borde de arriba (mm) y tamaño de letra (pt) */
+export const CABEZA_DISTANCIA = { min: 4, max: 30, siNo: 10 };
+export const CABEZA_TAMANO = { min: 6, max: 14, siNo: 9 };
+/* El renglon del encabezado mide 1,2 veces su letra (cabeza.css y la hoja de impresion lo usan igual) */
+export const CABEZA_INTERLINEA = 1.2;
+
 /* La imagen de arriba del contenido. El alto es un porcentaje de la caja del texto. */
 export const IMAGEN_INDICE_ALTOS = [20, 30, 40, 50];
 const RE_IMAGEN_LIBRO = /^taller\/[a-z0-9]+(?:[.-][a-z0-9]+)*\/img\/[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
@@ -83,7 +89,19 @@ export class ConfigPagina {
       plantilla: PLANTILLAS.includes(ind.plantilla) ? ind.plantilla : 'clasico',
       orden: ind.orden === true,
       imagen: imagenDeIndice(ind.imagen),
-      portadas: ind.portadas === true
+      portadas: ind.portadas === true,
+      /* El papel del capitulo (Introducción…) delante de su nombre, aunque los rotulos esten apagados */
+      verRol: ind.verRol === true
+    };
+    /* EL ENCABEZADO: una linea arriba de cada hoja de texto («Capítulo 2 · Nombre · Introducción · Actividades»).
+       Apagado hasta que el autor lo pida. Cada parte se enciende aparte; la distancia es desde el borde de arriba
+       de la hoja hasta la primera linea, y la letra es la del libro. Lo que se pasa de los topes se queda en el tope. */
+    const cb = objeto(o.cabeza), pa = objeto(cb.partes);
+    this.cabeza = {
+      ver: cb.ver === true,
+      partes: { rotulo: pa.rotulo !== false, nombre: pa.nombre !== false, rol: pa.rol === true, subetapa: pa.subetapa === true },
+      distanciaMm: entre(cb.distanciaMm, CABEZA_DISTANCIA.min, CABEZA_DISTANCIA.max, CABEZA_DISTANCIA.siNo),
+      tamanoPt: entre(cb.tamanoPt, CABEZA_TAMANO.min, CABEZA_TAMANO.max, CABEZA_TAMANO.siNo)
     };
     /* El rotulo de los capitulos («Capítulo 1», «Episodio IV»): apagado hasta que el autor lo pida.
        Sin palabra, la del idioma del libro. */
@@ -132,6 +150,13 @@ export class ConfigPagina {
     return c.ancho < CAJA_MIN || c.alto < CAJA_MIN ? ['margenes'] : [];
   }
 
+  /* El encabezado no cabe en el margen de arriba: su distancia y su renglon pasan del margen. Solo se avisa; los
+     margenes no se tocan solos. */
+  cabezaApretada() {
+    const { ver, distanciaMm, tamanoPt } = this.cabeza;
+    return ver && this.margenes.sup < distanciaMm + (tamanoPt * CABEZA_INTERLINEA * MM_POR_PULGADA) / 72;
+  }
+
   /* Los margenes como porcentaje de la pagina: asi se dibuja la zona segura a cualquier tamaño */
   aPorcentajes() {
     const { sup, inf, izq, der } = this.margenes;
@@ -164,7 +189,7 @@ export class ConfigPagina {
   aDatos() {
     return {
       anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen } }, cuerpo: { ...this.cuerpo },
-      rotulo: { ...this.rotulo }, portada: this.portada, imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes } }, portada: this.portada, imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
       capital: { ...this.capital }, cita: { ...this.cita }
     };
   }

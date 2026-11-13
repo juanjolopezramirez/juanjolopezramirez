@@ -19,6 +19,7 @@ import { PaginaLibre } from './nodos/paginaLibre.js';
 import { Formula } from './nodos/formula.js';
 import { Boton } from './nodos/boton.js';
 import { Pasaje } from './nodos/pasaje.js';
+import { Subetapa } from './nodos/subetapa.js';
 import { META_PAGINA } from './Varias.js';
 import { POR_NODO } from '../../../../contenido/taller/tipos/indice.js';
 import { anclaNueva, esAncla, RE_ANCLA_PAGINA, RE_ANCLA_TITULO } from '../../../../contenido/taller/IndiceLibro.js';
@@ -156,6 +157,7 @@ export function crearEditor(elemento, o) {
       Formula.configure({ mesa: o.mesa }),
       Boton.configure({ mesa: o.mesa }),
       Pasaje.configure({ mesa: o.mesa }),
+      Subetapa.configure({ mesa: o.mesa }),
       GuardaPaginas(o), Anclas
     ],
     editorProps: {
@@ -167,9 +169,9 @@ export function crearEditor(elemento, o) {
       scrollThreshold: { top: MARGEN_BARRA_PX, bottom: 60, left: 0, right: 0 },
       handleKeyDown: (vista, e) => {
         if (e.altKey && e.key === 'F10') { e.preventDefault(); o.alBarra(); return true; }
-        /* Enter sobre una imagen, una formula, un boton o un pasaje hace lo mismo que el clic */
+        /* Enter sobre una imagen, una formula, un boton, un pasaje o una subetapa hace lo mismo que el clic */
         const sel = vista.state.selection;
-        if (e.key === 'Enter' && sel.node && ['imagen', 'formula', 'boton', 'pasaje'].includes(sel.node.type.name)) { e.preventDefault(); vista.nodeDOM(sel.from).click(); return true; }
+        if (e.key === 'Enter' && sel.node && ['imagen', 'formula', 'boton', 'pasaje', 'subetapa'].includes(sel.node.type.name)) { e.preventDefault(); vista.nodeDOM(sel.from).click(); return true; }
         return false;
       }
     },

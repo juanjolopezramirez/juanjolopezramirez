@@ -40,6 +40,48 @@ export function valorSeguro(tag, k, v) {
   return true;
 }
 
+/* LOS ESTILOS. Antes solo se miraba el nombre de la propiedad; ahora tambien su valor, y el aspecto de un boton
+   (bordes, radio, sombra, opacidad) solo pasa si es exactamente lo que fabrica aspectoBoton.js: numeros con tope,
+   colores de 6 cifras (la sombra suave lleva ademas su transparencia), palabras de una lista. Nunca texto libre. */
+const HEX = /^#[0-9a-f]{6}$/;
+const HEX_SOMBRA = /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/;
+const MEDIDA = /^-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?:%|mm|px)$/i;
+const MALO = /url\s*\(|expression|image-set|@|[<>{};\x5c]|\/\*|!important|\bvar\s*\(/i;
+const TRANSFORMAR = /^(?:translate\(-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?:mm|px), ?-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?:mm|px)\)(?: rotate\(-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?deg\))?|rotate\(-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?deg\))$/i;
+/* rotate(Ndeg), o translate(N mm|px, N mm|px) seguido o no de rotate(Ndeg): lo unico que pide un objeto o un boton suelto */
+/* Ya con la forma buena, los numeros tambien: finitos y con tope (500 mm|px, 360 grados). `1e999` pasaria la forma */
+function transformarEnTope(v) {
+  const todos = [...v.matchAll(/(-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(mm|px|deg)/gi)];
+  return todos.length > 0 && todos.every((m) => { const n = Number(m[1]); return Number.isFinite(n) && Math.abs(n) <= (m[2].toLowerCase() === 'deg' ? 360 : 500); });
+}
+const SOMBRA = /^(-?\d{1,2})px (-?\d{1,2})px (\d{1,2})px (#[0-9a-f]{6}(?:[0-9a-f]{2})?)$/;
+export function estiloSeguro(k, v) {
+  if (typeof v !== 'string' || v.length > 300 || MALO.test(v)) return false;
+  switch (k) {
+    case 'border-width': return /^[0-8]px$/.test(v);
+    case 'border-style': return v === 'solid' || v === 'dotted' || v === 'dashed';
+    case 'border-color': return HEX.test(v) || v === 'currentcolor';
+    case 'border-radius': { const m = /^(\d{1,3})px$/.exec(v); return !!m && (Number(m[1]) <= 40 || Number(m[1]) === 999); }
+    case 'box-shadow': { const m = SOMBRA.exec(v); return !!m && Math.abs(m[1]) <= 20 && Math.abs(m[2]) <= 20 && Number(m[3]) <= 40 && HEX_SOMBRA.test(m[4]); }
+    case 'opacity': return /^(?:0?\.\d{1,2}|1)$/.test(v) && Number(v) >= .2;
+    case 'font-weight': return v === '400' || v === '700';
+    case 'color': return HEX.test(v) || v === 'currentcolor';
+    case 'background-color': return HEX.test(v) || v === 'transparent';
+    case 'left': case 'top': case 'width': case 'height': return MEDIDA.test(v) && Math.abs(parseFloat(v)) <= 100000;
+    case 'transform': return TRANSFORMAR.test(v) && transformarEnTope(v);
+    case 'text-align': return ['left', 'center', 'right', 'justify'].includes(v);
+    case 'grid-template-columns': return /^\d+(?:\.\d+)?fr(?: \d+(?:\.\d+)?fr){0,11}$/.test(v);
+    case 'font-size': return /^\d{1,3}(?:\.\d{1,2})?(?:pt|em|%)$/.test(v);
+    case 'font-family': return /^[^()]*$/.test(v);
+    default: return false;
+  }
+}
+
+/* La misma puerta para los estilos de un elemento que ya existe (los botones de la mesa) */
+export function ponerEstilo(e, estilo) {
+  for (const [k, v] of Object.entries(estilo || {})) if (ESTILOS_HOJA.has(k) && estiloSeguro(k, v)) e.style.setProperty(k, v);
+}
+
 /* Las formas del icono solo dentro de su <svg>, y lo demas solo fuera de el */
 export function armar(n, enSvg = false) {
   if (!n || typeof n !== 'object') return null;
@@ -50,7 +92,7 @@ export function armar(n, enSvg = false) {
   const e = svg ? document.createElementNS(SVG, n.tag) : document.createElement(n.tag);
   if (n.clase) e.setAttribute('class', String(n.clase));
   for (const [k, v] of Object.entries(n.attrs || {})) if (ATRIBUTOS_HOJA.has(k) && valorSeguro(n.tag, k, v)) e.setAttribute(k, v);
-  for (const [k, v] of Object.entries(n.estilo || {})) if (ESTILOS_HOJA.has(k) && typeof v === 'string') e.style.setProperty(k, v);
+  ponerEstilo(e, n.estilo);
   for (const h of n.hijos || []) { const c = armar(h, svg); if (c) e.append(c); }
   return e;
 }

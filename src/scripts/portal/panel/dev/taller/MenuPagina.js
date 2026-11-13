@@ -34,10 +34,16 @@ export class MenuPagina {
   opcion(i) {
     const b = crear('button', `tal-menu__op${i.aviso ? ' tal-menu__op--aviso' : ''}`);
     b.type = 'button';
-    b.setAttribute('role', 'menuitem');
+    /* `radio`: una opcion entre varias (el papel del capitulo); `marcado` dice cual es la de ahora */
+    b.setAttribute('role', i.radio ? 'menuitemradio' : 'menuitem');
+    if (i.radio) b.setAttribute('aria-checked', i.marcado ? 'true' : 'false');
     if (i.icono) b.append(icono(i.icono));
     b.append(crear('span', '', i.texto));
-    if (i.apagado) { b.setAttribute('aria-disabled', 'true'); if (i.ayuda) b.title = i.ayuda; return b; }
+    if (i.apagado) {
+      b.setAttribute('aria-disabled', 'true');
+      if (i.ayuda) { b.title = i.ayuda; b.setAttribute('aria-description', i.ayuda); }
+      return b;
+    }
     b.addEventListener('click', () => {
       /* Borrar pide un segundo clic: el primero solo lo pone en rojo y cambia lo que dice */
       if (i.confirmar && !b.dataset.armado) { this.armar(b, i.texto, i.confirmar); return; }
@@ -105,12 +111,12 @@ export class MenuPagina {
   }
 
   /* Un nombre, en el mismo menu: `{ etiqueta, valor, ayuda, alListo(texto) }` */
-  pedirTexto({ etiqueta, valor = '', ayuda = '', alListo }) {
+  pedirTexto({ etiqueta, valor = '', ayuda = '', max = 300, alListo }) {
     const { tx } = this, f = crear('form', 'tal-menu__mover'), l = crear('label'), i = crear('input');
     f.noValidate = true;
     this.caja.setAttribute('role', 'dialog');
     i.type = 'text';
-    i.maxLength = 300;
+    i.maxLength = max;
     i.value = valor;
     i.autocomplete = 'off';
     l.append(crear('span', '', etiqueta), i);

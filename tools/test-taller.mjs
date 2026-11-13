@@ -20,6 +20,8 @@ import { OPCIONES_KATEX } from '../src/scripts/contenido/taller/tipos/formula.js
 import { RepositorioTallerMemoria, RepositorioTallerSupabase, decidir } from '../src/scripts/contenido/taller/Repositorio.js';
 import { Autoguardado } from '../src/scripts/portal/panel/dev/taller/Autoguardado.js';
 import { CASOS } from './pruebas-taller.mjs';
+import { estiloSeguro, ponerEstilo } from '../src/scripts/contenido/taller/armar.js';
+import * as A from '../src/scripts/contenido/taller/aspectoBoton.js';
 import * as I from '../src/scripts/contenido/taller/IndiceLibro.js';
 import { revisarTiposTaller } from './revisar-tipos-taller.mjs';
 
@@ -133,6 +135,8 @@ const permitido = (n) => {
   assert.ok(ETIQUETAS_HOJA.has(n.tag), n.tag);
   Object.keys(n.attrs || {}).forEach((k) => assert.ok(ATRIBUTOS_HOJA.has(k), k));
   Object.keys(n.estilo || {}).forEach((k) => assert.ok(ESTILOS_HOJA.has(k), k));
+  /* Lo que fabrican los tipos pasa la puerta tal cual: ni un valor se pierde ni hace falta limpiar de nuevo */
+  Object.entries(n.estilo || {}).forEach(([k, v]) => assert.ok(estiloSeguro(k, v), `${k}: ${v}`));
   (n.hijos || []).forEach(permitido);
 };
 await ok('todos los casos salen solo con etiquetas, atributos y estilos permitidos', () => {
@@ -337,7 +341,7 @@ console.log('el contenido del libro');
     /* Lo propio del capitulo: solo se guarda lo que no es de siempre, y limpiarContenido lo conserva */
     assert.deepEqual(propiosAGuardar({ titulo: '', enIndice: true, numerar: true }), {});
     assert.deepEqual(propiosAGuardar({ titulo: 'Pró', enIndice: false, numerar: false }), { titulo: 'Pró', enIndice: false, numerar: false });
-    assert.deepEqual(propiosDe({ numerar: 'no' }), { titulo: '', enIndice: true, numerar: true });
+    assert.deepEqual(propiosDe({ numerar: 'no' }), { titulo: '', enIndice: true, numerar: true, rol: '', rolTexto: '', palabra: '' });
     const limpio = limpiarContenido({ numerar: false, enIndice: true, doc: { type: 'doc', content: [parrafo('a')] } }).contenido;
     assert.equal(limpio.numerar, false);
     assert.ok(!('enIndice' in limpio));
@@ -415,7 +419,7 @@ console.log('el contenido del libro');
     }
   });
   await ok('ConfigPagina: el indice de antes (true) sigue, y lo raro no pasa', () => {
-    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '', plantilla: 'clasico', orden: false, imagen: { ruta: '', altoPct: 30, ajuste: 'cubrir' }, portadas: false });
+    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '', plantilla: 'clasico', orden: false, imagen: { ruta: '', altoPct: 30, ajuste: 'cubrir' }, portadas: false, verRol: false });
     assert.equal(new ConfigPagina({}).indice.ver, false);
     const raro = new ConfigPagina({ indice: { ver: 'si', titulo: `  Mi\u0007  índice ${'x'.repeat(300)}`, subtemas: false, puntos: 0, antesDe: '../x;y' } }).indice;
     assert.equal(raro.ver, false);
@@ -1044,6 +1048,166 @@ console.log('los iconos de los botones');
   });
 }
 
+console.log('el aspecto y el lugar suelto del boton');
+{
+  const B = await import('../src/scripts/contenido/taller/tipos/boton.js');
+  const { OBJETOS } = await import('../src/scripts/contenido/taller/tipos/objetos.js');
+  const { readFileSync } = await import('node:fs');
+  const nodoBoton = (attrs) => limpiarContenido({ doc: { type: 'doc', content: [{ type: 'boton', attrs }] } }).contenido.doc.content[0];
+  await ok('el aspecto sale con topes: numeros, colores y palabras de una lista', () => {
+    const a = A.limpiarAspecto({ estilo: 'url(x)', borde: 99999, bordeColor: 'red;x:url(y)', linea: '"><x', radio: 1e9, negrita: 'si', opacidad: -5, sombra: { tipo: 'url(x)', auto: 'x', color: 'expression(1)' }, onclick: 'x' });
+    assert.deepEqual(a, { estilo: 'relleno', borde: 8, bordeColor: '', linea: 'solido', radio: 40, negrita: false, opacidad: 20, sombra: { tipo: 'ninguna', auto: true, color: '' } });
+    assert.equal(A.limpiarAspecto('url(x)'), null);
+    assert.equal(A.limpiarAspecto([1]), null);
+    assert.equal(A.limpiarAspecto({ radio: 'pildora' }).radio, 'pildora');
+    assert.equal(A.limpiarAspecto({ radio: '12' }).radio, null);
+    assert.equal(A.limpiarAspecto({ bordeColor: 'rgb(1, 2, 3)' }).bordeColor, '#010203');
+    const hostil = A.limpiarAspecto(JSON.parse('{"__proto__":{"estilo":"duolingo"},"sombra":{"__proto__":{"tipo":"dura"},"color":"#zzzzzz"}}'));
+    assert.equal(hostil.estilo, 'relleno');
+    assert.deepEqual(hostil.sombra, { tipo: 'ninguna', auto: true, color: '' });
+    assert.equal(Object.keys(A.limpiarAspecto({})).length, 8);
+  });
+  await ok('el borde de abajo de «Duolingo» sale del relleno: mas oscuro, mismo tono; o el color que se elija', () => {
+    const luz = (h) => { const n = parseInt(h.slice(1), 16), [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => c / 255); return (Math.max(r, g, b) + Math.min(r, g, b)) / 2; };
+    const claro = '#58cc02', oscuro = A.bordeInferiorDe(claro);
+    assert.match(oscuro, /^#[0-9a-f]{6}$/);
+    assert.ok(luz(oscuro) < luz(claro) * 0.9, `${oscuro} no es mas oscuro`);
+    assert.equal(A.bordeInferiorDe('#58cc02'), A.bordeInferiorDe('rgb(88, 204, 2)'));
+    /* Un relleno casi negro no puede oscurecerse: el escalon sale un poco mas claro */
+    assert.ok(luz(A.bordeInferiorDe('#111111')) > luz('#111111'));
+    assert.ok(luz(A.bordeInferiorDe('#ffffff')) < 1);
+    assert.equal(A.bordeInferiorDe('url(x)'), '');
+    assert.equal(A.bordeInferiorDe(''), '');
+    const duo = A.conEstilo(null, 'duolingo');
+    assert.deepEqual([duo.estilo, duo.borde, duo.radio, duo.negrita, duo.sombra.tipo, duo.sombra.auto], ['duolingo', 0, 8, true, 'dura', true]);
+    const base = { fondo: '#58cc02', color: '#ffffff', aspecto: duo };
+    assert.deepEqual(A.sombraDe(base), { x: 0, y: 5, blur: 0, color: oscuro });
+    assert.equal(A.estiloAspecto(base)['box-shadow'], `0px 5px 0px ${oscuro}`);
+    /* A mano: el color elegido gana, y si se vuelve a «calcular» el calculado vuelve */
+    const manual = { ...base, aspecto: { ...duo, sombra: { tipo: 'dura', auto: false, color: '#7a1f2b' } } };
+    assert.equal(A.estiloAspecto(manual)['box-shadow'], '0px 5px 0px #7a1f2b');
+    assert.equal(A.estiloAspecto({ ...manual, aspecto: { ...manual.aspecto, sombra: { ...manual.aspecto.sombra, auto: true } } })['box-shadow'], `0px 5px 0px ${oscuro}`);
+    /* A mano pero sin color elegido: no se queda sin escalon */
+    assert.equal(A.estiloAspecto({ ...base, aspecto: { ...duo, sombra: { tipo: 'dura', auto: false, color: '' } } })['box-shadow'], `0px 5px 0px ${oscuro}`);
+    /* Cambiar el relleno cambia el escalon: va con el */
+    assert.notEqual(A.estiloAspecto({ ...base, fondo: '#2f7bff' })['box-shadow'], A.estiloAspecto(base)['box-shadow']);
+    const e = A.estiloAspecto(base);
+    assert.equal(e['font-weight'], '700');
+    assert.equal(e['border-radius'], '8px');
+    assert.ok(!('border-width' in e));
+    assert.equal(A.claseDeAspecto(base), ' boton--duo');
+  });
+  await ok('un boton sin aspecto ni suelto sale exactamente como siempre', () => {
+    const d = B.datosDeBoton({ texto: 'Abrir', enlace: 'https://fraterni.co', fondo: '#123456' });
+    assert.equal(d.aspecto, null);
+    const p = B.piezaDeBoton(d, 'boton', {}, false);
+    assert.equal(p.clase, 'boton');
+    assert.deepEqual(p.estilo, { 'background-color': '#123456', color: '#ffffff' });
+    assert.deepEqual(B.estiloDeBoton({ fondo: '', color: '#222222' }), { color: '#222222' });
+    const n = nodoBoton({ texto: 'Abrir', enlace: 'https://fraterni.co', alinear: 'centro' });
+    assert.equal(n.attrs.suelto, null);
+    const t = POR_NODO.get('boton').pdf(n);
+    assert.deepEqual([t.tag, t.clase], ['a', 'boton boton--centro']);
+  });
+  await ok('contorno y solo texto no llevan relleno; la pildora es del todo redonda', () => {
+    const c = { fondo: '#58cc02', color: '#ffffff', aspecto: A.conEstilo(null, 'contorno') };
+    assert.equal(A.claseDeAspecto(c), ' boton--hueco boton--contorno');
+    const e = B.estiloDeBoton(c);
+    assert.ok(!('background-color' in e));
+    assert.equal(e.color, '#58cc02');
+    assert.deepEqual([e['border-width'], e['border-style'], e['border-color']], ['2px', 'solid', 'currentcolor']);
+    assert.equal(A.claseDeAspecto({ aspecto: A.conEstilo(null, 'texto') }), ' boton--hueco');
+    assert.equal(A.estiloAspecto({ aspecto: A.conEstilo(null, 'pildora') })['border-radius'], '999px');
+    const punteado = A.estiloAspecto({ aspecto: { ...A.conEstilo(null, 'relleno'), borde: 3, linea: 'punteado', bordeColor: '#112233' } });
+    assert.deepEqual([punteado['border-width'], punteado['border-style'], punteado['border-color']], ['3px', 'dotted', '#112233']);
+    assert.equal(A.estiloAspecto({ aspecto: { ...A.conEstilo(null, 'relleno'), linea: 'rayado', borde: 1 } })['border-style'], 'dashed');
+    assert.equal(A.estiloAspecto({ aspecto: A.limpiarAspecto({ opacidad: 50 }) }).opacity, '0.5');
+    assert.equal(A.estiloAspecto({ aspecto: A.limpiarAspecto({ sombra: { tipo: 'suave' } }) })['box-shadow'], '0px 3px 10px #00000040');
+  });
+  await ok('suelto: sus tres numeros con tope, y el giro cuenta para que no se salga', () => {
+    assert.deepEqual(A.limpiarSuelto({ dx: 1e9, dy: '</style>', rot: Infinity }), { dx: 400, dy: 0, rot: 0 });
+    assert.deepEqual(A.limpiarSuelto({ dx: -12.34, dy: 5.55, rot: 725 }), { dx: -12.3, dy: 5.6, rot: 360 });
+    assert.equal(A.limpiarSuelto(null), null);
+    assert.equal(A.limpiarSuelto('x'), null);
+    assert.equal(A.limpiarSuelto([1]), null);
+    const lim = { x0: 0, x1: 100, y0: 0, y1: 50 }, caja = { w: 40, h: 10 };
+    assert.deepEqual(A.acotarSuelto({ dx: 10, dy: 5, rot: 0 }, caja, lim), { dx: 10, dy: 5, rot: 0 });
+    assert.deepEqual(A.acotarSuelto({ dx: 999, dy: 999, rot: 0 }, caja, lim), { dx: 60, dy: 40, rot: 0 });
+    assert.deepEqual(A.acotarSuelto({ dx: -999, dy: -999, rot: 0 }, caja, lim), { dx: 0, dy: 0, rot: 0 });
+    /* Girado 90 grados un boton de 40 por 10 ocupa 10 por 40: su centro queda a 5 del borde izquierdo y a 20 del de arriba */
+    const g = A.acotarSuelto({ dx: -999, dy: -999, rot: 90 }, caja, lim);
+    assert.ok(Math.abs(g.dx + 15) < .2 && Math.abs(g.dy - 15) < .2, JSON.stringify(g));
+    /* Una hoja mas chica que el boton no rompe nada */
+    const t = A.acotarSuelto({ dx: 5, dy: 5, rot: 0 }, { w: 200, h: 200 }, lim);
+    assert.ok(Number.isFinite(t.dx) && Number.isFinite(t.dy));
+    /* Y si es mas chica, manda arriba/izquierda: el borde izquierdo y el de arriba quedan dentro de la hoja */
+    const ch = A.acotarSuelto({ dx: 5, dy: 5, rot: 0 }, { w: 200, h: 10 }, { x0: 0, x1: 100, y0: 0, y1: 50 });
+    assert.ok(ch.dx >= -1e-9 && ch.dy >= -1e-9, JSON.stringify(ch));
+    const bajo = A.acotarSuelto({ dx: 5, dy: 0, rot: 0 }, { w: 10, h: 200 }, { x0: 0, x1: 100, y0: 0, y1: 50 });
+    assert.ok(bajo.dy >= -1e-9, JSON.stringify(bajo));
+    /* 60x10 girado 45 grados en una caja de 30 mm de alto: ocupa ~49 mm de alto, no pasa de arriba */
+    const gi = A.acotarSuelto({ dx: 20, dy: -50, rot: 45 }, { w: 60, h: 10 }, { x0: 0, x1: 100, y0: 0, y1: 30 });
+    const hyG = (60 * Math.sin(Math.PI / 4) + 10 * Math.cos(Math.PI / 4)) / 2;
+    assert.ok(gi.dy + 5 - hyG >= -.2, JSON.stringify(gi));
+    assert.deepEqual(A.estiloSuelto({ dx: 12.3, dy: -4, rot: 15 }), { transform: 'translate(12.3mm, -4mm) rotate(15deg)' });
+    assert.deepEqual(A.estiloSuelto({ dx: 0, dy: 0, rot: 0 }), { transform: 'translate(0mm, 0mm)' });
+  });
+  await ok('un boton suelto sale en un marco sin alto, y su lugar es solo un transform', () => {
+    const n = nodoBoton({ texto: 'Ir', enlace: 'https://fraterni.co/x', fondo: '#58cc02', aspecto: A.conEstilo(null, 'duolingo'), suelto: { dx: 12.3, dy: -4, rot: 15 } });
+    assert.deepEqual(n.attrs.suelto, { dx: 12.3, dy: -4, rot: 15 });
+    const t = POR_NODO.get('boton').pdf(n);
+    assert.deepEqual([t.tag, t.clase, t.hijos.length], ['div', 'boton-suelto', 1]);
+    const b = t.hijos[0];
+    assert.deepEqual([b.tag, b.clase, b.attrs.href], ['a', 'boton boton--suelta boton--duo', 'https://fraterni.co/x']);
+    assert.equal(b.estilo.transform, 'translate(12.3mm, -4mm) rotate(15deg)');
+    assert.ok(!('left' in b.estilo) && !('top' in b.estilo));
+    const css = cssLibro({});
+    assert.ok(css.includes('.libro .boton-suelto { position: relative; height: 0; margin: 0;'));
+    assert.ok(css.includes('.libro .boton-suelto > .boton--suelta { position: absolute; left: 0; top: 0; margin: 0;'));
+    assert.ok(!/url\s*\(|@import/i.test(css));
+    /* Y en el PDF entero: el marco, el boton y nada mas */
+    const h = aHoja({ titulo: 'T' }, [{ contenido: doc(parrafo('a'), { type: 'boton', attrs: n.attrs }).doc }]);
+    assert.ok(JSON.stringify(h.nodos).includes('boton-suelto'));
+    assert.ok(!/url\s*\(|@import/i.test(h.css));
+  });
+  await ok('la puerta de estilos: solo lo que fabrica aspectoBoton.js; nunca texto libre', () => {
+    const buenos = [['border-width', '8px'], ['border-style', 'dashed'], ['border-color', 'currentcolor'], ['border-color', '#aabbcc'], ['border-radius', '40px'], ['border-radius', '999px'],
+      ['box-shadow', '0px 5px 0px #46a302'], ['box-shadow', '0px 3px 10px #00000040'], ['opacity', '0.5'], ['opacity', '1'], ['font-weight', '700'], ['background-color', 'transparent'],
+      ['transform', 'translate(1mm, -2.5mm) rotate(20deg)'], ['transform', 'rotate(-12deg)'], ['transform', 'translate(500mm, -500px) rotate(360deg)'], ['left', '12.5%'], ['width', '40%'], ['font-size', '12pt']];
+    for (const [k, v] of buenos) assert.ok(estiloSeguro(k, v), `${k}: ${v}`);
+    const malos = [['border-width', '9px'], ['border-width', '1e9px'], ['border-width', '2px;x:y'], ['border-style', 'url(x)'], ['border-color', 'red'], ['border-color', 'url(x)'], ['border-radius', '41px'], ['border-radius', '1e9px'],
+      ['box-shadow', '0px 5px 0px red'], ['box-shadow', '0px 5px 0px #46a302, 0 0 0 99px red'], ['box-shadow', '99px 5px 0px #46a302'], ['box-shadow', '0px 5px 999px #46a302'], ['box-shadow', 'inset 0px 5px 0px #46a302'], ['opacity', '0'], ['opacity', '0.05'], ['opacity', '2'], ['opacity', 'var(--x)'],
+      ['font-weight', 'bold'], ['font-weight', '700;x:y'], ['background-color', 'url(x)'], ['background-color', 'expression(alert(1))'], ['background-color', '</style><script>'], ['color', 'red;x:url(y)'],
+      ['transform', 'translate(1mm, 2mm) url(x)'], ['transform', 'rotate(1deg); x'], ['transform', 'translate(1e999mm, 0mm)'], ['transform', 'rotate(1e999deg)'], ['transform', 'translate(1000mm, 0mm)'], ['transform', 'translate(0mm, 501px)'], ['transform', 'rotate(361deg)'], ['transform', 'translate(1mm, 2mm) rotate(1e999deg)'], ['transform', 'translate(99999999999999999999999999999999999999999999999999999999999999999999999999999mm,0mm)x'], ['left', 'calc(1px + 2px)'], ['left', '1e999999px'], ['width', 'url(x)'],
+      ['font-family', '"x", url(y)'], ['grid-template-columns', '1fr; x:y'], ['position', 'fixed'], ['__proto__', '1px'], ['background-image', 'none'], ['border', '1px solid red'], ['box-shadow', 5], ['opacity', null]];
+    for (const [k, v] of malos) assert.ok(!estiloSeguro(k, v), `${k}: ${v}`);
+    /* Lo que se pone en un elemento pasa por la misma puerta, y las propiedades fuera de lista no entran */
+    const puesto = {};
+    ponerEstilo({ style: { setProperty: (k, v) => { puesto[k] = v; } } }, { 'box-shadow': '0px 5px 0px #46a302', 'border-color': 'url(x)', position: 'fixed', 'font-weight': '700', background: 'red' });
+    assert.deepEqual(puesto, { 'box-shadow': '0px 5px 0px #46a302', 'font-weight': '700' });
+    ponerEstilo({}, null);
+  });
+  await ok('el aspecto y el lugar suelto sobreviven a guardar, copiar y pegar, duplicar y a una pagina libre', () => {
+    const attrs = { texto: 'Ir', enlace: 'https://fraterni.co/x', fondo: '#58cc02', color: '#ffffff', aspecto: { ...A.conEstilo(null, 'duolingo'), borde: 2, bordeColor: '#112233', linea: 'rayado', opacidad: 80, sombra: { tipo: 'dura', auto: false, color: '#7a1f2b' } }, suelto: { dx: 3, dy: 4, rot: 5 } };
+    const n = nodoBoton(attrs);
+    /* Pegar: los atributos viajan como JSON dentro del HTML (nodos/boton.js) y se vuelven a limpiar */
+    const pegado = nodoBoton(JSON.parse(JSON.stringify(n.attrs)));
+    assert.deepEqual(pegado.attrs, n.attrs);
+    assert.deepEqual(nodoBoton(pegado.attrs).attrs, n.attrs);
+    assert.deepEqual([n.attrs.aspecto.sombra.color, n.attrs.aspecto.linea, n.attrs.suelto.rot], ['#7a1f2b', 'rayado', 5]);
+    /* «Pasar a pagina libre»: lleva todo lo del boton, y ahi ya no hay marco */
+    const [o] = limpiarObjetos([{ id: 'o-abcd1234', ...B.datosDeBoton(n.attrs), tipo: 'boton', x: 30, y: 45, w: 40, h: 7, rot: 5, tam: '12pt' }]);
+    assert.deepEqual(o.aspecto, n.attrs.aspecto);
+    assert.equal(o.suelto, undefined);
+    const e = OBJETOS.boton.pdf(o);
+    assert.ok(e.clase.includes('boton--duo') && e.estilo['box-shadow'] === '0px 5px 0px #7a1f2b' && e.estilo['font-size'] === '12pt');
+    assert.equal(e.estilo.transform, 'rotate(5deg)');
+    /* Cada campo del boton esta en la lista de atributos del editor: si faltara uno, se perderia en silencio al guardar */
+    const fuente = readFileSync(new URL('../src/scripts/portal/panel/dev/taller/nodos/boton.js', import.meta.url), 'utf8');
+    for (const k of Object.keys(POR_NODO.get('boton').datos('boton', {}))) assert.ok(new RegExp(`\\b${k}: `).test(fuente), `nodos/boton.js no lista «${k}»`);
+  });
+}
+
 console.log('varias paginas a la vez');
 {
   const { Schema } = await import('@tiptap/pm/model');
@@ -1171,6 +1335,267 @@ console.log('varias paginas a la vez');
     const c = nuevo();
     assert.equal(V.trBorrar(c.st, [P('x')]), null);
     assert.equal(V.trDuplicar(c.st, []), null);
+  });
+}
+
+console.log('los pliegos de ver como libro');
+{
+  const P = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  const lista = (n) => { const l = []; for (let i = n > 0 ? 0 : null; i != null; i = P.pliegoVecino(i, n, 1)) l.push(P.paginasDe(i, n)); return l; };
+  await ok('la portada va sola; luego de dos en dos', () => {
+    assert.deepEqual(lista(5), [[0], [1, 2], [3, 4]]);
+    assert.deepEqual(lista(1), [[0]]);
+  });
+  await ok('con paginas pares la contratapa va sola al final', () => {
+    assert.deepEqual(lista(4), [[0], [1, 2], [3]]);
+    assert.deepEqual(lista(2), [[0], [1]]);
+  });
+  await ok('sin paginas no hay pliegos', () => {
+    assert.deepEqual(lista(0), []);
+    assert.equal(P.totalPliegos(0), 0);
+    assert.deepEqual([...P.ventana(0, 0)], []);
+  });
+  await ok('cada pagina cae en el pliego que la trae, par o impar', () => {
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 40, 41]) {
+      for (let p = 0; p < n; p++) assert.ok(P.paginasDe(P.pliegoDe(p, n), n).includes(p), `n=${n} p=${p}`);
+    }
+  });
+  await ok('adelante y atras son inversos; en los extremos no hay vecino', () => {
+    for (const n of [1, 2, 3, 4, 5, 8, 9]) {
+      const l = lista(n);
+      assert.equal(P.totalPliegos(n), l.length);
+      for (let i = 0; i < l.length; i++) {
+        const a = P.pliegoDe(l[i][0], n), s = P.pliegoVecino(a, n, 1);
+        if (i < l.length - 1) assert.equal(P.pliegoVecino(s, n, -1), a);
+        else assert.equal(s, null);
+      }
+      assert.equal(P.pliegoVecino(0, n, -1), null);
+    }
+  });
+  await ok('la ventana de un libro de 300 paginas dibuja pocas', () => {
+    assert.ok(P.ventana(P.pliegoDe(150, 300), 300).size <= 6);
+    assert.ok(P.ventana([P.pliegoDe(150, 300), P.pliegoDe(152, 300)], 300).size <= 8);
+    assert.deepEqual([...P.ventana(0, 300)].sort((a, b) => a - b), [0, 1, 2]);
+  });
+  await ok('la ventana no se sale del libro', () => {
+    for (const n of [1, 2, 3, 7]) for (const x of P.ventana(0, n, 4)) assert.ok(x >= 0 && x < n);
+    assert.deepEqual([...P.ventana(P.pliegoDe(6, 7), 7)].sort((a, b) => a - b), [3, 4, 5, 6]);
+  });
+  await ok('el lomo y el canto son numeros pequenos y finitos', () => {
+    for (const n of [0, 1, 40, 5000]) {
+      const l = P.lomoDe(n, 400), c = P.cantoDe(n, Math.max(n, 1), 400);
+      assert.ok(Number.isFinite(l) && l >= 0 && l <= 64, `lomo ${l}`);
+      assert.ok(Number.isFinite(c) && c >= 0 && c <= 9, `canto ${c}`);
+    }
+    assert.equal(P.lomoDe(NaN, 400), 0);
+    assert.equal(P.cantoDe(3, 10, -5), 0);
+  });
+  await ok('un libro de una sola pagina nunca da un pliego negativo', () => {
+    assert.equal(P.pliegoDe(5, 1), 0);
+    assert.equal(P.pliegoDe(1, 1), 0);
+    assert.equal(P.pliegoDe(2, 3), 1);
+  });
+  await ok('cerrado mira a un lado; abierto, al centro', () => {
+    assert.equal(P.ladoDe(0, 5), 'r');
+    assert.equal(P.ladoDe(1, 5), 'c');
+    assert.equal(P.ladoDe(3, 4), 'l');
+  });
+}
+
+console.log('el contenido despues de cualquier hoja');
+{
+  const caps = [{ id: 'a1', doc: { type: 'doc', content: [] } }, { id: 'b2', doc: { type: 'doc', content: [] } }, { id: 'c3', doc: { type: 'doc', content: [] } }];
+  await ok('«al final» pone el contenido despues del ultimo capitulo', () => {
+    assert.equal(I.lugarDelIndice(caps, { antesDe: I.AL_FINAL }, false), 3);
+    assert.equal(I.lugarDelIndice(caps, { antesDe: 'b2' }, false), 1);
+    assert.equal(I.lugarDelIndice(caps, { antesDe: 'no-existe' }, false), 0);
+  });
+  await ok('con portada de un solo capitulo, «al final» tambien cae despues de ella', () => {
+    assert.equal(I.lugarDelIndice(caps.slice(0, 1), { antesDe: I.AL_FINAL }, true), 1);
+    assert.equal(I.lugarDelIndice(caps, { antesDe: I.AL_FINAL }, true), 3);
+    assert.equal(I.lugarDelIndice([], { antesDe: I.AL_FINAL }, false), 0);
+  });
+  await ok('el libro guarda y relee «al final»', () => {
+    const c = new ConfigPagina({ indice: { ver: true, antesDe: I.AL_FINAL } });
+    assert.equal(c.indice.antesDe, 'fin');
+    assert.equal(new ConfigPagina(c.aDatos()).indice.antesDe, 'fin');
+  });
+}
+
+console.log('papeles, palabra propia, subetapa y encabezado');
+{
+  const { capitulosParaIndice } = await import('../src/scripts/contenido/taller/hoja.js');
+  const { propiosDe, propiosAGuardar } = await import('../src/scripts/contenido/taller/TextoLibro.js');
+  const C = await import('../src/scripts/contenido/taller/CabezaLibro.js');
+  const sub = (texto) => ({ type: 'subetapa', attrs: { texto } });
+  const cap = (titulo, extra = {}, ...bloques) => ({ id: `c-${titulo}`, titulo, contenido: { ...extra, doc: { type: 'doc', content: bloques.length ? bloques : [parrafo(titulo)] } } });
+  await ok('papeles: no cuentan, el Capítulo 1 es el primero de verdad, y el rotulo es el nombre del papel', () => {
+    const cs = capitulosParaIndice([cap('Intro', { rol: 'introduccion' }), cap('Uno'), cap('Dos'), cap('Fin', { rol: 'custom', rolTexto: ' Mi  cierre ' })]);
+    const r = I.rotulosDe(cs, { rotulo: { ver: true } });
+    assert.deepEqual(r.map((x) => x.rotulo), ['Introducción', 'Capítulo 1', 'Capítulo 2', 'Mi cierre']);
+    assert.deepEqual(r.map((x) => x.numero), [0, 1, 2, 0]);
+    assert.deepEqual(r.map((x) => x.rol), ['Introducción', '', '', 'Mi cierre']);
+    /* Sin rotulos: ninguno, pero el papel se sabe (miniaturas y encabezado) */
+    assert.deepEqual(I.rotulosDe(cs, {}).map((x) => `${x.rotulo}|${x.rol}`), ['|Introducción', '|', '|', '|Mi cierre']);
+    /* En ingles, los nombres de siempre en ingles; un papel inventado no es papel */
+    assert.equal(I.rotulosDe(cs, { rotulo: { ver: true }, idioma: 'en' })[0].rotulo, 'Introduction');
+    assert.equal(I.nombreDeRol('hackeo', ''), '');
+    assert.equal(I.nombreDeRol('custom', '  '), '');
+    assert.equal(I.nombreDeRol('__proto__', 'x'), '');
+    /* La portada y un capitulo oculto no llevan papel en su rotulo */
+    assert.equal(I.rotulosDe(cs, { rotulo: { ver: true }, portada: true })[0].rotulo, '');
+  });
+  await ok('palabra propia: cuenta aparte por palabra; sin ella, la del libro; los papeles no entran', () => {
+    const cs = capitulosParaIndice([cap('A'), cap('B', { palabra: 'Etapa' }), cap('C'), cap('D', { palabra: 'etapa' }), cap('E', { palabra: 'Capítulo' }), cap('F', { rol: 'prefacio', palabra: 'Etapa' })]);
+    const r = I.rotulosDe(cs, { rotulo: { ver: true } });
+    assert.deepEqual(r.map((x) => x.rotulo), ['Capítulo 1', 'Etapa 1', 'Capítulo 2', 'Etapa 2', 'Capítulo 3', 'Prefacio']);
+    assert.deepEqual(I.rotulosDe(cs, { rotulo: { ver: true, cifras: 'romano', palabra: 'Parte' } }).map((x) => x.rotulo), ['Parte I', 'Etapa I', 'Parte II', 'Etapa II', 'Capítulo I', 'Prefacio']);
+    /* Con los rotulos apagados no hay palabra que mostrar */
+    assert.deepEqual(I.rotulosDe(cs, {}).map((x) => x.rotulo), ['', '', '', '', '', '']);
+    assert.equal(propiosDe({ palabra: `  Et​apa ${'x'.repeat(50)}` }).palabra.length, I.PALABRA_MAX);
+  });
+  await ok('lo propio del capitulo: papel y palabra se guardan, se releen y lo raro no pasa', () => {
+    assert.deepEqual(propiosAGuardar({ rol: 'introduccion', palabra: 'Etapa' }), { rol: 'introduccion', palabra: 'Etapa' });
+    assert.deepEqual(propiosAGuardar({ rol: 'custom', rolTexto: 'Mi papel' }), { rol: 'custom', rolTexto: 'Mi papel' });
+    assert.deepEqual(propiosAGuardar({ rol: 'custom', rolTexto: '' }), {}, 'otro sin texto no es papel');
+    assert.deepEqual(propiosAGuardar({ rol: 'introduccion', rolTexto: 'sobra' }), { rol: 'introduccion' });
+    assert.deepEqual(propiosAGuardar({ rol: 'x"><script>', palabra: 5 }), {});
+    assert.deepEqual(propiosAGuardar({ titulo: '', enIndice: true, numerar: true, rol: '', rolTexto: '', palabra: '' }), {}, 'lo de siempre no se guarda');
+    const limpio = limpiarContenido({ rol: 'conclusion', palabra: 'Etapa', doc: { type: 'doc', content: [parrafo('a')] } }).contenido;
+    assert.equal(limpio.rol, 'conclusion');
+    assert.equal(limpio.palabra, 'Etapa');
+    assert.ok(!('rolTexto' in limpio));
+    assert.deepEqual(propiosDe(limpio), { titulo: '', enIndice: true, numerar: true, rol: 'conclusion', rolTexto: '', palabra: 'Etapa' });
+    assert.ok(!('rol' in limpiarContenido({ rol: 'malo', doc: { type: 'doc', content: [] } }).contenido));
+    /* Los capitulos para el contenido los traen */
+    const [c] = capitulosParaIndice([cap('X', { rol: 'apendice', palabra: 'Etapa' })]);
+    assert.deepEqual([c.rol, c.palabra, c.titulo, c.tituloPropio], ['apendice', 'Etapa', 'X', '']);
+  });
+  await ok('el contenido: con «verRol» el papel va delante, aunque los rotulos esten apagados; las seis plantillas se arman', () => {
+    const cs = capitulosParaIndice([cap('Hola', { rol: 'introduccion' }), cap('Uno'), cap('Sin nombre', { rol: 'referencias', titulo: '' })]);
+    const sin = I.entradasDe(cs, { subtemas: false });
+    assert.ok(sin.every((f) => !f.rotulo), 'apagado por omision: el contenido de siempre');
+    const con = I.entradasDe(cs, { subtemas: false, verRol: true });
+    assert.deepEqual(con.map((f) => `${f.rotulo || ''}|${f.titulo}`), ['Introducción|Hola', '|Uno', 'Referencias|Sin nombre']);
+    assert.ok(!('orden' in con[0]), 'un papel no lleva numero');
+    for (const v of I.PLANTILLAS) {
+      const [nav] = I.hojasDeIndice(con, {}, [con.length], { plantilla: v, orden: v === 'tabla' || v === 'linea' });
+      nav.hijos.forEach(permitido);
+      const fila = nav.hijos.find((x) => JSON.stringify(x).includes('Hola'));
+      assert.ok(JSON.stringify(fila).includes('indice__rotulo'), `${v}: el papel va en su trozo`);
+      assert.ok(JSON.stringify(fila).includes('indice__nombre'), `${v}: y el nombre en el suyo`);
+    }
+    assert.equal(new ConfigPagina({ indice: { verRol: 'si' } }).indice.verRol, false);
+    assert.equal(new ConfigPagina({ indice: { verRol: true } }).indice.verRol, true);
+    assert.equal(new ConfigPagina(new ConfigPagina({ indice: { verRol: true } }).aDatos()).indice.verRol, true);
+  });
+  await ok('encabezado: el texto junta solo las partes encendidas, sin repetir ni pasarse', () => {
+    const cs = capitulosParaIndice([cap('Intro', { rol: 'introduccion', titulo: 'Intro' }), cap('El desierto'), cap('', { enIndice: false, titulo: '' }, sub('Quiz'), parrafo('x'))]);
+    const ctx = C.contextosDeCabeza(cs, { rotulo: { ver: true } });
+    const todo = { rotulo: true, nombre: true, rol: true, subetapa: true };
+    assert.equal(C.textoDeCabeza(ctx[1], '', { rotulo: true, nombre: true }), 'Capítulo 1 · El desierto');
+    assert.equal(C.textoDeCabeza(ctx[1], 'Actividades', todo), 'Capítulo 1 · El desierto · Actividades');
+    /* El rotulo de un papel es su nombre: no se dice dos veces. Y el nombre igual al papel tampoco. */
+    assert.equal(C.textoDeCabeza(ctx[0], '', todo), 'Introducción · Intro');
+    assert.equal(C.textoDeCabeza({ rotulo: '', nombre: 'Introducción', rol: 'Introducción' }, '', todo), 'Introducción');
+    assert.equal(C.textoDeCabeza(ctx[1], 'Actividades', { rotulo: false, nombre: false, rol: false, subetapa: false }), '');
+    assert.equal(C.textoDeCabeza(ctx[1], '', { nombre: true, subetapa: true }), 'El desierto');
+    /* Sin rotulos en el libro: la parte del rotulo simplemente no esta */
+    assert.equal(C.textoDeCabeza(C.contextosDeCabeza(cs, {})[1], '', todo), 'El desierto');
+    /* El capitulo oculto y sin nombre hereda nombre, rotulo y papel del de antes (y su ultima subetapa) */
+    assert.deepEqual([ctx[2].rotulo, ctx[2].nombre, ctx[2].rol, ctx[2].inicial, ctx[2].final], ['Capítulo 1', 'El desierto', '', '', 'Quiz']);
+    assert.equal(C.textoDeCabeza(ctx[2], ctx[2].inicial, todo), 'Capítulo 1 · El desierto');
+    /* Pero si tiene nombre, es suyo; y tras la portada no hereda nada */
+    const nombrado = C.contextosDeCabeza(capitulosParaIndice([cap('A'), cap('Oculto', { enIndice: false, titulo: 'Oculto' })]), { rotulo: { ver: true } });
+    assert.equal(nombrado[1].nombre, 'Oculto');
+    /* Un titulo dentro de la cola oculta no le da nombre: sigue siendo el capitulo de antes */
+    const conTitulo = C.contextosDeCabeza(capitulosParaIndice([cap('Uno'), cap('Seccion 2', { enIndice: false })]), { rotulo: { ver: true } });
+    assert.equal(conTitulo[1].nombre, 'Uno');
+    const trasPortada = C.contextosDeCabeza(capitulosParaIndice([cap('Portada'), cap('', { enIndice: false, titulo: '' })]), { rotulo: { ver: true }, portada: true });
+    assert.equal(trasPortada[1].nombre, '');
+    /* Largo: se corta con puntos suspensivos, sin medio emoji */
+    const largo = C.textoDeCabeza({ nombre: 'a'.repeat(200) }, '', { nombre: true });
+    assert.equal(largo.length, C.CABEZA_MAX);
+    assert.ok(largo.endsWith('…'));
+    assert.ok(!/[\uD800-\uDBFF]…$/.test(C.textoDeCabeza({ nombre: `${'a'.repeat(C.CABEZA_MAX - 2)}😀😀` }, '', { nombre: true })));
+    /* Las subetapas de un capitulo se leen del JSON y del nodo vivo */
+    assert.deepEqual(C.subetapasDe({ type: 'doc', content: [parrafo('a'), sub('Quiz'), sub(' Proyecto  ')] }), ['Quiz', 'Proyecto']);
+    assert.deepEqual(C.subetapasDe({ type: 'doc', content: [{ type: 'columnas', content: [sub('Dentro')] }] }), [], 'solo las de arriba');
+  });
+  await ok('encabezado: el texto va a CSS escapado, sin url( ni @import ni comillas sueltas', () => {
+    const feo = 'He said "hi" \\ url(http://x) @import \n y</style>';
+    const css = C.cadenaCss(feo);
+    assert.ok(css.startsWith('"') && css.endsWith('"'));
+    assert.ok(!/url\s*\(|@import/i.test(css), css);
+    assert.ok(!css.slice(1, -1).includes('"') || /\\22 /.test(css));
+    assert.ok(!/\n/.test(css), 'sin saltos de linea');
+    assert.ok(css.includes('\\22 hi\\22 '), css);
+    assert.ok(css.includes('\\5c '), 'la barra se escapa');
+    assert.equal(C.cadenaCss('Capítulo 2 · Él'), '"Capítulo 2 · Él"');
+  });
+  await ok('ConfigPagina.cabeza: apagado por omision, topes en sus bordes, y viaja con el libro', () => {
+    const c = new ConfigPagina({});
+    assert.deepEqual(c.cabeza, { ver: false, partes: { rotulo: true, nombre: true, rol: false, subetapa: false }, distanciaMm: 10, tamanoPt: 9 });
+    const raro = new ConfigPagina({ cabeza: { ver: 'si', partes: { rol: 1, nombre: 0 }, distanciaMm: 999, tamanoPt: -3 } }).cabeza;
+    assert.deepEqual([raro.ver, raro.partes.rol, raro.partes.nombre, raro.distanciaMm, raro.tamanoPt], [false, false, true, 30, 6]);
+    assert.deepEqual([new ConfigPagina({ cabeza: { distanciaMm: 0, tamanoPt: 99 } }).cabeza.distanciaMm, new ConfigPagina({ cabeza: { distanciaMm: 0, tamanoPt: 99 } }).cabeza.tamanoPt], [4, 14]);
+    assert.deepEqual([new ConfigPagina({ cabeza: { distanciaMm: 'x', tamanoPt: NaN } }).cabeza.distanciaMm, new ConfigPagina({ cabeza: { distanciaMm: undefined } }).cabeza.tamanoPt], [10, 9]);
+    const guardado = new ConfigPagina({ cabeza: { ver: true, partes: { rol: true, subetapa: true, rotulo: false }, distanciaMm: 8.5, tamanoPt: 11 } });
+    assert.deepEqual(new ConfigPagina(guardado.aDatos()).cabeza, guardado.cabeza);
+    /* El margen de arriba que no alcanza solo se avisa: 10 mm + un renglon de 9 pt no caben en 12 mm */
+    assert.equal(new ConfigPagina({ cabeza: { ver: true }, margenes: { sup: 12 } }).cabezaApretada(), true);
+    assert.equal(new ConfigPagina({ cabeza: { ver: true }, margenes: { sup: 20 } }).cabezaApretada(), false);
+    assert.equal(new ConfigPagina({ cabeza: { ver: false }, margenes: { sup: 1 } }).cabezaApretada(), false);
+    assert.equal(new ConfigPagina({ cabeza: { ver: true }, margenes: { sup: 12 } }).margenes.sup, 12, 'los margenes no se tocan solos');
+  });
+  await ok('subetapa: nombre limpio, nunca dentro de columnas, y sale como franja', () => {
+    const t = POR_NODO.get('subetapa');
+    assert.equal(t.datos('subetapa', { texto: `  Acti‮vidades ${'x'.repeat(80)}` }).texto.length, 40);
+    assert.deepEqual(t.datos('subetapa', { texto: { x: 1 }, onclick: 'x' }), { texto: '' });
+    const lim = limpiarContenido(doc(sub('Quiz'), { type: 'columnas', attrs: { anchos: [1, 1] }, content: [{ type: 'columna', content: [sub('Dentro')] }, { type: 'columna', content: [parrafo('b')] }] }));
+    assert.equal(lim.contenido.doc.content[0].type, 'subetapa');
+    assert.ok(!JSON.stringify(lim.contenido.doc.content[1]).includes('subetapa'), 'dentro de columnas es texto');
+    assert.ok(JSON.stringify(lim.contenido.doc.content[1]).includes('Dentro'), 'y no pierde su palabra');
+    const [franja] = aNodos(doc(sub('Quiz')), 'pdf');
+    assert.deepEqual([franja.tag, franja.clase, franja.hijos], ['div', 'subetapa', [{ texto: 'Quiz' }]]);
+    permitido(franja);
+    assert.match(cssLibro({}), /\.libro \.subetapa \{/);
+    assert.ok(!/url\(|@import/i.test(cssLibro({})));
+  });
+  await ok('hoja de impresion con encabezado: una pagina con nombre por texto, la subetapa abre hoja, la portada y los libros viejos no cambian', () => {
+    const libro = (pagina, ...caps) => aHoja(new Obra({ titulo: 'L', pagina }).aDatos(), caps);
+    const caps = [cap('Intro', { rol: 'introduccion' }, parrafo('a'), sub('Actividades'), parrafo('b')), cap('Dos'), cap('', { enIndice: false, titulo: '' })];
+    /* Apagado: ni una linea del encabezado en el estilo, ni una parte envuelta; la subetapa solo abre hoja */
+    const viejo = libro({ rotulo: { ver: true } }, ...caps);
+    assert.ok(!/@top-|cab-|cabeza/.test(viejo.css), 'sin encabezado, el estilo no cambia');
+    assert.ok(!JSON.stringify(viejo.nodos).includes('cabeza-parte'));
+    assert.match(viejo.css, /\.subetapa \{ break-before: page; \}/);
+    /* Encendido */
+    const nuevo = libro({ rotulo: { ver: true }, cabeza: { ver: true, partes: { rol: true, subetapa: true } } }, ...caps);
+    assert.match(nuevo.css, /@page cab-1 \{ @top-center \{ content: "Introducción · Intro"; font: 9pt\/1\.2 /);
+    assert.match(nuevo.css, /content: "Introducción · Intro · Actividades"/);
+    assert.match(nuevo.css, /content: "Capítulo 1 · Dos"/);
+    assert.match(nuevo.css, /padding-top: 37\.8px/, '10 mm = 37,8 px desde el borde de arriba');
+    assert.match(nuevo.css, /\.capitulo\.cabeza-envuelta \{ page: auto; \}/);
+    const [lib] = nuevo.nodos;
+    assert.deepEqual(lib.hijos.map((s) => s.clase), ['capitulo cabeza-envuelta', 'capitulo cab-3', 'capitulo cab-3']);
+    assert.deepEqual(lib.hijos[0].hijos.map((d) => d.clase), ['cabeza-parte cab-1', 'cabeza-parte cab-2']);
+    assert.equal(lib.hijos[0].hijos[1].hijos[0].clase, 'subetapa', 'la franja abre su parte');
+    lib.hijos.forEach(permitido);
+    /* El capitulo oculto y sin nombre dice lo mismo que el de antes: misma pagina con nombre */
+    assert.equal(lib.hijos[1].clase, lib.hijos[2].clase);
+    /* La portada no lleva encabezado; el papel propio va dentro de la pagina con nombre */
+    const pdf = cap('P', {}, { type: 'paginaLibre', attrs: { objetos: [] } });
+    const conPortada = libro({ portada: 'si', cabeza: { ver: true } }, pdf, cap('Uno', { papel: '#1E3A5F' }));
+    assert.equal(conPortada.nodos[0].hijos[0].clase, 'capitulo capitulo--portada');
+    assert.match(conPortada.css, /@page cab-1 \{ background: #1e3a5f; @bottom-left \{ color: #ffffff; \}/);
+    assert.match(conPortada.css, /@top-center \{ content: "Uno"; font: 9pt\/1\.2 [^;]+; color: #ffffff;/);
+    /* Un nombre con comillas, parentesis y arroba no rompe la hoja ni cuela url( */
+    const hostil = libro({ cabeza: { ver: true } }, cap('Ho"la url(x) @import</style>'));
+    assert.ok(!/url\s*\(|@import/i.test(hostil.css));
+    assert.match(hostil.css, /content: "Ho\\22 la url\\28 x\\29  \\40 import<\/style>"/);
+    /* Con imprenta, la sangre empuja el encabezado hacia adentro */
+    assert.match(libro({ imprenta: true, cabeza: { ver: true, distanciaMm: 5 } }, cap('X')).css, /padding-top: 30\.9px/);
   });
 }
 

@@ -6,7 +6,8 @@
    `aHoja` es PURA, para probarla en Node: devuelve el estilo y un arbol neutro, y la pagina /taller-hoja/
    lo convierte en elementos uno por uno. Todo numero que entra al estilo ya paso por ConfigPagina, y
    toda fuente por fuentes.js, asi que aqui no llega nada escrito por nadie. */
-import { colorDeLetra, ConfigPagina, ladoDelNumero } from './ConfigPagina.js';
+import { CABEZA_INTERLINEA, colorDeLetra, ConfigPagina, ladoDelNumero } from './ConfigPagina.js';
+import { cadenaCss, contextosDeCabeza, textoDeCabeza } from './CabezaLibro.js';
 import { familiaCss } from './fuentes.js';
 import { aNodos, propiosDe } from './TextoLibro.js';
 import { colorValido } from './marcas.js';
@@ -28,7 +29,9 @@ export const ATRIBUTOS_SVG = new Set(['viewBox', 'aria-hidden', 'focusable', 'd'
   'points', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'transform']);
 ETIQUETAS_SVG.forEach((t) => ETIQUETAS_HOJA.add(t));
 export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'href', 'id', 'start', 'data-tex', 'dir', 'lang', ...ATRIBUTOS_SVG]);
-export const ESTILOS_HOJA = new Set(['color', 'background-color', 'font-size', 'font-family', 'text-align', 'width', 'height', 'left', 'top', 'transform', 'grid-template-columns']);
+export const ESTILOS_HOJA = new Set(['color', 'background-color', 'font-size', 'font-family', 'text-align', 'width', 'height', 'left', 'top', 'transform', 'grid-template-columns',
+  /* El aspecto de un boton (aspectoBoton.js): armar.js revisa cada valor, uno por uno */
+  'border-width', 'border-style', 'border-color', 'border-radius', 'box-shadow', 'opacity', 'font-weight']);
 
 /* Las formas en que el navegador escribe una letra. Con su nombre entero: «Noto Serif» no es «Noto Serif Hebrew». */
 const conLetra = (f) => [`font-family: ${f};`, `font-family: ${f},`, `"${f}"`].map((v) => `.libro [style*='${v}']`).concat(`.libro [style$='font-family: ${f}']`).join(', ');
@@ -71,9 +74,14 @@ export function cssLibro(config) {
   /* El estilo de siempre va primero y no cambia; las plantillas solo tocan su propia clase */
   return `${cssBaseDe(letra, b, capital, conCapital, cita, hilo)}
 ${cssPlantillas(c)}
+${CSS_SUBETAPA}
 ${porLetra}
 ${porTitulo}`;
 }
+
+/* LA SUBETAPA: una franja pequeña. Empieza una hoja nueva (la mesa corta la columna, el PDF la pagina; cada uno lo
+   dice en su sitio), asi que no lleva margen de arriba: en los dos lados nace en lo alto de la caja del texto. */
+const CSS_SUBETAPA = `.libro .subetapa { box-sizing: border-box; margin: 0 0 .9em; padding: .3em .9em; min-height: 1.9em; border-radius: .3em; font-size: .78em; font-weight: 700; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; text-align: center; background: color-mix(in srgb, var(--hoja-tinta) 9%, var(--hoja-papel)); break-after: avoid; }`;
 
 /* LAS PLANTILLAS DEL CONTENIDO. Solo estilo, igual en la mesa y en el PDF, y nunca una imagen de fondo (la hoja de
    impresion no acepta `url(`). Las cajas de las imagenes tienen medida fija: la hoja no cambia cuando llegan.
@@ -163,7 +171,11 @@ const cssBaseDe = (letra, b, capital, conCapital, cita, hilo) => `.libro, .libro
 .libro .boton__icono { width: 1.15em; height: 1.15em; flex: none; overflow: hidden; }
 .libro .boton--solo { padding-left: .75em; padding-right: .75em; }
 .libro .boton--solo:not(.obj) { position: relative; }
-.libro .boton--solo .boton__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }`;
+.libro .boton--solo .boton__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.libro .boton--hueco { background-color: transparent; color: var(--hoja-tinta); }
+.libro .boton--duo { font-weight: 700; }
+.libro .boton-suelto { position: relative; height: 0; margin: 0; padding: 0; break-inside: avoid; }
+.libro .boton-suelto > .boton--suelta { position: absolute; left: 0; top: 0; margin: 0; width: max-content; max-width: 100%; }`;
 
 /* Para imprenta: el papel crece 9 pt (3,2 mm) por lado, y la caja del texto se queda donde estaba */
 const SANGRE_PT = 9, SANGRE_PX = 12;
@@ -172,7 +184,7 @@ const fijas = (v) => Object.entries(variablesDe(v)).map(([k, x]) => `${k}: ${x};
 const nombre = (color) => color.slice(1);
 
 function cssImpresion(config, usados) {
-  const c = new ConfigPagina(config), p = c.enPixeles(), b = c.cuerpo, tono = tonosDe(c.papel);
+  const c = new ConfigPagina(config), p = c.enPixeles(), b = c.cuerpo, tono = tonosDe(c.papel), cab = c.cabeza;
   const s = c.imprenta ? SANGRE_PX : 0, sPt = c.imprenta ? SANGRE_PT : 0;
   const tintaNumero = colorDeLetra(c, b.fuente) || tono.tinta;
   const numero = (lugar) => (c.numeros.ver ? `@bottom-${lugar} { content: counter(page); font: 9pt ${familiaCss(b.fuente)}; color: ${tintaNumero}; }` : '');
@@ -194,6 +206,17 @@ function cssImpresion(config, usados) {
 .capitulo.capitulo--portada.papel-${nombre(usados.portada)} { page: portada-${nombre(usados.portada)}; }`
       : `\n@page portada { ${sinNumero} }
 .capitulo.capitulo--portada { page: portada; }`;
+  /* EL ENCABEZADO. Chrome no cambia el texto de un margen a mitad de hoja: cada texto distinto es una pagina con nombre
+     (cab-N), y lo que sigue a una subetapa va en su propia parte (la subetapa siempre abre hoja). La distancia es la
+     del borde de arriba de la hoja (con la sangre de imprenta incluida); el renglon mide lo mismo que en la mesa. */
+  const arribaPx = Math.round(((cab.distanciaMm / 25.4) * 96 + s) * 100) / 100;
+  const deCabezas = [...usados.cabezas.values()].map(({ nombre: n, papel, texto }) => {
+    const tinta = colorDeLetra(c, b.fuente) || (papel ? tonosDe(papel).tinta : tono.tinta);
+    const fondo = papel ? `background: ${papel}; ${colorDeLetra(c, b.fuente) ? '' : color3(tonosDe(papel).tinta)} ` : '';
+    const arriba = texto ? `@top-center { content: ${cadenaCss(texto)}; font: ${cab.tamanoPt}pt/${CABEZA_INTERLINEA} ${familiaCss(b.fuente)}; color: ${tinta}; text-align: center; vertical-align: top; padding-top: ${arribaPx}px; white-space: nowrap; overflow: hidden; }` : '';
+    return `@page ${n} { ${fondo}${arriba} }\n.capitulo.${n}, .cabeza-parte.${n} { page: ${n}; }`;
+  }).join('\n');
+  const conCabezas = deCabezas ? `\n.capitulo.cabeza-envuelta { page: auto; }\n${deCabezas}` : '';
   return `@page { size: ${p.anchoPt + sPt * 2}pt ${p.altoPt + sPt * 2}pt; margin: ${p.mt + s}px ${p.mrImpresion + s}px ${p.mbImpresion + s}px ${p.ml + s}px; background: ${tono.papel}; }
 ${reglas}
 html, body { margin: 0; background: transparent; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -210,16 +233,53 @@ html, body { margin: 0; background: transparent; print-color-adjust: exact; -web
 .obj--imagen { overflow: hidden; } .obj--imagen img { position: absolute; max-width: none; }
 .obj--texto { white-space: pre-wrap; overflow-wrap: anywhere; padding: 4px; font-family: ${familiaCss(b.fuente)}; line-height: 1.3; }
 ${deCapitulos}
-${deLibres}${dePortada}
+${deLibres}${dePortada}${conCabezas}
+.subetapa { break-before: page; }
 .pag-libre.pag-libre--pdf { --hoja-tinta: ${TINTA_SOBRE_PDF}; }
 ${cssLibro(config)}`;
+}
+
+const CABEZAS_MAX = 400;
+/* La pagina con nombre de un encabezado: una por papel y texto. Sin texto ni papel propio no hace falta ninguna. */
+function paginaDeCabeza(usados, papel, texto) {
+  if (!papel && !texto) return null;
+  const llave = `${papel}|${texto}`;
+  /* Un libro normal usa unas pocas; pasado el tope, el resto comparte la ultima (mejor un encabezado repetido que
+     miles de reglas) */
+  if (!usados.cabezas.has(llave)) {
+    if (usados.cabezas.size >= CABEZAS_MAX) return `cab-${CABEZAS_MAX}`;
+    usados.cabezas.set(llave, { nombre: `cab-${usados.cabezas.size + 1}`, papel, texto });
+  }
+  return usados.cabezas.get(llave).nombre;
+}
+
+/* El texto de una franja de subetapa ya armada (su unico hijo de texto) */
+const textoDeFranja = (n) => (n.hijos[0] && typeof n.hijos[0].texto === 'string' ? n.hijos[0].texto : '');
+
+/* Lo que va en un capitulo para que sus hojas lleven su encabezado. Sin subetapas, el capitulo entero es de una pagina
+   con nombre. Con ellas, cada parte (desde una subetapa hasta la siguiente) va envuelta y es de la suya: asi el texto
+   del margen cambia justo donde empieza la hoja de la subetapa. Devuelve { clase, hijos } o null si no hace falta nada. */
+function conCabeza(hijos, ctx, partes, papel, usados) {
+  const esSub = (n) => n.clase === 'subetapa';
+  const pagina = (sub) => paginaDeCabeza(usados, papel, textoDeCabeza(ctx, sub, partes));
+  if (!hijos.some(esSub)) {
+    const n = pagina(ctx.inicial);
+    return n ? { clase: ` ${n}`, hijos } : null;
+  }
+  const trozos = [];
+  let actual = { sub: ctx.inicial, nodos: [] };
+  for (const n of hijos) {
+    if (esSub(n)) { if (actual.nodos.length) trozos.push(actual); actual = { sub: textoDeFranja(n), nodos: [n] }; } else actual.nodos.push(n);
+  }
+  if (actual.nodos.length) trozos.push(actual);
+  return { clase: ' cabeza-envuelta', hijos: trozos.map((t) => { const n = pagina(t.sub); return el('div', `cabeza-parte${n ? ` ${n}` : ''}`, t.nodos); }) };
 }
 
 /* Lo que el contenido necesita de cada capitulo: igual que lo arma la mesa (Mesa.capitulosParaIndice) */
 export const capitulosParaIndice = (capitulos) => capitulos.map((c, i) => {
   const x = objeto(c.contenido);
-  const { titulo, enIndice, numerar } = propiosDe(x);
-  return { id: c.id || '', ancla: `cap-${i + 1}`, titulo: c.titulo || '', enIndice, numerar, tituloPropio: titulo, doc: objeto(x.doc) };
+  const { titulo, ...propios } = propiosDe(x);
+  return { id: c.id || '', ancla: `cap-${i + 1}`, ...propios, titulo: c.titulo || '', tituloPropio: titulo, doc: objeto(x.doc) };
 });
 
 /* `capitulos` ya en orden. `o`: { imagenes: {ruta: data:…}, indice: { numeros: {ancla: pagina}, reparto: [filas por hoja] } }.
@@ -227,10 +287,11 @@ export const capitulosParaIndice = (capitulos) => capitulos.map((c, i) => {
 export function aHoja(obra, capitulos, o = {}) {
   const config = new ConfigPagina(obra.pagina), ind = config.indice;
   const caps = capitulosParaIndice(capitulos), portada = hayPortada(caps, config.portada);
-  const entradas = ind.ver && o.indice ? entradasDe(caps, { subtemas: ind.subtemas, portada, rotulo: config.rotulo, idioma: obra.idioma, minis: conMinis(ind) }) : [];
+  const entradas = ind.ver && o.indice ? entradasDe(caps, { subtemas: ind.subtemas, portada, rotulo: config.rotulo, idioma: obra.idioma, minis: conMinis(ind), verRol: ind.verRol }) : [];
   const indice = entradas.length ? hojasDeIndice(entradas, o.indice.numeros, o.indice.reparto, opcionesDeIndice(ind, obra.idioma, objeto(o.imagenes))) : [];
   const nodos = [];
-  const usados = { capitulos: new Set(), libres: new Set() };
+  const usados = { capitulos: new Set(), libres: new Set(), cabezas: new Map() };
+  const contextos = config.cabeza.ver ? contextosDeCabeza(caps, { rotulo: config.rotulo, idioma: obra.idioma, portada }) : null;
   const antes = lugarDelIndice(caps, ind, portada);
   capitulos.forEach((c, i) => {
     if (i === antes) nodos.push(...indice);
@@ -239,7 +300,9 @@ export function aHoja(obra, capitulos, o = {}) {
     const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres });
     const esPortada = portada && i === 0;
     if (esPortada) usados.portada = propio || '';
-    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}`, hijos, { id: `cap-${i + 1}` }));
+    /* El encabezado de sus hojas de texto (nunca el de la portada) */
+    const cabeza = contextos && !esPortada ? conCabeza(hijos, contextos[i], config.cabeza.partes, propio, usados) : null;
+    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}${cabeza ? cabeza.clase : ''}`, cabeza ? cabeza.hijos : hijos, { id: `cap-${i + 1}` }));
   });
   if (antes >= capitulos.length) nodos.push(...indice);
   const libro = el('div', 'libro', nodos);

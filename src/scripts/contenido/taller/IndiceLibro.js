@@ -35,8 +35,8 @@ const anclaDe = (prefijo, semilla) => {
 
 /* JSON ({ type: 'heading', content: [] }) o nodo vivo ({ type: { name }, content: Fragment }) */
 /* Un hueco (null) en un JSON guardado no rompe nada: no es de ningun tipo y no tiene hijos */
-const tipoDe = (n) => (n && typeof n === 'object' ? (typeof n.type === 'string' ? n.type : (n.type && n.type.name) || '') : '');
-const hijosDe = (n) => {
+export const tipoDe = (n) => (n && typeof n === 'object' ? (typeof n.type === 'string' ? n.type : (n.type && n.type.name) || '') : '');
+export const hijosDe = (n) => {
   if (!n || typeof n !== 'object') return [];
   const l = Array.isArray(n.content) ? n.content : (n.content && Array.isArray(n.content.content) ? n.content.content : []);
   return l.filter((x) => x && typeof x === 'object');
@@ -94,24 +94,60 @@ export function romano(n) {
   for (const [v, l] of ROMANOS) while (n >= v) { r += l; n -= v; }
   return r;
 }
+/* Una palabra corta no necesita marcas invisibles (ni de direccion): se quitan, asi no reordena la fila */
+export const palabraLimpia = (v) => textoIndice(typeof v === 'string' ? v.replace(/[​-‏⁠﻿]/g, '') : '', PALABRA_MAX);
 export const palabraDeRotulo = (rotulo, idioma) => textoIndice(rotulo && rotulo.palabra, PALABRA_MAX) || (idioma === 'en' ? 'Chapter' : 'Capítulo');
 
-/* Por capitulo, en el orden del libro: { numero (0 = no cuenta), orden ('3' o 'III'), rotulo ('Capítulo 3' o '') } */
-export function rotulosDe(capitulos, { rotulo = {}, idioma = 'es', portada = false } = {}) {
-  const r = rotulo && typeof rotulo === 'object' ? rotulo : {}, palabra = palabraDeRotulo(r, idioma);
-  let n = 0;
+/* EL PAPEL DE UN CAPITULO (`rol`): un prefacio, una introduccion, una conclusion... No cuenta en la numeracion: el
+   «Capítulo 1» es el primero de verdad. Con «Otro» el autor escribe el nombre (`rolTexto`). Es un nombre del
+   libro, asi que sale en el idioma del libro. */
+export const ROLES = ['prefacio', 'introduccion', 'conclusion', 'agradecimientos', 'citas', 'referencias', 'apendice'];
+const NOMBRES_ROL = {
+  es: { prefacio: 'Prefacio', introduccion: 'Introducción', conclusion: 'Conclusión', agradecimientos: 'Agradecimientos', citas: 'Citas', referencias: 'Referencias', apendice: 'Apéndice' },
+  en: { prefacio: 'Preface', introduccion: 'Introduction', conclusion: 'Conclusion', agradecimientos: 'Acknowledgments', citas: 'Quotes', referencias: 'References', apendice: 'Appendix' }
+};
+/* Solo un papel de la lista, o `custom` con su texto: lo demas no es papel. Devuelve { rol, rolTexto } limpios. */
+export function rolLimpio(rol, rolTexto) {
+  if (typeof rol !== 'string') return { rol: '', rolTexto: '' };
+  if (ROLES.includes(rol)) return { rol, rolTexto: '' };
+  const texto = palabraLimpia(rolTexto);
+  return rol === 'custom' && texto ? { rol: 'custom', rolTexto: texto } : { rol: '', rolTexto: '' };
+}
+export const nombreDeRol = (rol, rolTexto, idioma) => {
+  const r = rolLimpio(rol, rolTexto);
+  return r.rol === 'custom' ? r.rolTexto : r.rol ? (NOMBRES_ROL[idioma === 'en' ? 'en' : 'es'][r.rol]) : '';
+};
+
+/* Por capitulo, en el orden del libro: { numero (0 = no cuenta), orden ('3' o 'III'), rotulo ('Capítulo 3' o ''),
+   rol ('Introducción' o '') }.
+   - Un capitulo con papel no cuenta: su rotulo es el nombre del papel (con `verRol`, aunque los rotulos esten apagados:
+     es lo que pide el contenido).
+   - Un capitulo con palabra propia (`palabra`: «Etapa», «Episodio») se rotula con ella y cuenta aparte de los
+     demas; los que no la tienen usan la del libro. */
+export function rotulosDe(capitulos, { rotulo = {}, idioma = 'es', portada = false, verRol = false } = {}) {
+  const r = rotulo && typeof rotulo === 'object' ? rotulo : {}, palabraLibro = palabraDeRotulo(r, idioma);
+  const cuentas = new Map();      // palabra en minusculas → { n, nombre (como la escribio el primero) }
   return capitulos.map((c, k) => {
-    if ((portada && k === 0) || c.enIndice === false || c.numerar === false) return { numero: 0, orden: '', rotulo: '' };
-    n++;
+    const rol = nombreDeRol(c.rol, c.rolTexto, idioma);
+    if (portada && k === 0) return { numero: 0, orden: '', rotulo: '', rol: '' };
+    if (c.enIndice === false) return { numero: 0, orden: '', rotulo: '', rol };
+    if (rol) return { numero: 0, orden: '', rotulo: r.ver === true || verRol === true ? rol : '', rol };
+    if (c.numerar === false) return { numero: 0, orden: '', rotulo: '', rol: '' };
+    const propia = palabraLimpia(c.palabra) || palabraLibro, llave = propia.toLowerCase();
+    if (!cuentas.has(llave)) cuentas.set(llave, { n: 0, nombre: propia });
+    const cuenta = cuentas.get(llave), palabra = cuenta.nombre, n = ++cuenta.n;
     const orden = r.cifras === 'romano' ? romano(n) : String(n);
-    return { numero: n, orden, rotulo: r.ver === true ? `${palabra} ${orden}` : '' };
+    return { numero: n, orden, rotulo: r.ver === true ? `${palabra} ${orden}` : '', rol: '' };
   });
 }
 
-/* Delante de que capitulo va el contenido: el elegido (`indice.antesDe`, su id), o el primero. Nunca antes de la
+/* Delante de que capitulo va el contenido: el elegido (`indice.antesDe`, su id; o AL_FINAL), o el primero. Nunca antes de la
    portada. Puede ser `capitulos.length`: al final, si la portada es todo el libro. */
+export const AL_FINAL = 'fin';
 export function lugarDelIndice(capitulos, indice, conPortada) {
   const minimo = conPortada ? 1 : 0;
+  /* «Al final del libro»: despues de la ultima hoja (el contenido va tras una hoja que es la ultima de todas) */
+  if (indice && indice.antesDe === AL_FINAL) return Math.max(capitulos.length, minimo);
   const k = capitulos.findIndex((c) => c.id && indice && c.id === indice.antesDe);
   return Math.min(Math.max(k, minimo), Math.max(capitulos.length, minimo));
 }
@@ -130,9 +166,10 @@ function miniDe(c) {
    repite como subtema. Los Título 3 nunca. Un ancla repetida en el libro solo cuenta la primera vez.
    La portada (`portada: true`, el primer capitulo) nunca sale.
    Con `rotulo` (el del libro), cada capitulo que cuenta lleva el suyo: uno sin nombre sale como «Capítulo 3».
+   Con `verRol`, uno con papel (Introducción…) lo lleva delante aunque los rotulos esten apagados.
    `orden` ('3' o 'III') va siempre en los que cuentan: lo usan las plantillas con el numero delante. */
-export function entradasDe(capitulos, { subtemas = true, portada = false, rotulo = null, idioma = 'es', minis = false } = {}) {
-  const vistas = new Set(), lista = [], rotulos = rotulosDe(capitulos, { rotulo: rotulo || {}, idioma, portada });
+export function entradasDe(capitulos, { subtemas = true, portada = false, rotulo = null, idioma = 'es', minis = false, verRol = false } = {}) {
+  const vistas = new Set(), lista = [], rotulos = rotulosDe(capitulos, { rotulo: rotulo || {}, idioma, portada, verRol });
   for (const [k, c] of capitulos.entries()) {
     if (lista.length >= ENTRADAS_MAX) break;
     if (portada && k === 0) continue;

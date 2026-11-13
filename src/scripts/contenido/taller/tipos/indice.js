@@ -17,6 +17,7 @@ import * as paginaLibre from './paginaLibre.js';
 import * as formula from './formula.js';
 import * as boton from './boton.js';
 import * as pasaje from './pasaje.js';
+import * as subetapa from './subetapa.js';
 
-export const TIPOS = [parrafo, titulo, lista, cita, separador, imagen, columnas, paginasPdf, paginaLibre, formula, boton, pasaje];
+export const TIPOS = [parrafo, titulo, lista, cita, separador, imagen, columnas, paginasPdf, paginaLibre, formula, boton, pasaje, subetapa];
 export const POR_NODO = new Map(TIPOS.flatMap((t) => t.nodos.map((n) => [n, t])));

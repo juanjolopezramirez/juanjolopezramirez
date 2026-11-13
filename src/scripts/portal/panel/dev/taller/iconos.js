@@ -27,7 +27,8 @@ export const TRAZOS = {
   justificado: 'M2 3.5h12M2 6.5h12M2 9.5h12M2 12.5h12',
   lista: 'M6 4h8M6 8h8M6 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01',
   listaNum: 'M6 4h8M6 8h8M6 12h8M2.5 2.5v3M2 10h1.6L2 12.8h1.7',
-  cita: 'M3 5h3.5v3.5H5L3.5 11M9.5 5H13v3.5h-1.5L10 11'
+  cita: 'M3 5h3.5v3.5H5L3.5 11M9.5 5H13v3.5h-1.5L10 11',
+  ok: 'M3.5 8.5 6.5 11.5 12.5 4.5'
 };
 
 export function icono(nombre) {

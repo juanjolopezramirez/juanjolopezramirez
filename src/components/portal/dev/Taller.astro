@@ -186,6 +186,7 @@ const { tx } = Astro.props;
         <button class="tal-btn" type="button" data-insertar="cuadro">{tx.objCuadro}</button>
         <button class="tal-btn" type="button" data-insertar="boton">{tx.objBoton}</button>
         <button class="tal-btn" type="button" data-insertar="pasaje">{tx.objPasaje}</button>
+        <button class="tal-btn" type="button" data-insertar="subetapa" title={tx.subetapaAyuda}>{tx.objSubetapa}</button>
         <span class="tal-sep"></span>
         <button class="tal-btn" type="button" data-b-separador>{tx.separador}</button>
         <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.columnas}</summary>
@@ -249,6 +250,22 @@ const { tx } = Astro.props;
               </div>
             </div>
           </details>
+          <!-- El encabezado de cada hoja de texto: que dice, a que distancia y con que letra -->
+          <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.encabezado}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+            <div class="tal-b-panel">
+              <label class="tal-marca"><input name="cabezaVer" type="checkbox" /><span>{tx.encabezadoVer}</span></label>
+              <div class="tal-b-grupo" data-tal-cabeza-opciones>
+                <label class="tal-marca"><input name="cabezaRotulo" type="checkbox" /><span>{tx.cabezaRotulo}</span></label>
+                <label class="tal-marca"><input name="cabezaNombre" type="checkbox" /><span>{tx.cabezaNombre}</span></label>
+                <label class="tal-marca"><input name="cabezaRol" type="checkbox" /><span>{tx.cabezaRol}</span></label>
+                <label class="tal-marca"><input name="cabezaSubetapa" type="checkbox" /><span>{tx.cabezaSubetapa}</span></label>
+                <label><span>{tx.cabezaDistancia}</span><input class="tal-ctl tal-ctl--num" name="cabezaDistancia" type="number" min="4" max="30" step="0.5" /></label>
+                <label><span>{tx.cabezaTamano}</span><input class="tal-ctl tal-ctl--num" name="cabezaTamano" type="number" min="6" max="14" step="0.5" /></label>
+                <p class="tal-ayuda" data-tal-cabeza-aviso role="status" hidden>{tx.cabezaApretada}</p>
+                <p class="tal-ayuda">{tx.cabezaAyuda}</p>
+              </div>
+            </div>
+          </details>
           <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.colores}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
             <div class="tal-b-panel tal-b-panel--colores"><div class="tal-colores" data-tal-colores></div></div>
           </details>
@@ -284,6 +301,7 @@ const { tx } = Astro.props;
             </div>
             <label class="tal-marca"><input name="indiceSubtemas" type="checkbox" /><span>{tx.indiceSubtemas}</span></label>
             <label class="tal-marca"><input name="indicePuntos" type="checkbox" /><span>{tx.indicePuntos}</span></label>
+            <label class="tal-marca"><input name="indiceVerRol" type="checkbox" /><span>{tx.indiceVerRol}</span></label>
             <p class="tal-rotulo">{tx.indiceImagen}</p>
             <div class="tal-indice-d__imagen">
               <button class="tal-btn" type="button" data-tal-indice-imagen>{tx.indiceImagenPoner}</button>
@@ -326,8 +344,13 @@ const { tx } = Astro.props;
       <div class="tal-vl-tope">
         <button class="tal-btn" type="button" data-vl-cerrar>← {tx.volverEscribir}</button>
         <button class="tal-ic" type="button" data-vl-ant aria-label={tx.anterior}>‹</button>
-        <span data-vl-dice></span>
+        <span data-vl-dice aria-live="polite"></span>
         <button class="tal-ic" type="button" data-vl-sig aria-label={tx.siguiente}>›</button>
+        <span class="tal-vl-gustos">
+          <button class="tal-btn" type="button" data-vl-tapa aria-pressed="true">{tx.vlTapa}</button>
+          <button class="tal-btn" type="button" data-vl-lomo aria-pressed="false">{tx.vlLomo}</button>
+          <button class="tal-btn" type="button" data-vl-sonido aria-pressed="false">{tx.vlSonido}</button>
+        </span>
       </div>
       <div class="tal-vl-escena" data-vl-escena></div>
     </div>

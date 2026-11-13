@@ -8,8 +8,10 @@ import { SelectorColor } from './SelectorColor.js';
 import { icono } from './iconos.js';
 import { enlaceDeBoton, COPIA_MAX, TEXTO_MAX } from '../../../../contenido/taller/tipos/boton.js';
 import { REFERENCIA_MAX, TEXTO_MAX as PASAJE_MAX } from '../../../../contenido/taller/tipos/pasaje.js';
+import { SUBETAPA_MAX } from '../../../../contenido/taller/tipos/subetapa.js';
 import { NOMBRES_ICONO, arbolIcono } from '../../../../contenido/taller/iconosBoton.js';
 import { armar } from '../../../../contenido/taller/armar.js';
+import { BORDE_MAX, ESTILOS, LINEAS, OPACIDAD_MIN, PILDORA, RADIO_MAX, SOMBRAS, VERDE_DUOLINGO, conEstilo, limpiarAspecto } from '../../../../contenido/taller/aspectoBoton.js';
 import { leerSvg } from './SvgSubido.js';
 import { anclaNueva, esAncla, RE_ANCLA_PAGINA, textoIndice, TITULO_INDICE_MAX } from '../../../../contenido/taller/IndiceLibro.js';
 
@@ -227,7 +229,7 @@ export class Propiedades {
       return;
     }
     if (o.tipo === 'texto') l.append(this.color(tx.colorLetra, o.color, (c) => v.cambiar({ color: c })));
-    if (o.tipo === 'boton') this.camposDeBoton(o, (x) => v.cambiar(x));
+    if (o.tipo === 'boton') this.camposDeBoton(o, (x) => v.cambiar(x), () => v.objeto(o.id) || o);
     if (o.tipo === 'zona') l.append(this.par(tx.nombreZona, o.nombre, (t) => v.cambiar({ nombre: t }), 'text'));
     if (o.tipo === 'imagen') l.append(this.par(tx.alt, o.alt, (t) => v.cambiar({ alt: t }), 'text'), this.par(tx.adorno, o.decorativa, (s) => v.cambiar({ decorativa: s }), 'checkbox'));
     const g = crear('div', 'tal-medidas');
@@ -323,7 +325,7 @@ export class Propiedades {
   }
 
   /* Lo que hace un boton, en la linea o en una pagina libre */
-  camposDeBoton(o, cambiar) {
+  camposDeBoton(o, cambiar, vivo = () => o) {
     const tx = this.tx, l = this.lienzo;
     l.append(this.par(tx.botonTexto, o.texto, (t) => cambiar({ texto: t }), 'text', TEXTO_MAX));
     l.append(this.segmento([['enlace', tx.botonEnlace], ['copiar', tx.botonCopiar]], o.accion, (k) => cambiar({ accion: k })));
@@ -347,7 +349,48 @@ export class Propiedades {
     }
     const dos = crear('div', 'tal-pares');
     dos.append(this.color(tx.colorFondoBoton, o.fondo, (c) => cambiar({ fondo: c })), this.color(tx.colorLetra, o.color, (c) => cambiar({ color: c })));
-    l.append(dos, this.pliegue(tx.icono, this.camposDeIcono(o, cambiar)));
+    l.append(dos, this.pliegue(tx.icono, this.camposDeIcono(o, cambiar)), this.pliegue(tx.aspecto, this.camposDeAspecto(vivo, cambiar)));
+  }
+
+  /* Como se ve un boton: relleno, contorno, solo texto, pildora o «Duolingo», con su borde, esquinas, sombra y negrita. Cada campo
+     se guarda ya limpio (aspectoBoton.js); lo que no se toca queda como el boton de siempre.
+     `vivo` da el boton de AHORA: el panel se parcha en su sitio y sus oyentes no deben leer lo que habia al pintarlo. */
+  camposDeAspecto(vivo, cambiar) {
+    const tx = this.tx, ahora = () => limpiarAspecto(vivo().aspecto) || limpiarAspecto({}), a = ahora();
+    const poner = (x) => cambiar({ aspecto: limpiarAspecto({ ...ahora(), ...x }) });
+    const lista = [];
+    const estilo = crear('label', 'tal-par'), sel = crear('select', 'tal-ctl');
+    sel.dataset.clave = 'aspecto:estilo';
+    for (const k of ESTILOS) { const op = crear('option', '', tx.aspectoEstilos[k]); op.value = k; sel.append(op); }
+    sel.value = a.estilo;
+    /* «Duolingo» sin color de relleno parte de su verde y su letra blanca: el borde de abajo sale de ahi */
+    sel.addEventListener('change', () => {
+      const o = vivo();
+      cambiar({ aspecto: conEstilo(ahora(), sel.value), ...(sel.value === 'duolingo' && !o.fondo ? { fondo: VERDE_DUOLINGO, ...(o.color ? {} : { color: '#ffffff' }) } : {}) });
+    });
+    estilo.append(crear('span', '', tx.aspectoEstilo), sel);
+    lista.push(estilo);
+    const g = crear('div', 'tal-medidas');
+    g.append(
+      this.medida('Borde', tx.aspectoBorde, a.borde, (n) => poner({ borde: Math.min(BORDE_MAX, Math.max(0, n)) })),
+      this.medida('Radio', tx.aspectoRadio, a.radio === PILDORA ? RADIO_MAX : a.radio ?? '', (n) => poner({ radio: Math.min(RADIO_MAX, Math.max(0, n)) })),
+      this.medida('Opac.', tx.aspectoOpacidad, a.opacidad, (n) => poner({ opacidad: Math.min(100, Math.max(OPACIDAD_MIN, n)) }))
+    );
+    lista.push(g);
+    if (a.borde > 0) {
+      lista.push(this.segmento(LINEAS.map((k) => [k, tx.aspectoLineas[k]]), a.linea, (k) => poner({ linea: k })));
+      lista.push(this.color(tx.aspectoBordeColor, a.bordeColor, (c) => poner({ bordeColor: c })));
+    }
+    lista.push(this.par(tx.aspectoPildora, a.radio === PILDORA, (s) => poner({ radio: s ? PILDORA : 8 }), 'checkbox'));
+    lista.push(crear('p', 'tal-rotulo', tx.aspectoSombra), this.segmento(SOMBRAS.map((k) => [k, tx.aspectoSombras[k]]), a.sombra.tipo, (k) => poner({ sombra: { ...ahora().sombra, tipo: k } })));
+    /* El escalon de abajo: calculado del relleno (un tono mas oscuro) o del color que se elija */
+    if (a.sombra.tipo === 'dura') {
+      lista.push(this.par(tx.aspectoSombraAuto, a.sombra.auto, (s) => poner({ sombra: { ...ahora().sombra, auto: s } }), 'checkbox'));
+      if (!a.sombra.auto) lista.push(this.color(tx.aspectoSombraColor, a.sombra.color, (c) => poner({ sombra: { ...ahora().sombra, color: c } })));
+    }
+    lista.push(this.par(tx.aspectoNegrita, a.negrita, (s) => poner({ negrita: s }), 'checkbox'));
+    lista.push(crear('p', 'tal-ayuda', tx.aspectoAyuda), this.accion(tx.aspectoQuitar, () => cambiar({ aspecto: null })));
+    return lista;
   }
 
   /* El icono del boton: uno de la coleccion, el propio (un SVG revisado y hecho formas), o ninguno */
@@ -393,12 +436,18 @@ export class Propiedades {
   pintarBoton(v) {
     const tx = this.tx, a = v.node.attrs, l = this.lienzo, cambiar = (x) => { v.updateAttributes(x); this.deBoton(v); };
     l.append(crear('h2', '', tx.objBoton));
-    this.camposDeBoton(a, cambiar);
+    this.camposDeBoton(a, cambiar, () => v.node.attrs);
+    /* Donde va: en su linea (izquierda, centro, derecha) o suelto. Suelto no ocupa renglon: se arrastra y se gira. */
+    const s = a.suelto, lugar = s ? 'suelto' : a.alinear || '';
+    l.append(crear('p', 'tal-rotulo', tx.botonLugar), this.segmento([['', tx.alinear.izquierda, 'izquierda'], ['centro', tx.alinear.centro, 'centro'], ['derecha', tx.alinear.derecha, 'derecha'], ['suelto', tx.botonSuelto]], lugar,
+      (k) => cambiar(k === 'suelto' ? { suelto: v.acotar({ dx: 0, dy: 0, rot: 0 }) } : { alinear: k, suelto: null })));
+    if (s) {
+      const poner = (x) => cambiar({ suelto: v.acotar({ ...(v.node.attrs.suelto || s), ...x }) }), g = crear('div', 'tal-medidas');
+      g.append(this.medida('→', tx.sueltoDx, s.dx, (n) => poner({ dx: n })), this.medida('↓', tx.sueltoDy, s.dy, (n) => poner({ dy: n })), this.medida('°', tx.sueltoGiro, s.rot, (n) => poner({ rot: n })));
+      l.append(crear('p', 'tal-ayuda', tx.botonSueltoAyuda), g);
+    }
     const ac = crear('div', 'tal-junto');
-    ac.append(
-      this.segmento([['', tx.alinear.izquierda, 'izquierda'], ['centro', tx.alinear.centro, 'centro'], ['derecha', tx.alinear.derecha, 'derecha']], a.alinear, (k) => cambiar({ alinear: k })),
-      this.conIcono('eliminar', tx.eliminar, () => this.mesa.borrarImagen(v), 'tal-accion--aviso')
-    );
+    ac.append(this.accion(tx.pasarLibre, () => this.mesa.pasarALibre(v)), this.conIcono('eliminar', tx.eliminar, () => this.mesa.borrarImagen(v), 'tal-accion--aviso'));
     l.append(ac);
   }
 
@@ -419,6 +468,22 @@ export class Propiedades {
     const r = this.par(tx.pasajeReferencia, a.referencia, (s) => cambiar({ referencia: s }), 'text', REFERENCIA_MAX);
     r.querySelector('input').placeholder = tx.pasajeReferenciaAyuda;
     l.append(c, r, crear('p', '', tx.pasajeHebreo));
+    const ac = crear('div', 'tal-junto');
+    ac.append(this.conIcono('eliminar', tx.eliminar, () => this.mesa.borrarImagen(v), 'tal-accion--aviso'));
+    l.append(ac);
+  }
+
+  /* Una subetapa: su nombre (tres de uso comun a un clic, o el que se quiera) */
+  deSubetapa(v) { this.rehacer(() => this.poner(() => this.pintarSubetapa(v), v, 'subetapa')); }
+
+  pintarSubetapa(v) {
+    const tx = this.tx, a = v.node.attrs, l = this.lienzo, cambiar = (x) => { v.updateAttributes(x); this.deSubetapa(v); };
+    l.append(crear('h2', '', tx.objSubetapa), crear('p', '', tx.subetapaAyuda));
+    const c = this.par(tx.subetapaNombre, a.texto, (s) => cambiar({ texto: s }), 'text', SUBETAPA_MAX);
+    c.querySelector('input').placeholder = tx.subetapaEjemplo;
+    const usuales = crear('div', 'tal-junto');
+    usuales.append(...tx.subetapasUsuales.map((t) => this.accion(t, () => cambiar({ texto: t }))));
+    l.append(c, usuales);
     const ac = crear('div', 'tal-junto');
     ac.append(this.conIcono('eliminar', tx.eliminar, () => this.mesa.borrarImagen(v), 'tal-accion--aviso'));
     l.append(ac);

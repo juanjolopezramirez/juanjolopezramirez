@@ -243,13 +243,27 @@
    margen de abajo (CapituloVivo.piePagina pone el lugar) */
 .pie { position: absolute; transform: translateY(-50%); text-align: center; font: 9pt/1 var(--pie-letra, Georgia, serif); color: var(--pie-tinta, var(--hoja-tinta, #151515)); white-space: nowrap; pointer-events: none; }
 .pie--izq { text-align: left; } .pie--der { text-align: right; }
+/* El encabezado como sale en el PDF: una linea centrada entre los margenes, con la letra del libro, a la distancia
+   del borde de arriba que dice CapituloVivo.cabezaPagina. Su renglon mide 1,2 veces la letra, como en la hoja de impresion. */
+.cabeza { position: absolute; text-align: center; font: var(--cabeza-pt, 9pt)/1.2 var(--pie-letra, Georgia, serif); color: var(--pie-tinta, var(--hoja-tinta, #151515)); white-space: nowrap; overflow: hidden; pointer-events: none; }
 .flujo:focus-visible { outline: none; }
 .boton { cursor: pointer; }
 .flujo > .boton { position: relative; z-index: 1; }
-.boton--falta { outline: 2px dashed #B3261E; outline-offset: 2px; }
+/* Un boton suelto: su marco no tiene alto y el boton se arrastra desde ahi. Al pulsar «Duolingo» baja su escalon (solo en la mesa:
+   un PDF no se mueve, asi que ahi nunca se ve distinto). */
+.flujo > .boton-suelto { z-index: 1; }
+.boton-suelto > .boton--suelta { cursor: grab; touch-action: none; user-select: none; }
+.boton-suelto > .boton--suelta:active { cursor: grabbing; }
+.flujo .boton-suelto.ProseMirror-selectednode { outline: none; }
+.flujo .boton-suelto.ProseMirror-selectednode > .boton--suelta { outline: 3px solid #1a4f8a; outline-offset: 2px; }
+.flujo .boton--duo:not(.arrastrando):active { box-shadow: none !important; translate: 0 5px; }
+.boton--falta, .boton--fuera { outline: 2px dashed #B3261E; outline-offset: 2px; }
 /* El pasaje se elige con un clic; vacio, se marca como el boton que falta llenar */
 .pasaje-ed { cursor: pointer; }
 .pasaje--falta { outline: 2px dashed #B3261E; outline-offset: 2px; }
+/* La subetapa siempre abre hoja: en la mesa corta la columna (en el PDF, la pagina). Sin nombre, se marca. */
+.flujo > .subetapa { break-before: column; cursor: pointer; }
+.subetapa--falta { outline: 2px dashed #B3261E; outline-offset: 2px; }
 .tal-tipografia { width: 21rem; max-height: none; grid-template-columns: 1fr 1fr; align-items: end; }
 .tal-tipografia .tal-rotulo { grid-column: 1 / -1; margin: .25rem 0 0; font-size: 11px; font-weight: 600; color: var(--tiza); }
 .tal-tipografia .tal-marca, .tal-tipografia .tal-ayuda { grid-column: 1 / -1; }
@@ -374,11 +388,28 @@
 /* ---- Ver como libro ---- */
 .tal-vista-libro { position: fixed; inset: 0; z-index: 70; background: rgb(6 9 7 / .97); display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .tal-vista-libro[hidden] { display: none; }
-.tal-vl-tope { display: flex; align-items: center; gap: .6rem; padding: .6rem 1rem; }
-.tal-vl-escena { display: flex; align-items: center; justify-content: center; min-height: 0; padding-bottom: 1rem; }
-.pliego { display: flex; box-shadow: 0 14px 40px rgb(0 0 0 / .7); }
+.tal-vl-tope { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; padding: .6rem 1rem; }
+.tal-vl-gustos { margin-left: auto; display: flex; flex-wrap: wrap; gap: .4rem; }
+.tal-vl-gustos .tal-btn[aria-pressed="true"] { background: var(--consola-alta); border-color: var(--raya-fuerte); color: var(--tiza); }
+/* El libro que gira es el del lector de la web (styles/hojeo.css). Aqui, el escenario: una camara con
+   perspectiva para ver el lomo, y el libro que se ladea segun donde este. */
+.tal-vl-escena { display: flex; align-items: center; justify-content: center; min-height: 0; padding-bottom: 1rem; perspective: 2200px; perspective-origin: 50% 35%; }
+.tal-vista-libro .flip {
+  flex: none;
+  transform-style: preserve-3d;
+  transition: translate var(--cam-ms, 0ms) cubic-bezier(.45, 0, .25, 1), rotate .7s var(--ease-smooth, cubic-bezier(.16, 1, .3, 1));
+}
+.tal-vista-libro .flip__boards { transform: translateZ(-1px); }
 .clon .hoja { box-shadow: none; }
-.pliego .clon + .clon::after { content: ""; position: absolute; inset: 0; box-shadow: inset 8px 0 10px -8px rgb(0 0 0 / .28); pointer-events: none; }
+/* Con «Ver el lomo»: cerrado se ve de tres cuartos, con el lomo a la vista; abierto se inclina hacia atras.
+   Asi no se arrastra (la libreria mide el raton en un plano plano): se pasa con flechas, botones y clic. */
+.tal-vista-libro[data-lomo="si"] .flip[data-at="front"] { rotate: 0 1 0 32deg; }
+.tal-vista-libro[data-lomo="si"] .flip[data-at="back"] { rotate: 0 1 0 -32deg; }
+.tal-vista-libro[data-lomo="si"] .flip[data-at="open"] { rotate: 1 0 0 16deg; }
+.tal-vista-libro[data-lomo="si"] .flip__stage { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tal-vista-libro .flip { transition: translate var(--cam-ms, 0ms) cubic-bezier(.45, 0, .25, 1); }
+}
 
 /* ---- Formulas ---- */
 .formula--ed { cursor: pointer; unicode-bidi: isolate; border-radius: 3px; }
