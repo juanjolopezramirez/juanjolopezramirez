@@ -47,7 +47,7 @@ export class Miniaturas {
     this.escala = Math.min(ESCALA, ANCHO_MAX / m.px.W);
     let grupo = null, cap, n = 0;
     /* La portada del libro se llama asi, no «Capítulo 1», y los demas sin nombre cuentan desde despues de ella */
-    const portada = m.vivos.length && m.conPortada() ? m.vivos[0] : null;
+    const portada = m.vivos.length && m.conPortada() ? m.vivos[0] : null, nombres = m.nombresDeCapitulos();
     for (const p of m.paginas) {
       n++;
       if (p.vivo !== cap) {
@@ -56,7 +56,7 @@ export class Miniaturas {
         grupo.setAttribute('role', 'none');
         if (cap) {
           const c = cap;
-          const nombre = c === portada ? m.tx.portada : c.cap.titulo || `${m.tx.capitulo} ${m.vivos.indexOf(c) + (portada ? 0 : 1)}`;
+          const nombre = nombres[m.vivos.indexOf(c)];
           const t = crear('div', 'cap-mini', `▤ ${nombre}`);
           t.setAttribute('role', 'treeitem');
           t.setAttribute('aria-level', '1');

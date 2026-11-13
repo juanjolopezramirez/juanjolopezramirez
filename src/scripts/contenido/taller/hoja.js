@@ -6,16 +6,16 @@
    `aHoja` es PURA, para probarla en Node: devuelve el estilo y un arbol neutro, y la pagina /taller-hoja/
    lo convierte en elementos uno por uno. Todo numero que entra al estilo ya paso por ConfigPagina, y
    toda fuente por fuentes.js, asi que aqui no llega nada escrito por nadie. */
-import { colorDeLetra, ConfigPagina } from './ConfigPagina.js';
+import { colorDeLetra, ConfigPagina, ladoDelNumero } from './ConfigPagina.js';
 import { familiaCss } from './fuentes.js';
-import { aNodos } from './TextoLibro.js';
+import { aNodos, propiosDe } from './TextoLibro.js';
 import { colorValido } from './marcas.js';
 import { PAPEL_BASE, TINTA_SOBRE_PDF, tonosDe, variablesDe } from './colores.js';
 import { objeto } from '../comun.js';
 import { el } from './tipos/ayuda.js';
 import { FUENTE_HEBREO } from './tipos/pasaje.js';
 import { FORMAS } from './iconosBoton.js';
-import { entradasDe, hayPortada, hojasDeIndice, lugarDelIndice, tituloDeIndice } from './IndiceLibro.js';
+import { conMinis, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice, opcionesDeIndice } from './IndiceLibro.js';
 
 const tieneClase = (n, c) => !!n && ((n.clase || '').split(' ').includes(c) || (n.hijos || []).some((h) => tieneClase(h, c)));
 
@@ -68,7 +68,61 @@ export function cssLibro(config) {
   const porLetra = Object.entries(c.letras).filter(([f]) => f !== b.fuente).map(([f, x]) => `${conLetra(f)} { color: ${x}; }`).join('\n');
   const porTitulo = [1, 2, 3].filter((n) => t[`t${n}`]).map((n) => `.libro h${n} { color: ${t[`t${n}`]}; }`).join('\n');
   /* Los espacios se tratan igual que en el editor: si no, una palabra cambia de linea y la pagina se corre */
-  return `.libro, .libro .capitulo, .libro .pag-libre, .libro .hoja { color: ${letra}; }
+  /* El estilo de siempre va primero y no cambia; las plantillas solo tocan su propia clase */
+  return `${cssBaseDe(letra, b, capital, conCapital, cita, hilo)}
+${cssPlantillas(c)}
+${porLetra}
+${porTitulo}`;
+}
+
+/* LAS PLANTILLAS DEL CONTENIDO. Solo estilo, igual en la mesa y en el PDF, y nunca una imagen de fondo (la hoja de
+   impresion no acepta `url(`). Las cajas de las imagenes tienen medida fija: la hoja no cambia cuando llegan.
+   - La linea del tiempo: cada fila dibuja su trozo de linea (asi no queda hueco entre filas, y en un contenido de dos
+     hojas cada hoja empieza y termina en un circulo). El circulo va a media altura del primer renglon.
+   - Dos columnas: la hoja tiene el alto exacto de la caja del texto (menos 2 px, para que el PDF no saque una hoja
+     de mas por una fraccion), y las filas llenan la primera columna antes de pasar a la segunda. */
+function cssPlantillas(c) {
+  const p = c.enPixeles(), img = c.indice.imagen;
+  const altoImagen = Math.round((p.alto * img.altoPct) / 100);
+  const raya = 'color-mix(in srgb, var(--hoja-tinta) 26%, var(--hoja-papel))', suave = 'color-mix(in srgb, var(--hoja-tinta) 7%, var(--hoja-papel))';
+  const centro = 'calc(.45em + .5lh)';
+  return `.libro .indice__orden { flex: none; min-width: 1.7em; font-variant-numeric: tabular-nums; }
+.libro .indice__mini { flex: none; display: block; width: 2.4em; aspect-ratio: ${p.W} / ${p.H}; object-fit: cover; border-radius: .15em; background: ${suave}; }
+.libro .indice__imagen { margin: 0 0 1.1em; height: ${altoImagen}px; overflow: hidden; }
+.libro .indice__foto { display: block; width: 100%; height: 100%; object-fit: ${img.ajuste === 'contener' ? 'contain' : 'cover'}; }
+.libro .indice--minimalista .indice__titulo { font-weight: 400; letter-spacing: .04em; margin-bottom: 1.3em; }
+.libro .indice--minimalista .indice__fila { margin: 0 0 .7em; }
+.libro .indice--minimalista .indice__puntos, .libro .indice--tarjetas .indice__puntos { visibility: hidden; border: 0; }
+.libro .indice--minimalista .indice__rotulo { display: block; font-size: .7em; letter-spacing: .14em; text-transform: uppercase; opacity: .65; }
+.libro .indice--minimalista .indice__rotulo::after, .libro .indice--tarjetas .indice__rotulo::after { content: none; }
+.libro .indice--tarjetas .indice__fila--1 { align-items: center; padding: .6em .8em; margin: 0 0 .45em; border-radius: .45em; background: ${suave}; }
+.libro .indice--tarjetas .indice__fila--2 + .indice__fila--1 { margin-top: .45em; }
+.libro .indice--tarjetas .indice__fila--2 { padding-left: 2em; margin: 0 0 .35em; }
+.libro .indice--tarjetas .indice__rotulo { display: block; font-size: .72em; letter-spacing: .08em; opacity: .7; }
+.libro .indice--columnas { columns: 2; column-gap: 7mm; column-fill: auto; height: ${Math.max(0, p.alto - 2)}px; }
+.libro .indice--columnas .indice__titulo, .libro .indice--columnas .indice__imagen { column-span: all; }
+.libro .indice--tabla .indice__fila { margin: 0; padding: .42em 0; border-bottom: .5pt solid ${raya}; }
+.libro .indice--tabla .indice__fila--2 + .indice__fila--1 { margin-top: 0; }
+.libro .indice--tabla .indice__fila--2 { padding-left: 2.1em; }
+.libro .indice--tabla .indice__orden { font-weight: 700; }
+.libro .indice--linea .indice__fila { position: relative; margin: 0; padding: .45em 0 .45em 2.2em; }
+.libro .indice--linea.indice--orden .indice__fila { padding-left: 2.7em; }
+.libro .indice--linea .indice__fila--2 + .indice__fila--1 { margin-top: 0; }
+.libro .indice--linea .indice__fila--2 { font-size: 1em; padding-left: 3em; }
+.libro .indice--linea.indice--orden .indice__fila--2 { padding-left: 3.4em; }
+.libro .indice--linea .indice__fila--2 > * { font-size: .92em; }
+.libro .indice--linea .indice__fila::before { content: ""; position: absolute; left: .85em; top: 0; bottom: 0; border-left: 1.2pt solid var(--hoja-tinta); transform: translateX(-50%); }
+.libro .indice--linea .indice__fila:first-of-type::before { top: ${centro}; }
+.libro .indice--linea .indice__fila:last-of-type::before { bottom: auto; height: ${centro}; }
+.libro .indice--linea .indice__fila:only-of-type::before { content: none; }
+.libro .indice--linea .indice__fila::after { content: ""; position: absolute; left: .85em; top: ${centro}; width: .8em; height: .8em; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 50%; background: var(--hoja-papel); border: 1.2pt solid var(--hoja-tinta); }
+.libro .indice--linea .indice__fila--2::after { width: .42em; height: .42em; background: var(--hoja-tinta); border: 0; }
+.libro .indice--linea .indice__orden { position: absolute; left: .85em; top: ${centro}; transform: translate(-50%, -50%); z-index: 1; min-width: 1.7em; height: 1.7em; padding: 0 .3em; box-sizing: border-box; border-radius: .85em; display: flex; align-items: center; justify-content: center; background: var(--hoja-tinta); color: var(--hoja-papel); }
+.libro .indice--linea .indice__orden:empty { display: none; }
+.libro .indice--linea .indice__fila--1:has(.indice__orden:not(:empty))::after { content: none; }`;
+}
+
+const cssBaseDe = (letra, b, capital, conCapital, cita, hilo) => `.libro, .libro .capitulo, .libro .pag-libre, .libro .hoja { color: ${letra}; }
 .libro { font: ${b.tamanoPt}pt/${b.interlinea} ${familiaCss(b.fuente)}; font-variant-ligatures: none; font-feature-settings: "liga" 0; }
 .libro p, .libro h1, .libro h2, .libro h3 { white-space: break-spaces; overflow-wrap: break-word; -webkit-line-break: after-white-space; }
 .libro p { margin: 0 0 .7em; orphans: 2; widows: 2; }
@@ -98,6 +152,7 @@ export function cssLibro(config) {
 .libro .indice__fila--2 { padding-left: 1.3em; font-size: .92em; }
 .libro .indice__fila--2 + .indice__fila--1 { margin-top: .7em; }
 .libro .indice__texto { min-width: 0; }
+.libro .indice__rotulo:not(:last-child)::after { content: " · "; }
 .libro .indice__puntos { flex: 1 1 auto; min-width: 1.5em; border-bottom: .12em dotted currentColor; opacity: .45; }
 .libro .indice__num { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; }
 .libro .boton { box-sizing: border-box; display: block; width: fit-content; max-width: 100%; margin: .8em 0; padding: .5em 1.2em; border-radius: .45em; background: var(--hoja-tinta); color: var(--hoja-papel); font-size: .95em; line-height: 1.3; text-align: center; text-decoration: none; overflow-wrap: anywhere; break-inside: avoid; }
@@ -108,10 +163,7 @@ export function cssLibro(config) {
 .libro .boton__icono { width: 1.15em; height: 1.15em; flex: none; overflow: hidden; }
 .libro .boton--solo { padding-left: .75em; padding-right: .75em; }
 .libro .boton--solo:not(.obj) { position: relative; }
-.libro .boton--solo .boton__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-${porLetra}
-${porTitulo}`;
-}
+.libro .boton--solo .boton__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }`;
 
 /* Para imprenta: el papel crece 9 pt (3,2 mm) por lado, y la caja del texto se queda donde estaba */
 const SANGRE_PT = 9, SANGRE_PX = 12;
@@ -130,8 +182,18 @@ function cssImpresion(config, usados) {
 .capitulo.papel-${nombre(x)} { page: cap-${nombre(x)}; ${fijas(x)} }`).join('\n');
   const deLibres = [...usados.libres].map((x) => `@page libre-${nombre(x)} { margin: 0; background: ${x}; @bottom-center { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
 .pag-libre.papel-${nombre(x)} { page: libre-${nombre(x)}; background: ${x}; ${fijas(x)} }`).join('\n');
-  const izq = c.numeros.lugar === 'pie-exterior' ? 'left' : 'right', der = izq === 'left' ? 'right' : 'left';
-  const reglas = c.numeros.lugar === 'pie-centro' ? `@page { ${numero('center')} }` : `@page :left { ${numero(izq)} } @page :right { ${numero(der)} }`;
+  /* El lado sale de la misma tabla que usa la mesa: pagina 2 = izquierda, pagina 1 = derecha */
+  const lado = { izq: 'left', centro: 'center', der: 'right' }, l = c.numeros.lugar;
+  const reglas = l === 'pie-centro' ? `@page { ${numero('center')} }`
+    : l === 'pie-izquierda' || l === 'pie-derecha' ? `@page { ${numero(lado[ladoDelNumero(l, 1)])} }`
+      : `@page :left { ${numero(lado[ladoDelNumero(l, 2)])} } @page :right { ${numero(lado[ladoDelNumero(l, 1)])} }`;
+  /* Las paginas de texto de la portada no llevan numero, pero cuentan. Con su papel, la pagina con nombre lo lleva. */
+  const sinNumero = '@bottom-center { content: none; } @bottom-left { content: none; } @bottom-right { content: none; }';
+  const dePortada = usados.portada === undefined ? ''
+    : usados.portada ? `\n@page portada-${nombre(usados.portada)} { background: ${usados.portada}; ${sinNumero} }
+.capitulo.capitulo--portada.papel-${nombre(usados.portada)} { page: portada-${nombre(usados.portada)}; }`
+      : `\n@page portada { ${sinNumero} }
+.capitulo.capitulo--portada { page: portada; }`;
   return `@page { size: ${p.anchoPt + sPt * 2}pt ${p.altoPt + sPt * 2}pt; margin: ${p.mt + s}px ${p.mrImpresion + s}px ${p.mbImpresion + s}px ${p.ml + s}px; background: ${tono.papel}; }
 ${reglas}
 html, body { margin: 0; background: transparent; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -148,7 +210,7 @@ html, body { margin: 0; background: transparent; print-color-adjust: exact; -web
 .obj--imagen { overflow: hidden; } .obj--imagen img { position: absolute; max-width: none; }
 .obj--texto { white-space: pre-wrap; overflow-wrap: anywhere; padding: 4px; font-family: ${familiaCss(b.fuente)}; line-height: 1.3; }
 ${deCapitulos}
-${deLibres}
+${deLibres}${dePortada}
 .pag-libre.pag-libre--pdf { --hoja-tinta: ${TINTA_SOBRE_PDF}; }
 ${cssLibro(config)}`;
 }
@@ -156,7 +218,8 @@ ${cssLibro(config)}`;
 /* Lo que el contenido necesita de cada capitulo: igual que lo arma la mesa (Mesa.capitulosParaIndice) */
 export const capitulosParaIndice = (capitulos) => capitulos.map((c, i) => {
   const x = objeto(c.contenido);
-  return { id: c.id || '', ancla: `cap-${i + 1}`, titulo: c.titulo || '', enIndice: x.enIndice !== false, tituloPropio: typeof x.titulo === 'string' ? x.titulo : '', doc: objeto(x.doc) };
+  const { titulo, enIndice, numerar } = propiosDe(x);
+  return { id: c.id || '', ancla: `cap-${i + 1}`, titulo: c.titulo || '', enIndice, numerar, tituloPropio: titulo, doc: objeto(x.doc) };
 });
 
 /* `capitulos` ya en orden. `o`: { imagenes: {ruta: data:…}, indice: { numeros: {ancla: pagina}, reparto: [filas por hoja] } }.
@@ -164,8 +227,8 @@ export const capitulosParaIndice = (capitulos) => capitulos.map((c, i) => {
 export function aHoja(obra, capitulos, o = {}) {
   const config = new ConfigPagina(obra.pagina), ind = config.indice;
   const caps = capitulosParaIndice(capitulos), portada = hayPortada(caps, config.portada);
-  const entradas = ind.ver && o.indice ? entradasDe(caps, { subtemas: ind.subtemas, portada }) : [];
-  const indice = entradas.length ? hojasDeIndice(entradas, o.indice.numeros, o.indice.reparto, { titulo: tituloDeIndice(ind, obra.idioma), puntos: ind.puntos }) : [];
+  const entradas = ind.ver && o.indice ? entradasDe(caps, { subtemas: ind.subtemas, portada, rotulo: config.rotulo, idioma: obra.idioma, minis: conMinis(ind) }) : [];
+  const indice = entradas.length ? hojasDeIndice(entradas, o.indice.numeros, o.indice.reparto, opcionesDeIndice(ind, obra.idioma, objeto(o.imagenes))) : [];
   const nodos = [];
   const usados = { capitulos: new Set(), libres: new Set() };
   const antes = lugarDelIndice(caps, ind, portada);
@@ -174,7 +237,9 @@ export function aHoja(obra, capitulos, o = {}) {
     const propio = colorValido(objeto(c.contenido).papel);
     if (propio) usados.capitulos.add(propio);
     const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres });
-    nodos.push(el('section', `capitulo${propio ? ` papel-${nombre(propio)}` : ''}`, hijos, { id: `cap-${i + 1}` }));
+    const esPortada = portada && i === 0;
+    if (esPortada) usados.portada = propio || '';
+    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}`, hijos, { id: `cap-${i + 1}` }));
   });
   if (antes >= capitulos.length) nodos.push(...indice);
   const libro = el('div', 'libro', nodos);

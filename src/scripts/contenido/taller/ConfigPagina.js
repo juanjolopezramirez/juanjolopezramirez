@@ -2,11 +2,11 @@
 
    Todo sale de aqui: la vista previa, el PDF, la zona segura sobre un diseño traido de Figma y
    la resolucion con la que se guardan sus paginas. */
-import { objeto, tiene } from '../comun.js';
+import { objeto, rutaAlmacen, tiene } from '../comun.js';
 import { nombreDeFuente, FUENTES_MAX } from './fuentes.js';
 import { colorValido } from './marcas.js';
 import { RECIENTES_MAX } from './colores.js';
-import { textoIndice, TITULO_INDICE_MAX } from './IndiceLibro.js';
+import { textoIndice, TITULO_INDICE_MAX, PALABRA_MAX, PLANTILLAS } from './IndiceLibro.js';
 
 export const LADO_MIN = 50;
 export const LADO_MAX = 420;
@@ -26,7 +26,17 @@ export const TAMANOS = [
   { id: '6x9', nombre: '6 × 9 pulgadas (152 × 229 mm)', anchoMm: 152.4, altoMm: 228.6 },
   { id: '5x8', nombre: '5 × 8 pulgadas (127 × 203 mm)', anchoMm: 127, altoMm: 203.2 }
 ];
-export const LUGARES_NUMERO = ['pie-centro', 'pie-exterior', 'pie-interior'];
+export const LUGARES_NUMERO = ['pie-centro', 'pie-exterior', 'pie-interior', 'pie-izquierda', 'pie-derecha'];
+/* De que lado del pie cae el numero de la pagina `n`. La pagina 1 es de la derecha (como al abrir un libro):
+   «hacia afuera» va a la derecha en las impares y a la izquierda en las pares; «hacia adentro», al reves.
+   La mesa y la hoja de impresion leen esta misma tabla. */
+export function ladoDelNumero(lugar, n) {
+  if (lugar === 'pie-izquierda') return 'izq';
+  if (lugar === 'pie-derecha') return 'der';
+  if (lugar !== 'pie-exterior' && lugar !== 'pie-interior') return 'centro';
+  const impar = Math.abs(Math.trunc(n)) % 2 === 1;
+  return (lugar === 'pie-exterior') === impar ? 'der' : 'izq';
+}
 /* El panel ofrece 2 a 4 renglones; 5 solo se conserva en los libros que ya lo tenian */
 export const CAPITAL_LINEAS = [2, 3, 4, 5];
 /* Hundida: baja junto a sus renglones. Sencilla: una letra algo mayor. (La elevada se quito: un libro que la
@@ -44,6 +54,14 @@ const mm = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.i
 /* Para la capital y las citas: lo que se pasa del borde se queda en el borde, no vuelve al valor de siempre */
 const entre = (v, min, max, siNo, pasos = 10) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v)) * pasos) / pasos : siNo);
 
+/* La imagen de arriba del contenido. El alto es un porcentaje de la caja del texto. */
+export const IMAGEN_INDICE_ALTOS = [20, 30, 40, 50];
+const RE_IMAGEN_LIBRO = /^taller\/[a-z0-9]+(?:[.-][a-z0-9]+)*\/img\/[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+function imagenDeIndice(v) {
+  const o = objeto(v), ruta = typeof o.ruta === 'string' && rutaAlmacen(o.ruta, ['webp', 'png', 'jpg']) && RE_IMAGEN_LIBRO.test(o.ruta) ? o.ruta : '';
+  return { ruta, altoPct: entre(o.altoPct, 15, 60, 30, 1), ajuste: o.ajuste === 'contener' ? 'contener' : 'cubrir' };
+}
+
 export class ConfigPagina {
   constructor(d = {}) {
     const o = objeto(d), m = objeto(o.margenes), n = objeto(o.numeros), c = objeto(o.cuerpo);
@@ -59,8 +77,19 @@ export class ConfigPagina {
       subtemas: ind.subtemas !== false,
       puntos: ind.puntos !== false,
       /* El capitulo delante del cual va ('' = al comienzo del libro). Si ya no existe, va al comienzo. */
-      antesDe: typeof ind.antesDe === 'string' && /^[A-Za-z0-9-]{1,40}$/.test(ind.antesDe) ? ind.antesDe : ''
+      antesDe: typeof ind.antesDe === 'string' && /^[A-Za-z0-9-]{1,40}$/.test(ind.antesDe) ? ind.antesDe : '',
+      /* Como se ve: una plantilla (sin ella, la clasica de siempre), el numero del capitulo delante, una imagen
+         arriba (solo una del libro: taller/<libro>/img/…) y, en Tarjetas, la portada de cada capitulo */
+      plantilla: PLANTILLAS.includes(ind.plantilla) ? ind.plantilla : 'clasico',
+      orden: ind.orden === true,
+      imagen: imagenDeIndice(ind.imagen),
+      portadas: ind.portadas === true
     };
+    /* El rotulo de los capitulos («Capítulo 1», «Episodio IV»): apagado hasta que el autor lo pida.
+       Sin palabra, la del idioma del libro. */
+    const ro = objeto(o.rotulo);
+    /* Una palabra corta no necesita marcas invisibles (ni de direccion): se quitan, asi no reordena la fila */
+    this.rotulo = { ver: ro.ver === true, palabra: textoIndice(typeof ro.palabra === 'string' ? ro.palabra.replace(/[​-‏⁠﻿]/g, '') : '', PALABRA_MAX), cifras: ro.cifras === 'romano' ? 'romano' : 'arabe' };
     /* La primera hoja como portada: 'auto' la reconoce sola (IndiceLibro.hayPortada); 'si' y 'no' los elige el autor */
     this.portada = o.portada === true || o.portada === 'si' ? 'si' : o.portada === false || o.portada === 'no' ? 'no' : 'auto';
     this.imprenta = o.imprenta === true;
@@ -134,8 +163,8 @@ export class ConfigPagina {
 
   aDatos() {
     return {
-      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice }, cuerpo: { ...this.cuerpo },
-      portada: this.portada, imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen } }, cuerpo: { ...this.cuerpo },
+      rotulo: { ...this.rotulo }, portada: this.portada, imprenta: this.imprenta, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
       capital: { ...this.capital }, cita: { ...this.cita }
     };
   }

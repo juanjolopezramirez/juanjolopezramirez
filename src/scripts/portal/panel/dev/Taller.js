@@ -11,8 +11,9 @@
    pantalla en un computador tambien la hace angosta y ahi se sigue escribiendo. */
 import { Seccion } from '../Seccion.js';
 import { Obra, Capitulo } from '../../../contenido/taller/Obra.js';
-import { colorDeLetra, ConfigPagina, LADO_MAX, LADO_MIN, mmAPx, pxAMm, TAMANOS } from '../../../contenido/taller/ConfigPagina.js';
-import { limpiarContenido, llavesDe } from '../../../contenido/taller/TextoLibro.js';
+import { colorDeLetra, ConfigPagina, IMAGEN_INDICE_ALTOS, LADO_MAX, LADO_MIN, mmAPx, pxAMm, TAMANOS } from '../../../contenido/taller/ConfigPagina.js';
+import { limpiarContenido, llavesDe, propiosAGuardar, propiosDe } from '../../../contenido/taller/TextoLibro.js';
+import { rutasDelLibro } from '../../../contenido/taller/RutasLibro.js';
 import { aVersion2, necesitaMigrar } from '../../../contenido/taller/Migrar.js';
 import { aHoja } from '../../../contenido/taller/hoja.js';
 import { IDIOMAS } from '../../../contenido/comun.js';
@@ -30,7 +31,9 @@ import { Selector } from './taller/Selector.js';
 import { BorrarLibro } from './taller/BorrarLibro.js';
 import { icono } from './taller/iconos.js';
 import { familiaCss } from '../../../contenido/taller/fuentes.js';
-import { RECIENTES_MAX, textosPocoVisibles } from '../../../contenido/taller/colores.js';
+import { RECIENTES_MAX, textosPocoVisibles, variablesDe } from '../../../contenido/taller/colores.js';
+import { hojasDeIndice } from '../../../contenido/taller/IndiceLibro.js';
+import { armar } from '../../../contenido/taller/armar.js';
 
 const COPIA_MS = 10 * 60 * 1000;
 const ARMADO_MS = 5000;
@@ -51,17 +54,6 @@ const MARGENES_LISTOS = {
 };
 
 function recorrer(n, fn) { fn(n); (n.content || []).forEach((h) => recorrer(h, fn)); }
-function rutasDe(doc, salida = new Set()) {
-  recorrer(doc, (n) => {
-    const a = n.attrs || {};
-    if (n.type === 'imagen' && a.ruta) salida.add(a.ruta);
-    if (n.type === 'paginaLibre') {
-      if (a.fondo) salida.add(a.fondo);
-      (a.objetos || []).forEach((o) => { if (o.ruta) salida.add(o.ruta); });
-    }
-  });
-  return salida;
-}
 function sinAlt(doc) {
   let n = 0;
   recorrer(doc, (x) => {
@@ -430,8 +422,7 @@ export class Taller extends Seccion {
       v.cap.titulo = fila.titulo;
       const leido = limpiarContenido(contenido).contenido;
       v.papel = leido.papel || '';
-      v.tituloPropio = leido.titulo || '';
-      v.enIndice = leido.enIndice !== false;
+      v.ponerPropios(propiosDe(leido));
       v.pintarPapel();
       if (v === this.mesa.activo && this.colorCapitulo) this.colorCapitulo.poner(v.papel);
       v.guardado.soltar();
@@ -451,9 +442,8 @@ export class Taller extends Seccion {
     /* Solo el nombre: los px para Figma estan en «Más ajustes», y la lista ya no se corta */
     TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.nombre; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
-    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas', 'indiceAntes']) new Selector(f.elements[k]);
-    /* Los capitulos cambian de nombre y de orden: la lista de «Va antes de» se arma al abrir el menu */
-    f.elements.indiceAntes.closest('details').addEventListener('toggle', (e) => { if (e.currentTarget.open) this.llenarAntesDe(); });
+    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas', 'indiceAntes', 'rotuloPalabra', 'rotuloCifras']) new Selector(f.elements[k]);
+    this.prepararIndice(f);
     for (const k of ['fuente', 'capitalFuente', 'citaFuente']) new Selector(f.elements[k], { fuenteDe: (v) => (v ? familiaCss(v) : '') });
     const ajustes = this.m('[data-tal-ajustes]');
     tam.addEventListener('change', () => {
@@ -478,7 +468,9 @@ export class Taller extends Seccion {
     /* Los campos del libro viven en varios sitios (cinta, flechitas, ajustes, opciones del PDF), todos del mismo
        formulario: el cambio se escucha en la mesa y se lee por un solo camino */
     this.nodoMesa.addEventListener('change', (e) => {
-      if (e.target.form !== f || e.target === tam) return;
+      if (e.target.form !== f || e.target === tam || !e.target.name) return;
+      /* La tabla numerada lleva el numero delante: al elegirla se enciende (se puede apagar) */
+      if (e.target.name === 'indicePlantilla' && e.target.value === 'tabla') f.elements.indiceOrden.checked = true;
       if (e.target.name === 'anchoPx') f.elements.anchoMm.value = pxAMm(Number(e.target.value));
       if (e.target.name === 'altoPx') f.elements.altoMm.value = pxAMm(Number(e.target.value));
       const t = /Px$/.test(e.target.name) && this.formatoDe(Number(f.elements.anchoPx.value), Number(f.elements.altoPx.value));
@@ -528,6 +520,8 @@ export class Taller extends Seccion {
     f.elements.numerosVer.checked = c.numeros.ver; f.elements.imprenta.checked = c.imprenta;
     f.elements.indice.checked = c.indice.ver; f.elements.indiceTitulo.value = c.indice.titulo;
     f.elements.indiceSubtemas.checked = c.indice.subtemas; f.elements.indicePuntos.checked = c.indice.puntos;
+    this.ponerPlantilla(c.indice);
+    this.ponerRotulo(c.rotulo);
     this.llenarAntesDe();
     this.m('[data-tal-indice-opciones]').hidden = !c.indice.ver;
     f.elements.lugar.value = c.numeros.lugar;
@@ -560,8 +554,9 @@ export class Taller extends Seccion {
     const f = this.m('[data-tal-pagina]'), s = f.elements.indiceAntes, id = this.obra.pagina.indice.antesDe;
     const vivos = this.mesa ? this.mesa.vivos : [], portada = !!this.mesa && vivos.length > 0 && this.mesa.conPortada();
     const opcion = (valor, texto) => { const o = document.createElement('option'); o.value = valor; o.textContent = texto; return o; };
-    /* El mismo nombre que en las miniaturas: sin nombre, «Capítulo N» contando desde despues de la portada */
-    const nombre = (v, k) => (v.cap.titulo || `${this.tx.capitulo} ${k + (portada ? 0 : 1)}`).slice(0, 60);
+    /* El mismo nombre que en las miniaturas (con su rotulo, o «Capítulo N» contando como el contenido) */
+    const nombres = this.mesa ? this.mesa.nombresDeCapitulos() : [];
+    const nombre = (v, k) => (nombres[k] || '').slice(0, 60);
     const desde = portada ? 2 : 1;
     s.replaceChildren(opcion('', portada ? this.tx.despuesDePortada : this.tx.indiceAlComienzo), ...vivos.slice(desde).map((v, i) => opcion(v.cap.id, nombre(v, i + desde))));
     s.value = vivos.slice(desde).some((v) => v.cap.id === id) ? id : '';
@@ -607,6 +602,81 @@ export class Taller extends Seccion {
     f.elements.tamano.value = t ? t.id : '';
   }
 
+  /* La ventana «Índice»: la lista de «Va antes de» se arma al abrirla (los capitulos cambian de nombre y de orden), y
+     cada plantilla se dibuja con el estilo real del libro */
+  prepararIndice(f) {
+    const d = this.m('[data-tal-indice-dialogo]'), archivo = this.m('[data-tal-indice-archivo]');
+    this.m('[data-tal-indice-abrir]').addEventListener('click', () => { this.llenarAntesDe(); this.pintarMuestras(); d.showModal(); });
+    this.m('[data-tal-indice-cerrar]').addEventListener('click', () => d.close());
+    this.m('[data-tal-indice-imagen]').addEventListener('click', () => archivo.click());
+    archivo.addEventListener('change', () => { const a = archivo.files[0]; archivo.value = ''; if (a) this.subirImagenIndice(a); });
+    this.m('[data-tal-indice-sin-imagen]').addEventListener('click', () => { f.elements.indiceImagen.value = ''; this.leerPagina(); });
+  }
+
+  /* Las seis muestras: las mismas filas en cada plantilla, con la letra, el papel y el numero delante del libro */
+  pintarMuestras() {
+    const c = this.obra.pagina, f = this.m('[data-tal-pagina]'), tx = this.tx;
+    const ejemplo = [
+      { nivel: 1, titulo: tx.muestraUno, ancla: 'cap-1', rotulo: c.rotulo.ver ? `${tx.capitulo} 1` : '', orden: '1' },
+      { nivel: 2, titulo: tx.muestraSub, ancla: 'cap-2' },
+      { nivel: 1, titulo: tx.muestraDos, ancla: 'cap-3', rotulo: c.rotulo.ver ? `${tx.capitulo} 2` : '', orden: '2' }
+    ];
+    const papel = variablesDe(c.papel);
+    for (const m of this.nodoMesa.querySelectorAll('[data-muestra]')) {
+      const v = m.dataset.muestra, hoja = document.createElement('div');
+      hoja.className = 'libro tal-plantilla__hoja';
+      for (const [k, x] of Object.entries(papel)) hoja.style.setProperty(k, x);
+      const orden = f.elements.indiceOrden.checked || v === 'tabla';
+      hoja.append(armar(hojasDeIndice(ejemplo, { 'cap-1': 3, 'cap-2': 5, 'cap-3': 9 }, [3], { titulo: c.indice.titulo || tx.indiceTitulo, puntos: c.indice.puntos, plantilla: v, orden })[0]));
+      m.replaceChildren(hoja);
+      /* Una muestra no se toca: sus filas son enlaces de verdad, y no deben recibir el foco ni cambiar la pagina */
+      m.inert = true;
+    }
+  }
+
+  /* La imagen de arriba del contenido: se sube como las del libro y se guarda en el libro */
+  async subirImagenIndice(archivo) {
+    const ext = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' }[archivo.type];
+    if (!ext) { this.error('archivoTipo'); return; }
+    const turno = this.turnoObra, ruta = `taller/${this.obra.id}/img/${azar()}.${ext}`;
+    const r = await this.be.taller.subir(ruta, archivo);
+    if (turno !== this.turnoObra) return;
+    if (r.error) { this.error(r.error); return; }
+    await this.imagenes.poner(ruta, archivo);
+    if (turno !== this.turnoObra) return;
+    this.m('[data-tal-pagina]').elements.indiceImagen.value = ruta;
+    this.leerPagina();
+    this.decir(this.tx.indiceImagenPuesta);
+  }
+
+  /* El rotulo en el menu: la palabra de la lista, u «Otra…» con la suya escrita */
+  ponerRotulo(r) {
+    const f = this.m('[data-tal-pagina]'), lista = [...f.elements.rotuloPalabra.options].map((o) => o.value);
+    f.elements.rotuloVer.checked = r.ver;
+    f.elements.rotuloPalabra.value = lista.includes(r.palabra) && r.palabra !== '*' ? r.palabra : '*';
+    f.elements.rotuloOtro.value = f.elements.rotuloPalabra.value === '*' ? r.palabra : '';
+    f.elements.rotuloCifras.value = r.cifras;
+    this.mostrarRotulo();
+  }
+
+  ponerPlantilla(ind) {
+    const f = this.m('[data-tal-pagina]');
+    f.elements.indicePlantilla.value = ind.plantilla;
+    f.elements.indiceOrden.checked = ind.orden;
+    f.elements.indicePortadas.checked = ind.portadas;
+    f.elements.indiceImagen.value = ind.imagen.ruta;
+    f.elements.indiceImagenAlto.value = String(IMAGEN_INDICE_ALTOS.reduce((a, b) => (Math.abs(b - ind.imagen.altoPct) < Math.abs(a - ind.imagen.altoPct) ? b : a)));
+    f.elements.indiceImagenAjuste.value = ind.imagen.ajuste;
+    this.m('[data-tal-indice-portadas]').hidden = ind.plantilla !== 'tarjetas';
+    this.m('[data-tal-indice-sin-imagen]').disabled = !ind.imagen.ruta;
+  }
+
+  mostrarRotulo() {
+    const f = this.m('[data-tal-pagina]');
+    this.m('[data-tal-rotulo-opciones]').hidden = !f.elements.rotuloVer.checked;
+    this.m('[data-tal-rotulo-otro]').hidden = f.elements.rotuloPalabra.value !== '*';
+  }
+
   leerPagina() {
     const f = this.m('[data-tal-pagina]'), n = (k) => Number(f.elements[k].value);
     this.mostrarLineas(f.elements.capitalEstilo.value);
@@ -624,10 +694,17 @@ export class Taller extends Seccion {
       numeros: { ver: f.elements.numerosVer.checked, lugar: f.elements.lugar.value },
       /* La casilla de la portada solo manda si se toco: si no, sigue 'auto' (la reconoce sola) */
       portada: f.elements.portada.checked === !!f.elements.portada.dataset.mostrado ? this.obra.pagina.portada : f.elements.portada.checked ? 'si' : 'no',
+      rotulo: {
+        ver: f.elements.rotuloVer.checked, cifras: f.elements.rotuloCifras.value,
+        palabra: f.elements.rotuloPalabra.value === '*' ? f.elements.rotuloOtro.value : f.elements.rotuloPalabra.value
+      },
       indice: {
         ver: f.elements.indice.checked, titulo: f.elements.indiceTitulo.value, subtemas: f.elements.indiceSubtemas.checked,
         puntos: f.elements.indicePuntos.checked,
-        antesDe: this.antesDeElegido(f.elements.indiceAntes)
+        antesDe: this.antesDeElegido(f.elements.indiceAntes),
+        plantilla: f.elements.indicePlantilla.value, orden: f.elements.indiceOrden.checked, portadas: f.elements.indicePortadas.checked,
+        /* Solo una imagen de este libro */
+        imagen: { ruta: f.elements.indiceImagen.value.startsWith(`taller/${this.obra.id}/img/`) ? f.elements.indiceImagen.value : '', altoPct: n('indiceImagenAlto'), ajuste: f.elements.indiceImagenAjuste.value }
       },
       cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },
       capital: {
@@ -647,6 +724,10 @@ export class Taller extends Seccion {
     f.elements.citaSangria.value = nueva.cita.sangriaMm;
     f.elements.indiceTitulo.value = nueva.indice.titulo;
     this.m('[data-tal-indice-opciones]').hidden = !nueva.indice.ver;
+    this.ponerPlantilla(nueva.indice);
+    if (this.m('[data-tal-indice-dialogo]').open) this.pintarMuestras();
+    /* «Otra…» sin escribir aun: se queda elegida mientras se escribe la palabra */
+    if (f.elements.rotuloPalabra.value !== '*') this.ponerRotulo(nueva.rotulo); else { f.elements.rotuloOtro.value = nueva.rotulo.palabra; this.mostrarRotulo(); }
     this.mesa.vivos.forEach((v) => v.editor.view.dom.setAttribute('lang', this.obra.idioma));
     this.guardarObra();
     this.mesa.repintarHojas();
@@ -837,9 +918,8 @@ export class Taller extends Seccion {
     const indice = this.mesa.datosDeIndice;
     this.avance.textContent = this.tx.preparandoPdf;
     const caps = this.mesa.vivos.map((v) => v.cap);
-    const rutas = new Set();
-    caps.forEach((c) => rutasDe(c.contenido.doc || {}, rutas));
-    const { mapa, faltan } = await this.imagenes.todas([...rutas]);
+    /* Tambien la imagen de arriba del contenido, que es del libro y no de un capitulo */
+    const { mapa, faltan } = await this.imagenes.todas([...rutasDelLibro(this.obra.aDatos(), caps, { impreso: true })]);
     if (faltan.length) { this.avance.textContent = ''; this.error('imagenFalta'); return; }
     const llaves = [...new Set(caps.flatMap((c) => llavesDe(c.contenido)))];
     const alts = caps.reduce((s, c) => s + sinAlt(c.contenido.doc || {}), 0);
@@ -861,7 +941,7 @@ export class Taller extends Seccion {
   async copiaDe(id) {
     const r = await this.be.taller.abrir(id);
     if (r.error) return r;
-    const faltan = await bajarLibro({ obra: r.obra, capitulos: r.capitulos, piezas: r.piezas, conArchivos: true, bajar: (x) => this.be.taller.bajar(x), rutasDe });
+    const faltan = await bajarLibro({ obra: r.obra, capitulos: r.capitulos, piezas: r.piezas, conArchivos: true, bajar: (x) => this.be.taller.bajar(x) });
     return { ok: true, faltan };
   }
 
@@ -869,7 +949,7 @@ export class Taller extends Seccion {
     const quedo = await this.vaciarTodo();
     const r = await this.be.taller.abrir(this.obra.id);
     if (r.error) { this.error(r.error); return; }
-    const faltan = await bajarLibro({ obra: r.obra, capitulos: r.capitulos, piezas: r.piezas, conArchivos: this.m('[data-tal-con-archivos]').checked, bajar: (x) => this.be.taller.bajar(x), rutasDe });
+    const faltan = await bajarLibro({ obra: r.obra, capitulos: r.capitulos, piezas: r.piezas, conArchivos: this.m('[data-tal-con-archivos]').checked, bajar: (x) => this.be.taller.bajar(x) });
     if (!quedo) this.mesa.vivos.filter((v) => v.guardado.sucio).forEach((v) => this.bajarCapitulo(v));
     if (faltan) this.error('copiaIncompleta');
   }
@@ -955,7 +1035,7 @@ export class Taller extends Seccion {
 
   /* La copia de un capitulo lleva tambien su nombre puesto a mano y si sale en el contenido */
   entregarCapitulo(titulo, v, doc, papel) {
-    const c = v.cap, extra = { ...(v.tituloPropio ? { titulo: v.tituloPropio } : {}), ...(v.enIndice === false ? { enIndice: false } : {}) };
+    const c = v.cap, extra = propiosAGuardar(v.propios());
     entregar(JSON.stringify({ formato: 'taller-capitulo', titulo: c.titulo, contenido: { version: 2, ...(papel ? { papel } : {}), ...extra, doc } }), nombreDeArchivo(`${titulo} ${c.titulo}`));
   }
 

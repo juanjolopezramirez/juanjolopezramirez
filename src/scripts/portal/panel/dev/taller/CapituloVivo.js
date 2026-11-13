@@ -7,11 +7,20 @@
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { Autoguardado } from './Autoguardado.js';
 import { crearEditor } from './Editor.js';
-import { limpiarContenido, cabeEnElCapitulo } from '../../../../contenido/taller/TextoLibro.js';
+import { limpiarContenido, cabeEnElCapitulo, propiosDe } from '../../../../contenido/taller/TextoLibro.js';
 import { tituloDe } from '../../../../contenido/taller/Migrar.js';
 import { conAnclas } from '../../../../contenido/taller/IndiceLibro.js';
+import { ladoDelNumero } from '../../../../contenido/taller/ConfigPagina.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
+
+/* El numero de la hoja donde lo pone el PDF: entre los margenes, a media altura del margen de abajo, del lado
+   que dice la tabla del libro. Tambien lo usan las hojas del contenido. */
+export function piePagina(n, top, p, lugar) {
+  const e = crear('div', `pie pie--${ladoDelNumero(lugar, n)}`, String(n));
+  Object.assign(e.style, { left: `${p.ml}px`, right: `${p.mr}px`, top: `${top + p.H - p.mb / 2}px` });
+  return e;
+}
 
 export class CapituloVivo {
   constructor(cap, mesa) {
@@ -28,9 +37,8 @@ export class CapituloVivo {
     leido.doc = conAnclas(leido.doc, cap.id);
     cap.contenido = leido;
     this.papel = leido.papel || '';
-    /* El nombre puesto a mano ('' = el primer titulo del texto) y si sale en el contenido del libro */
-    this.tituloPropio = leido.titulo || '';
-    this.enIndice = leido.enIndice !== false;
+    /* El nombre puesto a mano ('' = el primer titulo del texto), si sale en el contenido y si lleva numero */
+    this.ponerPropios(propiosDe(leido));
     this.pintarPapel();
     this.guardado = new Autoguardado({ guardar: () => this.guardar(), alEstado: (e) => mesa.alEstado(this, e) });
     this.editor = crearEditor(c, {
@@ -46,6 +54,10 @@ export class CapituloVivo {
 
   get doc() { return this.editor.getJSON(); }
 
+  /* Lo propio del capitulo (TextoLibro.propiosDe): todas las copias pasan por aqui */
+  propios() { return { titulo: this.tituloPropio, enIndice: this.enIndice, numerar: this.numerar }; }
+  ponerPropios(p) { this.tituloPropio = p.titulo || ''; this.enIndice = p.enIndice !== false; this.numerar = p.numerar !== false; }
+
   /* El color de este capitulo. Sin el suyo, cada hoja hereda el del libro. */
   pintarPapel() {
     const v = this.papel ? variablesDe(this.papel) : { '--hoja-papel': '', '--hoja-tinta': '', '--hoja-enlace': '' };
@@ -56,7 +68,7 @@ export class CapituloVivo {
   ponerTexto(doc) { this.editor.chain().setMeta('addToHistory', false).setContent(doc, { emitUpdate: false }).run(); }
 
   async guardar() {
-    const c = this.cap, limpio = limpiarContenido({ doc: this.doc, papel: this.papel, titulo: this.tituloPropio, enIndice: this.enIndice });
+    const c = this.cap, limpio = limpiarContenido({ doc: this.doc, papel: this.papel, ...this.propios() });
     if (!cabeEnElCapitulo(limpio)) return { error: 'lleno' };
     c.contenido = limpio.contenido;
     c.letras = limpio.letras;
@@ -68,7 +80,8 @@ export class CapituloVivo {
   }
 
   /* Cuantas hojas ocupa, cuales son libres, y sus numeros */
-  medir(numeroInicial, p, z, segura) {
+  /* `pie`: { lugar, ver } como el libro; `portada`: sus hojas de texto no llevan numero (en el PDF tampoco) */
+  medir(numeroInicial, p, z, segura, pie = {}) {
     const f = this.editor.view.dom, paso = p.H + p.gap;
     const n = Math.max(1, Math.round((f.offsetHeight + (paso - p.alto)) / paso));
     this.caja.style.height = `${n * p.H + (n - 1) * p.gap}px`;
@@ -86,9 +99,7 @@ export class CapituloVivo {
       this.filas.push({ fila: i, vista });
       if (vista) continue;
       const top = i * paso;
-      const num = crear('div', 'pie', this.mesa.verNumeros() ? String(numeroInicial + i) : '');
-      num.style.top = `${top + p.H - 44}px`;
-      this.caja.append(num);
+      if (pie.ver && !pie.portada) this.caja.append(piePagina(numeroInicial + i, top, p, pie.lugar));
       if (segura) {
         const s = crear('div', 'seg seg--texto');
         Object.assign(s.style, { left: `${p.ml}px`, right: `${p.mr}px`, top: `${top + p.mt}px`, height: `${p.alto}px` });

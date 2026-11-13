@@ -8,13 +8,14 @@ import { Selection } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { META_PAGINA, alternar, antesDelNumero, destinoDelBloque, libresDe, lugaresDe, nodosEnLugares, posicionesDe, rango, resumenDe, todasDelCapitulo, trBorrar, trDuplicar, trMover, trPapel } from './Varias.js';
 import { Capitulo } from '../../../../contenido/taller/Obra.js';
-import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
+import { ConfigPagina, colorDeLetra } from '../../../../contenido/taller/ConfigPagina.js';
+import { familiaCss } from '../../../../contenido/taller/fuentes.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
-import { debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
+import { debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, rotulosDe } from '../../../../contenido/taller/IndiceLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
-import { CapituloVivo } from './CapituloVivo.js';
+import { CapituloVivo, piePagina } from './CapituloVivo.js';
 import { cortar, unir, tieneTitulo } from './Partir.js';
 import { limpiarContenido, cabeEnElCapitulo, tituloLimpio } from '../../../../contenido/taller/TextoLibro.js';
 import { tituloDe } from '../../../../contenido/taller/Migrar.js';
@@ -28,6 +29,8 @@ const posicionDeBloque = (doc, i) => { let pos = 0; for (let k = 0; k < i; k++) 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 const tope = (v, a, b) => Math.min(b, Math.max(a, v));
 const PINTAR_MS = 400;
+/* Ninguna hoja del contenido lleva mas filas: medir de a pedazos no recorre el libro entero en cada hoja */
+const FILAS_POR_HOJA_MAX = 120;
 const ZOOM_MIN = .25, ZOOM_MAX = 3;
 const SIN_ELEGIR = Object.freeze({ vivo: null, nodos: [], ancla: null });
 
@@ -36,6 +39,11 @@ export class Mesa {
     Object.assign(this, { raiz, ...o });      // tx, ctx, pestana, imagenes, editable, obra(), alEstadoGlobal, alFalla, alDecir, alImagen
     this.vivos = [];
     this.vistas = new Set();
+    /* Las imagenes del contenido ya listas (la de arriba y las portadas en Tarjetas). `turnoIndice` cambia al cerrar. */
+    this.listasIndice = new Map();
+    this.pedidasIndice = new Set();
+    this.fallidasIndice = new Set();
+    this.turnoIndice = 0;
     this.paginas = [];
     this.z = 1;
     this.segura = false;
@@ -67,7 +75,8 @@ export class Mesa {
   config() { return this.obra().pagina; }
   idioma() { return this.obra().idioma; }
   margenes() { return new ConfigPagina(this.obra().pagina).aPorcentajes(); }
-  verNumeros() { return this.obra().pagina.numeros.ver; }
+  /* Como va el numero de pagina en este libro: { ver, lugar } */
+  pie() { return { ...new ConfigPagina(this.obra().pagina).numeros }; }
   decir(t) { this.alDecir(t); }
   imagen(ruta) { return this.imagenes.vista(ruta); }
   alImagenLista(h) { this.minis.refrescar(h); if (this.vistaLibro) this.vistaLibro.refrescar(); }
@@ -90,6 +99,10 @@ export class Mesa {
   }
 
   cerrar() {
+    this.turnoIndice++;
+    this.listasIndice.clear();
+    this.pedidasIndice.clear();
+    this.fallidasIndice.clear();
     this.menu.cerrar(false);
     this.vivos.forEach((v) => v.soltar());
     this.vivos = [];
@@ -112,6 +125,11 @@ export class Mesa {
     for (const [k, v] of Object.entries({ W: p.W, H: p.H, mt: p.mt, mb: p.mb, ml: p.ml, mr: p.mr, gap: p.gap, ancho: p.ancho, alto: p.alto })) s.setProperty(`--${k}`, `${v}px`);
     s.setProperty('--salto', `${p.mt + p.mb + p.gap}px`);
     for (const [k, v] of Object.entries(variablesDe(this.obra().pagina.papel))) s.setProperty(k, v);
+    /* El numero de pagina con la letra y la tinta del PDF (sin tinta propia, la del papel de cada hoja) */
+    const c = new ConfigPagina(this.obra().pagina);
+    s.setProperty('--pie-letra', familiaCss(c.cuerpo.fuente));
+    const tinta = colorDeLetra(c, c.cuerpo.fuente);
+    if (tinta) s.setProperty('--pie-tinta', tinta); else s.removeProperty('--pie-tinta');
     this.estilo.textContent = cssLibro(this.obra().pagina);
   }
 
@@ -122,22 +140,32 @@ export class Mesa {
   /* ---- Medir ---- */
   /* Cuantas filas lleva cada hoja del indice. Se miden: un titulo largo ocupa dos renglones y la letra
      cambia, y si aqui saliera una hoja menos que al imprimir, todos los numeros del indice mentirian. */
+  /* Cada hoja se arma como sale (la primera con su nombre e imagen, las demas sin) y cuenta las filas que caben
+     enteras en la caja del texto: hacia abajo, y en Dos columnas tambien hacia el lado. */
   repartoDeIndice(entradas) {
     if (!entradas.length) return [];
-    const h = crear('section', 'hoja hoja--indice libro');
-    h.style.cssText = 'position:absolute;visibility:hidden';
+    const p = this.px, h = crear('section', 'hoja hoja--indice libro');
+    h.style.cssText = 'position:absolute;visibility:hidden;left:0;top:0';
+    this.lienzo.append(h);
     /* Con numeros de tres cifras: el mas ancho que puede tener una fila */
     const numeros = Object.fromEntries(entradas.map((f) => [f.ancla, 888]));
-    const nav = armar(hojasDeIndice(entradas, numeros, [entradas.length], this.opcionesDeIndice())[0]);
-    h.append(nav);
-    this.lienzo.append(h);
-    const filas = [...nav.querySelectorAll('.indice__fila')], reparto = [0];
-    let corte = nav.firstChild.offsetTop;
-    for (const f of filas) {
-      if (f.offsetTop + f.offsetHeight - corte > this.px.alto && reparto[reparto.length - 1]) { reparto.push(0); corte = f.offsetTop; }
-      reparto[reparto.length - 1]++;
+    const o = this.opcionesDeIndice(entradas), reparto = [];
+    try {
+    for (let desde = 0; desde < entradas.length;) {
+      /* Cuantas se arman: un poco mas de las que cupieron en la hoja anterior (nunca el libro entero cada vez) */
+      const resto = entradas.slice(desde, desde + (reparto.length ? Math.min(FILAS_POR_HOJA_MAX, reparto[reparto.length - 1] * 2 + 4) : FILAS_POR_HOJA_MAX));
+      h.replaceChildren(armar(hojasDeIndice(resto, numeros, [resto.length], { ...o, primera: !reparto.length })[0]));
+      let caben = 0;
+      for (const f of h.querySelectorAll('.indice__fila')) {
+        if (f.offsetTop + f.offsetHeight > p.mt + p.alto + .5 || f.offsetLeft + f.offsetWidth > p.ml + p.ancho + .5) break;
+        caben++;
+      }
+      /* Una fila mas alta que la hoja va sola en la suya: nunca se queda sin lugar */
+      caben = Math.max(1, caben);
+      reparto.push(caben);
+      desde += caben;
     }
-    h.remove();
+    } finally { h.remove(); }
     return reparto;
   }
 
@@ -156,10 +184,11 @@ export class Mesa {
     this.paginas = [];
     let n = 0;
     const meterIndice = () => { for (let i = 0; i < ind; i++) this.paginas.push({ vivo: null, fila: i, vista: null, indice: true }); n += ind; };
+    const pie = this.pie(), portada = this.conPortada();
     this.vivos.forEach((v, k) => {
       if (k === antes) meterIndice();
       v.primera = n + 1;
-      n += v.medir(n + 1, p, this.z, this.segura);
+      n += v.medir(n + 1, p, this.z, this.segura, { ...pie, portada: portada && k === 0 });
       for (const f of v.filas) this.paginas.push({ vivo: v, ...f });
     });
     if (antes >= this.vivos.length) meterIndice();
@@ -372,18 +401,52 @@ export class Mesa {
   /* Lo que va en el contenido: los capitulos con nombre que no se ocultaron (una portada, por ejemplo). El numero
      de capitulo sigue siendo su lugar en el libro: asi lo nombra la hoja de impresion (#cap-N). */
   /* Los capitulos como los lee IndiceLibro (igual que hoja.capitulosParaIndice), con el texto vivo del editor */
-  capitulosParaIndice() { return this.vivos.map((v, i) => ({ id: v.cap.id, ancla: `cap-${i + 1}`, titulo: v.cap.titulo, enIndice: v.enIndice, tituloPropio: v.tituloPropio, doc: v.editor.state.doc })); }
+  capitulosParaIndice() { return this.vivos.map((v, i) => ({ id: v.cap.id, ancla: `cap-${i + 1}`, titulo: v.cap.titulo, enIndice: v.enIndice, numerar: v.numerar, tituloPropio: v.tituloPropio, doc: v.editor.state.doc })); }
 
   entradasDeIndice() {
     const c = new ConfigPagina(this.obra().pagina), ind = c.indice;
     if (!ind.ver) return [];
     const caps = this.capitulosParaIndice();
-    return entradasDe(caps, { subtemas: ind.subtemas, portada: hayPortada(caps, c.portada) });
+    return entradasDe(caps, { subtemas: ind.subtemas, portada: hayPortada(caps, c.portada), rotulo: c.rotulo, idioma: this.idioma(), minis: conMinis(ind) });
   }
 
-  opcionesDeIndice() {
+  /* Como se llama cada capitulo en las miniaturas y en «Va antes de»: «Portada», «Capítulo 1 · El desierto»,
+     el nombre solo, o «Capítulo N» contando como cuenta el contenido */
+  nombresDeCapitulos() {
+    const c = new ConfigPagina(this.obra().pagina), caps = this.capitulosParaIndice(), portada = hayPortada(caps, c.portada);
+    const rs = rotulosDe(caps, { rotulo: c.rotulo, idioma: this.idioma(), portada }), tx = this.tx;
+    return this.vivos.map((v, k) => {
+      if (portada && k === 0) return tx.portada;
+      const r = rs[k], nombre = v.cap.titulo;
+      if (r.rotulo) return nombre ? `${r.rotulo} · ${nombre}` : r.rotulo;
+      return nombre || (r.numero ? `${tx.capitulo} ${r.numero}` : tx.capituloSinNombre);
+    });
+  }
+
+  /* `entradas`: las ya armadas en esta medida (no se recorre el libro otra vez) */
+  opcionesDeIndice(entradas = []) {
     const ind = new ConfigPagina(this.obra().pagina).indice;
-    return { titulo: tituloDeIndice(ind, this.idioma()), puntos: ind.puntos };
+    /* Las imagenes que ya estan; la que falta se pide y, al llegar, la hoja se vuelve a pintar (su caja no cambia) */
+    const imagenes = Object.create(null);
+    for (const ruta of [ind.imagen.ruta, ...(conMinis(ind) ? entradas.map((f) => f.mini) : [])]) {
+      if (ruta) imagenes[ruta] = this.imagenDeIndice(ruta);
+    }
+    return opcionesDe(ind, this.idioma(), imagenes);
+  }
+
+  imagenDeIndice(ruta) {
+    if (this.listasIndice.has(ruta)) return this.listasIndice.get(ruta);
+    /* Una que no llego no se vuelve a pedir en cada medida (se escribe y se mide muy seguido): hasta reabrir */
+    if (!this.pedidasIndice.has(ruta) && !this.fallidasIndice.has(ruta)) {
+      this.pedidasIndice.add(ruta);
+      const turno = this.turnoIndice;
+      Promise.resolve(this.imagenes.vista(ruta)).then((d) => {
+        if (turno !== this.turnoIndice) return;
+        this.pedidasIndice.delete(ruta);
+        if (d) { this.listasIndice.set(ruta, d); this.programar(); } else this.fallidasIndice.add(ruta);
+      }, () => { if (turno === this.turnoIndice) { this.pedidasIndice.delete(ruta); this.fallidasIndice.add(ruta); } });
+    }
+    return '';
   }
 
   /* La pagina de cada ancla, ya medida: el capitulo empieza en su primera; un titulo, en la fila donde cae; una
@@ -411,9 +474,12 @@ export class Mesa {
     if (!reparto.length) return;
     const numeros = this.numerosDeIndice();
     this.datosDeIndice = { numeros, reparto: [...reparto] };
-    const cajas = hojasDeIndice(entradas, numeros, reparto, this.opcionesDeIndice()).map((nav) => {
+    /* Las hojas del contenido llevan su numero, como en el PDF: el que les toca en el libro */
+    const pie = this.pie(), suyas = this.paginas.map((q, k) => (q.indice ? k + 1 : 0)).filter(Boolean);
+    const cajas = hojasDeIndice(entradas, numeros, reparto, this.opcionesDeIndice(entradas)).map((nav, i) => {
       const h = crear('section', 'hoja hoja--indice libro');
       h.append(armar(nav));
+      if (pie.ver && suyas[i]) h.append(piePagina(suyas[i], 0, this.px, pie.lugar));
       h.addEventListener('click', (e) => {
         const a = e.target.closest('a.indice__fila');
         if (!a) return;
@@ -942,7 +1008,7 @@ export class Mesa {
       }
       if ((this.alCopiaSegura && !(await this.alCopiaSegura())) || !juntos()) return;
       const fv = JSON.stringify(v.editor.getJSON());
-      const limpio = limpiarContenido({ doc: unir(a.editor.getJSON(), JSON.parse(fv)), papel: a.papel, titulo: a.tituloPropio, enIndice: a.enIndice });
+      const limpio = limpiarContenido({ doc: unir(a.editor.getJSON(), JSON.parse(fv)), papel: a.papel, ...a.propios() });
       if (!cabeEnElCapitulo(limpio)) { this.decir(tx.noCabeUnir); return; }
       a.ponerTexto(limpio.contenido.doc);
       a.guardado.marcar();
@@ -996,6 +1062,14 @@ export class Mesa {
     this.decir(this.tx.capituloRenombrado);
   }
 
+  /* «Sin número»: un prologo o un epilogo no cuenta; los demas se corren */
+  alternarNumero(v) {
+    v.numerar = !v.numerar;
+    v.guardado.marcar();
+    this.medir();
+    this.decir(v.numerar ? this.tx.conNumeroDicho : this.tx.sinNumeroDicho);
+  }
+
   alternarEnIndice(v) {
     v.enIndice = !v.enIndice;
     v.guardado.marcar();
@@ -1012,6 +1086,7 @@ export class Mesa {
       { texto: tx.cambiarNombre, queda: true, apagado: quieto, fn: () => this.menu.pedirTexto({ etiqueta: tx.nombreCapitulo, valor: v.tituloPropio, ayuda: tx.nombreCapituloAyuda, alListo: (t) => this.renombrarCapitulo(v, t) }) },
       /* La portada nunca sale en el contenido: ahi no hay nada que mostrar u ocultar */
       ...(k === 0 && portada ? [] : [{ texto: v.enIndice ? tx.ocultarDelContenido : tx.mostrarEnContenido, apagado: quieto, fn: () => this.alternarEnIndice(v) }]),
+      ...(k === 0 && portada ? [] : [{ texto: v.numerar ? tx.sinNumero : tx.conNumero, apagado: quieto, fn: () => this.alternarNumero(v) }]),
       ...(k === 0 ? [{ texto: portada ? tx.noEsPortada : tx.esPortada, apagado: quieto, fn: () => this.alPortada(portada ? 'no' : 'si') }] : []),
       ...(k === 0 ? [{ texto: portada ? tx.cambiarPortadaPdf : tx.subirPortadaPdf, apagado: quieto, fn: () => this.alPedirPortada() }] : []),
       ...(k > 0 ? [{ raya: true }, this.opcionUnir(v, quieto)] : [])

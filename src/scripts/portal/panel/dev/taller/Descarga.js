@@ -1,5 +1,7 @@
 /* BAJAR TODO EL LIBRO a un archivo: la obra, sus capitulos y sus piezas. Es tu copia de seguridad,
    y puede llevar las imagenes dentro. Volver a subirla aun no se puede. */
+import { rutasDelLibro } from '../../../../contenido/taller/RutasLibro.js';
+
 const aBase64 = (blob) => new Promise((ok, mal) => {
   const r = new FileReader();
   r.onload = () => ok(String(r.result));
@@ -23,11 +25,12 @@ export function entregar(texto, nombre) {
 }
 
 /* Devuelve cuantos archivos no se pudieron incluir */
-export async function bajarLibro({ obra, capitulos, piezas, conArchivos, bajar, rutasDe }) {
+export async function bajarLibro({ obra, capitulos, piezas, conArchivos, bajar }) {
   const archivos = {};
   let faltan = 0;
   if (conArchivos) {
-    const imagenes = capitulos.flatMap((c) => [...rutasDe((c.contenido && c.contenido.doc) || {})]);
+    /* Las de los capitulos y la de arriba del contenido (RutasLibro, la misma lista del PDF) */
+    const imagenes = [...rutasDelLibro(obra, capitulos)];
     const rutas = [...new Set([...imagenes, ...piezas.flatMap((p) => [p.pdf, ...(p.paginas || []).map((g) => g.ruta)])].filter(Boolean))];
     for (const r of rutas) {
       const b = await bajar(r);

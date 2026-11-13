@@ -4,6 +4,7 @@
    izquierda, hojas en el centro, y a la derecha las opciones de lo que se elija.
    Lo escrito por el fundador nunca se pinta aqui: entra con textContent y con los nodos del editor. */
 import { TRAZOS } from '../../../scripts/portal/panel/dev/taller/iconos.js';
+import { IMAGEN_INDICE_ALTOS } from '../../../scripts/contenido/taller/ConfigPagina.js';
 const { tx } = Astro.props;
 ---
 <div class="taller dev" data-taller>
@@ -227,16 +228,24 @@ const { tx } = Astro.props;
             <div class="tal-b-panel">
               <label class="tal-marca"><input name="numerosVer" type="checkbox" /><span>{tx.numeros}</span></label>
               <label><span>{tx.lugarNumero}</span><select class="tal-ctl" name="lugar">
-                <option value="pie-centro">{tx.lugares.centro}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
+                <option value="pie-izquierda">{tx.lugares.izquierda}</option><option value="pie-centro">{tx.lugares.centro}</option><option value="pie-derecha">{tx.lugares.derecha}</option><option value="pie-exterior">{tx.lugares.exterior}</option><option value="pie-interior">{tx.lugares.interior}</option>
               </select></label>
               <label class="tal-marca"><input name="portada" type="checkbox" /><span>{tx.primeraEsPortada}</span></label>
+              <label class="tal-marca"><input name="rotuloVer" type="checkbox" /><span>{tx.rotuloVer}</span></label>
+              <!-- «Capítulo 1», «Episodio IV»: la palabra y las cifras de todo el libro -->
+              <div class="tal-b-grupo" data-tal-rotulo-opciones>
+                <label><span>{tx.rotuloPalabra}</span><select class="tal-ctl" name="rotuloPalabra">
+                  <option value="">{tx.rotuloPalabras.capitulo}</option><option value="Episodio">{tx.rotuloPalabras.episodio}</option><option value="Parte">{tx.rotuloPalabras.parte}</option><option value="Lección">{tx.rotuloPalabras.leccion}</option><option value="*">{tx.rotuloPalabras.otro}</option>
+                </select></label>
+                <label><span>{tx.rotuloCifras}</span><select class="tal-ctl" name="rotuloCifras">
+                  <option value="arabe">1, 2, 3</option><option value="romano">I, II, III</option>
+                </select></label>
+                <label data-tal-rotulo-otro><span>{tx.rotuloOtro}</span><input class="tal-ctl" name="rotuloOtro" type="text" maxlength="30" placeholder={tx.rotuloOtroEjemplo} /></label>
+              </div>
               <label class="tal-marca"><input name="indice" type="checkbox" /><span>{tx.indice}</span></label>
               <!-- Lo del contenido solo se ve cuando el libro lo lleva -->
               <div class="tal-b-grupo" data-tal-indice-opciones>
-                <label><span>{tx.indiceNombre}</span><input class="tal-ctl" name="indiceTitulo" type="text" maxlength="120" placeholder={tx.indiceTitulo} /></label>
-                <label><span>{tx.indiceAntes}</span><select class="tal-ctl" name="indiceAntes"></select></label>
-                <label class="tal-marca"><input name="indiceSubtemas" type="checkbox" /><span>{tx.indiceSubtemas}</span></label>
-                <label class="tal-marca"><input name="indicePuntos" type="checkbox" /><span>{tx.indicePuntos}</span></label>
+                <button class="tal-btn" type="button" data-tal-indice-abrir>{tx.indiceDialogo}…</button>
               </div>
             </div>
           </details>
@@ -257,6 +266,34 @@ const { tx } = Astro.props;
             <p class="tal-ayuda">{tx.pxAyuda}</p>
             <label class="tal-ajustes__uno"><span>{tx.idioma}</span><select class="tal-ctl" name="idioma"></select></label>
             <div class="tal-fila"><button class="tal-btn tal-btn--fuerte" type="button" data-tal-ajustes-cerrar>{tx.listo}</button></div>
+          </dialog>
+          <!-- La hoja del contenido: como se ve (plantillas dibujadas con el estilo real del libro), donde va y que lleva -->
+          <dialog class="tal-ajustes tal-indice-d" data-tal-indice-dialogo aria-labelledby="tal-indice-t">
+            <h2 class="tal-ajustes__titulo" id="tal-indice-t">{tx.indiceDialogo}</h2>
+            <fieldset class="tal-plantillas">
+              <legend class="tal-rotulo">{tx.plantilla}</legend>
+              {Object.entries(tx.plantillas).map(([v, t]) => (
+                <label class="tal-plantilla"><input class="sr-only" type="radio" name="indicePlantilla" value={v} /><span class="tal-plantilla__muestra" data-muestra={v} aria-hidden="true"></span><span class="tal-plantilla__nombre">{t}</span></label>
+              ))}
+            </fieldset>
+            <label class="tal-marca"><input name="indiceOrden" type="checkbox" /><span>{tx.indiceOrden}</span></label>
+            <label class="tal-marca" data-tal-indice-portadas><input name="indicePortadas" type="checkbox" /><span>{tx.indicePortadas}</span></label>
+            <div class="tal-ajustes__fila">
+              <label><span>{tx.indiceNombre}</span><input class="tal-ctl" name="indiceTitulo" type="text" maxlength="120" placeholder={tx.indiceTitulo} /></label>
+              <label><span>{tx.indiceAntes}</span><select class="tal-ctl" name="indiceAntes"></select></label>
+            </div>
+            <label class="tal-marca"><input name="indiceSubtemas" type="checkbox" /><span>{tx.indiceSubtemas}</span></label>
+            <label class="tal-marca"><input name="indicePuntos" type="checkbox" /><span>{tx.indicePuntos}</span></label>
+            <p class="tal-rotulo">{tx.indiceImagen}</p>
+            <div class="tal-indice-d__imagen">
+              <button class="tal-btn" type="button" data-tal-indice-imagen>{tx.indiceImagenPoner}</button>
+              <button class="tal-btn" type="button" data-tal-indice-sin-imagen>{tx.indiceImagenQuitar}</button>
+              <label><span>{tx.indiceImagenAlto}</span><select class="tal-ctl" name="indiceImagenAlto">{IMAGEN_INDICE_ALTOS.map((n) => <option value={n}>{n} %</option>)}</select></label>
+              <label><span>{tx.indiceImagenAjuste}</span><select class="tal-ctl" name="indiceImagenAjuste"><option value="cubrir">{tx.ajusteCubrir}</option><option value="contener">{tx.ajusteContener}</option></select></label>
+            </div>
+            <input type="hidden" name="indiceImagen" />
+            <input type="file" accept="image/webp,image/png,image/jpeg" hidden data-tal-indice-archivo />
+            <div class="tal-fila"><button class="tal-btn tal-btn--fuerte" type="button" data-tal-indice-cerrar>{tx.listo}</button></div>
           </dialog>
         </form>
       </div>

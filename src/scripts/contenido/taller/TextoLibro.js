@@ -83,6 +83,18 @@ function enLinea(lista, cuenta) {
   return salida;
 }
 
+/* LO PROPIO DE UN CAPITULO, ademas de su texto y su papel: el nombre puesto a mano, si sale en el contenido y si
+   lleva numero. Un solo lugar los lee y los escribe: asi ninguna copia (guardar, unir, bajar, recargar) pierde uno.
+   Se guardan solo cuando no son los de siempre. */
+export const propiosDe = (contenido) => {
+  const x = objeto(contenido);
+  return { titulo: tituloLimpio(x.titulo), enIndice: x.enIndice !== false, numerar: x.numerar !== false };
+};
+export const propiosAGuardar = (p) => {
+  const x = objeto(p), titulo = tituloLimpio(x.titulo);
+  return { ...(titulo ? { titulo } : {}), ...(x.enIndice === false ? { enIndice: false } : {}), ...(x.numerar === false ? { numerar: false } : {}) };
+};
+
 /* { contenido: { version, papel?, doc }, letras, nodos, descartados }. `papel` es el color del capitulo. */
 export function limpiarContenido(json) {
   const o = objeto(json), doc = objeto(o.doc || o), cuenta = { nodos: 0, letras: 0, descartados: 0 };
@@ -90,9 +102,8 @@ export function limpiarContenido(json) {
   const papel = colorValido(o.papel);
   /* El nombre puesto a mano (gana al primer titulo: hace falta cuando el capitulo empieza con una pagina de PDF)
      y si el capitulo sale en el contenido. Sin datos, como siempre. */
-  const titulo = tituloLimpio(o.titulo);
   return {
-    contenido: { version: VERSION_CONTENIDO, ...(papel ? { papel } : {}), ...(titulo ? { titulo } : {}), ...(o.enIndice === false ? { enIndice: false } : {}), doc: { type: 'doc', content: hijos.length ? hijos : [vacio()] } },
+    contenido: { version: VERSION_CONTENIDO, ...(papel ? { papel } : {}), ...propiosAGuardar(o), doc: { type: 'doc', content: hijos.length ? hijos : [vacio()] } },
     ...cuenta
   };
 }

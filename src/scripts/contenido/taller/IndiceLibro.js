@@ -10,6 +10,8 @@ export const RE_ANCLA = /^[tp]-[0-9a-f]{8}$/;
 export const RE_ANCLA_TITULO = /^t-[0-9a-f]{8}$/;
 export const RE_ANCLA_PAGINA = /^p-[0-9a-f]{8}$/;
 export const TITULO_INDICE_MAX = 120;
+/* Las plantillas de la hoja del contenido. Todas son estilo del libro (hoja.cssLibro): la mesa y el PDF igual. */
+export const PLANTILLAS = ['clasico', 'minimalista', 'tarjetas', 'columnas', 'tabla', 'linea'];
 const TEXTO_FILA_MAX = 300;
 /* Un libro de verdad no pasa de unos cientos de filas: mas, y medirlas colgaria la mesa y la impresion */
 export const ENTRADAS_MAX = 500;
@@ -81,6 +83,31 @@ const SOLO_PAGINAS = new Set(['paginaLibre', 'paginasPdf']);
 export const debeFijarPortada = (capitulos, portada) => portada === 'auto' && hayPortada(capitulos, 'auto')
   && hijosDe(capitulos[0].doc || {}).every((n) => SOLO_PAGINAS.has(tipoDe(n)) || (tipoDe(n) === 'paragraph' && !textoDe(n)));
 
+/* LOS ROTULOS: «Capítulo 1», «Episodio IV»... La palabra y las cifras son del libro (`pagina.rotulo`); el nombre de
+   cada capitulo queda corto. Cuenta cada capitulo menos la portada, los que no salen en el contenido y los marcados
+   «Sin número» (un prologo). La mesa, las miniaturas y el PDF numeran con esta misma funcion. */
+export const PALABRA_MAX = 30;
+const ROMANOS = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+export function romano(n) {
+  if (!Number.isInteger(n) || n < 1 || n > 3999) return String(n);
+  let r = '';
+  for (const [v, l] of ROMANOS) while (n >= v) { r += l; n -= v; }
+  return r;
+}
+export const palabraDeRotulo = (rotulo, idioma) => textoIndice(rotulo && rotulo.palabra, PALABRA_MAX) || (idioma === 'en' ? 'Chapter' : 'Capítulo');
+
+/* Por capitulo, en el orden del libro: { numero (0 = no cuenta), orden ('3' o 'III'), rotulo ('Capítulo 3' o '') } */
+export function rotulosDe(capitulos, { rotulo = {}, idioma = 'es', portada = false } = {}) {
+  const r = rotulo && typeof rotulo === 'object' ? rotulo : {}, palabra = palabraDeRotulo(r, idioma);
+  let n = 0;
+  return capitulos.map((c, k) => {
+    if ((portada && k === 0) || c.enIndice === false || c.numerar === false) return { numero: 0, orden: '', rotulo: '' };
+    n++;
+    const orden = r.cifras === 'romano' ? romano(n) : String(n);
+    return { numero: n, orden, rotulo: r.ver === true ? `${palabra} ${orden}` : '' };
+  });
+}
+
 /* Delante de que capitulo va el contenido: el elegido (`indice.antesDe`, su id), o el primero. Nunca antes de la
    portada. Puede ser `capitulos.length`: al final, si la portada es todo el libro. */
 export function lugarDelIndice(capitulos, indice, conPortada) {
@@ -89,19 +116,30 @@ export function lugarDelIndice(capitulos, indice, conPortada) {
   return Math.min(Math.max(k, minimo), Math.max(capitulos.length, minimo));
 }
 
-/* `capitulos`: [{ id, ancla: 'cap-N', titulo, enIndice, tituloPropio, doc }] en el orden del libro.
+/* La portada de un capitulo en pequeño (plantilla Tarjetas): el fondo de su primera pagina, si es de diseño o PDF */
+const RE_FONDO = /^taller(?:\/[a-z0-9]+(?:[.-][a-z0-9]+)*)+\.(?:webp|png|jpg)$/;
+function miniDe(c) {
+  const primero = hijosDe(c.doc || {}).find((n) => !(tipoDe(n) === 'paragraph' && !textoDe(n)));
+  const f = primero && tipoDe(primero) === 'paginaLibre' ? (primero.attrs || {}).fondo : '';
+  return typeof f === 'string' && f.length <= 200 && RE_FONDO.test(f) ? f : '';
+}
+
+/* `capitulos`: [{ id, ancla: 'cap-N', titulo, enIndice, numerar, tituloPropio, doc }] en el orden del libro.
    Entra cada capitulo con nombre que no se oculto (nivel 1) y, si se piden, sus subtemas (nivel 2): los Título 1 y
    Título 2 del texto y las paginas libres a las que se les puso nombre. El titulo que da nombre al capitulo no se
    repite como subtema. Los Título 3 nunca. Un ancla repetida en el libro solo cuenta la primera vez.
-   La portada (`portada: true`, el primer capitulo) nunca sale. */
-export function entradasDe(capitulos, { subtemas = true, portada = false } = {}) {
-  const vistas = new Set(), lista = [];
+   La portada (`portada: true`, el primer capitulo) nunca sale.
+   Con `rotulo` (el del libro), cada capitulo que cuenta lleva el suyo: uno sin nombre sale como «Capítulo 3».
+   `orden` ('3' o 'III') va siempre en los que cuentan: lo usan las plantillas con el numero delante. */
+export function entradasDe(capitulos, { subtemas = true, portada = false, rotulo = null, idioma = 'es', minis = false } = {}) {
+  const vistas = new Set(), lista = [], rotulos = rotulosDe(capitulos, { rotulo: rotulo || {}, idioma, portada });
   for (const [k, c] of capitulos.entries()) {
     if (lista.length >= ENTRADAS_MAX) break;
     if (portada && k === 0) continue;
-    const nombreCap = textoIndice(c.titulo, TEXTO_FILA_MAX);
-    if (c.enIndice === false || !nombreCap) continue;
-    lista.push({ nivel: 1, titulo: nombreCap, ancla: c.ancla });
+    const nombreCap = textoIndice(c.titulo, TEXTO_FILA_MAX), r = rotulos[k];
+    if (c.enIndice === false || (!nombreCap && !r.rotulo)) continue;
+    const mini = minis ? miniDe(c) : '';
+    lista.push({ nivel: 1, titulo: nombreCap, ancla: c.ancla, ...(r.rotulo ? { rotulo: r.rotulo } : {}), ...(r.orden ? { orden: r.orden } : {}), ...(mini ? { mini } : {}) });
     if (!subtemas) continue;
     const nombre = nombreDelCapitulo(c);
     recorrer(c.doc || {}, (n, t) => {
@@ -155,29 +193,70 @@ export function conAnclas(doc, semilla) {
 /* El nombre de la hoja: el que se escribio, o el de siempre en el idioma del libro */
 export const tituloDeIndice = (indice, idioma) => (indice && indice.titulo) || (idioma === 'en' ? 'Contents' : 'Contenido');
 
+/* Las opciones de las hojas del contenido (las de ConfigPagina.indice), iguales en la mesa y en el PDF.
+   `imagenes`: { ruta: src } de las que ya estan; la que falta deja su caja vacia. */
+export const conMinis = (ind) => !!ind && ind.plantilla === 'tarjetas' && ind.portadas === true;
+export function opcionesDeIndice(ind, idioma, imagenes = {}) {
+  const i = ind || {}, ruta = i.imagen && i.imagen.ruta;
+  const src = (r) => (imagenes && Object.prototype.hasOwnProperty.call(imagenes, r) ? imagenes[r] : '');
+  return { titulo: tituloDeIndice(i, idioma), puntos: i.puntos, plantilla: i.plantilla, orden: i.orden === true, minis: conMinis(i), imagenes, imagen: ruta ? src(ruta) : null };
+}
+
 /* La pagina de un ancla: solo un numero entero propio (nunca algo heredado, como «__proto__») */
 const numeroDe = (numeros, ancla) => {
   const n = numeros && Object.prototype.hasOwnProperty.call(numeros, ancla) ? numeros[ancla] : 0;
   return Number.isInteger(n) && n > 0 ? n : 0;
 };
 
-/* La fila de una entrada: el texto y su numero. Con puntos, una linea de puntitos los une. */
-export const filaDeIndice = (f, numero, puntos) => el('a', `indice__fila indice__fila--${f.nivel === 2 ? 2 : 1}`, [
-  el('span', 'indice__texto', [txt(f.titulo)]),
-  ...(puntos ? [el('span', 'indice__puntos')] : []),
-  el('span', 'indice__num', [txt(Number.isInteger(numero) && numero > 0 ? String(numero) : '')])
-], { href: `#${f.ancla}` });
+/* El texto de la fila. Con rotulo: «Capítulo 1» y el nombre en dos trozos (el « · » lo pone el estilo del libro).
+   Sin rotulo, el texto solo, como siempre: un libro sin rotulos se arma igual que antes.
+   Con el numero delante, la fila no repite «Capítulo 1»: dice «1  El desierto» (si no tiene nombre, si). */
+const textoDeFila = (f, conOrden) => {
+  const rotulo = f.rotulo && !(conOrden && f.orden && f.titulo) ? f.rotulo : '';
+  return rotulo
+    ? [el('span', 'indice__rotulo', [txt(rotulo)]), ...(f.titulo ? [el('span', 'indice__nombre', [txt(f.titulo)])] : [])]
+    : [txt(f.titulo)];
+};
+
+/* Una imagen del contenido: la suya si ya llego; si no, la misma caja vacia (la hoja no cambia al llegar) */
+const SRC_IMAGEN = /^data:image\/(?:webp|png|jpeg);base64,/;
+const imagenDe = (clase, src) => (typeof src === 'string' && SRC_IMAGEN.test(src) ? el('img', clase, [], { src, alt: '' }) : el('span', clase));
+
+/* La fila de una entrada: el texto y su numero. Con puntos, una linea de puntitos los une.
+   `o.orden`: el numero del capitulo delante (filas de nivel 1; una sin numero lleva la caja vacia, para que la
+   columna no se corra). `o.minis`: la portada del capitulo en pequeño, sacada de `o.imagenes`. */
+export const filaDeIndice = (f, numero, puntos, o = {}) => {
+  const uno = f.nivel !== 2, conOrden = !!o.orden && uno;
+  return el('a', `indice__fila indice__fila--${uno ? 1 : 2}`, [
+    ...(o.minis && uno ? [imagenDe('indice__mini', f.mini && o.imagenes ? o.imagenes[f.mini] : '')] : []),
+    ...(conOrden ? [el('span', 'indice__orden', f.orden ? [txt(f.orden)] : [])] : []),
+    el('span', 'indice__texto', textoDeFila(f, conOrden)),
+    ...(puntos ? [el('span', 'indice__puntos')] : []),
+    el('span', 'indice__num', [txt(Number.isInteger(numero) && numero > 0 ? String(numero) : '')])
+  ], { href: `#${f.ancla}` });
+};
 
 /* Las hojas del contenido: `reparto` dice cuantas filas lleva cada una (lo mide la mesa); `numeros`, la pagina de
-   cada ancla. El nombre de la hoja va solo en la primera. Sin reparto, todo en una. */
+   cada ancla. El nombre de la hoja (y la imagen de arriba) va solo en la primera; `o.primera === false` es una hoja
+   de mas adelante (asi mide la mesa cada hoja tal como sale). Sin reparto, todo en una.
+   `o`: { titulo, puntos, plantilla, orden, imagen (src de la de arriba; '' = su caja vacia; null = sin imagen),
+   minis, imagenes: { ruta: src } } */
 export function hojasDeIndice(entradas, numeros, reparto, o = {}) {
   const partes = Array.isArray(reparto) && reparto.length ? reparto : [entradas.length];
-  const fila = (f) => filaDeIndice(f, numeroDe(numeros, f.ancla), o.puntos !== false);
+  const opciones = { orden: o.orden === true, minis: o.minis === true, imagenes: o.imagenes };
+  const fila = (f) => filaDeIndice(f, numeroDe(numeros, f.ancla), o.puntos !== false, opciones);
+  const plantilla = PLANTILLAS.includes(o.plantilla) ? o.plantilla : 'clasico';
+  /* Clasico sin numero delante: el mismo nav de siempre */
+  const clase = plantilla === 'clasico' && !opciones.orden ? 'indice' : `indice indice--${plantilla}${opciones.orden ? ' indice--orden' : ''}`;
+  const arriba = () => [
+    ...(typeof o.imagen === 'string' ? [el('figure', 'indice__imagen', [imagenDe('indice__foto', o.imagen)])] : []),
+    el('h1', 'indice__titulo', [txt(o.titulo || 'Contenido')])
+  ];
   const hojas = [];
   let desde = 0;
   partes.forEach((n, i) => {
     const cuantas = Number.isInteger(n) && n > 0 ? n : 0;
-    hojas.push(el('nav', 'indice', [...(i === 0 ? [el('h1', 'indice__titulo', [txt(o.titulo || 'Contenido')])] : []), ...entradas.slice(desde, desde + cuantas).map(fila)]));
+    hojas.push(el('nav', clase, [...(i === 0 && o.primera !== false ? arriba() : []), ...entradas.slice(desde, desde + cuantas).map(fila)]));
     desde += cuantas;
   });
   /* Lo que el reparto no alcanzo a contar va en la ultima: nunca se pierde una fila */

@@ -151,6 +151,7 @@
 .tal-b-panel--der { left: auto; right: 0; }
 .tal-b-grupo { display: grid; gap: .5rem; padding: .5rem 0 0 .6rem; border-left: 1px solid var(--raya-fuerte); }
 .tal-b-grupo[hidden] { display: none; }
+.tal-b-grupo > [hidden] { display: none !important; }
 .tal-b-panel--fila { display: flex; gap: .2rem; width: auto; }
 .tal-b-panel--menu { width: 13rem; gap: .3rem; }
 .tal-b-panel--menu .tal-btn { justify-content: flex-start; text-align: left; }
@@ -174,6 +175,21 @@
 .tal-ajustes label { display: grid; gap: .15rem; font-size: 12px; color: var(--tiza-2); }
 .tal-ajustes .tal-ctl--num { width: 100%; }
 .tal-ajustes__uno { max-width: 14rem; }
+/* La ventana «Índice»: seis muestras dibujadas con el estilo real del libro (cssLibro), en pequeño */
+.tal-indice-d { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; }
+.tal-plantillas { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 0; padding: 0; border: 0; }
+.tal-plantillas legend { margin-bottom: .45rem; padding: 0; }
+.tal-plantilla { display: grid; gap: .3rem; cursor: pointer; }
+.tal-plantilla__muestra { display: block; height: 104px; overflow: hidden; border-radius: 8px; border: 1px solid var(--raya-fuerte); background: #fff; position: relative; }
+.tal-plantilla__hoja { width: 360px; padding: 16px 20px; box-sizing: border-box; transform: scale(.5); transform-origin: 0 0; background: var(--hoja-papel, #fff); color: var(--hoja-tinta, #151515); min-height: 208px; pointer-events: none; }
+.tal-plantilla__nombre { font-size: 12px; color: var(--tiza-2); text-align: center; }
+.tal-plantilla input:checked ~ .tal-plantilla__muestra { border-color: var(--prompt); box-shadow: 0 0 0 2px var(--prompt); }
+.tal-plantilla input:checked ~ .tal-plantilla__nombre { color: var(--tiza); font-weight: 600; }
+.tal-plantilla input:focus-visible ~ .tal-plantilla__muestra { outline: 2px solid var(--prompt); outline-offset: 2px; }
+.tal-indice-d__imagen { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; }
+.tal-indice-d [hidden] { display: none !important; }
+/* La muestra de Dos columnas tiene tres filas: se reparten para que se vean las dos columnas */
+.tal-plantilla__hoja .indice--columnas { height: auto; column-fill: balance; }
 .tal-b-panel input { height: 32px; box-sizing: border-box; background: var(--consola); border: 1px solid var(--raya-fuerte); border-radius: 6px; padding: 0 .4rem; }
 .tal-simbolos__grupo { margin: 0; font-size: 11px; color: var(--tiza-2); }
 .tal-simbolos__fila { display: flex; flex-wrap: wrap; gap: .15rem; }
@@ -223,7 +239,10 @@
 .corrida { width: var(--W); box-sizing: border-box; padding: var(--mt) var(--mr) 0 var(--ml); position: relative;
   background: repeating-linear-gradient(to bottom, var(--hoja-papel, #fff) 0, var(--hoja-papel, #fff) var(--H), transparent var(--H), transparent calc(var(--H) + var(--gap))); }
 .flujo { width: var(--ancho); column-width: var(--ancho); column-height: var(--alto); column-wrap: wrap; column-gap: 0; row-gap: var(--salto); column-fill: auto; outline: none; caret-color: var(--hoja-tinta, #111); }
-.pie { position: absolute; left: 0; width: 100%; text-align: center; font: 12px var(--mono); color: var(--hoja-tinta, #555); opacity: .7; pointer-events: none; }
+/* El numero de pagina como sale en el PDF: 9 pt en la letra del libro, entre los margenes, a media altura del
+   margen de abajo (CapituloVivo.piePagina pone el lugar) */
+.pie { position: absolute; transform: translateY(-50%); text-align: center; font: 9pt/1 var(--pie-letra, Georgia, serif); color: var(--pie-tinta, var(--hoja-tinta, #151515)); white-space: nowrap; pointer-events: none; }
+.pie--izq { text-align: left; } .pie--der { text-align: right; }
 .flujo:focus-visible { outline: none; }
 .boton { cursor: pointer; }
 .flujo > .boton { position: relative; z-index: 1; }

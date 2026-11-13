@@ -265,8 +265,157 @@ console.log('el contenido del libro');
     assert.deepEqual([true, false, 'si', 'no', 'x', undefined].map((v) => new ConfigPagina({ portada: v }).portada), ['si', 'no', 'si', 'no', 'auto', 'auto']);
     assert.equal(new ConfigPagina(new ConfigPagina({ portada: 'no' }).aDatos()).portada, 'no');
   });
+  await ok('numeros: cinco lugares, la misma tabla en la mesa y el PDF, y la portada sin numero', async () => {
+    const { ladoDelNumero } = await import('../src/scripts/contenido/taller/ConfigPagina.js');
+    const tabla = (l) => [1, 2, 3, 4].map((n) => ladoDelNumero(l, n)).join(' ');
+    assert.equal(tabla('pie-centro'), 'centro centro centro centro');
+    assert.equal(tabla('pie-izquierda'), 'izq izq izq izq');
+    assert.equal(tabla('pie-derecha'), 'der der der der');
+    assert.equal(tabla('pie-exterior'), 'der izq der izq', 'la pagina 1 es de la derecha');
+    assert.equal(tabla('pie-interior'), 'izq der izq der');
+    assert.equal(ladoDelNumero('raro', 3), 'centro');
+    assert.equal(new ConfigPagina({ numeros: { lugar: 'pie-derecha' } }).numeros.lugar, 'pie-derecha');
+    assert.equal(new ConfigPagina({ numeros: { lugar: 'arriba' } }).numeros.lugar, 'pie-centro');
+    const css = (lugar, portada = 'no', libro = caps()) => aHoja(new Obra({ pagina: { numeros: { lugar }, portada } }).aDatos(), libro).css;
+    assert.match(css('pie-centro'), /@page \{ @bottom-center \{ content: counter\(page\)/);
+    assert.match(css('pie-izquierda'), /@page \{ @bottom-left \{ content: counter\(page\)/);
+    assert.match(css('pie-derecha'), /@page \{ @bottom-right \{ content: counter\(page\)/);
+    assert.match(css('pie-exterior'), /@page :left \{ @bottom-left \{ content: counter\(page\)[^}]*\} \} @page :right \{ @bottom-right \{/);
+    assert.match(css('pie-interior'), /@page :left \{ @bottom-right \{ content: counter\(page\)[^}]*\} \} @page :right \{ @bottom-left \{/);
+    /* Sin portada, nada de portada en el estilo; con ella, su pagina con nombre y sin numero */
+    assert.ok(!css('pie-centro').includes('portada'));
+    const pdf = { id: 'c0', titulo: '', contenido: { doc: { type: 'doc', content: [libre('', ''), parrafo('Texto de la portada')] } } };
+    const conPortada = css('pie-centro', 'si', [pdf, ...caps().slice(1)]);
+    assert.match(conPortada, /@page portada \{ @bottom-center \{ content: none; \}/);
+    assert.match(conPortada, /\.capitulo\.capitulo--portada \{ page: portada; \}/);
+    const hj = aHoja(new Obra({ pagina: { portada: 'si' } }).aDatos(), [pdf, ...caps().slice(1)]);
+    assert.deepEqual(hj.nodos[0].hijos.map((n) => n.clase), ['capitulo capitulo--portada', 'capitulo', 'capitulo']);
+    /* Una portada con su propio papel: la pagina con nombre lleva ese papel */
+    const conPapel = { ...pdf, contenido: { ...pdf.contenido, papel: '#1E3A5F' } };
+    const c2 = css('pie-centro', 'si', [conPapel, ...caps().slice(1)]);
+    assert.match(c2, /@page portada-1e3a5f \{ background: #1e3a5f; @bottom-center \{ content: none; \}/);
+    assert.match(c2, /\.capitulo\.capitulo--portada\.papel-1e3a5f \{ page: portada-1e3a5f; \}/);
+  });
+  await ok('rotulos: «Episodio IV», sin portada ni ocultos ni «Sin número», y la fila en dos trozos', async () => {
+    const { capitulosParaIndice } = await import('../src/scripts/contenido/taller/hoja.js');
+    const { propiosDe, propiosAGuardar } = await import('../src/scripts/contenido/taller/TextoLibro.js');
+    assert.deepEqual([1, 4, 9, 14, 40, 90, 400, 1994, 3999].map(I.romano), ['I', 'IV', 'IX', 'XIV', 'XL', 'XC', 'CD', 'MCMXCIV', 'MMMCMXCIX']);
+    assert.equal(I.romano(0), '0');
+    const pdf = { id: 'c0', titulo: '', contenido: { doc: { type: 'doc', content: [libre('', '')] } } };
+    const prologo = { id: 'cp', titulo: 'Prólogo', contenido: { titulo: 'Prólogo', numerar: false, doc: { type: 'doc', content: [parrafo('x')] } } };
+    const sinNombre = { id: 'cs', titulo: '', contenido: { doc: { type: 'doc', content: [parrafo('y')] } } };
+    const libro = [pdf, prologo, ...caps().slice(1), sinNombre];
+    const cs = capitulosParaIndice(libro);
+    assert.equal(cs[1].numerar, false);
+    const r = I.rotulosDe(cs, { rotulo: { ver: true, palabra: 'Episodio', cifras: 'romano' }, portada: true });
+    assert.deepEqual(r.map((x) => x.rotulo), ['', '', 'Episodio I', 'Episodio II', 'Episodio III']);
+    assert.deepEqual(r.map((x) => x.numero), [0, 0, 1, 2, 3]);
+    /* Un capitulo oculto no cuenta: los demas se corren */
+    const oculto = capitulosParaIndice([pdf, prologo, ...caps().slice(1), sinNombre]);
+    oculto[2].enIndice = false;
+    assert.deepEqual(I.rotulosDe(oculto, { rotulo: { ver: true }, idioma: 'en', portada: true }).map((x) => x.rotulo), ['', '', '', 'Chapter 1', 'Chapter 2']);
+    /* Sin «ver»: no hay rotulo, pero si el orden (para las plantillas con numero delante) */
+    assert.deepEqual(I.rotulosDe(cs, { portada: true }).map((x) => `${x.rotulo}|${x.orden}`), ['|', '|', '|1', '|2', '|3']);
+    /* El contenido: el sin nombre que cuenta sale como «Capítulo 3»; el prologo con su nombre y sin rotulo */
+    const e = I.entradasDe(cs, { subtemas: false, portada: true, rotulo: { ver: true } });
+    assert.deepEqual(e.map((f) => `${f.rotulo || ''}|${f.titulo}|${f.orden || ''}`), ['|Prólogo|', 'Capítulo 1|Uno|1', 'Capítulo 2|Dos a mano|2', 'Capítulo 3||3']);
+    /* Sin rotulo, el sin nombre no sale (como siempre) */
+    assert.ok(!I.entradasDe(cs, { subtemas: false, portada: true }).some((f) => f.ancla === 'cap-5'));
+    const [nav] = I.hojasDeIndice(e, { 'cap-3': 4 }, [4], { titulo: 'Contenido' });
+    nav.hijos.forEach(permitido);
+    const fila = nav.hijos[2].hijos[0];
+    assert.deepEqual(fila.hijos.map((x) => x.clase), ['indice__rotulo', 'indice__nombre']);
+    assert.deepEqual(nav.hijos[4].hijos[0].hijos.map((x) => x.clase), ['indice__rotulo'], 'sin nombre: solo el rotulo');
+    assert.deepEqual(nav.hijos[1].hijos[0].hijos, [{ texto: 'Prólogo' }], 'sin rotulo: el texto solo, como antes');
+    assert.match(cssLibro({}), /\.indice__rotulo:not\(:last-child\)::after \{ content: " · "; \}/);
+    /* La palabra se limpia y se corta; las cifras raras son arabigas */
+    const raro = new ConfigPagina({ rotulo: { ver: 'si', palabra: `  Epi‮sodio\u0007 ${'x'.repeat(50)}`, cifras: 'griego' } }).rotulo;
+    assert.equal(raro.ver, false);
+    assert.ok(raro.palabra.startsWith('Episodio') && raro.palabra.length <= I.PALABRA_MAX);
+    assert.equal(raro.cifras, 'arabe');
+    assert.deepEqual(new ConfigPagina({}).rotulo, { ver: false, palabra: '', cifras: 'arabe' });
+    /* Lo propio del capitulo: solo se guarda lo que no es de siempre, y limpiarContenido lo conserva */
+    assert.deepEqual(propiosAGuardar({ titulo: '', enIndice: true, numerar: true }), {});
+    assert.deepEqual(propiosAGuardar({ titulo: 'Pró', enIndice: false, numerar: false }), { titulo: 'Pró', enIndice: false, numerar: false });
+    assert.deepEqual(propiosDe({ numerar: 'no' }), { titulo: '', enIndice: true, numerar: true });
+    const limpio = limpiarContenido({ numerar: false, enIndice: true, doc: { type: 'doc', content: [parrafo('a')] } }).contenido;
+    assert.equal(limpio.numerar, false);
+    assert.ok(!('enIndice' in limpio));
+    assert.ok(!('numerar' in limpiarContenido({ numerar: true, doc: { type: 'doc', content: [] } }).contenido));
+  });
+  await ok('plantillas: seis, la clasica como siempre, numero delante sin repetir «Capítulo», imagenes con su caja', async () => {
+    const { capitulosParaIndice } = await import('../src/scripts/contenido/taller/hoja.js');
+    const { rutasDelLibro } = await import('../src/scripts/contenido/taller/RutasLibro.js');
+    const e = I.entradasDe(capitulosParaIndice(caps()), { rotulo: { ver: true } });
+    /* Clasica sin numero: el nav de siempre, sin clase nueva */
+    assert.equal(I.hojasDeIndice(e, {}, [e.length], { plantilla: 'clasico' })[0].clase, 'indice');
+    assert.equal(I.hojasDeIndice(e, {}, [e.length], { plantilla: 'raro' })[0].clase, 'indice');
+    for (const v of I.PLANTILLAS.slice(1)) assert.equal(I.hojasDeIndice(e, {}, [e.length], { plantilla: v })[0].clase, `indice indice--${v}`);
+    const [nav] = I.hojasDeIndice(e, {}, [e.length], { plantilla: 'tabla', orden: true });
+    assert.equal(nav.clase, 'indice indice--tabla indice--orden');
+    nav.hijos.forEach(permitido);
+    const uno = nav.hijos.find((h) => h.clase === 'indice__fila indice__fila--1');
+    assert.equal(uno.hijos[0].clase, 'indice__orden');
+    assert.equal(uno.hijos[0].hijos[0].texto, '1');
+    assert.ok(!JSON.stringify(uno).includes('indice__rotulo'), 'con numero delante no se repite «Capítulo 1»');
+    assert.ok(!nav.hijos.some((h) => h.clase === 'indice__fila indice__fila--2' && JSON.stringify(h).includes('indice__orden')), 'los subtemas sin numero');
+    /* La imagen de arriba solo en la primera hoja; si aun no llego, su caja vacia; sin imagen, nada */
+    const dos = I.hojasDeIndice(e, {}, [2, e.length - 2], { imagen: '' });
+    assert.equal(dos[0].hijos[0].clase, 'indice__imagen');
+    assert.equal(dos[0].hijos[0].hijos[0].tag, 'span');
+    assert.ok(!dos[1].hijos.some((h) => h.clase === 'indice__imagen'));
+    const src = 'data:image/webp;base64,AAAA';
+    assert.equal(I.hojasDeIndice(e, {}, [e.length], { imagen: src })[0].hijos[0].hijos[0].attrs.src, src);
+    assert.equal(I.hojasDeIndice(e, {}, [e.length], { imagen: 'javascript:alert(1)' })[0].hijos[0].hijos[0].tag, 'span');
+    assert.ok(!I.hojasDeIndice(e, {}, [e.length], { imagen: null })[0].hijos.some((h) => h.clase === 'indice__imagen'));
+    /* Una hoja de mas adelante (asi mide la mesa) no lleva ni nombre ni imagen */
+    assert.ok(!I.hojasDeIndice(e, {}, [e.length], { imagen: '', primera: false })[0].hijos.some((h) => h.tag === 'h1' || h.clase === 'indice__imagen'));
+    /* Tarjetas con portadas: la del capitulo que empieza con una pagina de PDF */
+    const conPdf = [caps()[0], { id: 'c9', titulo: 'Con PDF', contenido: { titulo: 'Con PDF', doc: { type: 'doc', content: [{ type: 'paginaLibre', attrs: { fondo: 'taller/o1/pdf/p1.webp', objetos: [] } }] } } }];
+    const em = I.entradasDe(capitulosParaIndice(conPdf), { minis: true });
+    assert.equal(em.find((f) => f.titulo === 'Con PDF').mini, 'taller/o1/pdf/p1.webp');
+    const malo = [{ id: 'c9', titulo: 'X', contenido: { titulo: 'X', doc: { type: 'doc', content: [{ type: 'paginaLibre', attrs: { fondo: 'taller/../x.webp' } }] } } }];
+    assert.ok(!I.entradasDe(capitulosParaIndice(malo), { minis: true })[0].mini);
+    const [t] = I.hojasDeIndice(em, {}, [em.length], { plantilla: 'tarjetas', minis: true, imagenes: { 'taller/o1/pdf/p1.webp': src } });
+    t.hijos.forEach(permitido);
+    assert.equal(t.hijos.find((h) => JSON.stringify(h).includes('Con PDF')).hijos[0].tag, 'img');
+    /* La configuracion: lo raro no pasa */
+    const ind = new ConfigPagina({ indice: { plantilla: 'linea', orden: 'si', imagen: { ruta: 'taller/o1/img/a1.webp', altoPct: 99, ajuste: 'x' }, portadas: true } }).indice;
+    assert.deepEqual([ind.plantilla, ind.orden, ind.imagen.altoPct, ind.imagen.ajuste, ind.portadas], ['linea', false, 60, 'cubrir', true]);
+    assert.equal(new ConfigPagina({ indice: { imagen: { ruta: 'libros/a.webp' } } }).indice.imagen.ruta, '', 'solo una imagen del libro');
+    assert.equal(new ConfigPagina({ indice: { imagen: { ruta: 'taller/o1/img/a.svg' } } }).indice.imagen.ruta, '');
+    assert.equal(new ConfigPagina({ indice: { imagen: { ruta: 'taller/o1/img/../a.webp' } } }).indice.imagen.ruta, '');
+    /* El estilo: cada plantilla tiene sus reglas, ninguna con url( ni @import; la clasica conserva las suyas */
+    const css = cssLibro({ indice: { imagen: { altoPct: 40, ajuste: 'contener' } } });
+    for (const v of I.PLANTILLAS.slice(1)) assert.ok(css.includes(`.indice--${v}`), v);
+    assert.ok(!/url\(|@import/i.test(css));
+    assert.match(css, /\.libro \.indice__fila \{ display: flex; align-items: baseline; gap: \.4em; color: inherit; text-decoration: none; margin: 0 0 \.3em; break-inside: avoid; \}/);
+    assert.match(css, /\.indice__foto \{ display: block; width: 100%; height: 100%; object-fit: contain; \}/);
+    /* La imagen de arriba va al PDF y a la copia del libro */
+    const obra = { pagina: { indice: { imagen: { ruta: 'taller/o1/img/a1.webp' } } } };
+    const rutas = rutasDelLibro(obra, conPdf);
+    assert.ok(rutas.has('taller/o1/img/a1.webp') && rutas.has('taller/o1/pdf/p1.webp'));
+    /* En la hoja de impresion, con la imagen que trajo la vista */
+    const hj = aHoja(new Obra({ pagina: { indice: { ver: true, plantilla: 'linea', imagen: { ruta: 'taller/o1/img/a1.webp' } } } }).aDatos(), caps(), { imagenes: { 'taller/o1/img/a1.webp': src }, indice: { numeros: {}, reparto: [9] } });
+    const navs = hj.nodos[0].hijos.filter((n) => n.tag === 'nav');
+    assert.equal(navs[0].clase, 'indice indice--linea');
+    assert.equal(navs[0].hijos[0].hijos[0].attrs.src, src);
+    /* Lo mas grande que puede guardar un libro sigue cabiendo */
+    const grande = new ConfigPagina({ colores: Array(40).fill('#123456'), letras: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`Fuente${i}`, '#123456'])), rotulo: { ver: true, palabra: 'x'.repeat(30) }, indice: { ver: true, titulo: 'y'.repeat(120), plantilla: 'columnas', orden: true, imagen: { ruta: `taller/${'a'.repeat(40)}/img/${'b'.repeat(40)}.webp` }, portadas: true } });
+    assert.ok(new TextEncoder().encode(JSON.stringify(grande.aDatos())).length < 8000);
+  });
+  await ok('lo propio de un capitulo pasa siempre por un solo lugar (nadie lo copia a mano)', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const leer = (r) => readFile(new URL(`../src/scripts/${r}`, import.meta.url), 'utf8');
+    const archivos = ['portal/panel/dev/Taller.js', 'portal/panel/dev/taller/Mesa.js', 'portal/panel/dev/taller/CapituloVivo.js', 'contenido/taller/hoja.js'];
+    for (const a of archivos) {
+      const t = await leer(a);
+      assert.ok(!/enIndice: (?:v|a|this|x)\.enIndice !== false|\.enIndice === false \? \{ enIndice/.test(t), `${a} copia enIndice a mano`);
+      assert.ok(!/limpiarContenido\(\{[^)]*tituloPropio/.test(t), `${a} arma los propios a mano`);
+    }
+  });
   await ok('ConfigPagina: el indice de antes (true) sigue, y lo raro no pasa', () => {
-    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '' });
+    assert.deepEqual(new ConfigPagina({ indice: true }).indice, { ver: true, titulo: '', subtemas: true, puntos: true, antesDe: '', plantilla: 'clasico', orden: false, imagen: { ruta: '', altoPct: 30, ajuste: 'cubrir' }, portadas: false });
     assert.equal(new ConfigPagina({}).indice.ver, false);
     const raro = new ConfigPagina({ indice: { ver: 'si', titulo: `  Mi\u0007  índice ${'x'.repeat(300)}`, subtemas: false, puntos: 0, antesDe: '../x;y' } }).indice;
     assert.equal(raro.ver, false);
