@@ -311,7 +311,8 @@ export const RUTAS_RESERVADAS = [
   'assets', 'books', 'sounds', 'vendor', '_astro',                  // las carpetas de archivos
   'admin', 'login', 'www', 'index', '404',                          // nombres que no se regalan
   'writing', 'work', 'projects', 'about', 'contact', 'meet', 'direct',  // las secciones de cada idioma
-  'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public'   // archivos que los buscadores y los navegadores piden en la raiz
+  'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public',  // archivos que los buscadores y los navegadores piden en la raiz
+  'copiar'                                                          // la pagina del boton de copiar de un PDF (pages/copiar.astro)
 ];
 export const RESERVADOS = new Set([...ANCLAS_RESERVADAS, ...RUTAS_RESERVADAS]);
 /* Lo que makePages (site.js) necesita para armar un libro de una palabra: si

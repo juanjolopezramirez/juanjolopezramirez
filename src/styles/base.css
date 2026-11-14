@@ -4661,6 +4661,18 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   transition: background-color .2s var(--ease);
 }
 .book-panel__enlace[hidden] { display: none; }
+
+/* «Mensaje copiado»: un banner breve centrado sobre el libro, cuando alguien toca un boton de copiar de un PDF */
+.book__toast {
+  position: absolute; left: 50%; bottom: 5.5rem; z-index: 6;
+  max-width: calc(100% - 2rem); padding: .6rem 1.1rem; border-radius: 999px;
+  background: #1c1c1c; color: #fff; font: 600 .95rem/1.2 system-ui, sans-serif; text-align: center;
+  box-shadow: 0 6px 22px #0006;
+  opacity: 0; transform: translate(-50%, .6rem); pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.book__toast[data-visible] { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .book__toast { transition: none; } }
 /* Si la copia falla, el rotulo es la direccion entera: nunca pasa de la × (la completa va por el estado, sr-only) */
 .book-panel__enlace span { max-width: calc(100vw - 9rem); overflow: hidden; text-overflow: ellipsis; }
 .book-panel__enlace:hover, .book-panel__enlace[data-hecho] { background: var(--pine); }

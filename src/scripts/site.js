@@ -18,6 +18,7 @@ import { LIBROS, TIPOS } from '../data/biblioteca.js';
 /* Las ayudas para recorrer un libro largo (Volver, la barra, Contenido, RePag/AvPag): una sola cuenta, en scripts/lector/ */
 import { barraDePliego, hojaDelContenido, paginasDe, pliegoALaVuelta, pliegoDe } from './lector/pliegos.js';
 import { crearRecorrido } from './lector/recorrido.js';
+import { textoDeCopia } from './lector/copiaEnPdf.js';
 /* El salto al hiperespacio va DENTRO (1.3 KB): traerlo al pulsar lo hacia arrancar tarde
    en el telefono, y el salto se veia a trompicones. */
 import { saltar as lanzarSalto, calentar as calentarSalto } from './portal/salto.js';
@@ -1425,6 +1426,7 @@ function initBook() {
   }
 
   const flipBox = el('flip');
+  const copias = new WeakMap();   // boton de copiar de una hoja → el texto que copia (lector/copiaEnPdf.js)
   let fb = null;
   let fbInfo = null;
   let fbGen = 0;
@@ -1936,10 +1938,13 @@ function initBook() {
       /* Los enlaces del PDF siguen siendo enlaces: los del indice pasan a
          su pagina, los de fuera abren en otra pestaña. */
       ((texts[i] && texts[i].links) || []).forEach((L) => {
-        const a = h(L.href ? 'a' : 'button', 'flip__link');
-        if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+        /* Un boton de COPIAR exportado en el PDF (lector/copiaEnPdf.js): copia su texto, no abre nada */
+        const copia = L.href ? textoDeCopia(L.href) : null;
+        const a = h(L.href && !copia ? 'a' : 'button', 'flip__link');
+        if (copia) { a.type = 'button'; a.dataset.flipCopia = '1'; copias.set(a, copia); }
+        else if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
         else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
-        a.setAttribute('aria-label', L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
+        a.setAttribute('aria-label', copia ? t('book.copyMsg') : L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
         Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
         pg.appendChild(a);
       });
@@ -2157,9 +2162,36 @@ function initBook() {
   /* Diez pliegos adelante (d > 0) o atras (d < 0), contados desde donde va el libro (varios se suman) */
   const goTen = (d) => { if (fb) goTo(pliegoALaVuelta(rec.enViaje() ? rec.lugar() : fb.getCurrentPageIndex(), count(), d)); };
 
+  /* El aviso de «Mensaje copiado»: un banner breve sobre el libro (y lo anuncia un lector de pantalla), sin repetir lo copiado */
+  let avisoCopia = null, avisoCopiaTimer = 0;
+  const avisarCopia = (bien) => {
+    if (!avisoCopia) { avisoCopia = d.createElement('div'); avisoCopia.className = 'book__toast'; avisoCopia.setAttribute('role', 'status'); s.panel.appendChild(avisoCopia); }
+    avisoCopia.textContent = t(bien ? 'book.msgCopied' : 'book.msgCopyFail');
+    avisoCopia.setAttribute('data-visible', '');
+    clearTimeout(avisoCopiaTimer);
+    avisoCopiaTimer = setTimeout(() => { if (avisoCopia) avisoCopia.removeAttribute('data-visible'); }, bien ? 1900 : 4200);
+  };
+  const copiarMensaje = async (texto) => {
+    let bien = false;
+    try { await navigator.clipboard.writeText(texto); bien = true; } catch (err) { /* sin permiso o sin https: el metodo viejo */ }
+    if (!bien) {
+      const caja = d.createElement('textarea');
+      try {
+        caja.value = texto;
+        caja.setAttribute('readonly', '');
+        caja.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        s.panel.appendChild(caja);
+        caja.select();
+        bien = d.execCommand('copy');
+      } catch (err) { bien = false; } finally { caja.remove(); }
+    }
+    avisarCopia(bien);
+  };
   flipBox.addEventListener('click', (e) => {
     const go = e.target.closest('[data-flip-to]');
     if (go) goTo(Number(go.dataset.flipTo));
+    const cp = e.target.closest('[data-flip-copia]');
+    if (cp && copias.has(cp)) copiarMensaje(copias.get(cp));
   });
 
   backBtn.addEventListener('click', goBack);

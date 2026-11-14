@@ -283,7 +283,7 @@ export const PORTAL_TEXTOS = {
         vlAntAyuda: 'Página anterior (flecha izquierda). RePág: diez hojas atrás. Inicio: al comienzo.', vlSigAyuda: 'Página siguiente (flecha derecha). AvPág: diez hojas adelante. Fin: al final.',
         vlBotones: 'En estas páginas:',vlBotonSinTexto: 'Botón sin texto', vlBotonCopia: 'copia un texto', vlBotonEnlace: 'abre un enlace', vlBotonVacio: 'Este botón aún no hace nada.',
         vlAviso: 'Aviso…', vlAvisoAyuda: 'Cómo se ve el aviso de los botones', avisoTitulo: 'El aviso de los botones', avisoAyuda: 'Un solo aviso para todo el libro. Sale cuando alguien toca un botón.',
-        avisoCopiado: 'Copiado', avisoEnlace: 'Enlace abierto', avisoFalla: 'No se pudo copiar',
+        avisoCopiado: 'Mensaje copiado', avisoEnlace: 'Enlace abierto', avisoFalla: 'No se pudo copiar',
         avisoCasos: { copiado: 'Cuando copia', enlace: 'Cuando abre un enlace', falla: 'Cuando no puede' },
         avisoFondo: 'Fondo', avisoTinta: 'Letra', avisoLugar: 'Dónde sale', avisoArriba: 'Arriba', avisoAbajo: 'Abajo', avisoSegundos: 'Segundos', avisoProbar: 'Probar', avisoGuardado: 'Aviso guardado.', avisoSoloLeer: 'Aquí solo se puede mirar. Se cambia donde se escribe el libro.',
         lomoMenu: 'Lomo', lomoTexto: 'Texto del lomo', lomoTextoAuto: 'El título del libro', lomoColor: 'Color del lomo', lomoTinta: 'Letra del lomo', lomoGrosor: 'Grueso (mm)', lomoGrosorAuto: 'Auto',

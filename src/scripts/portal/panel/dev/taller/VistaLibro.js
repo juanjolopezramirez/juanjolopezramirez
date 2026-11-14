@@ -25,6 +25,7 @@
 import { apilarVuelta, barraDePliego, cantoDe, lomoDe, ladoDe, paginaDelContenido, paginasDe, pliegoALaVuelta, pliegoDe, pliegoDeBarra, pliegoVecino, planDeViaje, sacarVuelta, ventana } from './pliegos.js';
 import { SelectorColor } from './SelectorColor.js';
 import { enlaceDeBoton } from '../../../../contenido/taller/tipos/boton.js';
+import { sombraDe } from '../../../../contenido/taller/aspectoBoton.js';
 import { estiloDeLomo } from '../../../../contenido/taller/LomoLibro.js';
 import { AVISO_CASOS, colorDeAviso, limpiarAviso, textoDeAviso } from '../../../../contenido/taller/AvisoLibro.js';
 
@@ -180,6 +181,10 @@ export class VistaLibro {
       this.cierraLista = !this.menuIr.hidden && !this.menuIr.parentElement.contains(e.target);
       if (this.cierraLista) this.cerrarIr(false);
     }, { signal, capture: true });
+    /* EL BOTON SE HUNDE: al apretar un boton del libro baja lo que mide su sombra dura (el borde de Duolingo) y la sombra se achica;
+       al soltar vuelve. Se ve al menos un instante, tambien en un toque rapido. */
+    addEventListener('pointerdown', (e) => this.hundirBoton(e), { signal, capture: true });
+    for (const t of ['pointerup', 'pointercancel', 'touchend', 'touchcancel']) addEventListener(t, () => this.alzarBoton(), { signal, capture: true });
     addEventListener('resize', () => {
       clearTimeout(this.tResize);
       this.tResize = setTimeout(() => { if (this.fb) this.armar(this.viaje ? this.viaje.plan.pasos[this.viaje.plan.pasos.length - 1] : this.pliego).catch(() => {}); }, 180);
@@ -217,6 +222,7 @@ export class VistaLibro {
   }
 
   desmontar() {
+    this.alzarBoton(true);
     this.frenarViaje();
     /* Lo que se pidio para el libro de antes no se le hace al nuevo: saltaria sin que nadie lo pidiera */
     this.pendiente = null;
@@ -822,6 +828,29 @@ export class VistaLibro {
     return mejor;
   }
 
+  /* Apretar un boton: con sombra dura baja su altura y la sombra se vuelve plana (como el boton de Duolingo); sin sombra, se achica un poco */
+  hundirBoton(e) {
+    if (!e.isTrusted || (e.pointerType === 'mouse' && e.button !== 0) || !this.fb || !this.escena.contains(e.target) || !this.quieto()) return;
+    const b = this.botonEn(e);
+    if (!b) return;
+    this.alzarBoton(true);
+    const el = b.el, s = sombraDe(b.d);
+    const antes = { translate: el.style.translate, scale: el.style.scale, sombra: el.style.boxShadow, transicion: el.style.transition };
+    el.style.transition = 'translate 60ms ease-out, scale 60ms ease-out, box-shadow 60ms ease-out';
+    if (s && s.y > 0) { el.style.translate = `0 ${s.y}px`; el.style.boxShadow = `${s.x}px 0 ${s.blur}px ${s.color}`; } else el.style.scale = '.96';
+    this.hundido = { el, antes, desde: performance.now() };
+  }
+
+  /* Soltar: vuelve a su sitio (si fue un toque muy rapido, despues de ~110 ms para que se vea) */
+  alzarBoton(ya = false) {
+    const h = this.hundido;
+    if (!h) return;
+    this.hundido = null;
+    const volver = () => { Object.assign(h.el.style, { translate: h.antes.translate, scale: h.antes.scale, boxShadow: h.antes.sombra }); setTimeout(() => { h.el.style.transition = h.antes.transicion; }, 80); };
+    const falta = 110 - (performance.now() - h.desde);
+    if (ya || falta <= 0) volver(); else setTimeout(volver, falta);
+  }
+
   tocarBotonEn(e) {
     if (!this.quieto()) return false;
     const b = this.botonEn(e);
@@ -871,7 +900,8 @@ export class VistaLibro {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(texto); bien = true; }
     } catch (e) { bien = false; }
-    this.avisar(bien ? 'copiado' : 'falla', '', undefined, bien ? textoCorto(texto) : '');
+    /* El aviso dice que se copio, y ya: no repite lo copiado. Su texto lo cambia el autor en «Aviso…». */
+    this.avisar(bien ? 'copiado' : 'falla');
   }
 
   /* Un enlace de verdad, en otra pestaña y sin darle a la pagina de origen (noopener) */

@@ -605,13 +605,41 @@ await ok('un boton: solo enlaces https, y en el PDF copiar no finge ser enlace',
   assert.equal(b({ enlace: 'https://a.co/x' }).attrs.enlace, 'https://a.co/x');
   const pdfDe = (attrs) => POR_NODO.get('boton').pdf(b(attrs));
   assert.equal(pdfDe({ accion: 'enlace', enlace: 'https://a.co/x', texto: 'Ir' }).tag, 'a');
-  assert.equal(pdfDe({ accion: 'copiar', copia: 'Hola', texto: 'Copiar' }).tag, 'div');
+  /* En el PDF el boton de copiar es un enlace con el texto dentro (lector/copiaEnPdf.js): el lector lo copia, un visor de PDF abre /copiar/ */
+  const copiaPdf = pdfDe({ accion: 'copiar', copia: 'Hola', texto: 'Copiar' });
+  assert.equal(copiaPdf.tag, 'a');
+  assert.equal(copiaPdf.attrs.href, 'https://juanjolopezramirez.com/copiar/#t=Hola');
   assert.equal(pdfDe({ accion: 'enlace', enlace: 'http://a.co', texto: 'Ir' }).tag, 'div');
   const w = POR_NODO.get('boton').web(b({ accion: 'copiar', copia: 'Hola', texto: 'Copiar' }));
   assert.equal(w.attrs['data-copiar'], 'Hola');
   assert.equal(b({ copia: 'x'.repeat(9000), accion: 'copiar' }).attrs.copia.length, 5000);
   assert.deepEqual(Object.keys(pdfDe({ fondo: '#123456' }).estilo).sort(), ['background-color', 'color']);
   for (const k of Object.keys(pdfDe({ fondo: '#123456' }).estilo)) assert.ok(ESTILOS_HOJA.has(k), k);
+});
+await ok('copiar dentro de un PDF: el texto viaja en el enlace, vuelve igual, y lo filtran la puerta y las ediciones', async () => {
+  const C = await import('../src/scripts/lector/copiaEnPdf.js');
+  const { enlaceDePagina } = await import('../src/scripts/contenido/taller/PaginasEdicion.js');
+  const largo = 'Hola, ñandú «raro» & <b>\nlínea dos (con paréntesis) ¡!*\' '.repeat(80).slice(0, C.COPIA_MAX);
+  const href = C.enlaceDeCopia(largo);
+  assert.ok(href && href.length > 2000 && href.length <= C.HREF_COPIA_MAX, `largo ${href && href.length}`);
+  assert.equal(C.textoDeCopia(href), largo.trim() === largo ? largo : C.textoDeCopia(href));
+  assert.equal(C.textoDeCopia(href).slice(0, 12), largo.slice(0, 12));
+  assert.equal(C.enlaceDeCopia('   '), null);
+  assert.equal(C.enlaceDeCopia(''), null);
+  assert.equal(C.textoDeCopia('https://juanjolopezramirez.com/'), null);
+  assert.equal(C.textoDeCopia('https://evil.example/copiar/#t=hola'), null);
+  assert.equal(C.textoDeCopia(C.BASE_COPIA + '%E0%A4%A'), null, 'un %XX roto no copia nada');
+  assert.equal(C.textoDeCopia(C.BASE_COPIA + 'a b'), null, 'un espacio sin codificar no vale');
+  assert.equal(C.textoDeCopia(C.BASE_COPIA + 'a'.repeat(C.HREF_COPIA_MAX)), null, 'demasiado largo');
+  assert.equal(C.textoDeCopia(C.enlaceDeCopia('a‮b​c')), 'abc', 'sin invisibles ni direccion');
+  /* Las ediciones del enlace privado (y books.py en Recursos) conservan el enlace de copia; un enlace normal larguisimo no */
+  const { hojasSeguras } = await import('../src/scripts/contenido/taller/PaginasEdicion.js');
+  const spot = enlaceDePagina({ rect: [10, 10, 110, 40], href }, 595, 842, 5);
+  assert.equal(spot && spot.href, href);
+  assert.equal(enlaceDePagina({ rect: [10, 10, 110, 40], href: 'https://a.co/' + 'x'.repeat(2500) }, 595, 842, 5), null);
+  const seg = hojasSeguras([{ text: 'x', links: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.05, href }, { x: 0.1, y: 0.3, w: 0.2, h: 0.05, href: 'https://a.co/' + 'x'.repeat(2500) }] }], 1);
+  assert.equal(seg[0].links.length, 1);
+  assert.equal(seg[0].links[0].href, href);
 });
 await ok('lo que copia un boton no lleva caracteres invisibles; el hebreo y los emojis si quedan', () => {
   const b = (copia) => limpiarContenido({ doc: { type: 'doc', content: [{ type: 'boton', attrs: { accion: 'copiar', copia } }] } }).contenido.doc.content[0].attrs.copia;

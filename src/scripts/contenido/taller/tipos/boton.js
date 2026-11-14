@@ -2,6 +2,7 @@
    en una pagina libre (tipos/objetos.js). Un PDF no puede tocar el portapapeles: ahi el boton de copiar
    solo se dibuja, y funciona en el libro web. Sin su enlace o su texto se avisa en la mesa, y sale sin accion. */
 import { enlaceSeguro, texto } from '../../comun.js';
+import { enlaceDeCopia } from '../../../lector/copiaEnPdf.js';
 import { colorValido } from '../marcas.js';
 import { tintaPara } from '../colores.js';
 import { alineacion, el, txt } from './ayuda.js';
@@ -57,6 +58,9 @@ export function piezaDeBoton(o, claseBase, estilo, web) {
   const e = { ...estiloDeBoton(o), ...estilo }, hijos = hijosDeBoton(o), clase = claseBase + claseDeBoton(o);
   if (o.accion === 'enlace' && o.enlace) return el('a', clase, hijos, { href: o.enlace }, e);
   if (web && o.accion === 'copiar' && o.copia) return el('button', clase, hijos, { type: 'button', 'data-copiar': o.copia }, e);
+  /* En el PDF el boton de copiar es un ENLACE que lleva el texto (lector/copiaEnPdf.js): el lector de Recursos y del enlace privado lo
+     reconoce y copia; un visor de PDF cualquiera abre la pagina /copiar/, que muestra el texto y lo copia. */
+  if (!web && o.accion === 'copiar' && o.copia) { const href = enlaceDeCopia(o.copia); if (href) return el('a', clase, hijos, { href }, e); }
   return el('div', clase, hijos, {}, e);
 }
 

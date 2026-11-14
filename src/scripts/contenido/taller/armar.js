@@ -3,6 +3,7 @@
    lados. Nada se confia: cada etiqueta, atributo y estilo se vuelve a mirar contra las listas de hoja.js. */
 import { ATRIBUTOS_HOJA, ATRIBUTOS_SVG, ESTILOS_HOJA, ETIQUETAS_HOJA, ETIQUETAS_SVG } from './hoja.js';
 import { enlaceSeguro } from '../comun.js';
+import { esEnlaceCopia } from '../../lector/copiaEnPdf.js';
 import { TEX_MAX } from './tipos/formula.js';
 import { D_MAX, PUNTOS_MAX, RE_D, RE_PUNTOS, RE_TRANSFORM } from './iconosBoton.js';
 
@@ -35,7 +36,7 @@ export function valorSeguro(tag, k, v) {
   if (k === 'aria-label') return v.length <= 300 && !/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/.test(v);
   if (ATRIBUTOS_SVG.has(k)) return ETIQUETAS_SVG.has(tag) && valorSvg(k, v);
   if (k === 'src') return tag === 'img' && /^data:image\/(webp|png|jpeg);base64,/.test(v);
-  if (k === 'href') return tag === 'a' && (v.startsWith('#') ? /^#[a-z0-9-]+$/.test(v) : enlaceSeguro(v));
+  if (k === 'href') return tag === 'a' && (v.startsWith('#') ? /^#[a-z0-9-]+$/.test(v) : enlaceSeguro(v) || esEnlaceCopia(v));
   if (k === 'id') return /^[a-z0-9-]+$/.test(v);
   if (k === 'start') return /^\d{1,5}$/.test(v);
   if (k === 'data-tex') return v.length <= TEX_MAX;

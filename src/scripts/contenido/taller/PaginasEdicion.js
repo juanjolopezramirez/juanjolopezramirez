@@ -14,6 +14,8 @@
    unidades que `ancho` y `alto`), y el destino de un salto interno ya viene resuelto a un numero de pagina.
    El PDF puede ser de cualquiera, asi que cada dato se trata como hostil. */
 
+import { esEnlaceCopia } from '../../lector/copiaEnPdf.js';
+
 export const ENLACES_MAX = 200;
 export const AREA_MAX = 0.25;
 export const TEXTO_MAX = 30000;               // letras por pagina
@@ -39,7 +41,8 @@ export function enlaceDePagina(a, ancho, alto, paginas) {
   const spot = { x: r4(x0 / ancho), y: r4(y0 / alto), w: r4((x1 - x0) / ancho), h: r4((y1 - y0) / alto) };
   if (spot.w * spot.h > AREA_MAX) return null;
   if (typeof a.href === 'string' && a.href) {
-    if (a.href.length > HREF_MAX || !HREF_BUENO.test(a.href) || HREF_MALO.test(a.href)) return null;
+    /* Un boton de copiar exportado (lector/copiaEnPdf.js) lleva el texto en la direccion: puede ser mas largo que un enlace normal */
+    if (!esEnlaceCopia(a.href) && (a.href.length > HREF_MAX || !HREF_BUENO.test(a.href) || HREF_MALO.test(a.href))) return null;
     spot.href = a.href;
   } else if (Number.isInteger(a.pagina) && a.pagina >= 0 && a.pagina < paginas) {
     spot.page = a.pagina;
@@ -90,7 +93,7 @@ export function hojasSeguras(hojas, n) {
       if (caja.some((v) => Number.isNaN(v) || v < 0 || v > 1) || caja[0] + caja[2] > 1.0001 || caja[1] + caja[3] > 1.0001 || caja[2] * caja[3] > AREA_MAX) continue;
       const spot = { x: caja[0], y: caja[1], w: caja[2], h: caja[3] };
       if (typeof l.href === 'string') {
-        if (l.href.length > HREF_MAX || !HREF_BUENO.test(l.href) || HREF_MALO.test(l.href)) continue;
+        if (!esEnlaceCopia(l.href) && (l.href.length > HREF_MAX || !HREF_BUENO.test(l.href) || HREF_MALO.test(l.href))) continue;
         spot.href = l.href;
       } else if (Number.isInteger(l.page) && l.page >= 0 && l.page < n) spot.page = l.page;
       else continue;
