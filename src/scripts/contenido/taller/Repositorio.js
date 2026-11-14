@@ -7,6 +7,8 @@
      copia(obraId, motivo, nombre) · versiones(obraId) · restaurar(versionId)
      ediciones(obraId) · crearEdicion(datos) · borrarEdicion(id)            (supabase/013_publicar.sql)
      enlaces(edicionId) · crearEnlace(datos) · apagarEnlace(id)
+     libroDe(obraId) · vincularLibro(obraId, libroId) · desvincularLibro(obraId) · copiarARecursos(obraId, edicionId, libroId, lang)
+     quitarPdfDeRecursos(obraId, libroId, ruta)   (014)
 
    DOS PESTAÑAS NO SE PISAN. Cada fila lleva `rev`, que la base sube sola, y `pestana`, quien
    guardo. Se guarda SOLO si `rev` sigue siendo la que se leyo. Si no, `decidir` mira quien
@@ -15,6 +17,7 @@
 import { deFila } from '../comun.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
 import { DIAS_MAX, NOMBRE_MAX } from './Enlaces.js';
+import { nombrePdfDeRecursos, planDeCopia, veredictoDeId } from './Recursos.js';
 
 export function decidir(actual, pestana) {
   if (!actual) return { error: 'permiso' };
@@ -29,7 +32,12 @@ const COPIAS_AUTO = 30;
 
 /* EN MEMORIA: la misma forma, para probar en Node y en el modo demo */
 export class RepositorioTallerMemoria {
-  constructor() { this.obrasM = new Map(); this.capitulosM = new Map(); this.piezasM = new Map(); this.versionesL = []; this.edicionesM = new Map(); this.enlacesM = new Map(); this.reloj = () => Date.now(); }
+  constructor() { this.obrasM = new Map(); this.capitulosM = new Map(); this.piezasM = new Map(); this.versionesL = []; this.edicionesM = new Map(); this.enlacesM = new Map(); this.reloj = () => Date.now();
+    /* Los dos pies de la demo y las pruebas: ¿hay ya algo con ese id en Recursos? y copiar un archivo de un cajon a otro */
+    this.libroOcupado = async () => false;
+    this.copiarArchivo = async () => ({ ok: true });
+    this.quitarArchivoRecursos = async () => ({ ok: true });
+  }
 
   async obras() {
     return { ok: true, filas: [...this.obrasM.values()].map(copiaProfunda) };
@@ -111,9 +119,10 @@ export class RepositorioTallerMemoria {
     for (const [k, v] of this.enlacesM) if (v.edicionId === id) this.enlacesM.delete(k);
   }
   async ediciones(obraId) {
-    const filas = [...this.edicionesM.values()].filter((e) => e.obraId === obraId)
-      .sort((a, b) => (a.creado < b.creado ? 1 : a.creado > b.creado ? -1 : 0))
-      .map(({ id, titulo, paginas, ratio, blando, creado }) => ({ id, titulo, paginas, ratio, blando, creado }));
+    /* Las mas nuevas primero; con la misma hora (dos seguidas), la ultima que se hizo */
+    const filas = [...this.edicionesM.values()].filter((e) => e.obraId === obraId).map((e, i) => [e, i])
+      .sort((a, b) => (a[0].creado < b[0].creado ? 1 : a[0].creado > b[0].creado ? -1 : b[1] - a[1])).map(([e]) => e)
+      .map(({ id, titulo, idioma, paginas, ratio, blando, creado }) => ({ id, titulo, idioma, paginas, ratio, blando, creado }));
     return { ok: true, filas };
   }
   async crearEdicion(d) {
@@ -159,6 +168,51 @@ export class RepositorioTallerMemoria {
     e.revocado = true;
     return { ok: true };
   }
+
+  /* ---- Publicar en Recursos (supabase/014_recursos.sql): el vinculo con el libro de Recursos ---- */
+  async libroDe(obraId) {
+    const o = this.obrasM.get(obraId);
+    return o ? { ok: true, libroId: o.libroId || '' } : { error: 'noExiste' };
+  }
+  /* Se pone una vez y no cambia; ponerlo no sube `rev` (como la base) */
+  async vincularLibro(obraId, libroId) {
+    const o = this.obrasM.get(obraId);
+    if (!o) return { error: 'noExiste' };
+    const hayOtraObra = [...this.obrasM.values()].some((x) => x.id !== obraId && x.libroId === libroId);
+    const hayEnBiblioteca = !o.libroId && !hayOtraObra ? !!(await this.libroOcupado(libroId)) : false;
+    const v = veredictoDeId(libroId, { propio: o.libroId || '', hayOtraObra, hayEnBiblioteca });
+    if (v.error) return { error: v.error };
+    o.libroId = libroId;
+    return { ok: true };
+  }
+  /* Soltar el vinculo: solo mientras el libro NO exista en Recursos (como la base): si un publicar fallo a medias, no queda fijo */
+  async desvincularLibro(obraId) {
+    const o = this.obrasM.get(obraId);
+    if (!o) return { error: 'noExiste' };
+    if (o.libroId && (await this.libroOcupado(o.libroId))) return { error: 'permiso' };
+    o.libroId = '';
+    return { ok: true };
+  }
+  /* Quitar de `libros` el PDF que se acaba de copiar (o el anterior): solo uno de ESTE libro de Recursos, ruta exacta */
+  async quitarPdfDeRecursos(obraId, libroId, ruta) {
+    const l = await this.libroDe(obraId);
+    if (l.error) return l;
+    if (!l.libroId || l.libroId !== libroId) return { error: 'idNoVinculado' };
+    if (!nombrePdfDeRecursos(libroId, ruta)) return { error: 'archivoRuta' };
+    return this.quitarArchivoRecursos(ruta);
+  }
+  /* El PDF de la edicion → libros/<id>/<idioma>-<azar>.pdf. Origen y destino salen de planDeCopia: nunca una ruta libre. */
+  async copiarARecursos(obraId, edicionId, libroId, lang, { azar } = {}) {
+    const l = await this.libroDe(obraId);
+    if (l.error) return l;
+    if (!l.libroId || l.libroId !== libroId) return { error: 'idNoVinculado' };
+    const e = this.edicionesM.get(edicionId);
+    if (!e || e.obraId !== obraId) return { error: 'noExiste' };
+    const plan = planDeCopia({ obraId, edicionId, edicionPdf: e.pdf, libroId, lang, ...(azar ? { azar } : {}) });
+    if (plan.error) return plan;
+    const c = await this.copiarArchivo(plan.origen, plan.destino);
+    return c && c.error ? c : { ok: true, ruta: plan.destino };
+  }
   /* LO QUE HACE LA FUNCION DE BORDE (supabase/functions/vista), para el modo demo y las pruebas */
   buscarEnlace(hash) { return [...this.enlacesM.values()].find((e) => e.hash === hash) || null; }
 
@@ -200,12 +254,12 @@ export class RepositorioTallerSupabase {
   }
 
   async obras() {
-    const r = await this.pedir(this.sb.from('taller_obras').select('id,titulo,editado').order('editado', { ascending: false }).limit(200));
-    return r.error ? r : { ok: true, filas: r.data };
+    const r = await this.pedir(this.sb.from('taller_obras').select('id,titulo,editado,libro_id').order('editado', { ascending: false }).limit(200));
+    return r.error ? r : { ok: true, filas: r.data.map(({ libro_id: libroId, ...resto }) => ({ ...resto, libroId: libroId || '' })) };
   }
   async abrir(id) {
     const [o, c, p] = await Promise.all([
-      this.pedir(this.sb.from('taller_obras').select('id,titulo,idioma,pagina,fuentes,rev').eq('id', id).maybeSingle()),
+      this.pedir(this.sb.from('taller_obras').select('id,titulo,idioma,pagina,fuentes,rev,libro_id').eq('id', id).maybeSingle()),
       this.pedir(this.sb.from('taller_capitulos').select('id,obra_id,orden,titulo,contenido,letras,rev').eq('obra_id', id).order('orden').order('id').limit(200)),
       this.pedir(this.sb.from('taller_piezas').select('id,obra_id,nombre,estado,pdf,ancho_mm,alto_mm,dpi,ajuste,paginas,rev').eq('obra_id', id).limit(500))
     ]);
@@ -278,7 +332,7 @@ export class RepositorioTallerSupabase {
 
   /* ---- Compartir (supabase/013_publicar.sql). Nunca se pide `hash` de vuelta ni `hojas` en una lista. ---- */
   async ediciones(obraId) {
-    const r = await this.pedir(this.sb.from('taller_ediciones').select('id,titulo,paginas,ratio,blando,creado').eq('obra_id', obraId).order('creado', { ascending: false }).limit(20));
+    const r = await this.pedir(this.sb.from('taller_ediciones').select('id,titulo,idioma,paginas,ratio,blando,creado').eq('obra_id', obraId).order('creado', { ascending: false }).limit(20));
     return r.error ? r : { ok: true, filas: r.data.map((f) => ({ ...f, ratio: Number(f.ratio) })) };
   }
   async crearEdicion(d) {
@@ -309,5 +363,77 @@ export class RepositorioTallerSupabase {
     const r = await this.pedir(this.sb.from('taller_enlaces').update({ revocado: true }).eq('id', id).select('id'));
     if (r.error) return r;
     return Array.isArray(r.data) && r.data.length === 1 ? { ok: true } : { error: 'noExiste' };
+  }
+
+  /* ---- Publicar en Recursos (supabase/014_recursos.sql) ---- */
+  async libroDe(obraId) {
+    const r = await this.pedir(this.sb.from('taller_obras').select('libro_id').eq('id', obraId).maybeSingle());
+    if (r.error) return r;
+    return r.data ? { ok: true, libroId: r.data.libro_id || '' } : { error: 'noExiste' };
+  }
+  /* ¿Hay ya algo con ese id en Recursos (publicado, quitado, o en borrador)? */
+  async enBiblioteca(id) {
+    try {
+      const [a, b] = await Promise.all([
+        this.sb.from('biblioteca').select('id').eq('id', id).maybeSingle(),
+        this.sb.from('borradores').select('id').eq('tabla', 'biblioteca').eq('id', id).maybeSingle()
+      ]);
+      if (a.error || b.error) return { error: claveError(a.error || b.error) };
+      return { ok: true, hay: !!(a.data || b.data) };
+    } catch (e) { return { error: 'red' }; }
+  }
+  /* Se pone una vez y no cambia: el indice unico de 014 cierra la puerta a dos libros con el mismo id */
+  async vincularLibro(obraId, libroId) {
+    const l = await this.libroDe(obraId);
+    if (l.error) return l;
+    let hay = false;
+    if (!l.libroId) {
+      const b = await this.enBiblioteca(libroId);
+      if (b.error) return b;
+      hay = b.hay;
+    }
+    const v = veredictoDeId(libroId, { propio: l.libroId, hayEnBiblioteca: hay });
+    if (v.error) return { error: v.error };
+    if (v.propio) return { ok: true };
+    try {
+      const { data, error } = await this.sb.from('taller_obras').update({ libro_id: libroId }).eq('id', obraId).select('id');
+      if (error) return { error: error.code === '23505' ? 'idOcupado' : claveError(error) };
+      return Array.isArray(data) && data.length === 1 ? { ok: true } : { error: 'noExiste' };
+    } catch (e) { return { error: 'red' }; }
+  }
+  async desvincularLibro(obraId) {
+    try {
+      const { data, error } = await this.sb.from('taller_obras').update({ libro_id: null }).eq('id', obraId).select('id');
+      if (error) return { error: claveError(error) };
+      return Array.isArray(data) && data.length === 1 ? { ok: true } : { error: 'noExiste' };
+    } catch (e) { return { error: 'red' }; }
+  }
+  /* Quita de `libros` UN PDF de ESTE libro de Recursos: la ruta exacta, de la forma libros/<su id>/<idioma>[-<azar>].pdf */
+  async quitarPdfDeRecursos(obraId, libroId, ruta) {
+    const l = await this.libroDe(obraId);
+    if (l.error) return l;
+    if (!l.libroId || l.libroId !== libroId) return { error: 'idNoVinculado' };
+    const nombre = nombrePdfDeRecursos(libroId, ruta);
+    if (!nombre) return { error: 'archivoRuta' };
+    try {
+      const { error } = await this.sb.storage.from('libros').remove([nombre]);
+      return error ? { error: 'subida' } : { ok: true };
+    } catch (e) { return { error: 'red' }; }
+  }
+  /* Copia el PDF de una edicion a `libros/<id>/<idioma>-<azar>.pdf` DENTRO del almacen (sin bajarlo). El origen sale de la
+     fila de la edicion (de ESTE libro) y el destino de planDeCopia; el libro de Recursos tiene que ser el vinculado. */
+  async copiarARecursos(obraId, edicionId, libroId, lang, { azar } = {}) {
+    const l = await this.libroDe(obraId);
+    if (l.error) return l;
+    if (!l.libroId || l.libroId !== libroId) return { error: 'idNoVinculado' };
+    const r = await this.pedir(this.sb.from('taller_ediciones').select('pdf').eq('id', edicionId).eq('obra_id', obraId).maybeSingle());
+    if (r.error) return r;
+    if (!r.data) return { error: 'noExiste' };
+    const plan = planDeCopia({ obraId, edicionId, edicionPdf: r.data.pdf, libroId, lang, ...(azar ? { azar } : {}) });
+    if (plan.error) return plan;
+    try {
+      const { error } = await this.sb.storage.from('taller').copy(plan.nombreOrigen, plan.nombreDestino, { destinationBucket: 'libros' });
+      return error ? { error: 'subida' } : { ok: true, ruta: plan.destino };
+    } catch (e) { return { error: 'red' }; }
   }
 }

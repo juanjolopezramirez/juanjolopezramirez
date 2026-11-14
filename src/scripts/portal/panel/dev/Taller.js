@@ -23,7 +23,7 @@ import { VistaLibro } from './taller/VistaLibro.js';
 import { Imagenes } from './taller/Imagenes.js';
 import { esSvg, svgAPng } from './taller/SvgAImagen.js';
 import { Vista } from './taller/Vista.js';
-import { cargarFuente } from './taller/Fuentes.js';
+import { cargarFuente, esperarLetras } from './taller/Fuentes.js';
 import { importarPdf, subirPdf } from './taller/Importar.js';
 import { Formulas } from './taller/Formulas.js';
 import { bajarLibro, entregar, nombreDeArchivo } from './taller/Descarga.js';
@@ -192,7 +192,7 @@ export class Taller extends Seccion {
       x.title = nombre;
       x.append(icono('eliminar'));
       /* Mientras ese libro se abre no se borra: la mesa quedaria sobre un libro que ya no existe */
-      x.addEventListener('click', () => { if (!this.abriendo && !this.obra) this.borrador.abrir({ id: o.id, titulo: o.titulo }); });
+      x.addEventListener('click', () => { if (!this.abriendo && !this.obra) this.borrador.abrir({ id: o.id, titulo: o.titulo, libroId: o.libroId || '' }); });
       li.className = 'tal-obra-fila';
       li.append(b, x);
       this.lista.append(li);
@@ -304,6 +304,11 @@ export class Taller extends Seccion {
     this.vistaLibro = this.vistaLibro || new VistaLibro(this.m('[data-tal-vista-libro]'), { mesa: this.mesa, tx: this.tx, titulo: () => (this.obra ? this.obra.titulo : ''), libro, recientes: () => (this.obra ? this.obra.pagina.colores : []), alColor: (c) => this.recordarColor(c) });
     this.vistaLibro.mesa = this.mesa;
     this.mesa.vistaLibro = this.vistaLibro;
+    /* Se espera de verdad a la letra del libro (su hoja y los trazos que usa), no solo a lo que ya estaba cargando: si no,
+       la mesa se mide con la letra de reserva y sus hojas no coinciden con el PDF. Con tope: sin red se abre igual. */
+    const letrasListas = await esperarLetras(this.obra.fuentes, this.obra.pagina.cuerpo.fuente);
+    if (sesion !== this.sesion) return;
+    if (!letrasListas) this.error('letraTarda');
     await document.fonts.ready;
     this.mesa.abrir(capitulos);
     this.pintarColores();
@@ -1056,7 +1061,7 @@ export class Taller extends Seccion {
   asegurarVista() {
     if (this.vista) return;
     this.vista = new Vista(this.m('[data-tal-marco]'), {
-      alPintar: () => { this.avance.textContent = ''; this.vista.imprimir(); },
+      alPintar: (letras) => { this.avance.textContent = ''; if (!letras) this.error('letraTarda'); this.vista.imprimir(); },
       alFallar: () => { this.avance.textContent = ''; this.error('vistaFallo'); }
     });
   }

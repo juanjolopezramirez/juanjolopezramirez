@@ -19,3 +19,23 @@ export function cargarFuente(nombre) {
   puestas.set(nombre, promesa);
   return promesa;
 }
+
+const ESPERA_LETRAS_MS = 8000;
+const PESOS = ['400', '700'];
+/* Espera a que de verdad lleguen las letras del libro: la hoja de cada fuente y los pesos que usa el texto y los titulos,
+   con una letra latina y una hebrea (Google sirve el hebreo en otro trozo). Devuelve false si algo no llego a tiempo:
+   quien llama lo dice, en vez de medir el libro con la letra de reserva sin avisar. */
+export async function esperarLetras(nombres, cuerpo) {
+  const lista = [...new Set([...(Array.isArray(nombres) ? nombres : []), cuerpo].filter(Boolean))];
+  let bien = true;
+  const trabajo = Promise.all(lista.map(async (n) => {
+    if (!(await cargarFuente(n))) { bien = false; return; }
+    const r = await Promise.allSettled(PESOS.map((p) => document.fonts.load(`${p} 16px "${n}"`, 'Aא')));
+    if (r.some((x) => x.status === 'rejected')) bien = false;
+  }));
+  let vencio = false, reloj = 0;
+  try {
+    await Promise.race([trabajo, new Promise((ok) => { reloj = setTimeout(() => { vencio = true; ok(); }, ESPERA_LETRAS_MS); })]);
+  } finally { clearTimeout(reloj); }
+  return bien && !vencio;
+}

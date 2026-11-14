@@ -1459,6 +1459,24 @@ ok('013: compartir con un enlace privado: solo el admin, nada para anon, sin «s
   assert.match(sql, /vence es obligatorio/);
   assert.match(leer('supabase/990_comprobar_rls.sql'), /taller_enlaces/);
 });
+ok('014: publicar en Recursos: indice unico, `rev` que ignora libro_id, libro_id fijo, sin llave foranea ni «security definer»', () => {
+  const sql = sinComentarioSql(leer('supabase/014_recursos.sql'));
+  assert.match(sql, /create unique index if not exists taller_obras_libro_id_unico on public\.taller_obras \(libro_id\) where libro_id is not null/);
+  assert.match(sql, /function public\.taller_subir_rev\(\)[\s\S]*?set search_path = ''/);
+  assert.match(sql, /tg_table_name = 'taller_obras'[\s\S]*?new\.libro_id is distinct from old\.libro_id[\s\S]*?new\.rev := old\.rev/);
+  assert.match(sql, /old\.libro_id is not null and new\.libro_id is distinct from old\.libro_id/);
+  assert.match(sql, /drop trigger if exists taller_obras_libro_fijo/);
+  assert.equal((sql.match(/create or replace function/g) || []).length, (sql.match(/set search_path = ''/g) || []).length);
+  assert.ok(!/security definer/i.test(sql) && !/\bto anon\b/i.test(sql) && !/drop table|references public\.biblioteca/i.test(sql));
+  assert.ok(!/alter table public\.taller_obras[^;]*foreign key/i.test(sql));
+  assert.match(leer('supabase/990_comprobar_rls.sql'), /taller_obras_libro_id_unico/);
+});
+ok('014: nada del cliente escribe en public/books ni toca la compilacion: solo copia el PDF dentro del almacen y publica la fila', () => {
+  const rec = leer('src/scripts/contenido/taller/Recursos.js'), rep = leer('src/scripts/contenido/taller/Repositorio.js');
+  assert.ok(!/public\/books|writeFile|books\.py/.test(rec + rep));
+  assert.match(rep, /\.copy\(plan\.nombreOrigen, plan\.nombreDestino, \{ destinationBucket: 'libros' \}\)/);
+  assert.ok(!/\.copy\([^)]*(obraId|edicionId|rutaLibre)/.test(rep.replace(/plan\.nombre/g, '')), 'la copia solo usa el plan');
+});
 ok('013: la funcion de borde: una sola respuesta mala, la llave del entorno, el token no se escribe en ningun registro', () => {
   const ts = leer('supabase/functions/vista/index.ts'), nucleo = leer('supabase/functions/vista/nucleo.js'), leame = leer('supabase/functions/vista/README.md');
   assert.match(ts, /Deno\.env\.get\('SUPABASE_SERVICE_ROLE_KEY'\)/);

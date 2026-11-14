@@ -1586,7 +1586,7 @@ console.log('papeles, palabra propia, subetapa y encabezado');
     const viejo = libro({ rotulo: { ver: true } }, ...caps);
     assert.ok(!/@top-|cab-|cabeza/.test(viejo.css), 'sin encabezado, el estilo no cambia');
     assert.ok(!JSON.stringify(viejo.nodos).includes('cabeza-parte'));
-    assert.match(viejo.css, /\.subetapa \{ break-before: page; \}/);
+    assert.match(viejo.css, /\.subetapa \{ break-before: column; \}/, 'la subetapa abre hoja: corta la columna, igual que en la mesa');
     /* Encendido */
     const nuevo = libro({ rotulo: { ver: true }, cabeza: { ver: true, partes: { rol: true, subetapa: true } } }, ...caps);
     assert.match(nuevo.css, /@page cab-1 \{ @top-center \{ content: "Introducción · Intro"; font: 9pt\/1\.2 /);
@@ -1597,7 +1597,8 @@ console.log('papeles, palabra propia, subetapa y encabezado');
     const [lib] = nuevo.nodos;
     assert.deepEqual(lib.hijos.map((s) => s.clase), ['capitulo cabeza-envuelta', 'capitulo cab-3', 'capitulo cab-3']);
     assert.deepEqual(lib.hijos[0].hijos.map((d) => d.clase), ['cabeza-parte cab-1', 'cabeza-parte cab-2']);
-    assert.equal(lib.hijos[0].hijos[1].hijos[0].clase, 'subetapa', 'la franja abre su parte');
+    assert.equal(lib.hijos[0].hijos[1].hijos[0].clase, 'flujo-pdf', 'cada parte lleva su texto en la columna de la hoja');
+    assert.equal(lib.hijos[0].hijos[1].hijos[0].hijos[0].clase, 'subetapa', 'la franja abre su parte');
     lib.hijos.forEach(permitido);
     /* El capitulo oculto y sin nombre dice lo mismo que el de antes: misma pagina con nombre */
     assert.equal(lib.hijos[1].clase, lib.hijos[2].clase);
@@ -1613,6 +1614,49 @@ console.log('papeles, palabra propia, subetapa y encabezado');
     assert.match(hostil.css, /content: "Ho\\22 la url\\28 x\\29  \\40 import<\/style>"/);
     /* Con imprenta, la sangre empuja el encabezado hacia adentro */
     assert.match(libro({ imprenta: true, cabeza: { ver: true, distanciaMm: 5 } }, cap('X')).css, /padding-top: 30\.9px/);
+  });
+  /* LA MESA Y EL PDF CORTAN IGUAL: el texto del PDF va en la misma columna que la mesa (mesa56.mjs mide el libro entero) */
+  await ok('el texto del PDF va en la columna de la mesa: mismo ancho y alto, una fila por hoja, y las hojas libres quedan fuera', async () => {
+    const { flujos, CSS_FLUJO } = await import('../src/scripts/contenido/taller/hoja.js');
+    const libre = { type: 'paginaLibre', attrs: { objetos: [] } };
+    const H = aHoja(new Obra({ titulo: 'L', pagina: {} }).aDatos(), [cap('Uno', {}, parrafo('a'), sub('Actividades'), parrafo('b'), libre, parrafo('c'))]);
+    const px = new ConfigPagina({}).enPixeles();
+    assert.ok(H.css.includes(CSS_FLUJO(px)));
+    assert.ok(!/cabeza-parte/.test(H.css), 'sin encabezado, el estilo no trae reglas de partes');
+    /* Una imagen no pasa de la caja del texto: mismo limite en la mesa (cssLibro) y en el PDF */
+    const { cssImagenAlta } = await import('../src/scripts/contenido/taller/hoja.js');
+    assert.equal(cssImagenAlta(px), `.libro .imagen img { max-height: calc(${px.alto}px - 4em); object-fit: contain; }`);
+    assert.ok(H.css.includes(cssImagenAlta(px)) && cssLibro({}).includes(cssImagenAlta(px)), 'el PDF y la mesa comparten el limite');
+    assert.match(H.css, new RegExp(`\\.flujo-pdf \\{ width: ${px.ancho}px; column-width: ${px.ancho}px; column-height: ${px.alto}px; column-wrap: wrap; column-gap: 0; row-gap: 0; column-fill: auto; \\}`));
+    /* Lo mismo que cuenta la mesa (taller.css: .flujo): la fila es del alto de la caja del texto y no hay hueco entre filas */
+    const hoja = H.nodos[0].hijos[0].hijos;
+    assert.deepEqual(hoja.map((n) => n.clase.split(' ')[0]), ['flujo-pdf', 'pag-libre', 'flujo-pdf'], 'la hoja libre parte el texto y ocupa su hoja');
+    assert.equal(hoja[0].hijos.length, 3, 'texto, franja de subetapa y texto: todo en la misma columna');
+    /* flujos: sin hojas libres, un solo trozo; solo hojas libres, ninguno vacio; y no pierde ni cambia nada */
+    const t = (c) => ({ clase: c, hijos: [] });
+    assert.deepEqual(flujos([t('a'), t('b')]).map((n) => n.clase), ['flujo-pdf']);
+    assert.deepEqual(flujos([t('pag-libre x'), t('pag-libre y')]).map((n) => n.clase), ['pag-libre x', 'pag-libre y']);
+    assert.deepEqual(flujos([]), []);
+    const todo = flujos([t('a'), t('pag-libre'), t('b'), t('c'), t('pag-libre'), t('pag-libre'), t('d')]);
+    assert.deepEqual(todo.map((n) => n.clase), ['flujo-pdf', 'pag-libre', 'flujo-pdf', 'pag-libre', 'pag-libre', 'flujo-pdf']);
+    assert.deepEqual(todo.flatMap((n) => (n.clase === 'flujo-pdf' ? n.hijos : [n])).map((n) => n.clase), ['a', 'pag-libre', 'b', 'c', 'pag-libre', 'pag-libre', 'd']);
+    /* Con encabezado: cada parte (una por subetapa) lleva su columna */
+    const N = aHoja(new Obra({ titulo: 'L', pagina: { rotulo: { ver: true }, cabeza: { ver: true, partes: { subetapa: true } } } }).aDatos(), [cap('I', {}, parrafo('a'), sub('S'), parrafo('b'))]);
+    assert.deepEqual(N.nodos[0].hijos[0].hijos.map((p) => p.hijos.map((x) => x.clase)), [['flujo-pdf'], ['flujo-pdf']]);
+    /* Partes de un capitulo con encabezado: siempre en hoja nueva, aunque dos seguidas se llamen igual */
+    assert.match(N.css, /\.cabeza-parte \+ \.cabeza-parte \{ break-before: page; \}/);
+  });
+  await ok('la letra de las hojas: se espera de verdad y si no llega se avisa (ni en la mesa ni en el PDF se sigue en silencio)', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const leer = (r) => readFile(new URL(`../src/scripts/${r}`, import.meta.url), 'utf8');
+    const th = await leer('portal/taller-hoja/hoja.js'), fu = await leer('portal/panel/dev/taller/Fuentes.js'), ta = await leer('portal/panel/dev/Taller.js'), me = await leer('portal/panel/dev/taller/Mesa.js');
+    assert.match(th, /tipo: 'pintada', id: m\.id, letras/, 'la hoja dice si las letras llegaron');
+    assert.match(fu, /export async function esperarLetras/);
+    assert.match(ta, /await esperarLetras\(/, 'la mesa espera la letra antes de medirse');
+    assert.match(ta, /error\('letraTarda'\)/);
+    assert.match(me, /document\.fonts\.addEventListener\('loadingdone'/, 'si llega una letra tarde, la mesa se mide otra vez');
+    const { PORTAL_TEXTOS } = await import('../src/data/portal/textos.js');
+    assert.ok(JSON.stringify(PORTAL_TEXTOS.es).includes('letraTarda'));
   });
 }
 
@@ -2261,6 +2305,245 @@ await ok('repositorio en memoria: ediciones y enlaces con las reglas de la base'
   assert.equal(repo.enlacesM.size, 0);
 });
 
+const R = await import('../src/scripts/contenido/taller/Recursos.js');
+const { Libro } = await import('../src/scripts/contenido/Libro.js');
+const { RepositorioMemoria } = await import('../src/scripts/contenido/Repositorio.js');
+await ok('Recursos: la direccion se propone desde el titulo, y siempre pasa Libro.idValido', () => {
+  assert.equal(R.proponerId('Mi Libro Árbol'), 'milibroarbol');
+  assert.equal(R.proponerId('  El camino — Año 2  '), 'elcaminoano2');
+  assert.equal(R.proponerId('2024 Plan'), 'plan');
+  assert.equal(R.proponerId('¿¿¿???'), 'libro');
+  assert.equal(R.proponerId(''), 'libro');
+  assert.equal(R.proponerId(null), 'libro');
+  assert.equal(R.proponerId('x'.repeat(100)).length, 40);
+  /* un titulo que daria un nombre protegido nunca se propone tal cual */
+  for (const t of ['Ahava', 'AHAVAH', 'Agapi', 'Emet', 'Rhema', 'Agape', 'Top', 'Book', 'Info']) {
+    const id = R.proponerId(t);
+    assert.ok(Libro.idValido(id), `${t} → ${id}`);
+    assert.notEqual(id, t.toLowerCase());
+  }
+  for (const t of ['Ñandú', 'שלום', '日本語', 'a b-c_d', '---', 'Ça va?']) assert.ok(Libro.idValido(R.proponerId(t)), t);
+});
+await ok('Recursos: el titulo mide 120 como mucho (se recorta y se avisa), y la pasta sale de la tapa dura de la edicion', () => {
+  assert.deepEqual(R.recortarTitulo('  Un   titulo\ncorto '), { texto: 'Un titulo corto', recortado: false });
+  const largo = R.recortarTitulo('a'.repeat(200));
+  assert.equal(largo.texto.length, 120);
+  assert.equal(largo.recortado, true);
+  assert.equal(R.recortarTitulo('a'.repeat(120)).recortado, false);
+  assert.equal(R.recortarTitulo(null).texto, '');
+  assert.equal(R.tipoDeEdicion(true), 'revista');
+  assert.equal(R.tipoDeEdicion(false), 'tapa-dura');
+  assert.equal(R.tipoDeEdicion(undefined), 'revista');
+  assert.deepEqual(R.TEMAS.map((t) => t.id), ['tecnologia', 'teologia', 'contrabando', 'diseno', 'musica', 'prompts', 'viajes', 'experiencias']);
+});
+await ok('Recursos: un titulo de 120 letras con un emoji en el borde no se parte (ni lo corta el modelo del libro)', () => {
+  const emoji = String.fromCodePoint(0x1F600);
+  const mitadAlta = (t) => { const u = t.charCodeAt(t.length - 1); return u >= 0xD800 && u <= 0xDBFF; };
+  const mitadBaja = (t) => { const u = t.charCodeAt(0); return u >= 0xDC00 && u <= 0xDFFF; };
+  const pega = (n) => `${'a'.repeat(n)}${emoji}${'b'.repeat(40)}`;
+  for (const n of [117, 118, 119, 120, 121]) {
+    const t = R.recortarTitulo(pega(n));
+    assert.ok(t.texto.length <= 120, `${n}: ${t.texto.length}`);
+    assert.ok(!mitadAlta(t.texto) && !mitadBaja(t.texto), `${n}: sin mitades de emoji`);
+    assert.equal(Libro.deFila({ id: 'x', idioma_original: 'es', titulo: { es: t.texto } }).titulo.es, t.texto, `${n}: el modelo no lo corta`);
+  }
+  assert.equal(R.recortarTitulo(pega(119)).texto, 'a'.repeat(119), 'el emoji que no cabe entero se va entero');
+  assert.equal(R.recortarTitulo(`${'a'.repeat(118)}${emoji}`).texto, `${'a'.repeat(118)}${emoji}`, 'justo 120 unidades: cabe');
+  assert.equal(R.recortarTitulo(emoji.repeat(100)).texto.length, 120);
+});
+await ok('Recursos: un id es de este libro, libre, o no vale (nunca protegido ni de otro)', () => {
+  assert.deepEqual(R.veredictoDeId('milibro'), { ok: true, propio: false });
+  assert.deepEqual(R.veredictoDeId('milibro', { propio: 'milibro', hayEnBiblioteca: true }), { ok: true, propio: true }, 'el propio siempre');
+  assert.deepEqual(R.veredictoDeId('otro', { propio: 'milibro' }), { error: 'idCambia' });
+  assert.deepEqual(R.veredictoDeId('milibro', { hayOtraObra: true }), { error: 'idOcupado' });
+  assert.deepEqual(R.veredictoDeId('milibro', { hayEnBiblioteca: true }), { error: 'idOcupado' });
+  for (const id of ['ahava', 'ahavah', 'agapi', 'agape', 'emet', 'rhema', 'top', 'flip', 'Ahava', '', null, 'con-guion']) assert.deepEqual(R.veredictoDeId(id, { propio: id }), { error: 'idNoValido' }, String(id));
+});
+/* Un backend de mentira con Taller y Recursos en memoria, como la demo */
+function beDeMemoria() {
+  const taller = new RepositorioTallerMemoria();
+  const libros = new RepositorioMemoria(Libro);
+  const archivos = new Map();
+  taller.libroOcupado = async (id) => libros.filas.has(id) || libros.borradores.has(id);
+  taller.copiarArchivo = async (o, d) => { if (!archivos.has(o)) return { error: 'red' }; archivos.set(d, archivos.get(o)); return { ok: true }; };
+  taller.quitarArchivoRecursos = async (r) => { archivos.delete(r); return { ok: true }; };
+  return { taller, libros, archivos, be: { taller, contenido: { repositorio: () => libros } } };
+}
+async function conEdicion(m, { titulo = 'Mi libro', blando = true } = {}) {
+  const o = (await m.taller.crearObra({ titulo, idioma: 'es', pagina: {}, fuentes: [] })).id;
+  const e = await m.taller.crearEdicion({ obraId: o, titulo, idioma: 'es', paginas: 1, ratio: 0.7, blando, hojas: [{ text: '' }] });
+  m.archivos.set(`taller/${o}/ediciones/${e.id}/original.pdf`, 'PDF');
+  return { o, e: e.id };
+}
+await ok('Recursos: publicar crea la fila (publicado, pasta por la tapa dura), copia el PDF a libros/<id>/<idioma>-<azar>.pdf y vincula', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m, { blando: false });
+  const r = await R.publicarLibro({ be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', tema: 'teologia', titulo: 'Mi libro', blando: false });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.equal(r.reemplaza, false);
+  const fila = m.libros.filas.get('milibro');
+  assert.equal(fila.publicado, true);
+  assert.equal(fila.tipo, 'tapa-dura');
+  assert.equal(fila.seccion, 'teologia');
+  assert.equal(fila.idioma_original, 'es');
+  assert.deepEqual(fila.titulo, { es: 'Mi libro' });
+  assert.match(fila.pdf.es, /^libros\/milibro\/es-[a-f0-9]{12}\.pdf$/);
+  assert.ok(Libro.esPdfDe(fila.pdf.es, 'milibro', 'es'));
+  assert.ok(m.archivos.has(fila.pdf.es), 'el PDF se copio');
+  assert.equal(m.archivos.get(fila.pdf.es), 'PDF');
+  assert.deepEqual(await m.taller.libroDe(o), { ok: true, libroId: 'milibro' });
+  assert.equal(m.taller.enlacesM.size, 0, 'publicar no crea enlaces privados');
+});
+await ok('Recursos: la pasta blanda es «revista»; un titulo largo se recorta; sin tema o sin titulo no se publica', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m, { titulo: 'T'.repeat(190), blando: true });
+  const base = { be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', blando: true };
+  assert.equal((await R.publicarLibro({ ...base, tema: 'nada', titulo: 'x' })).error, 'temaNoExiste');
+  assert.equal((await R.publicarLibro({ ...base, tema: 'musica', titulo: '   ' })).error, 'tituloFalta');
+  assert.equal(m.libros.filas.size, 0);
+  assert.equal(m.archivos.size, 1, 'nada se copio');
+  const r = await R.publicarLibro({ ...base, tema: 'musica', titulo: 'T'.repeat(190) });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.equal(r.recortado, true);
+  assert.equal(m.libros.filas.get('milibro').titulo.es.length, 120);
+  assert.equal(m.libros.filas.get('milibro').tipo, 'revista');
+});
+await ok('Recursos: publicar otra edicion REEMPLAZA el mismo libro (mismo id), conserva lo demas, quita el PDF anterior; el id no cambia', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m);
+  const a = await R.publicarLibro({ be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', tema: 'teologia', titulo: 'Primero', blando: true });
+  assert.ok(a.ok);
+  const primera = m.libros.filas.get('milibro');
+  /* el fundador le puso un subtitulo y etiquetas en Developer-Mode */
+  m.libros.filas.set('milibro', { ...primera, subtitulo: { es: 'Un subtitulo' }, etiquetas: ['uno'], orden: 3 });
+  const e2 = await m.taller.crearEdicion({ obraId: o, titulo: 'Segundo', idioma: 'es', paginas: 1, ratio: 0.7, blando: false, hojas: [{ text: '' }] });
+  m.archivos.set(`taller/${o}/ediciones/${e2.id}/original.pdf`, 'PDF2');
+  const b = await R.publicarLibro({ be: m.be, obraId: o, edicionId: e2.id, libroId: 'milibro', lang: 'es', tema: 'diseno', titulo: 'Segundo', blando: false });
+  assert.ok(b.ok, JSON.stringify(b));
+  assert.equal(b.reemplaza, true);
+  assert.equal(b.sueltos, 0);
+  assert.equal(m.libros.filas.size, 1, 'no crea otro libro');
+  const f = m.libros.filas.get('milibro');
+  assert.equal(f.titulo.es, 'Segundo');
+  assert.equal(f.seccion, 'diseno');
+  assert.equal(f.tipo, 'tapa-dura');
+  assert.notEqual(f.pdf.es, primera.pdf.es, 'un PDF nuevo, con otro trozo al azar');
+  assert.equal(m.archivos.get(f.pdf.es), 'PDF2');
+  assert.ok(!m.archivos.has(primera.pdf.es), 'el PDF anterior de ese idioma se quito del cajon');
+  assert.deepEqual(f.subtitulo, { es: 'Un subtitulo' });
+  assert.deepEqual(f.etiquetas, ['uno']);
+  assert.equal(f.publicado, true);
+  /* el id es de este libro y no cambia */
+  const c = await R.publicarLibro({ be: m.be, obraId: o, edicionId: e2.id, libroId: 'otroid', lang: 'es', tema: 'diseno', titulo: 'x', blando: true });
+  assert.equal(c.error, 'idCambia');
+});
+await ok('Recursos: no se pisa el libro de otro, ni uno del codigo, ni una edicion ajena', async () => {
+  const m = beDeMemoria();
+  const uno = await conEdicion(m, { titulo: 'Uno' }), dos = await conEdicion(m, { titulo: 'Dos' });
+  const pub = (x, id, extra = {}) => R.publicarLibro({ be: m.be, obraId: x.o, edicionId: x.e, libroId: id, lang: 'es', tema: 'musica', titulo: 'T', blando: true, ...extra });
+  assert.ok((await pub(uno, 'libroa')).ok);
+  /* otro libro del Taller quiere ese id */
+  assert.equal((await pub(dos, 'libroa')).error, 'idOcupado');
+  /* un libro de Recursos que hizo el fundador a mano, publicado, quitado o en borrador */
+  m.libros.filas.set('aparte', { ...m.libros.filas.get('libroa'), id: 'aparte' });
+  m.libros.borradores.set('mediohecho', { id: 'mediohecho', clase: null, fila: {} });
+  assert.equal((await pub(dos, 'aparte')).error, 'idOcupado');
+  assert.equal((await pub(dos, 'mediohecho')).error, 'idOcupado');
+  for (const id of ['ahava', 'ahavah', 'agapi', 'agape', 'emet', 'rhema', 'top', 'Mal', 'a-b', '']) assert.equal((await pub(dos, id)).error, 'idNoValido', id);
+  /* la edicion de otro libro */
+  assert.equal((await pub(dos, 'librob', { edicionId: uno.e })).error, 'noExiste');
+  assert.equal(m.libros.filas.size, 2);
+  assert.equal([...m.libros.filas.keys()].sort().join(), 'aparte,libroa');
+  assert.equal((await m.taller.libroDe(dos.o)).libroId, '', 'el que fallo no se quedo con ningun id');
+  assert.ok((await pub(dos, 'librob')).ok);
+});
+await ok('Recursos: un id que llega entre medias NO se pisa (idOcupado), y no queda ni PDF copiado ni vinculo', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m);
+  const listar = m.libros.listar.bind(m.libros);
+  /* alguien crea «milibro» justo despues de mirar que estaba libre */
+  m.libros.listar = async () => { const r = await listar(); m.libros.filas.set('milibro', { id: 'milibro', publicado: true, titulo: { es: 'AJENO' } }); return r; };
+  const r = await R.publicarLibro({ be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', tema: 'musica', titulo: 'T', blando: true });
+  assert.equal(r.error, 'idOcupado');
+  assert.deepEqual(m.libros.filas.get('milibro').titulo, { es: 'AJENO' }, 'no se sobrescribio');
+  assert.deepEqual([...m.archivos.keys()].filter((k) => k.startsWith('libros/')), [], 'el PDF copiado se quito');
+  assert.deepEqual(await m.taller.libroDe(o), { ok: true, libroId: '' }, 'el vinculo nuevo se solto');
+  /* el repositorio, solo: «nuevo» no pisa; sin «nuevo» reemplaza */
+  const libro = new Libro({ id: 'otrolib', idiomaOriginal: 'es', seccion: 'musica', tipo: 'revista', titulo: { es: 'A' }, pdf: { es: 'libros/otrolib/es-aaaaaa.pdf' }, publicado: true });
+  assert.ok((await m.libros.publicar(libro, { nuevo: true })).ok);
+  assert.equal((await m.libros.publicar(libro, { nuevo: true })).error, 'repetido');
+  assert.ok((await m.libros.publicar(libro)).ok, 'sin `nuevo` se reemplaza: asi se edita algo ya publicado');
+});
+await ok('Recursos: un borrador pendiente en Developer-Mode NO se pisa en silencio; y una edicion que ya no es la ultima, tampoco', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m);
+  const pub = (extra = {}) => R.publicarLibro({ be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', tema: 'musica', titulo: 'T', blando: true, ...extra });
+  assert.ok((await pub()).ok);
+  m.libros.borradores.set('milibro', { id: 'milibro', clase: null, fila: { titulo: { es: 'Mi borrador' } } });
+  const antes = JSON.stringify([...m.libros.filas.values()]);
+  assert.equal((await pub()).error, 'hayBorrador');
+  assert.equal(JSON.stringify([...m.libros.filas.values()]), antes, 'lo publicado no cambio');
+  assert.ok(m.libros.borradores.has('milibro'), 'el borrador sigue ahi');
+  assert.equal([...m.archivos.keys()].filter((k) => k.startsWith('libros/')).length, 1, 'no se copio otro PDF');
+  m.libros.borradores.delete('milibro');
+  /* una edicion mas nueva */
+  const e2 = await m.taller.crearEdicion({ obraId: o, titulo: 'Mi libro', idioma: 'es', paginas: 1, ratio: 0.7, hojas: [{ text: '' }] });
+  m.archivos.set(`taller/${o}/ediciones/${e2.id}/original.pdf`, 'PDF2');
+  assert.equal((await pub()).error, 'edicionNueva');
+  assert.ok((await pub({ edicionId: e2.id })).ok);
+});
+await ok('Recursos: si publicar falla despues de copiar, no queda el PDF; y solo se quita un PDF de ESTE libro, por su ruta exacta', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m);
+  m.libros.publicar = async () => ({ error: 'red' });
+  const r = await R.publicarLibro({ be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', tema: 'musica', titulo: 'T', blando: true });
+  assert.equal(r.error, 'red');
+  assert.deepEqual([...m.archivos.keys()].filter((k) => k.startsWith('libros/')), []);
+  assert.equal((await m.taller.libroDe(o)).libroId, '');
+  /* quitar un PDF: solo de este libro vinculado */
+  const m2 = beDeMemoria();
+  const x = await conEdicion(m2);
+  assert.ok((await R.publicarLibro({ be: m2.be, obraId: x.o, edicionId: x.e, libroId: 'milibro', lang: 'es', tema: 'musica', titulo: 'T', blando: true })).ok);
+  m2.archivos.set('libros/otro/es.pdf', 'X');
+  const q = (ruta, id = 'milibro') => m2.taller.quitarPdfDeRecursos(x.o, id, ruta);
+  for (const ruta of ['libros/otro/es.pdf', 'libros/milibro/../otro/es.pdf', 'taller/x/original.pdf', 'libros/milibro/es.png', 'libros/milibro/', '', null, 'libros/milibro/xx-no.pdf', 'libros/milibro/es-abc.pdf']) assert.equal((await q(ruta)).error, 'archivoRuta', String(ruta));
+  assert.equal((await q('libros/otro/es.pdf', 'otro')).error, 'idNoVinculado');
+  assert.ok(m2.archivos.has('libros/otro/es.pdf'), 'el de otro libro sigue');
+  assert.equal(R.nombrePdfDeRecursos('milibro', 'libros/milibro/es-abcdef123456.pdf'), 'milibro/es-abcdef123456.pdf');
+  assert.equal(R.nombrePdfDeRecursos('milibro', 'libros/milibro/es.pdf'), 'milibro/es.pdf');
+  assert.equal(R.nombrePdfDeRecursos('ahava', 'libros/ahava/es.pdf'), null, 'ni uno del codigo');
+});
+await ok('Recursos: «Quitar de Recursos» deja el libro sin publicar (el PDF ya no se baja) y no borra nada', async () => {
+  const m = beDeMemoria();
+  const { o, e } = await conEdicion(m);
+  assert.equal((await R.quitarDeRecursos({ be: m.be, obraId: o })).error, 'noExiste', 'sin libro en Recursos');
+  assert.ok((await R.publicarLibro({ be: m.be, obraId: o, edicionId: e, libroId: 'milibro', lang: 'es', tema: 'musica', titulo: 'T', blando: true })).ok);
+  assert.ok((await R.quitarDeRecursos({ be: m.be, obraId: o })).ok);
+  assert.equal(m.libros.filas.get('milibro').publicado, false);
+  assert.ok(m.archivos.has(m.libros.filas.get('milibro').pdf.es), 'el archivo sigue: solo se corta la descarga');
+  /* borrar la edicion o el libro del Taller no toca Recursos */
+  await m.taller.borrarEdicion(e);
+  await m.taller.borrarObra(o);
+  assert.ok(m.libros.filas.has('milibro'));
+  /* se puede volver a publicar y sale otra vez */
+  const m2 = beDeMemoria();
+  const x = await conEdicion(m2);
+  await R.publicarLibro({ be: m2.be, obraId: x.o, edicionId: x.e, libroId: 'otrolib', lang: 'es', tema: 'musica', titulo: 'T', blando: true });
+  await R.quitarDeRecursos({ be: m2.be, obraId: x.o });
+  assert.ok((await R.publicarLibro({ be: m2.be, obraId: x.o, edicionId: x.e, libroId: 'otrolib', lang: 'es', tema: 'musica', titulo: 'T', blando: true })).ok);
+  assert.equal(m2.libros.filas.get('otrolib').publicado, true);
+});
+await ok('Recursos: la ventana trae todos sus textos y no nombra palabras prohibidas en el portal', async () => {
+  const { PORTAL_TEXTOS } = await import('../src/data/portal/textos.js');
+  const tx = PORTAL_TEXTOS.es.panel.taller;
+  const fs = await import('node:fs');
+  const fuente = fs.readFileSync(new URL('../src/scripts/portal/panel/dev/taller/PublicarRecursos.js', import.meta.url), 'utf8') + fs.readFileSync(new URL('../src/components/portal/dev/Taller.astro', import.meta.url), 'utf8');
+  for (const m of fuente.matchAll(/\btx\.(rc[A-Za-z0-9]+|borrarRecursos|cpRecursosQuedo)\b/g)) assert.ok(typeof tx[m[1]] === 'string' && tx[m[1]], m[1]);
+  assert.match(tx.rcPublicoAviso, /Recursos es público: cualquiera podrá bajar el PDF completo de «\{id\}»/);
+  assert.match(tx.rcQuitado, /próximo «Actualizar la web»/);
+  assert.ok(!/localStorage|sessionStorage|innerHTML|insertAdjacentHTML|eval\(|document\.write/.test(fuente));
+  assert.match(tx.borrarRecursos, /NO lo quita de Recursos/);
+});
 await ok('/vista/ pregunta a la funcion: 404 = «ya no abre»; sin red, tiempo agotado, 5xx, 429 o una respuesta rota = «no se pudo abrir ahora»', async () => {
   const { preguntar, TOPE_RESPUESTA } = await import('../src/scripts/lector/preguntar.js');
   const cfg = { url: 'https://x.supabase.co', clave: 'sb_publishable_x' };

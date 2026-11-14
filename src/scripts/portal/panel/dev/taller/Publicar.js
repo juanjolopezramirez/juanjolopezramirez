@@ -16,6 +16,7 @@ import { hojasDeEdicion } from '../../../../contenido/taller/PaginasEdicion.js';
 import { revisarPdf } from '../../../../contenido/taller/RevisarPdf.js';
 import { revisarArchivo } from '../../../archivos.js';
 import { mirar, pintar } from './LeerEdicion.js';
+import { PublicarRecursos } from './PublicarRecursos.js';
 
 const poner = (t, datos) => Object.entries(datos || {}).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), t || '');
 const SUBIDAS_A_LA_VEZ = 4;
@@ -55,6 +56,8 @@ export class Publicar {
     this.copiar = q('[data-cp-copiar]');
     this.dicho = q('[data-cp-dicho]');
     this.cerrarBoton = q('[data-cp-cerrar]');
+    /* La segunda mitad de la ventana: publicar la ultima edicion en Recursos (PublicarRecursos.js) */
+    this.recursos = new PublicarRecursos(q('[data-rc]'), { tx, be, obraId, textoDe, fecha, lang });
     this.ocupado = false;
     this.turno = 0;
     this.vida = 0;
@@ -87,6 +90,7 @@ export class Publicar {
     this.vida++;
     this.turno++;
     this.olvidarSecreto();
+    this.recursos.cerrarYa();
     if (this.dialogo.open) this.dialogo.close();
   }
 
@@ -125,6 +129,8 @@ export class Publicar {
       this.actual.textContent = filas[0] ? poner(this.tx.cpActual, { fecha: this.fecha(filas[0].creado), n: filas[0].paginas }) : this.tx.cpNinguna;
       this.crear.disabled = !filas[0] || this.ocupado;
       this.lista.replaceChildren(...filas.map((e, i) => this.edicion(e, enlaces[i].ok ? enlaces[i].filas : null, i === 0, obraId)));
+      await this.recursos.pintar(filas[0] || null);
+      if (vida !== this.vida) return;
       if (enfocar && !this.ocupado) this.titulo.focus();
     } finally { if (!this.ocupado) this.lista.removeAttribute('aria-busy'); }
   }
@@ -206,7 +212,9 @@ export class Publicar {
     const r = await be.taller.borrarEdicion(e.id);
     if (r.error) { this.estado.textContent = this.textoDe(r.error); return; }
     const faltan = await this.quitarArchivos(obraId, e.id, e.paginas);
-    this.estado.textContent = faltan ? poner(this.tx.cpSueltos, { n: faltan }) : this.tx.cpEdicionQuitada;
+    const rec = await be.taller.libroDe(obraId);
+    const queda = rec.ok && rec.libroId ? ` ${this.tx.cpRecursosQuedo}` : '';
+    this.estado.textContent = (faltan ? poner(this.tx.cpSueltos, { n: faltan }) : this.tx.cpEdicionQuitada) + queda;
     await this.pintar(true);
   }
 

@@ -32,6 +32,14 @@ await db.exec(`
 const sql = readFileSync(join(raiz, 'supabase/012_taller.sql'), 'utf8');
 await db.exec(sql);
 await db.exec(sql);
+await db.exec(`create table public.casas (id text primary key check (char_length(id) <= 40 and id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'
+  and id not in ('work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status')))`);
+const sql013 = readFileSync(join(raiz, 'supabase/013_publicar.sql'), 'utf8');
+await db.exec(sql013);
+await db.exec(sql013);
+const sql014 = readFileSync(join(raiz, 'supabase/014_recursos.sql'), 'utf8');
+await db.exec(sql014);
+await db.exec(sql014);
 
 const ident = (x) => `"${x}"`;
 class Consulta {
@@ -180,11 +188,6 @@ await ok('una copia sin su forma no entra, y las versiones no se editan', async 
   await db.exec('reset role');
 });
 /* ---- 013: compartir con un enlace privado. Se pega dos veces: debe poder repetirse sin romper nada. ---- */
-await db.exec(`create table public.casas (id text primary key check (char_length(id) <= 40 and id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'
-  and id not in ('work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status')))`);
-const sql013 = readFileSync(join(raiz, 'supabase/013_publicar.sql'), 'utf8');
-await db.exec(sql013);
-await db.exec(sql013);
 const hex = (c) => `\\x${c.repeat(32)}`;
 let obra13, ed13, en13;
 await ok('013: una edicion y un enlace entran por el repositorio de verdad; la hora y los contadores los pone la base', async () => {
@@ -198,7 +201,7 @@ await ok('013: una edicion y un enlace entran por el repositorio de verdad; la h
   assert.equal(lista.filas.length, 1);
   assert.equal(lista.filas[0].ratio, 0.7048);
   assert.equal(lista.filas[0].blando, false);
-  assert.deepEqual(Object.keys(lista.filas[0]).sort(), ['blando', 'creado', 'id', 'paginas', 'ratio', 'titulo']);
+  assert.deepEqual(Object.keys(lista.filas[0]).sort(), ['blando', 'creado', 'id', 'idioma', 'paginas', 'ratio', 'titulo']);
   const lejos = new Date(Date.now() + 400 * 864e5).toISOString();
   const l = await repo.crearEnlace({ edicionId: ed13, hash: hex('ab'), nombre: 'Ana', vence: lejos });
   assert.ok(l.ok, JSON.stringify(l));
@@ -322,6 +325,120 @@ await ok('013: ni una funcion sin search_path ni una «security definer», y nad
   const f = (await db.query(`select proname, prosecdef, proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and proname like 'taller_enlace%'`)).rows;
   assert.equal(f.length, 2);
   for (const x of f) { assert.equal(x.prosecdef, false); assert.ok((x.proconfig || []).some((c) => c.startsWith('search_path='))); }
+});
+/* ---- 014: publicar en Recursos. Se pega dos veces (arriba): el vinculo con el libro de Recursos ---- */
+await db.exec(`create table public.biblioteca (id text primary key); create table public.borradores (tabla text, id text);
+  grant select on public.biblioteca, public.borradores to authenticated`);
+const llamadas = [];
+const sbConAlmacen = { ...sb, storage: { from: (cajon) => ({ copy: async (a, b, o) => { llamadas.push({ cajon, a, b, o }); return { data: { path: b }, error: null }; } }) } };
+const repo14 = new RepositorioTallerSupabase(sbConAlmacen);
+let o14, p14, ed14;
+const AZAR14 = () => 'abc123def456';
+await ok('014: vincular un libro de Recursos no sube `rev` ni da conflicto al guardar, y se puede repetir', async () => {
+  o14 = (await repo14.crearObra(new Obra({ titulo: 'Libro para Recursos', pagina: new ConfigPagina({}).aDatos() }).aDatos())).id;
+  const antes = (await db.query('select rev, titulo from public.taller_obras where id = $1', [o14])).rows[0];
+  assert.deepEqual(await repo14.libroDe(o14), { ok: true, libroId: '' });
+  assert.deepEqual(await repo14.vincularLibro(o14, 'milibro'), { ok: true });
+  const despues = (await db.query('select rev, libro_id, titulo from public.taller_obras where id = $1', [o14])).rows[0];
+  assert.equal(despues.libro_id, 'milibro');
+  assert.equal(despues.rev, antes.rev, 'poner libro_id no es un cambio del libro');
+  assert.deepEqual(await repo14.vincularLibro(o14, 'milibro'), { ok: true }, 'repetirlo no hace nada');
+  assert.deepEqual(await repo14.libroDe(o14), { ok: true, libroId: 'milibro' });
+  /* la pestaña que tenia el libro abierto guarda con la `rev` de antes: sin conflicto */
+  const a = await repo14.abrir(o14);
+  assert.equal(new Obra(a.obra).libroId, 'milibro');
+  p14 = new Obra(a.obra);
+  p14.titulo = 'Libro para Recursos 2';
+  const g14 = await repo14.guardarObra(p14.aDatos(), crypto.randomUUID()); assert.ok(g14.ok, JSON.stringify(g14));
+  assert.equal((await db.query('select rev from public.taller_obras where id = $1', [o14])).rows[0].rev, antes.rev + 1, 'un cambio de verdad si sube `rev`');
+  assert.equal((await db.query('select libro_id from public.taller_obras where id = $1', [o14])).rows[0].libro_id, 'milibro', 'el autoguardado no toca libro_id');
+  assert.equal((await repo14.obras()).filas.find((f) => f.id === o14).libroId, 'milibro');
+});
+await ok('014: el libro de Recursos no cambia, no lo usan dos libros, y los ids protegidos y los de otro libro no entran', async () => {
+  /* publicado en Recursos (o en borrador): a la base de verdad le da igual quien pregunte, no cambia */
+  await db.query(`insert into public.biblioteca (id) values ('milibro')`);
+  await assert.rejects(db.query(`update public.taller_obras set libro_id = 'otro' where id = $1`, [o14]), /no cambia/);
+  await assert.rejects(db.query(`update public.taller_obras set libro_id = null where id = $1`, [o14]), /no cambia/);
+  assert.deepEqual(await repo14.vincularLibro(o14, 'otro'), { error: 'idCambia' });
+  /* otro libro del Taller no puede quedarse con el mismo id (indice unico) */
+  const o2 = (await repo14.crearObra(new Obra({ titulo: 'Segundo', pagina: new ConfigPagina({}).aDatos() }).aDatos())).id;
+  assert.deepEqual(await repo14.vincularLibro(o2, 'milibro'), { error: 'idOcupado' });
+  await assert.rejects(db.query(`update public.taller_obras set libro_id = 'milibro' where id = $1`, [o2]), (x) => x.code === '23505');
+  /* protegidos y mal escritos: nunca */
+  for (const id of ['ahava', 'ahavah', 'agapi', 'agape', 'emet', 'rhema', 'top', 'book', 'Mal Id', 'con-guion', '9libro', '', 'a'.repeat(41)]) assert.deepEqual(await repo14.vincularLibro(o2, id), { error: 'idNoValido' }, id);
+  /* el id de OTRO libro de Recursos (publicado, quitado o en borrador) */
+  await db.query(`insert into public.biblioteca (id) values ('libreria')`);
+  await db.query(`insert into public.borradores (tabla, id) values ('biblioteca', 'enborrador')`);
+  assert.deepEqual(await repo14.vincularLibro(o2, 'libreria'), { error: 'idOcupado' });
+  assert.deepEqual(await repo14.vincularLibro(o2, 'enborrador'), { error: 'idOcupado' });
+  assert.equal((await db.query('select libro_id from public.taller_obras where id = $1', [o2])).rows[0].libro_id, null, 'nada se quedo a medias');
+  assert.deepEqual(await repo14.vincularLibro(o2, 'otroquelibre'), { ok: true });
+  /* mientras NO exista en Recursos, se puede cambiar o quitar (un fallo a medias no lo deja fijo para siempre) */
+  assert.deepEqual(await repo14.desvincularLibro(o2), { ok: true });
+  assert.deepEqual(await repo14.libroDe(o2), { ok: true, libroId: '' });
+  assert.deepEqual(await repo14.vincularLibro(o2, 'otroquelibre'), { ok: true });
+  const rev2 = async () => (await db.query('select rev from public.taller_obras where id = $1', [o2])).rows[0].rev;
+  const r0 = await rev2();
+  await db.query(`update public.taller_obras set libro_id = 'cambiado' where id = $1`, [o2]);
+  assert.equal(await rev2(), r0, 'solo libro_id: rev igual');
+  await db.query(`update public.taller_obras set libro_id = 'otroquelibre', titulo = 'Segundo, otro titulo' where id = $1`, [o2]);
+  assert.equal(await rev2(), r0 + 1, 'libro_id Y otra cosa: rev sube');
+  await db.query(`update public.taller_obras set libro_id = 'cambiado' where id = $1`, [o2]);
+  await db.query(`update public.taller_obras set libro_id = 'otroquelibre' where id = $1`, [o2]);
+  await db.query(`insert into public.borradores (tabla, id) values ('biblioteca', 'otroquelibre')`);
+  await assert.rejects(db.query(`update public.taller_obras set libro_id = null where id = $1`, [o2]), /no cambia/);
+  assert.deepEqual(await repo14.desvincularLibro(o2), { error: 'permiso' }, 'con un borrador en Recursos ya es suyo');
+  await db.query(`update public.taller_obras set libro_id = 'otroquelibre' where id = $1`, [o2]);
+  assert.deepEqual(await repo14.vincularLibro('00000000-0000-4000-8000-000000000000', 'xx'), { error: 'noExiste' });
+});
+await ok('014: copiar a Recursos: solo el PDF de una edicion de ESTE libro, solo a libros/<su id>/<idioma>-<azar>.pdf', async () => {
+  const e = await repo14.crearEdicion({ obraId: o14, titulo: 'T', idioma: 'es', paginas: 1, ratio: 0.7, hojas: [{ text: '' }] });
+  ed14 = e.id;
+  llamadas.length = 0;
+  const r = await repo14.copiarARecursos(o14, ed14, 'milibro', 'es', { azar: AZAR14 });
+  assert.deepEqual(r, { ok: true, ruta: 'libros/milibro/es-abc123def456.pdf' });
+  assert.deepEqual(llamadas, [{ cajon: 'taller', a: `${o14}/ediciones/${ed14}/original.pdf`, b: 'milibro/es-abc123def456.pdf', o: { destinationBucket: 'libros' } }]);
+  const { Libro } = await import('../src/scripts/contenido/Libro.js');
+  assert.ok(Libro.esPdfDe(r.ruta, 'milibro', 'es'));
+  llamadas.length = 0;
+  /* una edicion de OTRO libro, un libro que no es el vinculado, un idioma raro: no se copia nada */
+  const o3 = (await repo14.crearObra(new Obra({ titulo: 'Tercero', pagina: new ConfigPagina({}).aDatos() }).aDatos())).id;
+  const e3 = await repo14.crearEdicion({ obraId: o3, titulo: 'T', paginas: 1, ratio: 0.7, hojas: [{ text: '' }] });
+  assert.deepEqual(await repo14.copiarARecursos(o14, e3.id, 'milibro', 'es', { azar: AZAR14 }), { error: 'noExiste' });
+  assert.deepEqual(await repo14.copiarARecursos(o14, ed14, 'otro', 'es', { azar: AZAR14 }), { error: 'idNoVinculado' });
+  assert.deepEqual(await repo14.copiarARecursos(o3, e3.id, 'milibro', 'es', { azar: AZAR14 }), { error: 'idNoVinculado' }, 'el id de OTRO libro');
+  assert.deepEqual(await repo14.copiarARecursos(o3, e3.id, 'ahava', 'es', { azar: AZAR14 }), { error: 'idNoVinculado' });
+  assert.deepEqual(await repo14.copiarARecursos(o14, ed14, 'milibro', 'xx-no', { azar: AZAR14 }), { error: 'archivoRuta' });
+  assert.deepEqual(await repo14.copiarARecursos(o14, ed14, 'milibro', 'es', { azar: () => '../../x' }), { error: 'archivoRuta' });
+  assert.deepEqual(llamadas, [], 'ninguna de esas llego al almacen');
+  /* y el planificador, solo: origen ajeno, ids protegidos, destino que no es de ese libro */
+  const { planDeCopia } = await import('../src/scripts/contenido/taller/Recursos.js');
+  const base = { obraId: o14, edicionId: ed14, edicionPdf: `taller/${o14}/ediciones/${ed14}/original.pdf`, libroId: 'milibro', lang: 'es', azar: AZAR14 };
+  assert.ok(planDeCopia(base).origen);
+  for (const malo of [{ edicionPdf: `taller/${o3}/ediciones/${ed14}/original.pdf` }, { edicionPdf: 'taller/../x.pdf' }, { edicionPdf: `taller/${o14}/pdf/original-abc.pdf` }, { edicionPdf: `libros/milibro/es.pdf` }, { edicionPdf: undefined },
+    { obraId: '../x' }, { edicionId: 'x' }, { lang: 'es.pdf' }, { lang: '' }]) assert.equal(planDeCopia({ ...base, ...malo }).error, 'archivoRuta', JSON.stringify(malo));
+  for (const id of ['ahava', 'ahavah', 'agapi', 'agape', 'emet', 'rhema', 'top', 'Milibro', 'mi-libro', '']) assert.equal(planDeCopia({ ...base, libroId: id }).error, 'idNoValido', id);
+  for (const azar of [() => '', () => 'ab', () => 'x'.repeat(20), () => 'AB CD1234']) assert.equal(planDeCopia({ ...base, azar }).error, 'archivoRuta');
+});
+await ok('014: borrar la edicion o el libro NO toca el vinculo ni nada de Recursos (es una copia aparte)', async () => {
+  llamadas.length = 0;
+  assert.ok((await repo14.borrarEdicion(ed14)).ok);
+  assert.deepEqual(await repo14.libroDe(o14), { ok: true, libroId: 'milibro' });
+  assert.deepEqual(llamadas, []);
+  assert.ok((await repo14.borrarObra(o14)).ok);
+  assert.equal((await db.query(`select count(*)::int as n from public.biblioteca`)).rows[0].n, 2, 'la base del Taller no escribe en biblioteca (solo estan las dos de la prueba)');
+  for (const f of (await repo14.obras()).filas) if (f.id !== id) await repo14.borrarObra(f.id);
+});
+await ok('014: ni funciones sin search_path ni «security definer» nuevas, y el indice unico y los tres disparadores estan', async () => {
+  for (const f of ['taller_libro_fijo', 'taller_subir_rev']) {
+    const x = (await db.query(`select prosecdef, proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and proname = $1`, [f])).rows[0];
+    assert.equal(x.prosecdef, false, f);
+    assert.ok(x.proconfig.some((c) => c.startsWith('search_path=')), f);
+  }
+  assert.equal((await db.query(`select 1 from pg_indexes where indexname = 'taller_obras_libro_id_unico'`)).rows.length, 1);
+  assert.equal((await db.query(`select 1 from pg_constraint where conrelid = 'public.taller_obras'::regclass and contype = 'f'`)).rows.length, 0, 'sin llave foranea a biblioteca');
+  assert.deepEqual((await db.query(`select tgname from pg_trigger where tgrelid = 'public.taller_obras'::regclass and not tgisinternal order by 1`)).rows.map((r) => r.tgname), ['taller_obras_editado', 'taller_obras_libro_fijo', 'taller_obras_rev']);
+  for (const rol of ['anon', 'authenticated']) assert.equal((await db.query(`select has_function_privilege($1, 'public.taller_libro_fijo()', 'execute') as v`, [rol])).rows[0].v, false, rol);
 });
 await ok('borrar el libro borra sus capitulos y copias', async () => {
   assert.ok((await repo.borrarObra(id)).ok);

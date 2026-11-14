@@ -75,13 +75,39 @@ export function cssLibro(config) {
   return `${cssBaseDe(letra, b, capital, conCapital, cita, hilo)}
 ${cssPlantillas(c)}
 ${CSS_SUBETAPA}
+${cssImagenAlta(c.enPixeles())}
 ${porLetra}
 ${porTitulo}`;
 }
 
+/* UNA IMAGEN NO PASA DE LA CAJA DEL TEXTO. Una imagen entera no se parte: si es mas alta que la hoja se sale de su columna y
+   su sobrante tapa el texto de las hojas que siguen (en el PDF, ademas, se corta). Se limita a lo que cabe, menos el aire de
+   arriba y abajo y la leyenda (4 em), y se ve entera dentro de su caja. Igual en la mesa y en el PDF. */
+export const cssImagenAlta = (p) => `.libro .imagen img { max-height: calc(${p.alto}px - 4em); object-fit: contain; }`;
+
 /* LA SUBETAPA: una franja pequeña. Empieza una hoja nueva (la mesa corta la columna, el PDF la pagina; cada uno lo
    dice en su sitio), asi que no lleva margen de arriba: en los dos lados nace en lo alto de la caja del texto. */
 const CSS_SUBETAPA = `.libro .subetapa { box-sizing: border-box; margin: 0 0 .9em; padding: .3em .9em; min-height: 1.9em; border-radius: .3em; font-size: .78em; font-weight: 700; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; text-align: center; background: color-mix(in srgb, var(--hoja-tinta) 9%, var(--hoja-papel)); break-after: avoid; }`;
+
+/* EL TEXTO CORRIDO DEL PDF SE PARTE EN HOJAS IGUAL QUE EN LA MESA. La mesa corta el texto con columnas del navegador
+   (.flujo: cada hoja es una columna del alto de la caja del texto). El motor de impresion corta con otra regla de
+   ajuste (fracciones de pixel, huerfanas y viudas): en un libro largo una linea caia en otra hoja y todo lo que seguia
+   se corria. Por eso el texto del PDF va en la MISMA columna, con las mismas medidas: cada fila de columnas es
+   exactamente una hoja impresa (sin hueco entre filas). Las hojas libres y las paginas del PDF quedan fuera: ocupan
+   la hoja entera y ya la cortan solas. */
+export const CSS_FLUJO = (p) => `.flujo-pdf { width: ${p.ancho}px; column-width: ${p.ancho}px; column-height: ${p.alto}px; column-wrap: wrap; column-gap: 0; row-gap: 0; column-fill: auto; }`;
+
+/* Parte lo que lleva un capitulo en trozos de texto corrido (cada uno en su columna) y hojas libres sueltas */
+export function flujos(hijos) {
+  const salida = [];
+  let tramo = [];
+  const cerrar = () => { if (tramo.length) { salida.push(el('div', 'flujo-pdf', tramo)); tramo = []; } };
+  for (const n of hijos) {
+    if ((n.clase || '').split(' ').includes('pag-libre')) { cerrar(); salida.push(n); } else tramo.push(n);
+  }
+  cerrar();
+  return salida;
+}
 
 /* LAS PLANTILLAS DEL CONTENIDO. Solo estilo, igual en la mesa y en el PDF, y nunca una imagen de fondo (la hoja de
    impresion no acepta `url(`). Las cajas de las imagenes tienen medida fija: la hoja no cambia cuando llegan.
@@ -218,13 +244,15 @@ function cssImpresion(config, usados) {
     const arriba = texto ? `@top-center { content: ${cadenaCss(texto)}; font: ${cab.tamanoPt}pt/${CABEZA_INTERLINEA} ${familiaCss(b.fuente)}; color: ${tinta}; text-align: center; vertical-align: top; padding-top: ${arribaPx}px; white-space: nowrap; overflow: hidden; }` : '';
     return `@page ${n} { ${fondo}${arriba} }\n.capitulo.${n}, .cabeza-parte.${n} { page: ${n}; }`;
   }).join('\n');
-  const conCabezas = deCabezas ? `\n.capitulo.cabeza-envuelta { page: auto; }\n${deCabezas}` : '';
+  /* Cada parte abre hoja, aunque dos seguidas lleven el mismo nombre de pagina (entonces el cambio de nombre no la parte) */
+  const conCabezas = deCabezas ? `\n.capitulo.cabeza-envuelta { page: auto; }\n.cabeza-parte + .cabeza-parte { break-before: page; }\n${deCabezas}` : '';
   return `@page { size: ${p.anchoPt + sPt * 2}pt ${p.altoPt + sPt * 2}pt; margin: ${p.mt + s}px ${p.mrImpresion + s}px ${p.mbImpresion + s}px ${p.ml + s}px; background: ${tono.papel}; }
 ${reglas}
 html, body { margin: 0; background: transparent; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .libro { width: ${p.ancho}px; ${fijas(tono.papel)} }
 .capitulo { break-before: page; }
 .capitulo:first-child { break-before: auto; }
+${CSS_FLUJO(p)}
 .indice { break-before: page; break-after: page; }
 .libro > .indice:first-child { break-before: auto; }
 .pag-libre { break-before: page; position: relative; overflow: hidden; width: ${p.anchoPt + sPt * 2}pt; height: ${p.altoPt + sPt * 2}pt; }
@@ -236,7 +264,7 @@ html, body { margin: 0; background: transparent; print-color-adjust: exact; -web
 .obj--texto { white-space: pre-wrap; overflow-wrap: anywhere; padding: 4px; font-family: ${familiaCss(b.fuente)}; line-height: 1.3; }
 ${deCapitulos}
 ${deLibres}${dePortada}${conCabezas}
-.subetapa { break-before: page; }
+.subetapa { break-before: column; }
 .pag-libre.pag-libre--pdf { --hoja-tinta: ${TINTA_SOBRE_PDF}; }
 ${cssLibro(config)}`;
 }
@@ -266,7 +294,7 @@ function conCabeza(hijos, ctx, partes, papel, usados) {
   const pagina = (sub) => paginaDeCabeza(usados, papel, textoDeCabeza(ctx, sub, partes));
   if (!hijos.some(esSub)) {
     const n = pagina(ctx.inicial);
-    return n ? { clase: ` ${n}`, hijos } : null;
+    return n ? { clase: ` ${n}`, hijos: flujos(hijos) } : null;
   }
   const trozos = [];
   let actual = { sub: ctx.inicial, nodos: [] };
@@ -274,7 +302,7 @@ function conCabeza(hijos, ctx, partes, papel, usados) {
     if (esSub(n)) { if (actual.nodos.length) trozos.push(actual); actual = { sub: textoDeFranja(n), nodos: [n] }; } else actual.nodos.push(n);
   }
   if (actual.nodos.length) trozos.push(actual);
-  return { clase: ' cabeza-envuelta', hijos: trozos.map((t) => { const n = pagina(t.sub); return el('div', `cabeza-parte${n ? ` ${n}` : ''}`, t.nodos); }) };
+  return { clase: ' cabeza-envuelta', hijos: trozos.map((t) => { const n = pagina(t.sub); return el('div', `cabeza-parte${n ? ` ${n}` : ''}`, flujos(t.nodos)); }) };
 }
 
 /* Lo que el contenido necesita de cada capitulo: igual que lo arma la mesa (Mesa.capitulosParaIndice) */
@@ -304,7 +332,7 @@ export function aHoja(obra, capitulos, o = {}) {
     if (esPortada) usados.portada = propio || '';
     /* El encabezado de sus hojas de texto (nunca el de la portada) */
     const cabeza = contextos && !esPortada ? conCabeza(hijos, contextos[i], config.cabeza.partes, propio, usados) : null;
-    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}${cabeza ? cabeza.clase : ''}`, cabeza ? cabeza.hijos : hijos, { id: `cap-${i + 1}` }));
+    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}${cabeza ? cabeza.clase : ''}`, cabeza ? cabeza.hijos : flujos(hijos), { id: `cap-${i + 1}` }));
   });
   if (antes >= capitulos.length) nodos.push(...indice);
   const libro = el('div', 'libro', nodos);

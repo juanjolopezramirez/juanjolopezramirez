@@ -112,6 +112,27 @@ const { tx } = Astro.props;
           </div>
           <ul class="tal-comp__lista" role="list" data-cp-lista></ul>
         </section>
+        <!-- Publicar la ultima edicion en Recursos (taller/PublicarRecursos.js): copia el PDF a la biblioteca publica -->
+        <section class="tal-comp__seccion" aria-labelledby="tal-rc-titulo" data-rc>
+          <h3 class="tal-rotulo" id="tal-rc-titulo">{tx.rcTitulo}</h3>
+          <p class="tal-ayuda">{tx.rcAyuda}</p>
+          <p class="tal-comp__actual" data-rc-edicion></p>
+          <p class="tal-ayuda" data-rc-ya hidden></p>
+          <div class="tal-fila tal-comp__nuevo-fila">
+            <label class="tal-comp__campo"><span>{tx.rcDireccion}</span><input class="portal__entrada" data-rc-id maxlength="40" autocomplete="off" spellcheck="false" /></label>
+            <label class="tal-comp__campo"><span>{tx.rcTema}</span><select class="portal__entrada" data-rc-tema></select></label>
+          </div>
+          <p class="tal-ayuda" data-rc-id-ayuda></p>
+          <label class="tal-comp__campo"><span>{tx.rcTituloCampo}</span><input class="portal__entrada" data-rc-titulo maxlength="120" autocomplete="off" /></label>
+          <p class="tal-ayuda" data-rc-corte hidden></p>
+          <p class="tal-ayuda" data-rc-pasta></p>
+          <p class="tal-comp__fallas" data-rc-aviso role="alert" hidden></p>
+          <div class="tal-fila">
+            <button class="tal-btn tal-btn--fuerte" type="button" data-rc-publicar disabled>{tx.rcPublicar}</button>
+            <button class="tal-btn" type="button" data-rc-quitar hidden>{tx.rcQuitar}</button>
+          </div>
+          <p class="tal-borrar__estado" data-rc-estado role="status"></p>
+        </section>
         <div class="tal-fila tal-borrar__botones">
           <button class="portal__boton portal__boton--suave" type="button" data-cp-cerrar>{tx.cpCerrar}</button>
         </div>

@@ -56,11 +56,13 @@ export class BorrarLibro {
     this.escribe.focus();
     const r = await be.taller.archivos(obra.id);
     if (turno !== this.turno) return;
-    if (r.error) { this.cuanto.textContent = this.tx.borrarNoMide; return; }
+    const recursos = obra.libroId ? ` ${poner(this.tx.borrarRecursos, { id: obra.libroId })}` : '';
+    if (r.error) { this.cuanto.textContent = this.tx.borrarNoMide + recursos; return; }
     const peso = r.archivos.reduce((s, a) => s + a.peso, 0);
     this.cuanto.textContent = r.archivos.length
       ? poner(this.tx.borrarCuanto, { n: r.archivos.length, peso: pesoLegible(peso) })
       : this.tx.borrarSinArchivos;
+    this.cuanto.textContent += recursos;
   }
 
   cerrar() { if (!this.ocupado && this.dialogo.open) this.dialogo.close(); }

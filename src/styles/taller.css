@@ -554,3 +554,5 @@
   .mini[aria-selected="true"], .hoja--elegida { outline-color: Highlight; }
   .tal-icono-b[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }
+.tal-comp [hidden] { display: none !important; }
+.tal-comp select.portal__entrada { min-height: 2.6rem; }

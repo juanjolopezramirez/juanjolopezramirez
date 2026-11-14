@@ -87,11 +87,13 @@ export class RepositorioMemoria {
     this.borradores.set(obj.id, { id: obj.id, clase: this.Tipo.clase || null, fila: obj.aFila() });
     return { ok: true, faltan: r.faltan || [] };
   }
-  async publicar(obj) {
+  async publicar(obj, { nuevo = false } = {}) {
     const r = obj.validar();
     if (!r.ok) return invalido(r);
     const en = this.filas.get(obj.id);
     if (this.Tipo.clase && en && en.clase !== this.Tipo.clase) return { error: 'repetido' };
+    /* `nuevo`: es la primera vez, y no debe pisar a nadie que haya llegado con ese id entre medias */
+    if (nuevo && (en || this.borradores.has(obj.id))) return { error: 'repetido' };
     this.filas.set(obj.id, { ...obj.aFila(), publicado: true });
     this.borradores.delete(obj.id);
     return { ok: true, avisos: r.avisos };
@@ -159,14 +161,17 @@ export class RepositorioSupabase {
       return error ? { error: claveDeErrorBase(error) } : { ok: true, faltan: r.faltan || [] };
     } catch (e) { return { error: 'red' }; }
   }
-  async publicar(obj) {
+  /* `nuevo`: la primera vez. Se INSERTA (no se reemplaza): si alguien llego con ese id entre medias, la base dice 23505 y
+     aqui sale «repetido». Sin `nuevo`, se reemplaza lo que hubiera (editar algo ya publicado). */
+  async publicar(obj, { nuevo = false } = {}) {
     const r = obj.validar();
     if (!r.ok) return invalido(r);
     try {
       const o = await this.ocupado(obj.id);
       if (o.error) return o;
-      if (o.deOtraClase) return { error: 'repetido' };
-      const { error } = await this.tabla().upsert({ ...obj.aFila(), publicado: true }, { onConflict: 'id' });
+      if (o.deOtraClase || (nuevo && o.hay)) return { error: 'repetido' };
+      const fila = { ...obj.aFila(), publicado: true };
+      const { error } = nuevo ? await this.tabla().insert(fila) : await this.tabla().upsert(fila, { onConflict: 'id' });
       if (error) return { error: claveDeErrorBase(error) };
       /* Publicado: su borrador ya no hace falta. Si no se pudiera borrar, no pasa nada grave
          (el borrador es igual a lo publicado) */

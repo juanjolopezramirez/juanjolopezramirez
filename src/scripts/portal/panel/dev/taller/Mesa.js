@@ -71,6 +71,9 @@ export class Mesa {
     q('[data-z-ajustar]').addEventListener('click', () => this.zoom((this.fondo.clientHeight - 56) / this.px.H));
     q('[data-t-segura]').addEventListener('change', (e) => { this.segura = e.target.checked; this.repintarHojas(); });
     new ResizeObserver(() => this.ajustarCaja()).observe(this.lienzo);
+    /* Cuando llega una letra, el texto se re-acomoda solo en las columnas, pero los numeros de hoja, el contenido y las
+       miniaturas se midieron con la letra de reserva: se miden de nuevo */
+    document.fonts.addEventListener('loadingdone', () => { if (this.vivos.length) this.programar(); });
   }
 
   get be() { return this.ctx.be; }

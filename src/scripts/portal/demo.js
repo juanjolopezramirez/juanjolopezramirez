@@ -75,6 +75,23 @@ export function abrirDemo() {
   const casasCompartidas = { filas: new Map(), borradores: new Map() };
   const subidos = new Map();               // ruta → archivo (solo en memoria)
   const tallerMemoria = new RepositorioTallerMemoria();
+  /* Publicar en Recursos (A3b): el Taller pregunta a la biblioteca si un id esta libre, y copia el PDF de la edicion a «libros/…»
+     (en el de verdad lo hace el almacen: storage.copy). Aqui los archivos son los de `subidos`. */
+  tallerMemoria.libroOcupado = async (id) => { const r = repos.get('biblioteca:'); return !!(r && (r.filas.has(id) || r.borradores.has(id))); };
+  tallerMemoria.copiarArchivo = async (origen, destino) => {
+    await espera(150);
+    const f = subidos.get(origen);
+    if (!f) return { error: 'red' };
+    subidos.set(destino, f);
+    return { ok: true };
+  };
+  /* Quitar de «libros» el PDF que se copio de mas (un publicar que fallo) o el anterior de un libro reemplazado */
+  tallerMemoria.quitarArchivoRecursos = async (ruta) => { subidos.delete(ruta); return { ok: true }; };
+  /* Para las pruebas: lo que quedo en Recursos (filas de la biblioteca y PDF en el cajon «libros») */
+  window.__recursosDemo = () => {
+    const r = repos.get('biblioteca:');
+    return { filas: r ? JSON.parse(JSON.stringify([...r.filas.values()])) : [], pdfs: [...subidos].filter(([k]) => k.startsWith('libros/')).map(([k, f]) => ({ ruta: k, bytes: f.size })) };
+  };
   /* Para ver el aviso de dos pestañas sin abrir dos (este archivo solo existe con `npm run dev`) */
   window.__simularOtraPestana = () => tallerMemoria.capitulosM.forEach((c) => { c.rev += 1; c.pestana = 'otra'; });
   /* Compartir en la demo: la pagina del libro privado (/vista/) es OTRA pestaña y no ve esta memoria. Para probarla,

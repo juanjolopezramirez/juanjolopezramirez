@@ -20,7 +20,7 @@ export class Vista {
     if (m.tipo === 'lista') {
       if (this.pendiente) this.marco.contentWindow.postMessage(this.pendiente, window.location.origin);
     } else if (m.id !== this.numero) return;
-    else if (m.tipo === 'pintada') { clearTimeout(this.reloj); this.pendiente = null; this.alPintar(); } else if (m.tipo === 'fallo') { clearTimeout(this.reloj); this.pendiente = null; this.alFallar(); }
+    else if (m.tipo === 'pintada') { clearTimeout(this.reloj); this.pendiente = null; this.alPintar(m.letras !== false); } else if (m.tipo === 'fallo') { clearTimeout(this.reloj); this.pendiente = null; this.alFallar(); }
   }
 
   /* { css, nodos, fuentes, titulo, idioma } */

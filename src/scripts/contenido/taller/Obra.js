@@ -16,6 +16,10 @@ export class Obra {
     this.pagina = new ConfigPagina(o.pagina);
     this.fuentes = listaDeFuentes(o.fuentes);
     this.rev = Number.isInteger(o.rev) ? o.rev : 1;
+    /* El libro de Recursos de este libro (supabase/014), o ''. Solo se lee: el guardado (aDatos) nunca lo manda, asi
+       el autoguardado no lo pisa; se pone con `vincularLibro`. */
+    const libro = o.libroId !== undefined ? o.libroId : o.libro_id;
+    this.libroId = typeof libro === 'string' && /^[a-z][a-z0-9]{0,39}$/.test(libro) ? libro : '';
   }
 
   errores() { return [...(this.titulo ? [] : ['titulo']), ...this.pagina.errores()]; }

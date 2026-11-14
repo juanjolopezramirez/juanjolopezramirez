@@ -41,6 +41,10 @@
 --  26. «Disparadores y funciones»  2 disparadores; las tres funciones: security_definer false, anon y authenticated
 --                                  false, service_role true solo en taller_contar_vista.
 --  27. «vista y actividad»         UNA regla sobre casas.id (reglas_sobre_casas_id = 1), true, y la columna libro_id.
+--  Tras 014 (publicar en Recursos):
+--  28. «Índice de libro_id»        UNA fila con es_unico_parcial = true; y ninguna llave foránea de taller_obras (sale vacía).
+--  29. «Disparadores y funciones»  3 disparadores en taller_obras (tgenabled O); las dos funciones: false, false, false; y true.
+--  30. «rev e libro_id»            true y true (si no, pega 014 después de 012).
 --  Los Advisors de Supabase (Security) avisarán, y está bien, de las 4 funciones
 --  «security definer» que un usuario con sesión puede ejecutar (es_admin,
 --  esta_aprobado, decidir_acceso, reclamar_invitacion): es a propósito y cada una
@@ -219,3 +223,25 @@ select conname, pg_get_constraintdef(oid) like '%''vista''%' and pg_get_constrai
            and pg_get_constraintdef(c2.oid) like '%char_length(id)%') as reglas_sobre_casas_id
   from pg_constraint where conrelid = 'public.casas'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%char_length(id)%';
 select column_name from information_schema.columns where table_schema = 'public' and table_name = 'taller_obras' and column_name = 'libro_id';
+
+-- 28. Publicar en Recursos (014): el índice de libro_id (DEBE salir UNA fila, con UNIQUE y «WHERE (libro_id IS NOT NULL)» en
+--     su definición) y que NO hay llave foránea de taller_obras hacia biblioteca (DEBE salir vacía)
+select indexname, indexdef, indexdef like '%UNIQUE%' and indexdef like '%WHERE (libro_id IS NOT NULL)%' as es_unico_parcial
+  from pg_indexes where schemaname = 'public' and tablename = 'taller_obras' and indexname = 'taller_obras_libro_id_unico';
+select conname from pg_constraint where conrelid = 'public.taller_obras'::regclass and contype = 'f';
+
+-- 29. Sus disparadores en taller_obras: libro_fijo, rev y editado (DEBEN salir 3 filas, las tres con tgenabled = 'O', es decir
+--     encendidas), y las dos funciones no son security definer ni las ejecuta anon ni authenticated (DEBE salir: false, false,
+--     false); el admin puede cambiar libro_id (DEBE decir true)
+select tgname, tgenabled from pg_trigger where tgrelid = 'public.taller_obras'::regclass and not tgisinternal order by 1;
+select p.proname, p.prosecdef as security_definer, has_function_privilege('anon', p.oid, 'execute') as anon_ejecuta,
+       has_function_privilege('authenticated', p.oid, 'execute') as authenticated_ejecuta
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.proname in ('taller_libro_fijo', 'taller_subir_rev')
+ order by 1;
+select has_column_privilege('authenticated', 'public.taller_obras', 'libro_id', 'UPDATE') as el_admin_puede_poner_libro_id;
+
+-- 30. `rev` no sube cuando solo cambia libro_id (DEBE decir true en las dos: la función tiene la comparación de toda la fila y
+--     NO es la de 012). Si dice false, pegaste 012 DESPUÉS de 014: pega 014 otra vez.
+select pg_get_functiondef('public.taller_subir_rev()'::regprocedure) like '%taller_obras%libro_id%' as rev_ignora_libro_id,
+       pg_get_functiondef('public.taller_subir_rev()'::regprocedure) like '%to_jsonb(new)%' as compara_toda_la_fila;
