@@ -38,6 +38,7 @@ import { RECIENTES_MAX, textosPocoVisibles, variablesDe } from '../../../conteni
 import { AL_FINAL, hojasDeIndice } from '../../../contenido/taller/IndiceLibro.js';
 import { armar } from '../../../contenido/taller/armar.js';
 import { estiloDeLomo } from '../../../contenido/taller/LomoLibro.js';
+import { COMBINACIONES, combinacionDe, LUGARES_CABEZA, lugaresDeCombinacion, PAGINAS_CABEZA } from '../../../contenido/taller/CabezaLibro.js';
 
 const COPIA_MS = 10 * 60 * 1000;
 const ARMADO_MS = 5000;
@@ -115,7 +116,7 @@ export class Taller extends Seccion {
       alBorrar: async (aviso) => { try { await this.cargarLista(); } catch (e) { /* la lista vieja se queda */ } finally { this.avisar(aviso); } }
     });
     m('[data-tal-volver]').addEventListener('click', () => this.volver());
-    m('[data-tal-titulo]').addEventListener('change', (e) => { this.obra.titulo = e.target.value.trim() || this.obra.titulo; e.target.value = this.obra.titulo; this.guardarObra(); });
+    m('[data-tal-titulo]').addEventListener('change', (e) => { this.obra.titulo = e.target.value.trim() || this.obra.titulo; e.target.value = this.obra.titulo; this.guardarObra(); if (this.mesa && this.obra.pagina.cabeza.ver) this.mesa.repintarHojas(); /* el encabezado puede decir el titulo */ });
     m('[data-tal-deshacer]').addEventListener('click', () => this.historia('undo'));
     m('[data-tal-rehacer]').addEventListener('click', () => this.historia('redo'));
     m('[data-tal-libro]').addEventListener('click', (e) => this.vistaLibro.abrir(e.currentTarget));
@@ -473,7 +474,8 @@ export class Taller extends Seccion {
     /* Solo el nombre: los px para Figma estan en «Más ajustes», y la lista ya no se corta */
     TAMANOS.forEach((t) => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.nombre; tam.append(o); });
     IDIOMAS.forEach((l) => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.nombre; f.elements.idioma.append(o); });
-    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas', 'indiceAntes', 'rotuloPalabra', 'rotuloCifras']) new Selector(f.elements[k]);
+    for (const k of ['tamano', 'idioma', 'lugar', 'capitalLineas', 'indiceAntes', 'rotuloPalabra', 'rotuloCifras', 'cabezaCombinacion']) new Selector(f.elements[k]);
+    for (const p of PAGINAS_CABEZA) for (const l of LUGARES_CABEZA) new Selector(f.elements[`cabezaQue-${p}-${l}`]);
     this.prepararIndice(f);
     for (const k of ['fuente', 'capitalFuente', 'citaFuente']) new Selector(f.elements[k], { fuenteDe: (v) => (v ? familiaCss(v) : '') });
     const ajustes = this.m('[data-tal-ajustes]');
@@ -502,6 +504,8 @@ export class Taller extends Seccion {
       if (e.target.form !== f || e.target === tam || !e.target.name) return;
       /* La tabla numerada lleva el numero delante: al elegirla se enciende (se puede apagar) */
       if (e.target.name === 'indicePlantilla' && e.target.value === 'tabla') f.elements.indiceOrden.checked = true;
+      /* Una combinacion de partida pone los seis lugares; despues cada uno se cambia a mano («Personalizado») */
+      if (e.target.name === 'cabezaCombinacion' && COMBINACIONES.includes(e.target.value)) this.ponerLugaresCabeza(lugaresDeCombinacion(e.target.value));
       if (e.target.name === 'anchoPx') f.elements.anchoMm.value = pxAMm(Number(e.target.value));
       if (e.target.name === 'altoPx') f.elements.altoMm.value = pxAMm(Number(e.target.value));
       const t = /Px$/.test(e.target.name) && this.formatoDe(Number(f.elements.anchoPx.value), Number(f.elements.altoPx.value));
@@ -731,6 +735,35 @@ export class Taller extends Seccion {
     if (!escribiendo || document.activeElement !== f.elements.cabezaTamano) f.elements.cabezaTamano.value = cb.tamanoPt;
     this.m('[data-tal-cabeza-opciones]').hidden = !cb.ver;
     this.m('[data-tal-cabeza-aviso]').hidden = !c.cabezaApretada();
+    this.ponerLugaresCabeza(cb.lados, escribiendo);
+    /* Rotulo, nombre, papel y subetapa solo sirven si algun lugar dice «Titulo del capitulo» */
+    const dicenCapitulo = PAGINAS_CABEZA.some((p) => LUGARES_CABEZA.some((l) => cb.lados[p][l].que === 'capitulo'));
+    for (const k of ['cabezaRotulo', 'cabezaNombre', 'cabezaRol', 'cabezaSubetapa']) f.elements[k].disabled = !dicenCapitulo;
+    f.elements.cabezaCombinacion.value = combinacionDe(cb.lados);
+    if (!escribiendo || document.activeElement !== f.elements.autor) f.elements.autor.value = c.autor;
+  }
+
+  /* Los seis lugares del encabezado en sus controles. «Texto» solo se ve si el lugar dice «Texto propio»; «Negrita» se
+     apaga si no dice nada. El texto que se esta escribiendo no se pisa. */
+  ponerLugaresCabeza(lados, escribiendo = false) {
+    const f = this.m('[data-tal-pagina]');
+    for (const p of PAGINAS_CABEZA) {
+      for (const l of LUGARES_CABEZA) {
+        const s = lados[p][l], texto = f.elements[`cabezaTexto-${p}-${l}`], negrita = f.elements[`cabezaNegrita-${p}-${l}`];
+        f.elements[`cabezaQue-${p}-${l}`].value = s.que;
+        negrita.checked = s.negrita; negrita.disabled = s.que === 'nada';
+        if (!escribiendo || document.activeElement !== texto) texto.value = s.texto;
+        texto.closest('label').hidden = s.que !== 'texto';
+      }
+    }
+  }
+
+  /* Los seis lugares como estan en los controles */
+  leerLugaresCabeza() {
+    const f = this.m('[data-tal-pagina]');
+    return Object.fromEntries(PAGINAS_CABEZA.map((p) => [p, Object.fromEntries(LUGARES_CABEZA.map((l) => [l, {
+      que: f.elements[`cabezaQue-${p}-${l}`].value, negrita: f.elements[`cabezaNegrita-${p}-${l}`].checked, texto: f.elements[`cabezaTexto-${p}-${l}`].value
+    }]))]));
   }
 
   mostrarRotulo() {
@@ -774,8 +807,10 @@ export class Taller extends Seccion {
         ver: f.elements.cabezaVer.checked,
         partes: { rotulo: f.elements.cabezaRotulo.checked, nombre: f.elements.cabezaNombre.checked, rol: f.elements.cabezaRol.checked, subetapa: f.elements.cabezaSubetapa.checked },
         distanciaMm: f.elements.cabezaDistancia.value === '' ? undefined : n('cabezaDistancia'),
-        tamanoPt: f.elements.cabezaTamano.value === '' ? undefined : n('cabezaTamano')
+        tamanoPt: f.elements.cabezaTamano.value === '' ? undefined : n('cabezaTamano'),
+        lados: this.leerLugaresCabeza()
       },
+      autor: f.elements.autor.value,
       /* El texto y el grueso del lomo vienen de aqui; sus colores, de los selectores (ya estan en `pagina.lomo`) */
       lomo: { ...this.obra.pagina.lomo, texto: f.elements.lomoTexto.value, grosor: f.elements.lomoGrosor.value === '' ? 'auto' : n('lomoGrosor') },
       cuerpo: { fuente: f.elements.fuente.value, tamanoPt: n('tamanoPt'), interlinea: n('interlinea') },

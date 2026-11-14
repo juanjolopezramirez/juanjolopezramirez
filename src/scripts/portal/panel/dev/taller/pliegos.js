@@ -52,6 +52,56 @@ export function planDeViaje(desde, hacia, n, { tope = 10 } = {}) {
   return { dir, distancia: camino.length, salto: camino[saltados - 1], pasos: camino.slice(saltados) };
 }
 
+/* VOLVER: la pila de los lugares de donde se SALTO (cada uno, un pliego por su primera pagina). Es una lista que vive en la
+   memoria del visor; aqui solo estan las cuentas, sin tocar la lista que llega (devuelven una nueva). */
+export const PILA_MAX = 20;
+
+/* Apila el pliego de donde se salta. Dos iguales seguidos no se repiten, y si pasa del tope se olvida el mas viejo. */
+export function apilarVuelta(pila, pliego, tope = PILA_MAX) {
+  const lista = Array.isArray(pila) ? pila.filter((x) => Number.isInteger(x) && x >= 0) : [];
+  if (!Number.isInteger(pliego) || pliego < 0) return lista;
+  if (lista.length && lista[lista.length - 1] === pliego) return lista;
+  lista.push(pliego);
+  const maximo = Number.isFinite(tope) ? Math.max(1, Math.floor(tope)) : PILA_MAX;
+  return lista.length > maximo ? lista.slice(lista.length - maximo) : lista;
+}
+
+/* Saca el ultimo lugar al que volver. Los que son donde ya se esta se tiran: volver «a donde ya estoy» no hace nada y
+   gastaria un toque. { pliego: el lugar (o null si no queda ninguno), pila: lo que sobra } */
+export function sacarVuelta(pila, actual) {
+  const lista = Array.isArray(pila) ? pila.filter((x) => Number.isInteger(x) && x >= 0) : [];
+  while (lista.length && lista[lista.length - 1] === actual) lista.pop();
+  if (!lista.length) return { pliego: null, pila: [] };
+  const pliego = lista.pop();
+  return { pliego, pila: lista };
+}
+
+/* LA BARRA: va de 1 a n (el numero de pagina que se ve primero). De un valor de la barra al pliego donde cae, y al reves. */
+export function pliegoDeBarra(valor, n) {
+  const v = Math.round(Number(valor));
+  return Number.isFinite(v) ? pliegoDe(v - 1, n) : 0;
+}
+export function barraDePliego(pliego, n) {
+  return n > 0 ? pliegoDe(pliego, n) + 1 : 1;
+}
+
+/* Diez pliegos adelante (d > 0) o atras (d < 0), o los que queden hasta el borde del libro. */
+export function pliegoALaVuelta(i, n, d, k = 10) {
+  let p = pliegoDe(i, n);
+  for (let paso = 0; paso < k; paso++) {
+    const s = pliegoVecino(p, n, d);
+    if (s == null) break;
+    p = s;
+  }
+  return p;
+}
+
+/* La primera hoja del contenido del libro (por su numero desde 0), o -1 si no tiene. `paginas` son las de la mesa. */
+export function paginaDelContenido(paginas) {
+  if (!Array.isArray(paginas)) return -1;
+  return paginas.findIndex((p) => p && p.indice === true);
+}
+
 /* Cuantos pliegos tiene el libro */
 export function totalPliegos(n) {
   let t = 0;

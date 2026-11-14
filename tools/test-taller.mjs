@@ -1552,7 +1552,8 @@ console.log('papeles, palabra propia, subetapa y encabezado');
   });
   await ok('ConfigPagina.cabeza: apagado por omision, topes en sus bordes, y viaja con el libro', () => {
     const c = new ConfigPagina({});
-    assert.deepEqual(c.cabeza, { ver: false, partes: { rotulo: true, nombre: true, rol: false, subetapa: false }, distanciaMm: 10, tamanoPt: 9 });
+    assert.deepEqual(c.cabeza, { ver: false, partes: { rotulo: true, nombre: true, rol: false, subetapa: false }, distanciaMm: 10, tamanoPt: 9, lados: C.lugaresDeCombinacion('solo-capitulo') });
+    assert.equal(c.autor, '');
     const raro = new ConfigPagina({ cabeza: { ver: 'si', partes: { rol: 1, nombre: 0 }, distanciaMm: 999, tamanoPt: -3 } }).cabeza;
     assert.deepEqual([raro.ver, raro.partes.rol, raro.partes.nombre, raro.distanciaMm, raro.tamanoPt], [false, false, true, 30, 6]);
     assert.deepEqual([new ConfigPagina({ cabeza: { distanciaMm: 0, tamanoPt: 99 } }).cabeza.distanciaMm, new ConfigPagina({ cabeza: { distanciaMm: 0, tamanoPt: 99 } }).cabeza.tamanoPt], [4, 14]);
@@ -1564,6 +1565,133 @@ console.log('papeles, palabra propia, subetapa y encabezado');
     assert.equal(new ConfigPagina({ cabeza: { ver: true }, margenes: { sup: 20 } }).cabezaApretada(), false);
     assert.equal(new ConfigPagina({ cabeza: { ver: false }, margenes: { sup: 1 } }).cabezaApretada(), false);
     assert.equal(new ConfigPagina({ cabeza: { ver: true }, margenes: { sup: 12 } }).margenes.sup, 12, 'los margenes no se tocan solos');
+  });
+  await ok('encabezado izquierda/derecha: un libro de antes queda en «Solo capitulo» y se ve igual; las combinaciones de partida', () => {
+    /* Sin `lados` (guardado antes): el capitulo al centro de las dos, sin negrita; el selector lo llama «solo-capitulo» */
+    const viejo = new ConfigPagina({ cabeza: { ver: true, partes: { rotulo: true, nombre: true } } });
+    assert.deepEqual(viejo.cabeza.lados, C.lugaresDeCombinacion('solo-capitulo'));
+    assert.equal(C.combinacionDe(viejo.cabeza.lados), 'solo-capitulo');
+    for (const malo of [null, 7, 'x', [], [1, 2]]) assert.equal(C.combinacionDe(new ConfigPagina({ cabeza: { lados: malo } }).cabeza.lados), 'solo-capitulo', `lados ${JSON.stringify(malo)}`);
+    const cs = capitulosParaIndice([cap('Intro', { rol: 'introduccion' }), cap('El desierto')]);
+    const ctx = C.contextosDeCabeza(cs, { rotulo: { ver: true } });
+    const datos = { titulo: 'Mi libro', autor: 'Ana Pérez' }, texto = (pag, id = 'solo-capitulo', sub = '') => C.lugaresDeCabeza(ctx[1], sub, { partes: { rotulo: true, nombre: true }, lados: C.lugaresDeCombinacion(id) }, datos, pag).map((x) => [x.lugar, x.texto || (x.numero ? '#' : ''), x.negrita]);
+    /* Lo de siempre: el mismo texto que textoDeCabeza, al centro, en las dos hojas */
+    assert.deepEqual(texto('izquierda'), [['centro', 'Capítulo 1 · El desierto', false]]);
+    assert.deepEqual(texto('derecha'), texto('izquierda'));
+    assert.equal(texto('derecha')[0][1], C.textoDeCabeza(ctx[1], '', { rotulo: true, nombre: true }));
+    /* Clasico: izquierda = autor en el borde izquierdo y libro en el derecho; derecha = el capitulo */
+    assert.deepEqual(texto('izquierda', 'clasico'), [['izq', 'Ana Pérez', false], ['der', 'Mi libro', false]]);
+    assert.deepEqual(texto('derecha', 'clasico'), [['centro', 'Capítulo 1 · El desierto', false]]);
+    assert.deepEqual(texto('izquierda', 'libro-autor'), [['izq', 'Ana Pérez', false], ['der', 'Mi libro', false]]);
+    assert.deepEqual(texto('derecha', 'libro-autor'), texto('izquierda', 'libro-autor'));
+    assert.deepEqual([texto('izquierda', 'ninguno'), texto('derecha', 'ninguno')], [[], []]);
+    for (const id of C.COMBINACIONES) assert.equal(C.combinacionDe(C.lugaresDeCombinacion(id)), id);
+    /* Un autor vacio no deja un lugar vacio; la pagina 1 es derecha */
+    assert.deepEqual(C.lugaresDeCabeza(ctx[1], '', { partes: {}, lados: C.lugaresDeCombinacion('clasico') }, { titulo: 'L', autor: '' }, 'izquierda').map((x) => x.lugar), ['der']);
+    assert.deepEqual([1, 2, 3, 4, 0, -1].map(C.paginaDeNumero), ['derecha', 'izquierda', 'derecha', 'izquierda', 'izquierda', 'derecha']);
+    /* La seccion y el numero de pagina */
+    const mixto = { partes: { nombre: true }, lados: { izquierda: { izq: { que: 'numero', negrita: true }, centro: { que: 'seccion' }, der: { que: 'nada' } }, derecha: {} } };
+    assert.deepEqual(C.lugaresDeCabeza(ctx[1], 'Actividades', mixto, datos, 'izquierda'), [{ lugar: 'izq', texto: '', numero: true, negrita: true }, { lugar: 'centro', texto: 'Actividades', numero: false, negrita: false }]);
+    assert.deepEqual(C.lugaresDeCabeza(ctx[1], '', mixto, datos, 'izquierda').map((x) => x.lugar), ['izq'], 'sin seccion no hay texto en su lugar');
+    /* Cambiar un lugar a mano: ya no es ninguna de las de partida */
+    const cambiada = C.lugaresDeCombinacion('clasico'); cambiada.derecha.centro.negrita = true;
+    assert.equal(C.combinacionDe(cambiada), 'personalizado');
+    const propio = C.lugaresDeCombinacion('ninguno'); propio.izquierda.izq = { que: 'texto', negrita: false, texto: 'Hola' };
+    assert.equal(C.combinacionDe(propio), 'personalizado');
+    /* La negrita de un lugar vacio no cuenta */
+    const nada = C.lugaresDeCombinacion('ninguno'); nada.derecha.der.negrita = true;
+    assert.equal(C.combinacionDe(nada), 'ninguno');
+  });
+  await ok('encabezado izquierda/derecha: listas blancas, topes y textos hostiles', () => {
+    const lados = new ConfigPagina({ cabeza: { lados: {
+      izquierda: { izq: { que: 'autor', negrita: 'si' }, centro: { que: '__proto__', negrita: true }, der: { que: 'constructor' }, extra: { que: 'libro' } },
+      derecha: { izq: { que: 'texto', negrita: true, texto: `  A‮B\u0000\n${'x'.repeat(100)}` }, centro: 5, der: { que: 'numero', negrita: true, texto: 'no va' } }
+    } } }).cabeza.lados;
+    assert.deepEqual(Object.keys(lados), ['izquierda', 'derecha']);
+    assert.deepEqual(Object.keys(lados.izquierda), ['izq', 'centro', 'der'], 'solo los tres lugares');
+    assert.deepEqual(lados.izquierda.izq, { que: 'autor', negrita: false, texto: '' }, 'la negrita solo vale con true');
+    assert.deepEqual([lados.izquierda.centro.que, lados.izquierda.der.que, lados.derecha.centro.que], ['nada', 'nada', 'nada']);
+    assert.equal(lados.izquierda.centro.negrita, false, 'un lugar sin nada no guarda negrita');
+    assert.equal(lados.derecha.izq.texto.length, C.TEXTO_PROPIO_MAX);
+    assert.ok(/^ABx{58}$/.test(lados.derecha.izq.texto), 'sin controles ni direccionales, y a 60');
+    assert.ok(!/[\u0000-\u001F‪-‮]/.test(lados.derecha.izq.texto));
+    assert.deepEqual(lados.derecha.der, { que: 'numero', negrita: true, texto: 'no va' }, 'el texto escrito se conserva por si vuelve a «Texto propio», pero no se muestra');
+    assert.deepEqual(C.lugaresDeCabeza({}, '', { partes: {}, lados }, {}, 'derecha').filter((x) => x.lugar === 'der'), [{ lugar: 'der', texto: '', numero: true, negrita: true }]);
+    /* El autor: una linea, sin direccionales, 80 como mucho, sin medio emoji */
+    assert.equal(new ConfigPagina({ autor: 'x'.repeat(300) }).autor.length, C.AUTOR_MAX);
+    assert.equal(new ConfigPagina({ autor: `  Ana‮\n\u0000 Pérez  ` }).autor, 'Ana Pérez');
+    assert.ok(!/[\uD800-\uDBFF]$/.test(new ConfigPagina({ autor: `${'a'.repeat(79)}😀` }).autor));
+    for (const raro of [7, null, {}, ['x']]) assert.equal(new ConfigPagina({ autor: raro }).autor, '');
+    /* Va y viene con el libro, sin cambiar */
+    const c = new ConfigPagina({ autor: 'Ana', cabeza: { ver: true, lados: lados } });
+    assert.deepEqual(new ConfigPagina(c.aDatos()).cabeza, c.cabeza);
+    assert.equal(new ConfigPagina(c.aDatos()).autor, 'Ana');
+    c.aDatos().cabeza.lados.derecha.izq.texto = 'otro';
+    assert.equal(c.cabeza.lados.derecha.izq.texto.length, C.TEXTO_PROPIO_MAX, 'aDatos entrega copias');
+    /* Caben en los 8000 bytes de `pagina` aun llenos de texto de 3 bytes por letra */
+    const lleno = { que: 'texto', negrita: true, texto: '€'.repeat(60) };
+    const peor = new ConfigPagina({ autor: '€'.repeat(80), cabeza: { ver: true, lados: { izquierda: { izq: lleno, centro: lleno, der: lleno }, derecha: { izq: lleno, centro: lleno, der: lleno } } } });
+    assert.ok(Buffer.byteLength(JSON.stringify({ lados: peor.cabeza.lados, autor: peor.autor })) < 1800, 'el encabezado nuevo pesa poco');
+  });
+  await ok('hoja de impresion con encabezado izquierda/derecha: @page :left y :right, negrita, numero, textos hostiles', () => {
+    const libro = (pagina, ...caps) => aHoja(new Obra({ titulo: 'Mi "libro"', pagina }).aDatos(), caps);
+    const c1 = cap('Uno'), lados = C.lugaresDeCombinacion('clasico');
+    /* Las dos hojas iguales: una sola regla, como siempre (los libros de antes no cambian) */
+    const igual = libro({ cabeza: { ver: true } }, c1);
+    assert.match(igual.css, /@page cab-1 \{ @top-center \{ content: "Uno";/);
+    assert.ok(!/@page cab-1:(left|right)/.test(igual.css));
+    assert.ok(!/@top-(left|right)/.test(igual.css));
+    /* Clasico: la izquierda con autor y libro en sus bordes, la derecha con el capitulo */
+    const cl = libro({ autor: 'Ana', cabeza: { ver: true, lados } }, c1);
+    assert.match(cl.css, /@page cab-1:left \{ @top-left \{ content: "Ana";[^}]*text-align: left;[^}]*\} @top-right \{ content: "Mi \\22 libro\\22 ";[^}]*text-align: right;/);
+    assert.match(cl.css, /@page cab-1:right \{ @top-center \{ content: "Uno";[^}]*text-align: center;/);
+    assert.ok(!/font-weight/.test(cl.css.replace(/\.libro[^]*$/, '')), 'sin negrita pedida no hay font-weight en el encabezado');
+    assert.match(cl.css, /\.capitulo\.cab-1, \.cabeza-parte\.cab-1 \{ page: cab-1; \}/);
+    /* Negrita, numero de pagina y seccion */
+    const nb = C.lugaresDeCombinacion('ninguno');
+    nb.izquierda.izq = { que: 'numero', negrita: true, texto: '' }; nb.derecha.der = { que: 'capitulo', negrita: true, texto: '' };
+    const num = libro({ cabeza: { ver: true, lados: nb } }, c1);
+    assert.match(num.css, /@page cab-1:left \{ @top-left \{ content: counter\(page\);[^}]*font-weight: 700; \} \}/);
+    assert.match(num.css, /@page cab-1:right \{ @top-right \{ content: "Uno";[^}]*font-weight: 700; \} \}/);
+    /* Un texto cambia por capitulo: una pagina con nombre por cada texto distinto, tambien a izquierda y derecha */
+    const dos = libro({ autor: 'Ana', cabeza: { ver: true, lados } }, cap('Uno'), cap('Dos'));
+    assert.match(dos.css, /@page cab-1:right \{ @top-center \{ content: "Uno"/);
+    assert.match(dos.css, /@page cab-2:right \{ @top-center \{ content: "Dos"/);
+    assert.match(dos.css, /@page cab-2:left \{ @top-left/);
+    /* Hostil: ni url( ni @import ni cierre de estilo ni saltos ni controles en la hoja */
+    const feo = 'x"y\\z url(http://a) @import </style>\nq';
+    const h = C.lugaresDeCombinacion('ninguno');
+    h.izquierda.izq = { que: 'texto', negrita: false, texto: feo }; h.izquierda.centro = { que: 'autor', negrita: false, texto: '' }; h.derecha.der = { que: 'libro', negrita: false, texto: '' };
+    const hostil = libro({ autor: feo, cabeza: { ver: true, lados: h } }, cap(feo));
+    const cabezas = hostil.css.split('\n').filter((l) => /@top-|@page cab-/.test(l)).join('\n');
+    assert.ok(cabezas.includes('@top-left') && cabezas.includes('@top-center') && cabezas.includes('@top-right'));
+    assert.ok(!/url\s*\(|@import|<\/style|[\u0000-\u0008\u000B-\u001F]/i.test(cabezas), cabezas);
+    assert.ok(![0x2028, 0x2029].some((k) => cabezas.includes(String.fromCharCode(k))), 'sin separadores de linea');
+    assert.ok(!/@page[^{]*\{[^}]*\{[^}]*"[^"]*\n/.test(cabezas), 'sin saltos de linea dentro de una cadena');
+    /* Sin encabezado, nada de esto aparece */
+    assert.ok(!/@top-|cab-/.test(libro({ autor: 'Ana', cabeza: { ver: false, lados } }, c1).css));
+    /* La portada sigue sin encabezado */
+    const pdf = cap('P', {}, { type: 'paginaLibre', attrs: { objetos: [] } });
+    const conPortada = libro({ portada: 'si', cabeza: { ver: true, lados } }, pdf, c1);
+    assert.equal(conPortada.nodos[0].hijos[0].clase, 'capitulo capitulo--portada');
+  });
+  await ok('encabezado: el reparto del ancho es fijo (uno = todo, dos = mitades, con centro = tercios) y va igual al PDF', () => {
+    const l = (...ls) => ls.map((lugar) => ({ lugar, texto: 'x', numero: false, negrita: false }));
+    const r = (...ls) => C.repartirCabeza(l(...ls), 300).map((s) => [s.lugar, s.x, s.ancho]);
+    assert.deepEqual(r('centro'), [['centro', 0, 300]]);
+    assert.deepEqual(r('izq'), [['izq', 0, 300]]);
+    assert.deepEqual(r('der'), [['der', 0, 300]]);
+    assert.deepEqual(r('izq', 'der'), [['izq', 0, 150], ['der', 150, 150]]);
+    assert.deepEqual(r('izq', 'centro'), [['izq', 0, 100], ['centro', 100, 100]]);
+    assert.deepEqual(r('centro', 'der'), [['centro', 100, 100], ['der', 200, 100]]);
+    assert.deepEqual(r('izq', 'centro', 'der'), [['izq', 0, 100], ['centro', 100, 100], ['der', 200, 100]]);
+    assert.deepEqual(C.repartirCabeza([], 300), []);
+    /* En la hoja de impresion: el ancho de la caja de texto (423 px en A5), sin tocar el resto de la regla */
+    const libro = (pagina, ...caps) => aHoja(new Obra({ titulo: 'T', pagina }).aDatos(), caps);
+    const cl = libro({ autor: 'Ana', cabeza: { ver: true, lados: C.lugaresDeCombinacion('clasico') } }, cap('Uno'));
+    assert.match(cl.css, /@top-left \{ content: "Ana";[^}]*padding-top: 37\.8px; width: 211\.5px; white-space: nowrap;/);
+    assert.match(cl.css, /@top-right \{ content: "T";[^}]*width: 211\.5px;/);
+    assert.match(cl.css, /@page cab-1:right \{ @top-center \{ content: "Uno";[^}]*width: 423px;/);
   });
   await ok('subetapa: nombre limpio, nunca dentro de columnas, y sale como franja', () => {
     const t = POR_NODO.get('subetapa');
@@ -1611,7 +1739,7 @@ console.log('papeles, palabra propia, subetapa y encabezado');
     /* Un nombre con comillas, parentesis y arroba no rompe la hoja ni cuela url( */
     const hostil = libro({ cabeza: { ver: true } }, cap('Ho"la url(x) @import</style>'));
     assert.ok(!/url\s*\(|@import/i.test(hostil.css));
-    assert.match(hostil.css, /content: "Ho\\22 la url\\28 x\\29  \\40 import<\/style>"/);
+    assert.match(hostil.css, /content: "Ho\\22 la url\\28 x\\29  \\40 import\\3c \/style\\3e "/);
     /* Con imprenta, la sangre empuja el encabezado hacia adentro */
     assert.match(libro({ imprenta: true, cabeza: { ver: true, distanciaMm: 5 } }, cap('X')).css, /padding-top: 30\.9px/);
   });
@@ -2050,6 +2178,128 @@ await ok('viaje: un destino fuera del libro cae en el borde, y el tope siempre e
   assert.equal(planDeViaje(0, 39, 40, { tope: 0 }).pasos.length, 1);
   assert.equal(planDeViaje(0, 39, 40, { tope: 3 }).pasos.length, 3);
   assert.equal(planDeViaje(0, 39, 40, { tope: Infinity }).pasos.length, 10);
+});
+await ok('viaje largo HACIA ATRAS (de la pagina 145 de 160 al comienzo): salta y gira las ultimas diez, y acaba en el destino', async () => {
+  const { planDeViaje, pliegoDe, pliegoVecino } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  const p = planDeViaje(145, 0, 160);
+  assert.equal(p.dir, -1);
+  assert.equal(p.pasos.length, 10);
+  assert.equal(p.pasos.at(-1), 0);
+  assert.ok(p.salto != null && p.salto < 145 && p.salto > 0);
+  /* el salto cae justo diez pliegos antes del final y cada paso es el vecino anterior del anterior */
+  assert.equal(pliegoVecino(p.pasos[0], 160, 1), p.salto);
+  for (let i = 1; i < p.pasos.length; i++) assert.equal(pliegoVecino(p.pasos[i - 1], 160, -1), p.pasos[i]);
+  assert.equal(p.distancia, 73);                         // pliegos 145, 143, … 1, 0
+  /* desde el final (contratapa sola, 160 es par) hasta una pagina del medio, y de vuelta */
+  const ida = planDeViaje(159, 60, 160), vuelta = planDeViaje(pliegoDe(60, 160), 159, 160);
+  assert.equal(ida.pasos.at(-1), pliegoDe(60, 160));
+  assert.equal(vuelta.pasos.at(-1), 159);
+  assert.equal(ida.dir, -1);
+  assert.equal(vuelta.dir, 1);
+  /* en el movimiento reducido no gira mas que una hoja, tambien hacia atras */
+  const calmo = planDeViaje(145, 0, 160, { tope: 1 });
+  assert.deepEqual(calmo.pasos, [0]);
+  assert.equal(calmo.salto, 1);
+});
+await ok('«Volver»: la pila guarda de donde se salto, sin repetidos seguidos y con tope de 20', async () => {
+  const { apilarVuelta, sacarVuelta, PILA_MAX } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  assert.equal(PILA_MAX, 20);
+  let pila = [];
+  pila = apilarVuelta(pila, 0);
+  pila = apilarVuelta(pila, 0);                          // dos iguales seguidos: uno solo
+  assert.deepEqual(pila, [0]);
+  pila = apilarVuelta(pila, 33);
+  pila = apilarVuelta(pila, 0);                          // iguales pero no seguidos: se guardan los dos
+  assert.deepEqual(pila, [0, 33, 0]);
+  /* no se toca la lista que llega */
+  const antes = [1, 3];
+  const nueva = apilarVuelta(antes, 5);
+  assert.deepEqual(antes, [1, 3]);
+  assert.deepEqual(nueva, [1, 3, 5]);
+  /* tope: se olvida el mas viejo */
+  let larga = [];
+  for (let i = 0; i < 35; i++) larga = apilarVuelta(larga, i * 2 + 1);
+  assert.equal(larga.length, 20);
+  assert.equal(larga[0], 15 * 2 + 1);
+  assert.equal(larga.at(-1), 34 * 2 + 1);
+  assert.equal(apilarVuelta([1, 2, 3], 9, 2).length, 2);
+  assert.deepEqual(apilarVuelta([1, 2, 3], 9, 2), [3, 9]);
+  /* basura: no entra */
+  for (const x of [NaN, -1, 2.5, null, undefined, '4']) assert.deepEqual(apilarVuelta([7], x), [7], String(x));
+  assert.deepEqual(apilarVuelta(null, 4), [4]);
+  /* sacar: el ultimo primero; se repite hasta vaciar */
+  let s = sacarVuelta([0, 33, 71], 90);
+  assert.deepEqual(s, { pliego: 71, pila: [0, 33] });
+  s = sacarVuelta(s.pila, 71);
+  assert.deepEqual(s, { pliego: 33, pila: [0] });
+  s = sacarVuelta(s.pila, 33);
+  assert.deepEqual(s, { pliego: 0, pila: [] });
+  assert.deepEqual(sacarVuelta(s.pila, 0), { pliego: null, pila: [] });
+  assert.deepEqual(sacarVuelta([], 5), { pliego: null, pila: [] });
+  /* volver «a donde ya estoy» no cuenta: se tira y se sigue con el de antes */
+  assert.deepEqual(sacarVuelta([4, 9, 9], 9), { pliego: 4, pila: [] });
+  assert.deepEqual(sacarVuelta([9, 9], 9), { pliego: null, pila: [] });
+  const arriba = [1, 3];
+  sacarVuelta(arriba, 0);
+  assert.deepEqual(arriba, [1, 3], 'no toca la lista que llega');
+});
+await ok('la barra: del valor (1 a n) al pliego, y del pliego al valor, sin tropezar', async () => {
+  const { pliegoDeBarra, barraDePliego, pliegoDe, paginasDe, totalPliegos } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  for (const n of [1, 2, 3, 7, 40, 108, 159, 160]) {
+    assert.equal(pliegoDeBarra(1, n), 0, `1 es la portada (n=${n})`);
+    for (let v = 1; v <= n; v++) {
+      const p = pliegoDeBarra(v, n);
+      assert.ok(paginasDe(p, n).includes(v - 1), `la pagina ${v} esta en su pliego (n=${n})`);
+      /* ida y vuelta: el valor que la barra pone para un pliego cae en ese mismo pliego */
+      assert.equal(pliegoDeBarra(barraDePliego(p, n), n), p, `v=${v} n=${n}`);
+      assert.ok(barraDePliego(p, n) >= 1 && barraDePliego(p, n) <= n);
+    }
+    assert.equal(pliegoDeBarra(n, n), pliegoDe(n - 1, n));
+    assert.equal(barraDePliego(0, n), 1);
+  }
+  assert.equal(barraDePliego(31, 108), 32);              // el pliego 31 son las paginas 32 y 33
+  assert.equal(pliegoDeBarra(32, 108), 31);
+  assert.equal(pliegoDeBarra(33, 108), 31);
+  assert.equal(pliegoDeBarra(108, 108), 107);
+  /* fuera de rango o basura: el borde mas cercano, nunca un error */
+  assert.equal(pliegoDeBarra(0, 108), 0);
+  assert.equal(pliegoDeBarra(-5, 108), 0);
+  assert.equal(pliegoDeBarra(9999, 108), 107);
+  assert.equal(pliegoDeBarra('45', 108), pliegoDeBarra(45, 108));
+  assert.equal(pliegoDeBarra(NaN, 108), 0);
+  assert.equal(pliegoDeBarra(undefined, 108), 0);
+  assert.equal(barraDePliego(5, 0), 1);
+  /* cada valor de la barra lleva a algun pliego del libro, y cada pliego se alcanza */
+  const alcanzados = new Set();
+  for (let v = 1; v <= 108; v++) alcanzados.add(pliegoDeBarra(v, 108));
+  assert.equal(alcanzados.size, totalPliegos(108));
+});
+await ok('RePag y AvPag: diez pliegos, y se detienen en el borde del libro', async () => {
+  const { pliegoALaVuelta, pliegoVecino, totalPliegos } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  assert.equal(pliegoALaVuelta(0, 108, 1), 19);          // 1, 3, 5, … 19
+  assert.equal(pliegoALaVuelta(19, 108, -1), 0);
+  assert.equal(pliegoALaVuelta(31, 108, 1), 51);
+  assert.equal(pliegoALaVuelta(51, 108, -1), 31);
+  assert.equal(pliegoALaVuelta(100, 108, 1), 107);       // la contratapa sola: el borde
+  assert.equal(pliegoALaVuelta(107, 108, 1), 107);
+  assert.equal(pliegoALaVuelta(3, 108, -1), 0);
+  assert.equal(pliegoALaVuelta(0, 108, -1), 0);
+  assert.equal(pliegoALaVuelta(2, 108, 1), pliegoALaVuelta(1, 108, 1));   // la 2 es del pliego de la 1
+  /* mismo resultado que pasar 10 veces una hoja */
+  let k = 7;
+  for (let i = 0; i < 10; i++) k = pliegoVecino(k, 108, 1);
+  assert.equal(pliegoALaVuelta(7, 108, 1), k);
+  assert.equal(pliegoALaVuelta(5, 0, 1), 0);
+  assert.equal(totalPliegos(108), 55);
+});
+await ok('«Contenido»: la primera hoja del contenido de la mesa, o -1 si no hay', async () => {
+  const { paginaDelContenido } = await import('../src/scripts/portal/panel/dev/taller/pliegos.js');
+  assert.equal(paginaDelContenido([{ indice: true }, { indice: true }, {}]), 0);
+  assert.equal(paginaDelContenido([{ vivo: 1 }, { vivo: 2 }, { indice: true, fila: 0 }, { indice: true, fila: 1 }]), 2);
+  assert.equal(paginaDelContenido([{ vivo: 1 }, null, {}]), -1);
+  assert.equal(paginaDelContenido([]), -1);
+  assert.equal(paginaDelContenido(undefined), -1);
+  assert.equal(paginaDelContenido([{ indice: 'si' }]), -1);
 });
 
 console.log('compartir con un enlace privado (A3a)');

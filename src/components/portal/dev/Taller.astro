@@ -5,6 +5,8 @@
    Lo escrito por el fundador nunca se pinta aqui: entra con textContent y con los nodos del editor. */
 import { TRAZOS } from '../../../scripts/portal/panel/dev/taller/iconos.js';
 import { IMAGEN_INDICE_ALTOS } from '../../../scripts/contenido/taller/ConfigPagina.js';
+import { AUTOR_MAX, COMBINACIONES, LUGARES_CABEZA, PAGINAS_CABEZA, QUE_CABEZA, TEXTO_PROPIO_MAX } from '../../../scripts/contenido/taller/CabezaLibro.js';
+const COMBINACIONES_CABEZA = [...COMBINACIONES, 'personalizado'];
 const { tx } = Astro.props;
 ---
 <div class="taller dev" data-taller>
@@ -315,9 +317,32 @@ const { tx } = Astro.props;
           </details>
           <!-- El encabezado de cada hoja de texto: que dice, a que distancia y con que letra -->
           <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.encabezado}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
-            <div class="tal-b-panel">
+            <div class="tal-b-panel tal-cabeza">
               <label class="tal-marca"><input name="cabezaVer" type="checkbox" /><span>{tx.encabezadoVer}</span></label>
               <div class="tal-b-grupo" data-tal-cabeza-opciones>
+                <!-- Que va en cada lugar de cada hoja: una combinacion de partida, y luego cada lugar a mano -->
+                <label><span>{tx.cabezaCombinacion}</span><select class="tal-ctl" name="cabezaCombinacion">
+                  {COMBINACIONES_CABEZA.map((id) => <option value={id}>{tx.cabezaCombinaciones[id]}</option>)}
+                </select></label>
+                <p class="tal-ayuda">{tx.cabezaCombinacionAyuda}</p>
+                {PAGINAS_CABEZA.map((pag) => (
+                  <fieldset class="tal-cabeza__pagina">
+                    <legend>{tx.cabezaPaginas[pag]}</legend>
+                    {LUGARES_CABEZA.map((lug) => (
+                      <div class="tal-cabeza__fila" role="group" aria-label={`${tx.cabezaPaginas[pag]}: ${tx.cabezaLugares[lug]}`}>
+                        <span class="tal-rotulo">{tx.cabezaLugares[lug]}</span>
+                        <label><span>{tx.cabezaQue}</span><select class="tal-ctl" name={`cabezaQue-${pag}-${lug}`} aria-label={`${tx.cabezaPaginas[pag]}, ${tx.cabezaLugares[lug]}: ${tx.cabezaQue}`}>
+                          {QUE_CABEZA.map((q) => <option value={q}>{tx.cabezaQues[q]}</option>)}
+                        </select></label>
+                        <label class="tal-marca"><input name={`cabezaNegrita-${pag}-${lug}`} type="checkbox" aria-label={`${tx.cabezaPaginas[pag]}, ${tx.cabezaLugares[lug]}: ${tx.cabezaNegrita}`} /><span>{tx.cabezaNegrita}</span></label>
+                        <label data-tal-cabeza-texto hidden><span>{tx.cabezaTexto}</span><input class="tal-ctl" name={`cabezaTexto-${pag}-${lug}`} type="text" maxlength={TEXTO_PROPIO_MAX} autocomplete="off" aria-label={`${tx.cabezaPaginas[pag]}, ${tx.cabezaLugares[lug]}: ${tx.cabezaTexto}`} placeholder={tx.cabezaTextoEjemplo} /></label>
+                      </div>
+                    ))}
+                  </fieldset>
+                ))}
+                <label><span>{tx.cabezaAutor}</span><input class="tal-ctl" name="autor" type="text" maxlength={AUTOR_MAX} autocomplete="off" placeholder={tx.cabezaAutorEjemplo} /></label>
+                <p class="tal-ayuda">{tx.cabezaAutorAyuda}</p>
+                <p class="tal-rotulo">{tx.cabezaCapituloDice}</p>
                 <label class="tal-marca"><input name="cabezaRotulo" type="checkbox" /><span>{tx.cabezaRotulo}</span></label>
                 <label class="tal-marca"><input name="cabezaNombre" type="checkbox" /><span>{tx.cabezaNombre}</span></label>
                 <label class="tal-marca"><input name="cabezaRol" type="checkbox" /><span>{tx.cabezaRol}</span></label>
@@ -445,6 +470,13 @@ const { tx } = Astro.props;
       <div class="tal-vl-escena" data-vl-escena></div>
       <!-- Los botones de las hojas que se ven, para quien no usa el raton -->
       <div class="tal-vl-botones" data-vl-botones hidden><span class="tal-vl-botones__rotulo" id="tal-vl-botones-t">{tx.vlBotones}</span><span class="tal-vl-botones__lista" data-vl-botones-lista role="group" aria-labelledby="tal-vl-botones-t"></span></div>
+      <!-- Recorrer todo el libro: «Volver» (de donde saltaste), «Contenido» y una barra de 1 a la ultima pagina -->
+      <div class="tal-vl-barra" data-vl-barra-caja>
+        <button class="tal-btn tal-vl-barra__btn" type="button" data-vl-volver aria-keyshortcuts="B" title={tx.vlVolverAyuda} disabled><span aria-hidden="true">↶</span> {tx.vlVolver}</button>
+        <button class="tal-btn tal-vl-barra__btn" type="button" data-vl-contenido title={tx.vlContenidoAyuda}>{tx.vlContenido}</button>
+        <input class="tal-vl-barra__rango" type="range" min="1" max="1" step="1" value="1" data-vl-barra aria-label={tx.vlBarra} title={tx.vlBarraAyuda} />
+        <output class="tal-vl-barra__valor" data-vl-barra-valor aria-hidden="true"></output>
+      </div>
       <!-- El aviso de lo que hizo un boton: una franja chica, dentro del visor (lo de afuera esta inerte) -->
       <div class="tal-vl-aviso tal-vl-aviso--abajo" data-vl-aviso-franja role="status" aria-live="polite"></div>
       <!-- Como se ve y que dice ese aviso: tambien dentro del visor, para que el foco no salga de el -->

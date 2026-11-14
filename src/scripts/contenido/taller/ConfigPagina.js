@@ -9,6 +9,7 @@ import { RECIENTES_MAX } from './colores.js';
 import { textoIndice, TITULO_INDICE_MAX, PALABRA_MAX, PLANTILLAS } from './IndiceLibro.js';
 import { limpiarLomo } from './LomoLibro.js';
 import { limpiarAviso } from './AvisoLibro.js';
+import { AUTOR_MAX, limpiarLados, textoCabezaPropio } from './CabezaLibro.js';
 
 export const LADO_MIN = 50;
 export const LADO_MAX = 420;
@@ -70,6 +71,8 @@ function imagenDeIndice(v) {
   return { ruta, altoPct: entre(o.altoPct, 15, 60, 30, 1), ajuste: o.ajuste === 'contener' ? 'contener' : 'cubrir' };
 }
 
+const copiaLados = (p) => Object.fromEntries(Object.entries(p).map(([l, s]) => [l, { ...s }]));
+
 export class ConfigPagina {
   constructor(d = {}) {
     const o = objeto(d), m = objeto(o.margenes), n = objeto(o.numeros), c = objeto(o.cuerpo);
@@ -105,13 +108,18 @@ export class ConfigPagina {
       ver: cb.ver === true,
       partes: { rotulo: pa.rotulo !== false, nombre: pa.nombre !== false, rol: pa.rol === true, subetapa: pa.subetapa === true },
       distanciaMm: entre(cb.distanciaMm, CABEZA_DISTANCIA.min, CABEZA_DISTANCIA.max, CABEZA_DISTANCIA.siNo),
-      tamanoPt: entre(cb.tamanoPt, CABEZA_TAMANO.min, CABEZA_TAMANO.max, CABEZA_TAMANO.siNo)
+      tamanoPt: entre(cb.tamanoPt, CABEZA_TAMANO.min, CABEZA_TAMANO.max, CABEZA_TAMANO.siNo),
+      /* Que va en cada lugar de cada pagina (CabezaLibro.limpiarLados). Un libro guardado antes de esto no los trae:
+         queda en «Solo capitulo», el nombre del capitulo al centro de las dos, que es como se veia. */
+      lados: limpiarLados(cb.lados)
     };
+    /* Quien escribio el libro: lo usa el encabezado. Vacio = sin autor. */
+    this.autor = textoCabezaPropio(o.autor, AUTOR_MAX);
     /* El rotulo de los capitulos («Capítulo 1», «Episodio IV»): apagado hasta que el autor lo pida.
        Sin palabra, la del idioma del libro. */
     const ro = objeto(o.rotulo);
     /* Una palabra corta no necesita marcas invisibles (ni de direccion): se quitan, asi no reordena la fila */
-    this.rotulo = { ver: ro.ver === true, palabra: textoIndice(typeof ro.palabra === 'string' ? ro.palabra.replace(/[​-‏⁠﻿]/g, '') : '', PALABRA_MAX), cifras: ro.cifras === 'romano' ? 'romano' : 'arabe' };
+    this.rotulo = { ver: ro.ver === true, palabra: textoIndice(typeof ro.palabra === 'string' ? ro.palabra.replace(/[\u{200B}-\u{200F}\u{2060}\u{FEFF}]/gu, '') : '', PALABRA_MAX), cifras: ro.cifras === 'romano' ? 'romano' : 'arabe' };
     /* La primera hoja como portada: 'auto' la reconoce sola (IndiceLibro.hayPortada); 'si' y 'no' los elige el autor */
     this.portada = o.portada === true || o.portada === 'si' ? 'si' : o.portada === false || o.portada === 'no' ? 'no' : 'auto';
     this.imprenta = o.imprenta === true;
@@ -196,7 +204,7 @@ export class ConfigPagina {
   aDatos() {
     return {
       anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen }, negrita: { ...this.indice.negrita } }, cuerpo: { ...this.cuerpo },
-      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes } }, portada: this.portada, imprenta: this.imprenta, lomo: { ...this.lomo, tapas: { ...this.lomo.tapas } }, aviso: { ...this.aviso }, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes }, lados: { izquierda: copiaLados(this.cabeza.lados.izquierda), derecha: copiaLados(this.cabeza.lados.derecha) } }, autor: this.autor, portada: this.portada, imprenta: this.imprenta, lomo: { ...this.lomo, tapas: { ...this.lomo.tapas } }, aviso: { ...this.aviso }, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
       capital: { ...this.capital }, cita: { ...this.cita }
     };
   }

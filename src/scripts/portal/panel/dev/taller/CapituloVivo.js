@@ -11,6 +11,7 @@ import { limpiarContenido, cabeEnElCapitulo, propiosDe } from '../../../../conte
 import { tituloDe } from '../../../../contenido/taller/Migrar.js';
 import { conAnclas } from '../../../../contenido/taller/IndiceLibro.js';
 import { ladoDelNumero } from '../../../../contenido/taller/ConfigPagina.js';
+import { paginaDeNumero, repartirCabeza } from '../../../../contenido/taller/CabezaLibro.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
 
@@ -22,11 +23,14 @@ export function piePagina(n, top, p, lugar) {
   return e;
 }
 
-/* El encabezado de la hoja donde lo pone el PDF: una linea centrada entre los margenes, a `distancia` px del borde de
-   arriba de la hoja. Su letra y su tinta salen de las variables de la mesa (--pie-letra, --pie-tinta, --cabeza-pt). */
-export function cabezaPagina(texto, top, p, distancia) {
-  const e = crear('div', 'cabeza', texto);
-  Object.assign(e.style, { left: `${p.ml}px`, right: `${p.mr}px`, top: `${top + distancia}px` });
+/* Un lugar del encabezado de la hoja donde lo pone el PDF: una linea entre los margenes, pegada a su borde (o al
+   centro), a `distancia` px del borde de arriba de la hoja. `lugar`: { lugar, texto, numero, negrita } de
+   CabezaLibro.lugaresDeCabeza; `n`: el numero de la hoja, para el lugar «numero de pagina». Su letra y su tinta salen
+   de las variables de la mesa (--pie-letra, --pie-tinta, --cabeza-pt). */
+export function cabezaPagina(lugar, n, top, p, distancia) {
+  const e = crear('div', `cabeza cabeza--${lugar.lugar}${lugar.negrita ? ' cabeza--negrita' : ''}`, lugar.numero ? String(n) : lugar.texto);
+  /* `x` y `ancho` salen de CabezaLibro.repartirCabeza: el mismo reparto de la hoja de impresion */
+  Object.assign(e.style, { left: `${p.ml + lugar.x}px`, width: `${lugar.ancho}px`, top: `${top + distancia}px` });
   return e;
 }
 
@@ -116,8 +120,9 @@ export class CapituloVivo {
       if (cabeza) {
         /* La subetapa que le toca: la ultima que empezo en esta hoja o antes */
         const sub = subetapas.filter((s) => s.fila <= i).pop();
-        const texto = cabeza.texto(sub ? sub.texto : cabeza.inicial);
-        if (texto) this.caja.append(cabezaPagina(texto, top, p, cabeza.distancia));
+        /* Izquierda o derecha, por el numero de la hoja (la 1 es la derecha), y un nodo por lugar */
+        const num = numeroInicial + i;
+        for (const lugar of repartirCabeza(cabeza.lugares(sub ? sub.texto : cabeza.inicial, paginaDeNumero(num)), p.ancho)) this.caja.append(cabezaPagina(lugar, num, top, p, cabeza.distancia));
       }
       if (segura) {
         const s = crear('div', 'seg seg--texto');

@@ -14,7 +14,7 @@ import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
 import { AL_FINAL, debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, palabraLimpia, PALABRA_MAX, ROLES, rolLimpio, rotulosDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
 import { grupoDe, gruposDe, planCambio } from '../../../../contenido/taller/OrigenPdf.js';
-import { contextosDeCabeza, textoDeCabeza } from '../../../../contenido/taller/CabezaLibro.js';
+import { contextosDeCabeza, lugaresDeCabeza } from '../../../../contenido/taller/CabezaLibro.js';
 import { variablesDe } from '../../../../contenido/taller/colores.js';
 import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js';
 import { datosDeBoton } from '../../../../contenido/taller/tipos/boton.js';
@@ -189,7 +189,9 @@ export class Mesa {
     if (!c.cabeza.ver) return null;
     const caps = this.capitulosParaIndice(), contextos = contextosDeCabeza(caps, { rotulo: c.rotulo, idioma: this.idioma(), portada: hayPortada(caps, c.portada) });
     const distancia = (c.cabeza.distanciaMm / 25.4) * 96;
-    return (k) => ({ distancia, inicial: contextos[k].inicial, texto: (sub) => textoDeCabeza(contextos[k], sub, c.cabeza.partes) });
+    const datos = { titulo: this.obra().titulo, autor: c.autor };
+    /* `lugares(sub, pagina)`: lo que dice cada lugar de una hoja 'izquierda' o 'derecha' ({ lugar, texto, numero, negrita }) */
+    return (k) => ({ distancia, inicial: contextos[k].inicial, lugares: (sub, pagina) => lugaresDeCabeza(contextos[k], sub, c.cabeza, datos, pagina) });
   }
 
   /* El primer capitulo es la portada del libro (la regla es la misma de la hoja de impresion) */

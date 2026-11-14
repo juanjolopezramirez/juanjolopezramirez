@@ -19,7 +19,7 @@ export const ENTRADAS_MAX = 500;
 /* Solo un texto pasa la prueba: un arreglo con un ancla adentro tambien la pasaria con RegExp.test */
 export const esAncla = (re, v) => typeof v === 'string' && re.test(v);
 /* El texto de una fila o un nombre: sin controles ni marcas invisibles de direccion, una linea, sin medio emoji */
-const RARAS = /[\u0000-\u001F\u007F‪-‮⁦-⁩]/g;
+const RARAS = /[\u0000-\u001F\u007F\u{202A}-\u{202E}\u{2066}-\u{2069}]/gu;
 export const textoIndice = (v, max) => (typeof v === 'string'
   ? v.replace(RARAS, '').replace(/\s+/g, ' ').trim().slice(0, max).replace(/[\uD800-\uDBFF]$/, '')
   : '');
@@ -95,7 +95,7 @@ export function romano(n) {
   return r;
 }
 /* Una palabra corta no necesita marcas invisibles (ni de direccion): se quitan, asi no reordena la fila */
-export const palabraLimpia = (v) => textoIndice(typeof v === 'string' ? v.replace(/[​-‏⁠﻿]/g, '') : '', PALABRA_MAX);
+export const palabraLimpia = (v) => textoIndice(typeof v === 'string' ? v.replace(/[\u{200B}-\u{200F}\u{2060}\u{FEFF}]/gu, '') : '', PALABRA_MAX);
 export const palabraDeRotulo = (rotulo, idioma) => textoIndice(rotulo && rotulo.palabra, PALABRA_MAX) || (idioma === 'en' ? 'Chapter' : 'Capítulo');
 
 /* EL PAPEL DE UN CAPITULO (`rol`): un prefacio, una introduccion, una conclusion... No cuenta en la numeracion: el

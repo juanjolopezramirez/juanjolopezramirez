@@ -241,6 +241,10 @@
 .marca-soltar { height: 3px; background: var(--prompt); border-radius: 2px; }
 .clon { display: block; position: relative; overflow: hidden; background: var(--hoja-papel, #fff); }
 .clon__dentro { position: absolute !important; top: 0; left: 0; transform-origin: 0 0; pointer-events: none; box-shadow: none !important; filter: none !important; margin: 0 !important; }
+/* Con «Ver como libro» abierto las miniaturas quedan tapadas: sus paginas copiadas (una por hoja, a tamaño entero y reducidas) no se dibujan.
+   Cada miniatura conserva su tamaño (la caja de la copia lo tiene fijo), asi que nada se mueve; al cerrar el visor vuelven. Sin esto,
+   cada cuadro del giro de hojas repintaba cien paginas escondidas: un libro de 100 hojas iba a 4 cuadros por segundo y con paradas de varios segundos. */
+html[data-ver-libro] .mini .clon__dentro { display: none; }
 
 .tal-fondo { overflow: auto; background: radial-gradient(circle at 50% 0, rgb(var(--prompt-rgb) / .07), transparent 60%); padding: 28px 16px 60px; scrollbar-width: thin; }
 .tal-lienzo-caja { margin: 0 auto; position: relative; }
@@ -271,6 +275,9 @@
 /* El encabezado como sale en el PDF: una linea centrada entre los margenes, con la letra del libro, a la distancia
    del borde de arriba que dice CapituloVivo.cabezaPagina. Su renglon mide 1,2 veces la letra, como en la hoja de impresion. */
 .cabeza { position: absolute; text-align: center; font: var(--cabeza-pt, 9pt)/1.2 var(--pie-letra, Georgia, serif); color: var(--pie-tinta, var(--hoja-tinta, #151515)); white-space: nowrap; overflow: hidden; pointer-events: none; }
+/* Cada hoja tiene tres lugares: el borde izquierdo, el centro y el borde derecho (negrita si el autor la pide) */
+.cabeza--izq { text-align: left; } .cabeza--der { text-align: right; }
+.cabeza--negrita { font-weight: 700; }
 .flujo:focus-visible { outline: none; }
 .boton { cursor: pointer; }
 .flujo > .boton { position: relative; z-index: 1; }
@@ -466,7 +473,7 @@
 
 /* ---- Ver como libro ---- */
 /* Fondo parejo: con un poco de transparencia se veian, borrosas, la cinta y las miniaturas que quedan detras */
-.tal-vista-libro { position: fixed; inset: 0; z-index: 70; background: rgb(6 9 7); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.tal-vista-libro { position: fixed; inset: 0; z-index: 70; background: rgb(6 9 7); display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; }
 .tal-vista-libro[hidden] { display: none; }
 .tal-vl-tope { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; padding: .6rem 1rem; }
 .tal-vl-gustos { margin-left: auto; display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -486,6 +493,24 @@
 .tal-vl-botones { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .6rem; padding: .5rem 1rem .7rem; font-size: 12px; color: var(--tiza-2); }
 .tal-vl-botones[hidden] { display: none; }
 .tal-vl-botones__lista { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+/* Recorrer el libro: Volver, Contenido y la barra de 1 a la ultima pagina. Todo mide 44 px de alto como minimo (un dedo). */
+.tal-vl-barra { display: flex; align-items: center; gap: .5rem .7rem; padding: .35rem 1rem calc(.5rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--raya, rgb(255 255 255 / .1)); }
+.tal-vl-barra__btn { min-height: 44px; min-width: 44px; white-space: nowrap; }
+.tal-vl-barra__btn:disabled { opacity: .45; cursor: default; }
+.tal-vl-barra__rango { flex: 1 1 12rem; min-width: 0; height: 44px; margin: 0; padding: 0; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; accent-color: var(--prompt, #6ee7a8); touch-action: pan-y; }
+.tal-vl-barra__rango:focus-visible { outline: 2px solid var(--prompt, #6ee7a8); outline-offset: 2px; border-radius: 8px; }
+.tal-vl-barra__rango::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: var(--raya-fuerte, rgb(255 255 255 / .25)); }
+.tal-vl-barra__rango::-moz-range-track { height: 6px; border-radius: 999px; background: var(--raya-fuerte, rgb(255 255 255 / .25)); }
+.tal-vl-barra__rango::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; border: 2px solid var(--consola-alta, #14201a); background: var(--tiza, #f1efe9); box-shadow: 0 0 0 1px var(--raya-fuerte, rgb(255 255 255 / .35)); }
+.tal-vl-barra__rango::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--consola-alta, #14201a); background: var(--tiza, #f1efe9); box-shadow: 0 0 0 1px var(--raya-fuerte, rgb(255 255 255 / .35)); }
+.tal-vl-barra__valor { flex: none; min-width: 7.5rem; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--tiza-2); text-align: right; }
+@media (max-width: 560px) {
+  /* En el telefono la barra tiene toda la fila; los botones y el numero van debajo */
+  .tal-vl-barra { flex-wrap: wrap; }
+  .tal-vl-barra__rango { order: -1; flex: 1 0 100%; }
+  .tal-vl-barra__valor { margin-left: auto; min-width: 0; }
+}
 /* El aviso: una franja chica sobre el libro. Sus colores y su lugar los pone el libro. */
 .tal-vl-aviso { position: absolute; left: 50%; z-index: 6; max-width: min(32rem, calc(100vw - 2rem)); padding: .55rem 1rem; border-radius: 999px; background: var(--consola-alta); border: 1px solid var(--raya-fuerte); color: var(--tiza); font-size: 14px; font-weight: 600; text-align: center; box-shadow: 0 10px 28px rgb(0 0 0 / .5); transform: translate(-50%, 6px); opacity: 0; transition: opacity .18s var(--ease, ease), transform .18s var(--ease, ease); pointer-events: none; }
 .tal-vl-aviso[hidden] { display: none; }
@@ -497,6 +522,16 @@
 .tal-vl-aviso-d__muestra { display: grid; place-items: center; min-height: 4rem; border-radius: 10px; background: rgb(255 255 255 / .04); border: 1px dashed var(--raya-fuerte); }
 .tal-vl-aviso-d__muestra .tal-vl-aviso { position: static; opacity: 1; transform: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .tal-vl-aviso { transition: none; } }
+/* El encabezado: cada hoja con sus tres lugares (borde izquierdo, centro, borde derecho), uno por fila */
+.tal-cabeza { width: 24rem; max-height: min(34rem, 75vh); }
+.tal-cabeza__pagina { margin: 0; padding: .4rem 0 0; border: 0; border-top: 1px solid var(--raya-fuerte); min-width: 0; display: grid; gap: .45rem; }
+.tal-cabeza__pagina legend { padding: 0 .4rem 0 0; font-size: 12px; font-weight: 600; color: var(--tiza); }
+.tal-cabeza__fila { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .25rem .6rem; padding: .35rem .5rem; background: var(--consola); border-radius: 8px; min-width: 0; }
+.tal-cabeza__fila .tal-rotulo { grid-column: 1 / -1; }
+.tal-cabeza__fila label[data-tal-cabeza-texto] { grid-column: 1 / -1; }
+.tal-cabeza__fila [hidden] { display: none !important; }
+.tal-cabeza__fila .tal-sel { max-width: 100%; }
+.tal-cabeza__fila input:disabled + span { opacity: .5; }
 /* El lomo, en la cinta: se dibuja con lo que se elige */
 .tal-lomo { width: 22rem; }
 .tal-lomo__muestra { justify-self: start; display: flex; align-items: center; justify-content: center; box-sizing: content-box; height: 6.5rem; width: var(--lomo-w, 2.4rem); border-style: solid; border-width: 0 6px; border-color: transparent; border-left-color: var(--tapa-delante, #1f3b2c); border-right-color: var(--tapa-detras, #1f3b2c); border-radius: 3px; background: var(--lomo-color, #1f3b2c); color: var(--lomo-tinta, rgb(241 239 233 / .85)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); overflow: hidden; }

@@ -9,13 +9,20 @@
    sonido de la hoja. Con el lomo a la vista el libro se mira en 3D y ya no se arrastra con el raton: se pasa
    con las flechas, los botones y un clic a cada lado, porque la libreria mide el raton en un plano plano.
 
-   IR A UNA PARTE (la lista «Ir a…», una fila del contenido, Inicio y Fin): las hojas giran una tras otra, rapido
-   (pliegos.js → planDeViaje); si hay mas de diez pliegos, el libro salta sin girar hasta diez antes del destino.
-   El motor gira una hoja a la vez: la siguiente sale cuando la anterior cae.
+   IR A UNA PARTE (la lista «Ir a…», una fila del contenido, el boton «Contenido», la barra, Inicio y Fin, RePag y AvPag):
+   las hojas giran una tras otra, rapido (pliegos.js → planDeViaje); si hay mas de diez pliegos, el libro salta sin girar
+   hasta diez antes del destino. El motor gira una hoja a la vez: la siguiente sale cuando la anterior cae.
+
+   VOLVER: cada salto (todos los de arriba, no pasar una hoja suelta) deja el lugar de donde se salio en una pila de hasta 20
+   (pliegos.js → apilarVuelta). «Volver» (o la tecla B) saca el ultimo y viaja hasta alli, sin apilar; se repite hasta vaciarla.
+   La pila vive solo en la memoria del visor y se vacia al cerrar el libro.
+
+   LA BARRA: un control de 1 a la ultima pagina. Al arrastrarla dice la pagina; al soltarla (`change`) viaja a ese pliego. Sigue
+   al libro cuando se pasa una hoja de otra manera. Un teclado que la mueve paso a paso cuenta como UN salto (no llena la pila).
 
    LOS LIBROS DEL LOMO Y DEL AVISO son del libro (ConfigPagina.lomo / .aviso): el lomo y las tapas se pintan de
    lo que el autor eligio en la cinta, y el aviso (lo que dice y como se ve al tocar un boton) se cambia aqui mismo. */
-import { cantoDe, lomoDe, ladoDe, paginasDe, pliegoDe, pliegoVecino, planDeViaje, ventana } from './pliegos.js';
+import { apilarVuelta, barraDePliego, cantoDe, lomoDe, ladoDe, paginaDelContenido, paginasDe, pliegoALaVuelta, pliegoDe, pliegoDeBarra, pliegoVecino, planDeViaje, sacarVuelta, ventana } from './pliegos.js';
 import { SelectorColor } from './SelectorColor.js';
 import { enlaceDeBoton } from '../../../../contenido/taller/tipos/boton.js';
 import { estiloDeLomo } from '../../../../contenido/taller/LomoLibro.js';
@@ -65,8 +72,19 @@ export class VistaLibro {
     this.tira = caja.querySelector('[data-vl-botones]');
     this.tiraLista = caja.querySelector('[data-vl-botones-lista]');
     this.dAviso = caja.querySelector('[data-vl-aviso-d]');
+    this.bVolver = caja.querySelector('[data-vl-volver]');
+    this.bContenido = caja.querySelector('[data-vl-contenido]');
+    this.barra = caja.querySelector('[data-vl-barra]');
+    this.valorBarra = caja.querySelector('[data-vl-barra-valor]');
+    this.pila = [];           // de donde se salto (pliegos); vive solo mientras el libro esta abierto
+    this.paginaIndice = -1;   // la primera hoja del contenido (desde 0), o -1
     this.pref = leerPref();
-    caja.tabIndex = -1;       // adonde va el foco si ningun boton sirve
+    /* Las teclas, dichas en el boton que hace lo mismo */
+    this.bAnt.title = tx.vlAntAyuda;
+    this.bSig.title = tx.vlSigAyuda;
+    this.bAnt.setAttribute('aria-keyshortcuts', 'ArrowLeft');
+    this.bSig.setAttribute('aria-keyshortcuts', 'ArrowRight');
+    caja.tabIndex = -1;      // adonde va el foco si ningun boton sirve
     this.calma = matchMedia('(prefers-reduced-motion: reduce)');
     this.gen = 0;             // cada vez que se arma o se cierra: lo que llega tarde se descarta
     this.fb = null;
@@ -83,8 +101,11 @@ export class VistaLibro {
     this.pruebas = 0;
 
     caja.querySelector('[data-vl-cerrar]').addEventListener('click', () => this.cerrar());
-    this.bAnt.addEventListener('click', () => this.paso(-1));
-    this.bSig.addEventListener('click', () => this.paso(1));
+    this.bAnt.addEventListener('click', () => this.paso(-1, true));
+    this.bSig.addEventListener('click', () => this.paso(1, true));
+    this.bVolver.addEventListener('click', () => this.volver());
+    this.bContenido.addEventListener('click', () => this.irAlContenido());
+    this.prepararBarra();
     this.bTapa.addEventListener('click', () => { this.pref.dura = !this.pref.dura; this.cambioDePref(true); });
     this.bLomo.addEventListener('click', () => { this.pref.lomo = !this.pref.lomo; this.cambioDePref(false); });
     this.bSonido.addEventListener('click', () => { this.pref.sonido = !this.pref.sonido; this.cambioDePref(false); });
@@ -115,10 +136,15 @@ export class VistaLibro {
       /* Dentro de una ventana o de la lista «Ir a…» el teclado es de ellas: ni flechas ni Escape cierran el visor */
       if (e.target.closest && e.target.closest('dialog, [data-vl-ir-lista]')) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (this.menuIr.hidden) this.cerrar(); else this.cerrarIr(true); return; }
+      /* La barra tiene sus propias teclas (flechas, Inicio, Fin, RePag, AvPag): se mueve sola y al soltar el libro viaja */
+      if (e.target === this.barra && /^(Arrow|Home$|End$|Page)/.test(e.key)) return;
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (d) { e.preventDefault(); this.paso(d); }
+      if (d) { e.preventDefault(); this.paso(d, true); }
       else if (e.key === 'Home' && this.fb) { e.preventDefault(); this.irA(0); }
       else if (e.key === 'End' && this.fb) { e.preventDefault(); this.irA(this.n - 1); }
+      /* RePag y AvPag: diez pliegos (desde donde va el viaje, si hay uno: se suman) */
+      else if ((e.key === 'PageUp' || e.key === 'PageDown') && this.fb) { e.preventDefault(); this.irA(pliegoALaVuelta(this.lugar(), this.n, e.key === 'PageDown' ? 1 : -1)); }
+      else if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey && !e.altKey && this.fb) { e.preventDefault(); this.volver(); }
     });
   }
 
@@ -129,9 +155,14 @@ export class VistaLibro {
   /* ---- Abrir y cerrar ---- */
   abrir(desde) {
     this.origen = desde;
+    this.pila = [];
+    this.cola = 0;
+    this.ultimaBarra = null;
     this.mesa.soltarTodo();
     this.mesa.medir();
     this.caja.hidden = false;
+    /* Las miniaturas quedan tapadas: no se dibujan mientras el visor esta abierto (taller.css) */
+    document.documentElement.dataset.verLibro = 'si';
     this.pintarPref();
     /* El visor es un dialogo modal: el editor que queda debajo no recibe ni el foco ni el teclado */
     this.apartados = [...(this.caja.parentElement ? this.caja.parentElement.children : [])].filter((n) => n !== this.caja && !n.inert);
@@ -164,13 +195,19 @@ export class VistaLibro {
     clearTimeout(this.relojAviso);
     this.frenarViaje();
     this.pendiente = null;
+    this.cola = 0;
+    this.pila = [];            // al cerrar el libro se olvida de donde se salto
+    this.arrastrandoBarra = false;
     this.cerrarIr(false);
     if (this.dAviso.open) this.dAviso.close();
     if (this.ac) { this.ac.abort(); this.ac = null; }
     this.desmontar();
+    this.pintarVuelta();
+    this.pintarBarra();
     (this.apartados || []).forEach((n) => { n.inert = false; });
     this.apartados = null;
     this.caja.hidden = true;
+    delete document.documentElement.dataset.verLibro;
     this.escena.replaceChildren();
     this.tira.hidden = true;
     this.tiraLista.replaceChildren();
@@ -183,6 +220,7 @@ export class VistaLibro {
     this.frenarViaje();
     /* Lo que se pidio para el libro de antes no se le hace al nuevo: saltaria sin que nadie lo pidiera */
     this.pendiente = null;
+    this.cola = 0;
     this.nombreDestino = '';
     if (this.fb) { try { this.fb.destroy(); } catch (e) { /* ya no estaba */ } }
     this.fb = null;
@@ -217,7 +255,10 @@ export class VistaLibro {
     this.desmontar();
     const n = this.mesa.paginas.length, p = this.mesa.px;
     this.n = n;
-    if (!n) { this.escena.replaceChildren(); this.dice.textContent = ''; this.bAnt.disabled = this.bSig.disabled = true; this.tira.hidden = true; return; }
+    this.paginaIndice = paginaDelContenido(this.mesa.paginas);
+    /* Si el libro se acorto, los lugares que ya no existen se tiran */
+    this.pila = this.pila.filter((x) => x < n);
+    if (!n) { this.escena.replaceChildren(); this.dice.textContent = ''; this.bAnt.disabled = this.bSig.disabled = true; this.tira.hidden = true; this.pintarVuelta(); this.pintarBarra(); return; }
 
     const blando = !this.pref.dura;
     /* El ancho de una pagina: lo que cabe a lo ancho (dos paginas) y a lo alto (la pagina y el carton que
@@ -308,6 +349,8 @@ export class VistaLibro {
     });
     this.mostrar(en2, 0);
     this.pintarBotones();
+    this.pintarVuelta();
+    this.pintarBarra();
   }
 
   /* ---- Las copias vivas ---- */
@@ -342,13 +385,15 @@ export class VistaLibro {
     clearTimeout(this.espera);
     this.espera = setTimeout(() => {
       if (this.caja.hidden || !this.fb || !this.mesa) return;
-      if (this.mesa.paginas.length !== this.n) { this.armar(this.pliego).catch(() => {}); return; }
+      if (this.mesa.paginas.length !== this.n) { this.armar(this.lugar()).catch(() => {}); return; }
       for (const [i, viejo] of this.vivas) {
         if (!this.mesa.paginas[i]) { viejo.remove(); this.vivas.delete(i); continue; }
         const nuevo = this.nuevaCopia(i);
         viejo.replaceWith(nuevo);
         this.vivas.set(i, nuevo);
       }
+      this.paginaIndice = paginaDelContenido(this.mesa.paginas);
+      this.pintarVuelta();
       this.pintarBotones();
     }, 120);
   }
@@ -358,12 +403,17 @@ export class VistaLibro {
   quieto() { const e = this.fb && this.fb.getState(); return e === 'read' || e === 'fold_corner'; }
 
   /* ---- Pasar ---- */
-  paso(d) {
+  /* `junta`: lo pide un boton o una tecla (no un clic sobre la hoja, que ya giro la libreria). Si una hoja ya esta cayendo, las que
+     se pidieron mientras tanto se cuentan, y al caer giran todas seguidas y rapido: apretar «anterior» varias veces no pierde toques. */
+  paso(d, junta = false) {
     const fb = this.fb;
     if (!fb) return;
     /* Si giran muchas hojas, la que se pide se hace cuando caiga la de ahora (y las que faltaban ya no giran) */
     if (this.viaje) { this.pendiente = () => this.paso(d); this.viaje.parar = true; return; }
-    if (!this.quieto()) return;
+    if (!this.quieto()) {
+      if (junta && fb.getState() === 'flipping') { this.cola = (this.cola || 0) + d; this.pendiente = () => this.pasosJuntos(); }
+      return;
+    }
     const dest = pliegoVecino(this.pliego, this.n, d);
     if (dest == null) return;
     this.llenar([this.pliego, dest]);
@@ -371,18 +421,40 @@ export class VistaLibro {
     if (d > 0) fb.flipNext('bottom'); else fb.flipPrev('bottom');
   }
 
-  /* Ir a la pagina `p` (desde 0). `nombre`: como se llama el sitio, para decirlo al llegar. */
-  irA(p, nombre = '') {
+  /* Las hojas que se pidieron mientras caia una: una sola, como siempre; varias, un viaje corto (no cuenta para «Volver») */
+  pasosJuntos() {
+    const k = this.cola || 0;
+    this.cola = 0;
+    if (!k) return;
+    let destino = this.pliego;
+    for (let i = 0; i < Math.abs(k); i++) { const s = pliegoVecino(destino, this.n, k > 0 ? 1 : -1); if (s == null) break; destino = s; }
+    if (destino === this.pliego) return;
+    if (Math.abs(k) === 1) this.paso(k > 0 ? 1 : -1);
+    else this.irA(destino, '', { apilar: false });
+  }
+
+  /* Donde esta el libro o hacia donde va (si hay un viaje) */
+  lugar() {
+    const v = this.viaje;
+    return v && v.plan.pasos.length ? v.plan.pasos[v.plan.pasos.length - 1] : this.pliego;
+  }
+
+  /* Ir a la pagina `p` (desde 0). `nombre`: como se llama el sitio, para decirlo al llegar. `apilar`: guardar de donde se sale,
+     para «Volver» (todo salto lo hace; el propio «Volver» y lo que se suma a un viaje en marcha, no). */
+  irA(p, nombre = '', { apilar = true } = {}) {
     const fb = this.fb;
     if (!fb) return;
-    /* Pedido con algo girando: el ultimo pedido manda. La hoja de ahora termina de caer; las demas no giran. */
+    /* Pedido con algo girando: el ultimo pedido manda. La hoja de ahora termina de caer; las demas no giran.
+       Un salto pedido a mitad de otro es parte de aquel: el lugar de donde salio el primero ya esta guardado. */
     if (this.viaje || !this.quieto()) {
-      this.pendiente = () => this.irA(p, nombre);
+      const opciones = { apilar: this.viaje ? false : apilar };
+      this.pendiente = () => this.irA(p, nombre, opciones);
       if (this.viaje) this.viaje.parar = true;
       return;
     }
     const plan = planDeViaje(this.pliego, pliegoDe(p, this.n), this.n, { tope: this.calma.matches ? 1 : TOPE_VIAJE });
     if (!plan.pasos.length) { if (nombre) this.decirDestino(nombre); return; }
+    if (apilar) { this.pila = apilarVuelta(this.pila, this.pliego); this.pintarVuelta(); }
     this.nombreDestino = nombre;
     this.viaje = { plan, k: 0, parar: false, gen: this.gen, actual: null, reloj: setTimeout(() => this.terminarViaje(true), plan.pasos.length * 1500 + 2500) };
     /* Lo que queda lejos se salta sin girar (en silencio: el viaje ya esta en marcha): las hojas que giran son las ultimas, ya con su pagina dibujada */
@@ -446,19 +518,122 @@ export class VistaLibro {
   alReposo() {
     const f = this.pendiente;
     if (f) { this.pendiente = null; f(); }
+    this.cola = 0;
+  }
+
+  /* ---- Volver, Contenido y la barra ---- */
+  /* Regresa al ultimo lugar de donde se salto, con las hojas girando rapido (y sin apilar: asi se puede repetir hasta vaciar la pila) */
+  volver() {
+    if (!this.fb) return;
+    if (this.viaje || !this.quieto()) {
+      this.pendiente = () => this.volver();
+      if (this.viaje) this.viaje.parar = true;
+      return;
+    }
+    const { pliego, pila } = sacarVuelta(this.pila, this.pliego);
+    this.pila = pila;
+    this.pintarVuelta();
+    if (pliego == null) return;
+    this.irA(pliego, this.tx.vlVolvio, { apilar: false });
+  }
+
+  irAlContenido() {
+    if (!this.fb || this.paginaIndice < 0) return;
+    this.irA(this.paginaIndice, this.tx.vlContenidoDicho);
+  }
+
+  /* «Volver» y «Contenido» se encienden o se apagan; si uno tenia el foco, el foco no se pierde */
+  pintarVuelta() {
+    const tenia = document.activeElement;
+    const sinVuelta = !this.fb || !this.pila.length;
+    const sinContenido = !this.fb || this.paginaIndice < 0;
+    for (const [b, apagado, ayuda, nada] of [[this.bVolver, sinVuelta, this.tx.vlVolverAyuda, this.tx.vlVolverNada], [this.bContenido, sinContenido, this.tx.vlContenidoAyuda, this.tx.vlContenidoNada]]) {
+      b.disabled = apagado;
+      b.title = apagado ? nada : ayuda;
+    }
+    this.rescatarFoco(tenia);
+  }
+
+  /* La barra: de 1 a la ultima pagina. Arrastrar dice la pagina; soltar viaja. */
+  prepararBarra() {
+    const b = this.barra;
+    b.addEventListener('input', () => { this.arrastrandoBarra = true; this.escribirBarra(); });
+    b.addEventListener('change', () => {
+      this.arrastrandoBarra = false;
+      if (!this.fb) return;
+      const destino = pliegoDeBarra(b.value, this.n);
+      if (destino === this.lugar()) { this.sincronizarBarra(); return; }
+      /* Un teclado que la mueve paso a paso es UN salto para «Volver»: lo que se mueve en menos de un segundo y medio se suma al anterior */
+      const ahora = performance.now();
+      const seguido = this.ultimaBarra != null && ahora - this.ultimaBarra < 1500;
+      this.ultimaBarra = ahora;
+      this.irA(destino, '', { apilar: !seguido });
+    });
+    /* A un `input` siempre le sigue un `change` al soltar: NO se suelta en `pointerup` (con el dedo `change` puede llegar en otra tarea y
+       la barra volveria al valor viejo antes de viajar). Solo se suelta si el dedo se levanta donde empezo (no habra `change`) o se cancela. */
+    const soltar = () => setTimeout(() => { this.arrastrandoBarra = false; this.sincronizarBarra(); }, 0);
+    b.addEventListener('pointerdown', () => { this.valorAlBajar = b.value; });
+    b.addEventListener('pointerup', () => { if (b.value === this.valorAlBajar) soltar(); });
+    b.addEventListener('pointercancel', soltar);
+    b.addEventListener('blur', soltar);
+  }
+
+  /* Los extremos de la barra segun el libro de ahora */
+  pintarBarra() {
+    const b = this.barra, n = this.n || 1;
+    b.min = '1';
+    b.max = String(n);
+    b.disabled = !this.fb || n < 2;
+    this.sincronizarBarra();
+  }
+
+  /* La barra sigue al libro (mientras no se este arrastrando). El valor se deja si ya cae en el pliego que se ve: con el teclado,
+     la pagina 3 y la 2 son el mismo pliego, y devolverla a la 2 la atascaria. */
+  sincronizarBarra() {
+    const b = this.barra;
+    if (!b || this.arrastrandoBarra) return;
+    if (!this.fb || !this.n) { this.escribirBarra(); return; }
+    /* Con un viaje en marcha la barra ya esta en el destino: no vuelve atras a cada hoja que cae */
+    const aqui = this.lugar();
+    if (pliegoDeBarra(b.value, this.n) !== aqui) b.value = String(barraDePliego(aqui, this.n));
+    this.escribirBarra();
+  }
+
+  /* «Página N de M», para quien ve y para quien escucha */
+  escribirBarra() {
+    const b = this.barra, tx = this.tx;
+    const texto = this.n ? tx.vlBarraTexto.replace('{n}', String(Math.round(Number(b.value)) || 1)).replace('{total}', String(this.n)) : '';
+    b.setAttribute('aria-valuetext', texto);
+    if (this.valorBarra.textContent !== texto) this.valorBarra.textContent = texto;
+  }
+
+  /* Un boton desactivado con el foco lo suelta, y el teclado deja de llegar al visor. Si el que se apaga lo tiene, el foco pasa a otro
+     boton que sirva (la barra, si no hay otro) o, si ninguno sirve, al visor entero. */
+  rescatarFoco(tenia) {
+    if (![this.bAnt, this.bSig, this.bVolver, this.bContenido].includes(tenia) || !tenia.disabled) return;
+    const otros = tenia === this.bAnt ? [this.bSig, this.barra, this.bVolver] : tenia === this.bSig ? [this.bAnt, this.barra, this.bVolver] : tenia === this.bVolver ? [this.bContenido, this.barra, this.bAnt, this.bSig] : [this.bAnt, this.bSig, this.barra];
+    (otros.find((o) => !o.disabled) || this.caja).focus();
   }
 
   /* Una fila del contenido lleva a su pagina. Las copias son inertes: la fila se busca por donde cayo el clic. */
-  irDesdeIndice(e) {
+  /* La fila del contenido que esta bajo ese punto: { pagina (desde 0), texto } o null */
+  filaDeIndiceEn(e) {
+    if (!this.libro) return null;
     const numeros = (this.mesa.datosDeIndice || {}).numeros || {};
     const fila = [...this.libro.querySelectorAll('.indice__fila')].find((a) => {
       const r = a.getBoundingClientRect();
       return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
     });
     const n = fila && numeros[(fila.getAttribute('href') || '').slice(1)];
-    if (!Number.isInteger(n) || n < 1) return false;
+    if (!Number.isInteger(n) || n < 1) return null;
     const texto = fila.querySelector('.indice__texto');
-    this.irA(n - 1, texto ? texto.textContent.trim() : '');
+    return { pagina: n - 1, texto: texto ? texto.textContent.trim() : '' };
+  }
+
+  irDesdeIndice(e) {
+    const f = this.filaDeIndiceEn(e);
+    if (!f) return false;
+    this.irA(f.pagina, f.texto);
     return true;
   }
 
@@ -522,6 +697,7 @@ export class VistaLibro {
     this.libro.style.setProperty('--stack-l', px(v[0] === 0 ? 0 : v[0]));
     this.libro.style.setProperty('--stack-r', px(n - 1 - v[v.length - 1]));
     this.puestosLosBotones(v[0] === 0, v[v.length - 1] >= n - 1);
+    this.sincronizarBarra();
     /* Mientras giran muchas hojas no se dice nada: un lector de pantalla no tiene que leer cada una. Se dice al llegar. */
     if (this.viaje) return;
     const num = v.map((x) => x + 1), total = String(n);
@@ -548,10 +724,7 @@ export class VistaLibro {
     const tenia = document.activeElement;
     this.bAnt.disabled = sinAnterior;
     this.bSig.disabled = sinSiguiente;
-    if (tenia !== this.bAnt && tenia !== this.bSig) return;
-    if (!tenia.disabled) return;
-    const otro = tenia === this.bAnt ? this.bSig : this.bAnt;
-    (otro.disabled ? this.caja : otro).focus();
+    this.rescatarFoco(tenia);
   }
 
   /* El golpe: al caer una tapa el libro baja un pixel y se asienta */
@@ -674,13 +847,16 @@ export class VistaLibro {
     if (!t || !e.isTrusted || !this.fb || !this.libro || this.pref.lomo || !this.quieto() || !this.escena.contains(e.target)) return;
     const a = this.abajo;
     if (this.cierraLista || (a && Math.hypot(t.clientX - a.x, t.clientY - a.y) > 6)) return;
-    const b = this.botonEn({ clientX: t.clientX, clientY: t.clientY });
-    if (!b) return;
+    const punto = { clientX: t.clientX, clientY: t.clientY };
+    const b = this.botonEn(punto);
+    /* Un toque sobre una fila del contenido tambien lleva a su pagina (con el dedo la libreria no deja pasar el «click») */
+    const fila = b ? null : this.filaDeIndiceEn(punto);
+    if (!b && !fila) return;
     e.stopImmediatePropagation();
     if (e.cancelable) e.preventDefault();
     this.abajo = null;
     try { const ui = this.fb.getUI(); if (ui) ui.touchPoint = null; this.fb.isUserTouch = false; } catch (er) { /* sin estado que borrar */ }
-    this.tocarBoton(b.d);
+    if (b) this.tocarBoton(b.d); else this.irA(fila.pagina, fila.texto);
   }
 
   /* Lo que hace un boton: abre su enlace (solo https) o copia su texto. Y lo dice. */
