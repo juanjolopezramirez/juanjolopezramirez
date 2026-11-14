@@ -10,7 +10,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 const NUMERO = /^-?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 
 /* Un icono es solo formas y numeros: nada de enlaces, estilos, imagenes ni texto que el navegador ejecute */
-const numeroCorto = (x) => x.length <= 32 && NUMERO.test(x);
+const numeroCorto = (x) => x.length <= 32 && NUMERO.test(x) && Math.abs(Number(x)) <= 1e6;
 function valorSvg(k, v) {
   switch (k) {
     case 'viewBox': { const p = v.trim().split(/[\s,]+/); return v.length <= 160 && p.length === 4 && p.every(numeroCorto); }
@@ -29,6 +29,10 @@ function valorSvg(k, v) {
 
 export function valorSeguro(tag, k, v) {
   if (typeof v !== 'string') return false;
+  /* Fuera del dibujo, solo el aviso para el lector de pantalla: una figura dice que muestra, o se salta */
+  if (k === 'aria-hidden' && !ETIQUETAS_SVG.has(tag)) return v === 'true';
+  if (k === 'role') return tag === 'div' && v === 'img';
+  if (k === 'aria-label') return v.length <= 300 && !/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/.test(v);
   if (ATRIBUTOS_SVG.has(k)) return ETIQUETAS_SVG.has(tag) && valorSvg(k, v);
   if (k === 'src') return tag === 'img' && /^data:image\/(webp|png|jpeg);base64,/.test(v);
   if (k === 'href') return tag === 'a' && (v.startsWith('#') ? /^#[a-z0-9-]+$/.test(v) : enlaceSeguro(v));

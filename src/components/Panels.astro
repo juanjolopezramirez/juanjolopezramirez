@@ -172,11 +172,11 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
           <path class="book__zoom-plus" d="M10.5 8v5" />
         </svg>
       </button>
-      <button class="book__arrow" type="button" data-book-prev aria-label={t('a11y.bookPrev')}>
+      <button class="book__arrow" type="button" data-book-prev aria-label={t('a11y.bookPrev')} title={t('a11y.bookPrevHelp')} aria-keyshortcuts="ArrowLeft">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
       <p class="book__folio" id="book-folio" aria-live="polite"></p>
-      <button class="book__arrow" type="button" data-book-next aria-label={t('a11y.bookNext')}>
+      <button class="book__arrow" type="button" data-book-next aria-label={t('a11y.bookNext')} title={t('a11y.bookNextHelp')} aria-keyshortcuts="ArrowRight">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
       </button>
       <!-- El sonido de las hojas, como en un flipbook: se puede apagar y
@@ -189,6 +189,24 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
         </svg>
       </button>
     </nav>
+    <!-- RECORRER EL LIBRO (solo los libros en PDF; site.js lo muestra al abrir). «Volver» lleva al lugar de donde se salto
+         (tecla B, hasta 20 veces); «Contenido» solo sale si el libro tiene hoja de contenido; la barra va de la primera
+         a la ultima pagina y, al soltarla, las hojas giran hasta alli. -->
+    <div class="book__ruta" data-book-ruta hidden>
+      <button class="book__ruta-btn" type="button" data-book-volver aria-keyshortcuts="B" title={t('a11y.bookBack')} disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
+        <span>{t('book.back')}</span>
+      </button>
+      <button class="book__ruta-btn" type="button" data-book-contenido title={t('a11y.bookContents')} hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></svg>
+        <span>{t('book.toContents')}</span>
+      </button>
+      <label class="book__ruta-barra">
+        <span class="sr-only">{t('a11y.bookSlider')}</span>
+        <input class="book__ruta-rango" type="range" min="1" max="1" step="1" value="1" data-book-barra aria-keyshortcuts="Home End PageUp PageDown" />
+      </label>
+      <output class="book__ruta-valor" data-book-barra-valor aria-hidden="true"></output>
+    </div>
   </div>
   <!-- El sello, para que el guion lo copie en «Lo que es» y en la contratapa -->
   <template id="book-mark"><Icon id="mark" /></template>

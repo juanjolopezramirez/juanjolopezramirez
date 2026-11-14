@@ -20,7 +20,8 @@ import { OPCIONES_KATEX } from '../src/scripts/contenido/taller/tipos/formula.js
 import { RepositorioTallerMemoria, RepositorioTallerSupabase, decidir } from '../src/scripts/contenido/taller/Repositorio.js';
 import { Autoguardado } from '../src/scripts/portal/panel/dev/taller/Autoguardado.js';
 import { CASOS } from './pruebas-taller.mjs';
-import { estiloSeguro, ponerEstilo } from '../src/scripts/contenido/taller/armar.js';
+import { estiloSeguro, ponerEstilo, valorSeguro } from '../src/scripts/contenido/taller/armar.js';
+import { arbolFigura, limpiarFigura, opacidadCss, FORMAS as FORMAS_FIGURA, VARIANTES as VARIANTES_FIGURA, FIGURA_NUEVA } from '../src/scripts/contenido/taller/Figuras.js';
 import * as A from '../src/scripts/contenido/taller/aspectoBoton.js';
 import * as I from '../src/scripts/contenido/taller/IndiceLibro.js';
 import { revisarTiposTaller } from './revisar-tipos-taller.mjs';
@@ -2821,6 +2822,259 @@ await ok('la funcion de borde `vista` corre de verdad (tools/test-vista.mjs): un
   assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`.split('\n').filter((l) => /FALLA|Error|mal/.test(l)).slice(0, 6).join('\n'));
   assert.match(r.stdout, /\d+ bien, 0 mal/);
 });
+await ok('las ayudas para recorrer el libro del lector publico (tools/test-lector.mjs): pliegos, recorrido, contenido, textos', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const r = spawnSync(process.execPath, [(await import('node:url')).fileURLToPath(new URL('./test-lector.mjs', import.meta.url))], { encoding: 'utf8' });
+  assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`.split('\n').filter((l) => /FALLA|Error|mal|\s{9}/.test(l)).slice(0, 8).join('\n'));
+  assert.match(r.stdout, /\d+ bien, 0 mal/);
+});
+
+console.log('las figuras (D1)');
+{
+  const A5 = { anchoMm: 148, altoMm: 210 }, CARTA = { anchoMm: 215.9, altoMm: 279.4 };
+  /* Todo valor del arbol pasa la misma puerta de armar.js: etiqueta, atributo (con su valor) y estilo */
+  const revisar = (n, dentro = false) => {
+    assert.ok(ETIQUETAS_HOJA.has(n.tag), n.tag);
+    assert.ok(dentro || n.tag === 'svg', 'la raiz es un svg');
+    assert.ok(!dentro || n.tag !== 'svg', 'sin svg anidado');
+    assert.ok(!n.hijos.length || n.tag === 'svg', 'solo el svg tiene hijos');
+    for (const [k, v] of Object.entries(n.attrs)) { assert.ok(ATRIBUTOS_HOJA.has(k), k); assert.ok(valorSeguro(n.tag, k, v), `${n.tag} ${k}=${v}`); }
+    for (const [k, v] of Object.entries(n.estilo)) { assert.ok(ESTILOS_HOJA.has(k), k); assert.ok(estiloSeguro(k, v), `${k}: ${v}`); }
+    n.hijos.forEach((h) => revisar(h, true));
+  };
+  const base = { id: 'o-abcd1234', tipo: 'figura', x: 10, y: 10, w: 50, h: 25, rot: 0, relleno: '#c9a227', borde: '#112233', grosor: 2 };
+  const hijos = (o, mm = A5) => arbolFigura(o, mm).hijos;
+  const num = (v) => Number(v);
+
+  await ok('cada forma y cada variante dibuja solo lo que armar.js deja pasar, con colores distintos, iguales o ninguno', () => {
+    for (const forma of FORMAS_FIGURA) {
+      for (const variante of VARIANTES_FIGURA[forma].length ? VARIANTES_FIGURA[forma] : ['']) {
+        for (const colores of [{}, { borde: '#c9a227' }, { relleno: '' }, { borde: '' }, { relleno: '', borde: '' }, { grosor: 0 }]) {
+          for (const extra of [{}, { radio: 6 }, { cuadricula: false }, { w: .5, h: .5 }, { w: 300, h: 300 }]) {
+            const a = arbolFigura({ ...base, forma, variante, ...colores, ...extra }, A5);
+            revisar(a);
+            assert.ok(JSON.stringify(a).length < 20000);
+            for (const h of a.hijos) { assert.ok(!h.attrs.d || h.attrs.d.length <= 10000); assert.ok(!h.attrs.points || h.attrs.points.length <= 4000); }
+          }
+        }
+      }
+    }
+  });
+  await ok('el viewBox mide milimetros reales y cambia con la hoja; sin medida de hoja, 148 × 210', () => {
+    assert.equal(arbolFigura(base, A5).attrs.viewBox, '0 0 74 52.5');
+    assert.equal(arbolFigura(base, CARTA).attrs.viewBox, `0 0 ${Math.round(215.9 * 50) / 100} ${Math.round(279.4 * 25 * 10) / 1000}`);
+    for (const mm of [undefined, null, {}, { anchoMm: 'x', altoMm: -5 }, { anchoMm: Infinity, altoMm: 1e999 }, 'a']) assert.equal(arbolFigura(base, mm).attrs.viewBox, '0 0 74 52.5');
+  });
+  await ok('cuadrado: el borde se mete su mitad (mas una holgura de 0,12 mm) y las esquinas no pasan de la mitad del lado', () => {
+    const [rellena, borde] = hijos({ ...base, forma: 'rect', radio: 5 });
+    assert.deepEqual([rellena.attrs.x, rellena.attrs.y, rellena.attrs.width, rellena.attrs.height, rellena.attrs.rx], ['1.12', '1.12', '71.76', '50.26', '5']);
+    assert.equal(rellena.attrs.fill, 'currentColor'); assert.equal(rellena.attrs.stroke, 'none'); assert.equal(rellena.estilo.color, '#c9a227');
+    assert.equal(borde.attrs.fill, 'none'); assert.equal(borde.attrs.stroke, 'currentColor'); assert.equal(borde.attrs['stroke-width'], '2'); assert.equal(borde.estilo.color, '#112233');
+    assert.equal(hijos({ ...base, forma: 'rect', radio: 20, w: 10, h: 10 })[0].attrs.rx, String(Math.round(((14.8 - 2.24) / 2) * 1000) / 1000));
+    assert.equal(hijos({ ...base, forma: 'rect', radio: 0 })[0].attrs.rx, undefined);
+    /* El borde no engorda al agrandar: mismo grosor en mm con otra caja */
+    assert.equal(hijos({ ...base, forma: 'rect', w: 90, h: 80 })[1].attrs['stroke-width'], '2');
+  });
+  await ok('un solo color en relleno y borde da una sola forma; sin ninguno, nada; sin grosor, sin borde', () => {
+    assert.equal(hijos({ ...base, forma: 'elipse', borde: '#c9a227' }).length, 1);
+    const [u] = hijos({ ...base, forma: 'elipse', borde: '#c9a227' });
+    assert.deepEqual([u.attrs.fill, u.attrs.stroke], ['currentColor', 'currentColor']);
+    assert.equal(hijos({ ...base, forma: 'elipse', relleno: '', borde: '' }).length, 0);
+    assert.equal(hijos({ ...base, forma: 'elipse', grosor: 0 }).length, 1);
+    assert.equal(hijos({ ...base, forma: 'elipse', grosor: 0 })[0].attrs.rx, '37');
+  });
+  await ok('circulo u ovalo: centrado, dentro de la caja con su borde', () => {
+    const [e] = hijos({ ...base, forma: 'elipse', relleno: '#c9a227' });
+    assert.deepEqual([e.tag, e.attrs.cx, e.attrs.cy, e.attrs.rx, e.attrs.ry], ['ellipse', '37', '26.25', '35.88', '25.13']);
+  });
+  await ok('triangulo: punta arriba o esquina recta, y esquinas redondas con curvas', () => {
+    const iso = hijos({ ...base, forma: 'triangulo', variante: 'isosceles', borde: '' })[0];
+    assert.equal(iso.tag, 'polygon'); assert.equal(iso.attrs.points, '37,0 74,52.5 0,52.5');
+    assert.equal(hijos({ ...base, forma: 'triangulo', variante: 'rectangulo', borde: '' })[0].attrs.points, '0,0 0,52.5 74,52.5');
+    const red = hijos({ ...base, forma: 'triangulo', variante: 'isosceles', radio: 6, borde: '' })[0];
+    assert.equal(red.tag, 'path'); assert.equal((red.attrs.d.match(/Q/g) || []).length, 3); assert.ok(red.attrs.d.endsWith('Z'));
+    assert.equal(hijos({ ...base, forma: 'triangulo', variante: 'raro', borde: '' })[0].attrs.points, '37,0 74,52.5 0,52.5');
+  });
+  await ok('flecha: una o dos puntas, siempre dentro de su caja', () => {
+    for (const [v, n] of [['una', 7], ['doble', 10]]) {
+      const p = hijos({ ...base, forma: 'flecha', variante: v, borde: '' })[0].attrs.points.split(' ').map((q) => q.split(',').map(num));
+      assert.equal(p.length, n);
+      assert.ok(p.every(([x, y]) => x >= 0 && x <= 74 && y >= 0 && y <= 52.5));
+    }
+  });
+  await ok('plano cartesiano: ejes con punta, cuadricula opcional a 0,35, sin texto, y cada variante con su origen', () => {
+    for (const v of VARIANTES_FIGURA.plano) {
+      const h = hijos({ ...base, forma: 'plano', variante: v, relleno: '', celdas: 5 });
+      const rayas = h.filter((x) => x.tag === 'line'), cuad = h.find((x) => x.tag === 'path' && x.estilo.opacity), cabezas = h.find((x) => x.tag === 'path' && !x.estilo.opacity);
+      assert.equal(rayas.length, 2, v);
+      assert.equal(cuad.estilo.opacity, '0.35');
+      assert.equal((cabezas.attrs.d.match(/Z/g) || []).length, v === 'completo' ? 4 : v === 'cuadrante' ? 2 : 3, v);
+      assert.ok(h.every((x) => !x.hijos.length && !('texto' in x)));
+      assert.equal(hijos({ ...base, forma: 'plano', variante: v, relleno: '', cuadricula: false }).filter((x) => x.estilo.opacity).length, 0);
+    }
+    /* Mas celdas, mas rayas; y las rayas nunca pasan del tope */
+    const rayas = (c) => hijos({ ...base, forma: 'plano', variante: 'completo', celdas: c, relleno: '' })[0].attrs.d.split('M').length - 1;
+    assert.ok(rayas(10) > rayas(2));
+    assert.ok(hijos({ ...base, forma: 'plano', variante: 'completo', celdas: 20, w: 300, h: .5 }).every((x) => !x.attrs.d || x.attrs.d.length <= 10000));
+    /* El fondo del plano sale solo si hay relleno; sin color de ejes, no hay ejes */
+    assert.equal(hijos({ ...base, forma: 'plano', relleno: '#eeeeee' })[0].tag, 'rect');
+    assert.equal(hijos({ ...base, forma: 'plano', relleno: '', borde: '' }).length, 0);
+  });
+  await ok('lo hostil se limpia: listas blancas, topes y numeros raros', () => {
+    const l = limpiarFigura({ forma: '<script>', variante: 'url(x)', relleno: 'url(#x)', borde: 'red;x:url(y)', grosor: 1e999, radio: -9, opacidad: NaN, celdas: Infinity, cuadricula: 'x' });
+    assert.deepEqual(l, { forma: 'rect', variante: '', relleno: '', borde: '', grosor: .5, radio: 0, opacidad: 100, celdas: 4, cuadricula: true, alt: '' });
+    const t = limpiarFigura({ forma: 'plano', variante: 'x', grosor: 99, radio: 99, opacidad: 1, celdas: 99, relleno: 'RGB(10, 20, 30)', borde: '#ABCDEF' });
+    assert.deepEqual([t.variante, t.grosor, t.radio, t.opacidad, t.celdas, t.relleno, t.borde], ['completo', 10, 20, 20, 20, '#0a141e', '#abcdef']);
+    assert.equal(limpiarFigura({ forma: 'triangulo', variante: { x: 1 } }).variante, 'isosceles');
+    assert.equal(limpiarFigura({ forma: 'flecha', variante: 'rectangulo' }).variante, 'una');
+    assert.equal(limpiarFigura({ forma: ['rect'] }).forma, 'rect');
+    assert.equal(limpiarFigura({ forma: '__proto__' }).forma, 'rect');
+    assert.equal(limpiarFigura({ grosor: '5', opacidad: '50', radio: '3' }).grosor, .5);
+    for (const raro of [null, undefined, 5, 'x', [], () => 1]) assert.equal(limpiarFigura(raro).forma, 'rect');
+    for (const v of [NaN, Infinity, -Infinity, 1e999, -1e999, -5, 0, '1e999', 'url(x)', {}, [], null, undefined, true]) {
+      for (const forma of FORMAS_FIGURA) {
+        const a = arbolFigura({ forma, variante: VARIANTES_FIGURA[forma][0], relleno: '#112233', borde: '#445566', w: v, h: v, grosor: v, radio: v, opacidad: v, celdas: v, rot: v }, { anchoMm: v, altoMm: v });
+        revisar(a);
+        const s = JSON.stringify(a);
+        assert.ok(!/NaN|Infinity|undefined|url\(|null/.test(s), s.slice(0, 200));
+      }
+    }
+  });
+  await ok('texto, URL o SVG escritos en cualquier campo no llegan al dibujo', () => {
+    const malo = '"><script>alert(1)</script>url(javascript:x)<svg onload=x>';
+    const o = { ...base, forma: 'plano', variante: malo, relleno: malo, borde: malo, texto: malo, d: malo, points: malo, href: malo, nombre: malo, estilo: malo, transform: malo, svg: malo };
+    const s = JSON.stringify(arbolFigura(o, A5)) + JSON.stringify(limpiarObjetos([{ ...o, tipo: 'figura' }]));
+    assert.ok(!/script|alert|javascript|onload|url\(|href|nombre/.test(s), s.slice(0, 300));
+    const r = limpiarObjetos([{ ...o, tipo: 'figura' }])[0];
+    assert.deepEqual(Object.keys(r).sort(), ['alt', 'borde', 'celdas', 'cuadricula', 'forma', 'grosor', 'h', 'id', 'opacidad', 'radio', 'relleno', 'rot', 'tipo', 'variante', 'w', 'x', 'y']);
+  });
+  await ok('es determinista, y limpiar es idempotente', () => {
+    const o = { ...base, forma: 'triangulo', variante: 'rectangulo', radio: 3, opacidad: 55, rot: 12.3456 };
+    assert.equal(JSON.stringify(arbolFigura(o, A5)), JSON.stringify(arbolFigura(o, A5)));
+    const una = limpiarObjetos([o]), dos = limpiarObjetos(una);
+    assert.deepEqual(una, dos);
+    assert.equal(una[0].rot, 12.35);
+    assert.equal(una[0].opacidad, 55);
+  });
+  await ok('en el PDF: caja, giro y opacidad con lo que armar.js acepta; el CSS compartido no lleva url()', () => {
+    const f = (extra) => aNodos(doc({ type: 'paginaLibre', attrs: { objetos: [{ ...base, forma: 'flecha', rot: 30, ...extra }] } }), 'pdf', { paginaMm: CARTA })[0].hijos[0].hijos[0];
+    const e = f({ opacidad: 60 });
+    assert.equal(e.clase, 'obj obj--figura');
+    assert.deepEqual([e.estilo.left, e.estilo.top, e.estilo.width, e.estilo.height, e.estilo.transform, e.estilo.opacity], ['10%', '10%', '50%', '25%', 'rotate(30deg)', '0.6']);
+    assert.equal(e.hijos[0].attrs.viewBox, '0 0 107.95 69.85');
+    permitido(e);
+    assert.equal(f({ opacidad: 100 }).estilo.opacity, undefined);
+    assert.equal(f({ opacidad: 20 }).estilo.opacity, '0.2');
+    assert.equal(f({ opacidad: 7 }).estilo.opacity, '0.2');
+    for (const p of [20, 21, 33, 35, 99, 100]) assert.ok(estiloSeguro('opacity', opacidadCss(p)), String(p));
+    const css = cssLibro({});
+    assert.match(css, /\.libro \.obj--figura > svg \{[^}]*width: 100%[^}]*height: 100%/);
+    assert.ok(!/url\s*\(|@import/i.test(css));
+  });
+  await ok('el libro entero: cada hoja manda su medida, y la figura sale igual que en la mesa (mismo arbol)', () => {
+    const cap = [{ id: 'c1', titulo: 'Uno', contenido: doc({ type: 'paginaLibre', attrs: { objetos: [{ ...base, forma: 'elipse' }] } }) }];
+    for (const [pagina, vb] of [[{}, '0 0 74 52.5'], [{ anchoMm: 215.9, altoMm: 279.4 }, '0 0 107.95 69.85']]) {
+      const h = aHoja(new Obra({ titulo: 'T', pagina }).aDatos(), cap, {});
+      h.nodos.forEach(permitido);
+      assert.ok(JSON.stringify(h.nodos).includes(`"viewBox":"${vb}"`), vb);
+      assert.ok(JSON.stringify(h.nodos).includes(JSON.stringify(arbolFigura({ ...base, forma: 'elipse' }, new ConfigPagina(pagina)))));
+    }
+  });
+  await ok('cada figura nueva nace valida y con medida propia', () => {
+    for (const forma of FORMAS_FIGURA) {
+      const n = FIGURA_NUEVA[forma];
+      assert.deepEqual(limpiarFigura({ forma, ...n.datos }), { forma, ...n.datos });
+      assert.ok(n.mm[0] > 0 && n.mm[1] > 0);
+    }
+  });
+  await ok('la medida de la hoja rara se limpia igual en la mesa y en el PDF (ConfigPagina)', () => {
+    for (const pagina of [{}, { anchoMm: 1e9, altoMm: -5 }, { anchoMm: 'x' }, { anchoMm: NaN, altoMm: Infinity }, { anchoMm: 0, altoMm: 99999 }]) {
+      const c = new ConfigPagina(pagina), mesa = arbolFigura({ ...base, forma: 'triangulo', radio: 3 }, { anchoMm: c.anchoMm, altoMm: c.altoMm });
+      const h = aHoja(new Obra({ titulo: 'T', pagina }).aDatos(), [{ id: 'c1', titulo: 'U', contenido: doc({ type: 'paginaLibre', attrs: { objetos: [{ ...base, forma: 'triangulo', radio: 3 }] } }) }], {});
+      assert.ok(JSON.stringify(h.nodos).includes(JSON.stringify(mesa)), JSON.stringify(pagina));
+      revisar(mesa);
+    }
+  });
+  await ok('el plano con una caja enorme sigue dentro de los topes de armar.js, y un numero fuera de 1e6 no pasa', () => {
+    const a = arbolFigura({ ...base, forma: 'plano', celdas: 20, w: 300, h: 300, relleno: '' }, { anchoMm: 30000, altoMm: 30000 });
+    revisar(a);
+    assert.ok(a.hijos.every((h) => !h.attrs.d || h.attrs.d.length <= 10000));
+    assert.ok(a.hijos[0].attrs.d.length > 1000);
+    assert.equal(valorSeguro('rect', 'width', '999999'), true);
+    for (const v of ['1000001', '1e7', '-2e6', '99999999']) assert.equal(valorSeguro('rect', 'width', v), false, v);
+    assert.equal(valorSeguro('svg', 'viewBox', '0 0 2000000 10'), false);
+  });
+  await ok('el borde del cuadrado sale con esquina viva, y redondo solo si hay radio; todo cabe en su caja', () => {
+    const union = (o) => hijos({ ...base, relleno: '', ...o })[0].attrs['stroke-linejoin'];
+    assert.equal(union({ forma: 'rect', radio: 0 }), 'miter');
+    assert.equal(union({ forma: 'rect', radio: 4 }), 'round');
+    assert.equal(union({ forma: 'triangulo', radio: 0 }), 'round');
+    assert.equal(union({ forma: 'flecha' }), 'round');
+    assert.equal(union({ forma: 'elipse' }), 'round');
+    /* La punta de la esquina viva queda dentro: el trazo mas la holgura caben */
+    const r = hijos({ ...base, relleno: '', forma: 'rect', radio: 0 })[0].attrs;
+    assert.ok(num(r.x) - num(r['stroke-width']) / 2 >= 0 && num(r.x) + num(r.width) + num(r['stroke-width']) / 2 <= 74);
+  });
+  await ok('el plano nunca se sale de su caja, ni con un grosor de 10 mm en una caja pequena', () => {
+    const dentro = (n, W, H) => {
+      const e = .01;
+      const par = (cadena) => (cadena.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+      for (const h of n.hijos) {
+        if (h.tag === 'line') {
+          const a = h.attrs, m = num(a['stroke-width']) / 2;
+          const horizontal = a.y1 === a.y2;
+          for (const [x, y] of [[num(a.x1), num(a.y1)], [num(a.x2), num(a.y2)]]) assert.ok(x - (horizontal ? 0 : m) >= -e && x + (horizontal ? 0 : m) <= W + e && y - (horizontal ? m : 0) >= -e && y + (horizontal ? m : 0) <= H + e, `linea ${x},${y} +-${m}`);
+        } else if (h.attrs.d) {
+          const p = par(h.attrs.d);
+          for (let k = 0; k < p.length; k += 2) assert.ok(p[k] >= -e && p[k] <= W + e && p[k + 1] >= -e && p[k + 1] <= H + e, `trazo ${p[k]},${p[k + 1]}`);
+        } else if (h.tag === 'rect') assert.ok(num(h.attrs.width) <= W + e && num(h.attrs.height) <= H + e);
+      }
+    };
+    for (const [w, h] of [[8, 8], [5, 30], [30, 5], [1, 1], [40, 20]]) for (const variante of VARIANTES_FIGURA.plano) for (const grosor of [10, 3, .2]) {
+      const o = { ...base, forma: 'plano', variante, w, h, grosor, relleno: '#eeeeee', celdas: 6 }, a = arbolFigura(o, A5);
+      const [, , W, H] = a.attrs.viewBox.split(' ').map(Number);
+      dentro(a, W, H);
+    }
+  });
+  await ok('la flecha de una punta en una caja estrecha: la cabeza no pasa de la mitad del largo', () => {
+    for (const w of [1, 3, 8, 50]) {
+      const p = hijos({ ...base, forma: 'flecha', variante: 'una', w, h: 40, borde: '' })[0].attrs.points.split(' ').map((q) => q.split(',').map(num));
+      const W = num(arbolFigura({ ...base, w }, A5).attrs.viewBox.split(' ')[2]), xs = p.map((q) => q[0]), cuerpoFin = Math.max(...xs.filter((x) => x < Math.max(...xs)));
+      assert.ok(Math.max(...xs) - cuerpoFin <= W * .5 + .01, `w=${w}`);
+      assert.ok(p.every(([x, y]) => x >= -.01 && x <= W + .01 && y >= -.01));
+    }
+  });
+  await ok('«Qué muestra»: una linea limpia, y en el PDF role=img con su texto o aria-hidden', () => {
+    const malo = '  Un mapa\n</style><script>x</script>\r\n\u0007‮⁦con\tcontrol​  ';
+    const l = limpiarFigura({ alt: malo });
+    assert.ok(!/[\n\r\t\u0007‮⁦​]/.test(l.alt), JSON.stringify(l.alt));
+    assert.equal(l.alt.startsWith('Un mapa </style>'), true);
+    assert.equal(limpiarFigura({ alt: 'a'.repeat(900) }).alt.length, 300);
+    for (const raro of [5, {}, [], null, NaN, ['x']]) assert.equal(limpiarFigura({ alt: raro }).alt, '');
+    const e = (alt) => aNodos(doc({ type: 'paginaLibre', attrs: { objetos: [{ ...base, forma: 'rect', alt }] } }), 'pdf', {})[0].hijos[0].hijos[0];
+    assert.deepEqual([e('Un mapa').attrs.role, e('Un mapa').attrs['aria-label'], e('Un mapa').attrs['aria-hidden']], ['img', 'Un mapa', undefined]);
+    assert.deepEqual([e('').attrs.role, e('').attrs['aria-hidden']], [undefined, 'true']);
+    permitido(e('Un mapa')); permitido(e(malo)); permitido(e(''));
+    for (const [k, v] of [['role', 'img'], ['aria-label', 'Un mapa']]) assert.equal(valorSeguro('div', k, v), true, k);
+    for (const [t2, k, v] of [['span', 'role', 'img'], ['div', 'role', 'button'], ['div', 'aria-label', 'a\nb'], ['div', 'aria-label', 'a‮b'], ['div', 'aria-label', 'x'.repeat(301)], ['div', 'aria-hidden', 'false'], ['div', 'role', 'img" onclick="x']]) assert.equal(valorSeguro(t2, k, v), false, `${t2} ${k}`);
+  });
+  await ok('un objeto sin id o con un id repetido recibe uno propio en la mesa, estable, y objeto("") no elige nada', async () => {
+    const { HojaLibre } = await import('../src/scripts/portal/panel/dev/taller/HojaLibre.js');
+    const ctx = { ids: [] }, lista = [{ id: '' }, { id: 'o-aaaaaaaa' }, { id: 'o-aaaaaaaa' }, { id: '' }, { id: 'o-bbbbbbbb' }];
+    const a = HojaLibre.prototype.conIds.call(ctx, lista);
+    assert.equal(new Set(a.map((x) => x.id)).size, 5);
+    assert.ok(a.every((x) => /^o-[a-z0-9]{8}$/.test(x.id)));
+    assert.deepEqual([a[1].id, a[4].id], ['o-aaaaaaaa', 'o-bbbbbbbb']);
+    assert.deepEqual(HojaLibre.prototype.conIds.call(ctx, lista).map((x) => x.id), a.map((x) => x.id));
+    assert.equal(HojaLibre.prototype.objeto.call({ elegido: '', objetos: a }), null);
+    assert.equal(HojaLibre.prototype.objeto.call({ elegido: '', objetos: [{ id: '' }] }, ''), null);
+    assert.equal(HojaLibre.prototype.objeto.call({ elegido: a[0].id, objetos: a }).id, a[0].id);
+  });
+  await ok('una pagina con 200 figuras se guarda entera, y la 201 no', () => {
+    const muchas = Array.from({ length: 205 }, (_, i) => ({ ...base, id: `o-${String(i).padStart(8, '0')}`, forma: FORMAS_FIGURA[i % 5] }));
+    assert.equal(limpiarObjetos(muchas).length, 200);
+  });
+}
 
 console.log('la puerta de los bloques');
 await ok('un tipo sin pruebas para la compilacion', async () => {

@@ -33,7 +33,9 @@ export const CASOS = {
       { id: 'o-abcd1234', tipo: 'imagen', ruta: 'taller/o/i.webp', x: 10, y: 10, w: 40, h: 30, rot: 12, crop: { l: .1, t: 0, r: .2, b: 0 } },
       { id: 'o-abcd1235', tipo: 'texto', texto: 'Hola', x: 5, y: 5, w: 50, h: 10, tam: '14pt', color: '#123456' },
       { id: 'o-abcd1236', tipo: 'zona', nombre: 'Quiz', x: 5, y: 60, w: 50, h: 20 },
-      { id: 'o-abcd1237', tipo: 'boton', texto: 'Copiar', accion: 'copiar', copia: 'Hola', x: 5, y: 80, w: 40, h: 7, fondo: '#123456', aspecto: { estilo: 'contorno', borde: 3, sombra: { tipo: 'suave' } } }
+      { id: 'o-abcd1237', tipo: 'boton', texto: 'Copiar', accion: 'copiar', copia: 'Hola', x: 5, y: 80, w: 40, h: 7, fondo: '#123456', aspecto: { estilo: 'contorno', borde: 3, sombra: { tipo: 'suave' } } },
+      { id: 'o-abcd1238', tipo: 'figura', forma: 'triangulo', variante: 'rectangulo', relleno: '#c9a227', borde: '#123456', grosor: 1.2, radio: 4, opacidad: 60, x: 10, y: 20, w: 30, h: 20, rot: 15 },
+      { id: 'o-abcd1239', tipo: 'figura', forma: 'plano', variante: 'cuadrante', borde: '#111111', grosor: .6, celdas: 8, cuadricula: true, x: 10, y: 50, w: 50, h: 30 }
     ] } }],
     hostil: [{ type: 'paginaLibre', attrs: { titulo: { x: 1 }, ancla: 'p-x" onload="y', objetos: [] } },
       { type: 'paginaLibre', attrs: { pdfPagina: { x: 1 }, sobra: '<script>', pdf: 'https://malo.com/x.pdf', objetos: [] } },
@@ -41,7 +43,10 @@ export const CASOS = {
       { type: 'paginaLibre', attrs: { fondo: 'https://malo.com/x.png', objetos: [
       { tipo: 'imagen', ruta: 'javascript:x', x: 'a', crop: { l: 9 } }, { tipo: 'script', texto: '<x>' },
       { tipo: 'texto', texto: '<script>', tam: '1pt;x', color: 'red;x:url(y)', fuente: 'x");}' },
-      { tipo: 'boton', texto: '<b>', accion: 'x', enlace: 'javascript:alert(1)', copia: 5, fondo: 'url(x)' }
+      { tipo: 'boton', texto: '<b>', accion: 'x', enlace: 'javascript:alert(1)', copia: 5, fondo: 'url(x)' },
+      { tipo: 'figura', forma: '<script>', variante: 'url(x)', relleno: 'url(#x)', borde: 'red;x:url(y)', grosor: 'Infinity', radio: -9, opacidad: 1e999, celdas: NaN, x: 'a', w: -5 },
+      { tipo: 'figura', forma: 'plano', variante: '"><svg onload=x>', relleno: 'javascript:x', borde: '#12345g', grosor: 1e999, radio: 1e9, opacidad: -5, celdas: 1e9, cuadricula: 'url(x)', onclick: 'x', texto: '<script>', d: 'M0 0 url(x)', points: '0,0"><x>', w: 1e999, h: -1e999 },
+      { tipo: 'figura', forma: 'triangulo', variante: { x: 1 }, relleno: ['#ffffff'], grosor: '5', radio: '1e9', opacidad: '50', rot: Infinity }
     ] } }]
   },
   boton: {

@@ -1,4 +1,4 @@
-/* LOS OBJETOS DE UNA PAGINA LIBRE: imagen, cuadro de texto y zona. Todo va en % de la pagina: asi cae
+/* LOS OBJETOS DE UNA PAGINA LIBRE: imagen, cuadro de texto, boton, figura y zona. Todo va en % de la pagina: asi cae
    en el mismo lugar a cualquier tamaño, en pantalla y al imprimir.
 
    Cada clase de objeto trae sus partes: limpiar (datos), web y pdf. Una zona no sale en el PDF: es el
@@ -10,10 +10,10 @@ import { colorValido, tamanoValido } from '../marcas.js';
 import { nombreDeFuente } from '../fuentes.js';
 import { alineacion, el, txt } from './ayuda.js';
 import { Zona } from '../Zona.js';
+import { arbolFigura, limpiarFigura, num, opacidadCss } from '../Figuras.js';
 
 export const OBJETOS_MAX = 200;
 export const TEXTO_CUADRO_MAX = 5000;
-const num = (v, min, max, siNo, fino = 100) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v * fino) / fino)) : siNo);
 const FINO_RECORTE = 10000;
 const CSS_ALINEAR = { izquierda: 'left', centro: 'center', derecha: 'right', justificado: 'justify' };
 
@@ -56,6 +56,13 @@ export const OBJETOS = {
   boton: {
     limpiar: (o) => ({ id: idValido(o.id), tipo: 'boton', ...caja(o), ...datosDeBoton(o), tam: tamanoValido(o.tam) || '12pt' }),
     pdf: (o, salida = {}) => piezaDeBoton(o, 'obj obj--boton boton', { ...estiloCaja(o), 'font-size': o.tam }, salida.web === true)
+  },
+  /* Una figura: cuadrado, circulo, triangulo, flecha o plano. Su dibujo sale de Figuras.js, igual en la mesa y en el PDF. */
+  figura: {
+    limpiar: (o) => ({ id: idValido(o.id), tipo: 'figura', ...caja(o), ...limpiarFigura(o) }),
+    pdf: (o, salida = {}) => el('div', 'obj obj--figura', [arbolFigura(o, salida.paginaMm)], o.alt ? { role: 'img', 'aria-label': o.alt } : { 'aria-hidden': 'true' }, {
+      ...estiloCaja(o), ...(o.opacidad < 100 ? { opacity: opacidadCss(o.opacidad) } : {})
+    })
   },
   zona: {
     limpiar: (o) => ({ ...new Zona(o).aDatos(), id: idValido(o.id), tipo: 'zona', rot: 0 }),

@@ -323,6 +323,7 @@ html[data-ver-libro] .mini .clon__dentro { display: none; }
 .obj { position: absolute; box-sizing: border-box; cursor: move; touch-action: none; }
 [data-solo-ver] .obj { cursor: default; touch-action: auto; }
 .obj:hover { outline: 1px solid #2F7BFF; }
+.obj--figura > svg { pointer-events: none; overflow: visible; }
 .obj--imagen { overflow: hidden; }
 .obj--imagen img { position: absolute; max-width: none; pointer-events: none; }
 .obj--texto { padding: 4px; line-height: 1.3; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; }

@@ -11,6 +11,7 @@ import { REFERENCIA_MAX, TEXTO_MAX as PASAJE_MAX } from '../../../../contenido/t
 import { SUBETAPA_MAX } from '../../../../contenido/taller/tipos/subetapa.js';
 import { NOMBRES_ICONO, arbolIcono } from '../../../../contenido/taller/iconosBoton.js';
 import { armar } from '../../../../contenido/taller/armar.js';
+import { ALT_MAX, FIGURA_NUEVA, FORMAS, VARIANTES } from '../../../../contenido/taller/Figuras.js';
 import { BORDE_MAX, ESTILOS, LINEAS, OPACIDAD_MIN, PILDORA, RADIO_MAX, SOMBRAS, VERDE_DUOLINGO, conEstilo, limpiarAspecto } from '../../../../contenido/taller/aspectoBoton.js';
 import { leerSvg } from './SvgSubido.js';
 import { anclaNueva, esAncla, RE_ANCLA_PAGINA, textoIndice, TITULO_INDICE_MAX } from '../../../../contenido/taller/IndiceLibro.js';
@@ -111,9 +112,10 @@ export class Propiedades {
   }
 
   /* Un numero con su nombre corto adentro: seis caben en dos filas */
-  medida(corto, texto, valor, alCambiar) {
+  medida(corto, texto, valor, alCambiar, paso = 0) {
     const l = crear('label', 'tal-medida'), i = crear('input');
     i.type = 'number';
+    if (paso) i.step = String(paso);
     i.value = valor;
     i.title = texto;
     i.setAttribute('aria-label', texto);
@@ -149,9 +151,9 @@ export class Propiedades {
   }
 
   /* Un color con su nombre. Su lista flota: el panel no crece. */
-  color(etiqueta, valor, alCambiar) {
+  color(etiqueta, valor, alCambiar, sinColor = '') {
     const l = crear('div', 'tal-par');
-    const s = new SelectorColor({ tx: this.tx, etiqueta, valor, recientes: () => this.mesa.coloresUsados(), alCambiar: (c) => { this.mesa.recordarColor(c); alCambiar(c); } });
+    const s = new SelectorColor({ tx: sinColor ? { ...this.tx, colorAuto: sinColor } : this.tx, etiqueta, valor, recientes: () => this.mesa.coloresUsados(), alCambiar: (c) => { this.mesa.recordarColor(c); alCambiar(c); } });
     l.append(crear('span', '', etiqueta), s.nodo);
     return l;
   }
@@ -221,7 +223,7 @@ export class Propiedades {
 
   deObjeto(v, o) {
     const tx = this.tx, p = this.mesa.config(), l = this.lienzo;
-    l.append(crear('h2', '', { imagen: tx.objImagen, texto: tx.objCuadro, zona: tx.objZona, boton: tx.objBoton }[o.tipo]));
+    l.append(crear('h2', '', { imagen: tx.objImagen, texto: tx.objCuadro, zona: tx.objZona, boton: tx.objBoton, figura: tx.objFigura }[o.tipo]));
     if (v.recortando) {
       const lados = crear('div', 'tal-pares');
       for (const k of ['l', 't', 'r', 'b']) lados.append(this.par(tx.recorteLados[k], Math.round(o.crop[k] * 1000) / 10, (n) => v.cambiarRecorte(k, n / 100)));
@@ -231,6 +233,7 @@ export class Propiedades {
     if (o.tipo === 'texto') l.append(this.color(tx.colorLetra, o.color, (c) => v.cambiar({ color: c })));
     if (o.tipo === 'boton') this.camposDeBoton(o, (x) => v.cambiar(x), () => v.objeto(o.id) || o);
     if (o.tipo === 'zona') l.append(this.par(tx.nombreZona, o.nombre, (t) => v.cambiar({ nombre: t }), 'text'));
+    if (o.tipo === 'figura') this.camposDeFigura(o, v);
     if (o.tipo === 'imagen') l.append(this.par(tx.alt, o.alt, (t) => v.cambiar({ alt: t }), 'text'), this.par(tx.adorno, o.decorativa, (s) => v.cambiar({ decorativa: s }), 'checkbox'));
     const g = crear('div', 'tal-medidas');
     const en = (k, eje) => (n) => v.cambiar({ [k]: (n / this.mesa.config()[eje]) * 100 });
@@ -251,6 +254,37 @@ export class Propiedades {
       this.conIcono('eliminar', tx.eliminar, () => v.eliminar(), 'tal-accion--aviso')
     );
     l.append(ac);
+  }
+
+  /* Una lista de opciones con su nombre: `op` es [valor, texto] */
+  lista(texto, op, actual, alCambiar, clave = texto) {
+    const l = crear('label', 'tal-par'), s = crear('select');
+    s.dataset.clave = `lista:${clave}`;
+    for (const [k, t] of op) { const x = crear('option', '', t); x.value = k; s.append(x); }
+    s.value = actual;
+    s.addEventListener('change', () => alCambiar(s.value));
+    l.append(crear('span', '', texto), s);
+    return l;
+  }
+
+  /* Las figuras: forma, colores, grosor y lo propio de cada una. Todo son numeros y palabras de una lista (Figuras.js). */
+  camposDeFigura(o, v) {
+    const tx = this.tx, l = this.lienzo, plano = o.forma === 'plano';
+    l.append(this.lista(tx.figForma, FORMAS.map((f) => [f, tx.figFormas[f]]), o.forma, (f) => v.cambiar({
+      forma: f, variante: VARIANTES[f][0] || '',
+      /* Un plano sin color de ejes no se ve: al pasar a plano, los ejes en tinta */
+      ...(f === 'plano' && !o.borde ? { borde: FIGURA_NUEVA.plano.datos.borde, grosor: o.grosor || FIGURA_NUEVA.plano.datos.grosor } : {})
+    })));
+    if (VARIANTES[o.forma].length) l.append(this.lista(tx.figVariante, VARIANTES[o.forma].map((k) => [k, tx.figVariantes[k]]), o.variante, (k) => v.cambiar({ variante: k }), `${tx.figVariante}:${o.forma}`));
+    l.append(this.color(tx.figRelleno, o.relleno, (c) => v.cambiar({ relleno: c }), tx.figSinColor), this.color(plano ? tx.figEjes : tx.figBorde, o.borde, (c) => v.cambiar({ borde: c }), tx.figSinColor));
+    const a = crear('div', 'tal-medidas');
+    a.append(this.medida('mm', tx.figGrosor, o.grosor, (n) => v.cambiar({ grosor: n }), .1));
+    if (o.forma === 'rect' || o.forma === 'triangulo') a.append(this.medida('R', tx.figRadio, o.radio, (n) => v.cambiar({ radio: n }), .1));
+    a.append(this.medida('%', tx.figOpacidad, o.opacidad, (n) => v.cambiar({ opacidad: n })));
+    if (plano) a.append(this.medida('N', tx.figCeldas, o.celdas, (n) => v.cambiar({ celdas: n })));
+    l.append(a);
+    if (plano) l.append(this.par(tx.figCuadricula, o.cuadricula, (s) => v.cambiar({ cuadricula: s }), 'checkbox'), crear('p', 'tal-ayuda', tx.figEjesAyuda));
+    l.append(this.par(tx.figQueMuestra, o.alt, (t) => v.cambiar({ alt: t }), 'text', ALT_MAX), crear('p', 'tal-ayuda', tx.figProporcionAyuda));
   }
 
   dePagina(v) {

@@ -55,8 +55,10 @@
 
 /* La barra de abajo no tiene nada que hacer todavia. Al llegar el libro
    entra poco despues (el 0.5 s de base.css era para esperar al golpe). */
-.book-panel[data-carga] .book__nav { visibility: hidden; animation: none; }
-.book-panel.is-open[data-llego] .book__nav { animation-delay: .12s; }
+.book-panel[data-carga] .book__nav,
+.book-panel[data-carga] .book__ruta { visibility: hidden; animation: none; }
+.book-panel.is-open[data-llego] .book__nav,
+.book-panel.is-open[data-llego] .book__ruta { animation-delay: .12s; }
 
 /* ---- La caja ---- */
 .carga {

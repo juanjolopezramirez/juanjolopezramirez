@@ -5112,6 +5112,85 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   opacity: .8;
 }
 
+/* ---- Recorrer el libro ----
+   Una fila discreta debajo de las flechas: «Volver» (de donde saltaste), «Contenido» (solo si el libro lo tiene) y una barra de
+   la primera a la ultima pagina con la pagina a la derecha. Lo tactil mide 44 px; en el telefono la barra pasa a su propia fila. */
+.book__ruta {
+  display: grid;
+  grid-template-columns: auto auto minmax(7rem, 1fr) auto;
+  grid-template-areas: "volver contenido barra valor";
+  align-items: center; gap: .15rem .6rem;
+  box-sizing: border-box;
+  width: min(36rem, calc(100vw - 2rem));
+  margin-top: -.35rem;
+  color: var(--bone);
+}
+.book__ruta[hidden] { display: none; }
+.book-panel.is-open .book__ruta { animation: book-nav .45s .5s var(--ease) both; }
+.book__ruta-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  min-height: 2.75rem; min-width: 2.75rem;
+  padding: 0 .9rem;
+  border-radius: 1.4rem;
+  background: rgb(241 239 233 / .1);
+  color: inherit;
+  font-size: .78rem; font-weight: 600; letter-spacing: .04em;
+  white-space: nowrap;
+  transition: background-color .2s var(--ease), opacity .2s var(--ease);
+}
+.book__ruta-btn[data-book-volver] { grid-area: volver; }
+.book__ruta-btn[data-book-contenido] { grid-area: contenido; }
+.book__ruta-btn:hover { background: rgb(241 239 233 / .2); }
+.book__ruta-btn:disabled { opacity: .3; cursor: default; background: rgb(241 239 233 / .1); }
+.book__ruta-btn[hidden] { display: none; }
+.book__ruta-btn svg {
+  width: 1.05rem; height: 1.05rem; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.book__ruta-barra { grid-area: barra; display: block; min-width: 0; }
+.book__ruta-rango {
+  display: block; width: 100%; height: 2.75rem; margin: 0; padding: 0;
+  background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  accent-color: var(--bone);
+  touch-action: none;
+}
+.book__ruta-rango:disabled { opacity: .3; cursor: default; }
+.book__ruta-rango:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; border-radius: 8px; }
+.book__ruta-rango::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: rgb(241 239 233 / .3); }
+.book__ruta-rango::-moz-range-track { height: 4px; border-radius: 999px; background: rgb(241 239 233 / .3); }
+.book__ruta-rango::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; border: 2px solid var(--night); background: var(--bone); box-shadow: 0 0 0 1px rgb(241 239 233 / .5); }
+.book__ruta-rango::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--night); background: var(--bone); box-shadow: 0 0 0 1px rgb(241 239 233 / .5); }
+.book__ruta-valor {
+  grid-area: valor;
+  min-width: 6.4rem; text-align: right;
+  font-size: .72rem; font-weight: 600; letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  opacity: .8;
+}
+@media (max-width: 560px) {
+  .book__ruta {
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas: "volver contenido valor" "barra barra barra";
+    margin-top: -.55rem;
+  }
+  .book__ruta-valor { min-width: 0; }
+}
+
+/* Ventanas muy bajas (un telefono de lado): las filas de abajo se aprietan, y la pagina que se esta recorriendo la dice la barra
+   (aria-valuetext) y el folio; el numero suelto se esconde. site.js baja el tamaño del libro en proporcion (flipSize). */
+@media (max-height: 460px) {
+  .book-panel__frame { gap: .4rem; }
+  .book__ruta { margin-top: 0; grid-template-columns: auto auto minmax(4rem, 1fr); grid-template-areas: "volver contenido barra"; }
+  .book__ruta-valor { display: none; }
+  .book__ruta-btn { padding: 0 .7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-panel.is-open .book__ruta { animation: none; }
+  .book__ruta-btn { transition: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .leaf, .book__block, .page__seal-ink { transition: none; }
   .book-panel__frame { animation: none; transition: opacity .2s linear; }

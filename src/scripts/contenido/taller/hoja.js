@@ -28,7 +28,7 @@ export const ETIQUETAS_SVG = new Set(['svg', ...FORMAS]);
 export const ATRIBUTOS_SVG = new Set(['viewBox', 'aria-hidden', 'focusable', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height', 'x1', 'y1', 'x2', 'y2',
   'points', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'transform']);
 ETIQUETAS_SVG.forEach((t) => ETIQUETAS_HOJA.add(t));
-export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'href', 'id', 'start', 'data-tex', 'dir', 'lang', ...ATRIBUTOS_SVG]);
+export const ATRIBUTOS_HOJA = new Set(['src', 'alt', 'role', 'aria-label', 'href', 'id', 'start', 'data-tex', 'dir', 'lang', ...ATRIBUTOS_SVG]);
 export const ESTILOS_HOJA = new Set(['color', 'background-color', 'font-size', 'font-family', 'text-align', 'width', 'height', 'left', 'top', 'transform', 'grid-template-columns',
   /* El aspecto de un boton (aspectoBoton.js): armar.js revisa cada valor, uno por uno */
   'border-width', 'border-style', 'border-color', 'border-radius', 'box-shadow', 'opacity', 'font-weight']);
@@ -203,7 +203,8 @@ const cssBaseDe = (letra, b, capital, conCapital, cita, hilo) => `.libro, .libro
 .libro .boton--hueco { background-color: transparent; color: var(--hoja-tinta); }
 .libro .boton--duo { font-weight: 700; }
 .libro .boton-suelto { position: relative; height: 0; margin: 0; padding: 0; break-inside: avoid; }
-.libro .boton-suelto > .boton--suelta { position: absolute; left: 0; top: 0; margin: 0; width: max-content; max-width: 100%; }`;
+.libro .boton-suelto > .boton--suelta { position: absolute; left: 0; top: 0; margin: 0; width: max-content; max-width: 100%; }
+.libro .obj--figura > svg { display: block; width: 100%; height: 100%; overflow: visible; }`;
 
 /* Para imprenta: el papel crece 9 pt (3,2 mm) por lado, y la caja del texto se queda donde estaba */
 const SANGRE_PT = 9, SANGRE_PX = 12;
@@ -333,7 +334,7 @@ export function aHoja(obra, capitulos, o = {}) {
     if (i === antes) nodos.push(...indice);
     const propio = colorValido(objeto(c.contenido).papel);
     if (propio) usados.capitulos.add(propio);
-    const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres });
+    const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres, paginaMm: { anchoMm: config.anchoMm, altoMm: config.altoMm } });
     const esPortada = portada && i === 0;
     if (esPortada) usados.portada = propio || '';
     /* El encabezado de sus hojas de texto (nunca el de la portada) */

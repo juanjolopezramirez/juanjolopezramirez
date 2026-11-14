@@ -15,6 +15,9 @@ import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
 import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar } from './biblioteca.js';
 import { LIBROS, TIPOS } from '../data/biblioteca.js';
+/* Las ayudas para recorrer un libro largo (Volver, la barra, Contenido, RePag/AvPag): una sola cuenta, en scripts/lector/ */
+import { barraDePliego, hojaDelContenido, paginasDe, pliegoALaVuelta, pliegoDe } from './lector/pliegos.js';
+import { crearRecorrido } from './lector/recorrido.js';
 /* El salto al hiperespacio va DENTRO (1.3 KB): traerlo al pulsar lo hacia arrancar tarde
    en el telefono, y el salto se veia a trompicones. */
 import { saltar as lanzarSalto, calentar as calentarSalto } from './portal/salto.js';
@@ -861,6 +864,12 @@ function initBook() {
   const markTpl = el('book-mark');
   const prevBtn = s.panel.querySelector('[data-book-prev]');
   const nextBtn = s.panel.querySelector('[data-book-next]');
+  /* Recorrer el libro: «Volver», «Contenido» y la barra de 1 a la ultima pagina (solo en los libros en PDF) */
+  const ruta = s.panel.querySelector('[data-book-ruta]');
+  const backBtn = s.panel.querySelector('[data-book-volver]');
+  const contBtn = s.panel.querySelector('[data-book-contenido]');
+  const bar = s.panel.querySelector('[data-book-barra]');
+  const barValor = s.panel.querySelector('[data-book-barra-valor]');
   const wide = matchMedia('(min-width: 900px)');
   const quiet = matchMedia('(prefers-reduced-motion: reduce)');
   const TURN = 900;       // lo mismo que dura la transicion de --a en base.css
@@ -1641,13 +1650,16 @@ function initBook() {
   let cam = false;
   let side = 'c';
   let pw = 0;
-  let jump = null;       // salto del indice: a que pliego va y hacia donde mirar
   let lastVis = [];      // las paginas que se ven ahora (para la lupa)
   let g = null;          // el dedo, mientras esta sobre el libro
 
   function flipSize(ratio) {
     const two = wide.matches;
-    const room = Math.max(240, innerHeight - 8 * parseFloat(getComputedStyle(d.documentElement).fontSize));
+    /* Debajo del libro van dos filas: las flechas y la de recorrer (Volver, Contenido, la barra) */
+    /* En una ventana muy baja (un telefono de lado) las filas se aprietan (base.css, max-height: 460px) y el suelo baja: lo de
+       abajo tiene que verse entero. */
+    const baja = innerHeight <= 460;
+    const room = Math.max(baja ? 120 : 240, innerHeight - (baja ? 9.4 : 11.2) * parseFloat(getComputedStyle(d.documentElement).fontSize));
     const w = Math.floor(Math.min(two ? (innerWidth - 96) / 2 : innerWidth - 28, room * ratio, 640));
     return { cam: !two, pw: w, ph: Math.round(w / ratio) };
   }
@@ -1656,18 +1668,8 @@ function initBook() {
      paginas, la contratapa sola al final. Un pliego se nombra por su
      primera pagina, igual que lo hace la libreria. */
   const count = () => fb.getPageCount();
-  const pagesOf = (i) => {
-    const n = count();
-    if (i === 0) return [0];
-    if (i === n - 1 && n % 2 === 0) return [n - 1];
-    return [i, i + 1].filter((x) => x < n);
-  };
-  const spreadOf = (p) => {
-    const n = count();
-    if (p <= 0) return 0;
-    if (p >= n - 1 && n % 2 === 0) return n - 1;
-    return p % 2 ? p : p - 1;
-  };
+  const pagesOf = (i) => paginasDe(i, count());
+  const spreadOf = (p) => pliegoDe(p, count());
 
   function aim(ms) {
     flipBox.style.setProperty('--cam-ms', Math.round(ms || 0) + 'ms');
@@ -1689,8 +1691,11 @@ function initBook() {
 
     const vis = cam ? [side === 'l' ? v[0] : v[v.length - 1]] : v;
     lastVis = vis;
+    /* Un boton apagado con el foco lo suelta, y el teclado deja de llegar: se cuida aqui (rescatarFoco) */
+    const tenia = d.activeElement;
     prevBtn.disabled = vis[0] === 0;
     nextBtn.disabled = vis[vis.length - 1] >= n - 1;
+    rescatarFoco(tenia);
 
     /* Cerrado solo hay tapa; al final, contratapa. El canto de cada lado
        crece con las hojas que tiene encima. */
@@ -1702,10 +1707,8 @@ function initBook() {
 
     /* El contador sigue la numeracion impresa del PDF (tools/books.py la
        lee del pie de las paginas). Tapas y guardas no llevan numero. */
-    const off = fbInfo.offset;
-    const num = (x) => (off == null ? x + 1 : (x > 0 && x < n - 1 && x + 1 - off >= 1 ? x + 1 - off : null));
-    const total = off == null ? n : n - 1 - off;
-    const nums = vis.map(num).filter((x) => x != null);
+    const total = folioTotal();
+    const nums = vis.map(folioNum).filter((x) => x != null);
     folio.textContent = nums.length ? nums.join('–') + ' / ' + total : '';
     folio.setAttribute('aria-label', nums.length
       ? t('book.pageOf').replace('{n}', nums.join('–')).replace('{t}', total)
@@ -1716,10 +1719,87 @@ function initBook() {
       p.inert = !on;
       p.toggleAttribute('aria-hidden', !on);
     });
+    /* La barra y «Volver» siguen al libro (con un viaje en marcha, al lugar adonde va) */
+    const dest = rec.destino();
+    syncRuta(dest == null ? v[0] : dest);
+  }
+
+  /* La numeracion que se ve: la impresa del PDF si la tiene (tools/books.py la lee del pie de las paginas); tapas y guardas no
+     llevan numero (null) */
+  function folioNum(x) {
+    const n = count();
+    const off = fbInfo.offset;
+    return off == null ? x + 1 : (x > 0 && x < n - 1 && x + 1 - off >= 1 ? x + 1 - off : null);
+  }
+  const folioTotal = () => (fbInfo.offset == null ? count() : count() - 1 - fbInfo.offset);
+
+  /* Un boton que se apaga con el foco encima lo suelta; el foco pasa a otro control que sirva (o al libro) para que el teclado
+     (flechas, Inicio, Fin, B) siga llegando */
+  function rescatarFoco(tenia) {
+    if (!tenia || !tenia.disabled || !s.panel.contains(tenia)) return;
+    const otros = [prevBtn, nextBtn, bar, backBtn, contBtn].filter((b) => b !== tenia && b && !b.disabled && !b.hidden && !b.closest('[hidden]'));
+    const a = tenia === prevBtn ? [nextBtn, bar, backBtn] : tenia === nextBtn ? [prevBtn, bar, backBtn] : tenia === backBtn ? [contBtn, bar, prevBtn, nextBtn] : [prevBtn, nextBtn, bar];
+    const donde = a.find((b) => otros.includes(b)) || otros[0];
+    if (donde) donde.focus({ preventScroll: true });
+    else { s.panel.querySelector('.book-panel__close').focus({ preventScroll: true }); }
+  }
+
+  /* ---- Recorrer el libro: Volver, Contenido y la barra ---- */
+  let contenidoAt = -1;       // la primera hoja del contenido (desde 0), o -1 si el libro no se reconoce uno
+  let dragBar = false;        // el dedo (o el raton) esta sobre la barra
+  const textoBarra = (valor) => {
+    const x = Math.max(0, Math.min(count() - 1, Math.round(Number(valor)) - 1));
+    const num = folioNum(x);
+    if (num != null) return t('book.pageOf').replace('{n}', num).replace('{t}', folioTotal());
+    if (x === 0) return t('book.sliderCover');
+    if (x === count() - 1) return t('book.sliderBack');
+    return t('book.pageOf').replace('{n}', x + 1).replace('{t}', count());
+  };
+  function pintarBarra() {
+    if (!ruta || !fb) return;
+    const txt = textoBarra(bar.value);
+    bar.setAttribute('aria-valuetext', txt);
+    if (barValor.textContent !== txt) barValor.textContent = txt;
+  }
+  /* La barra sigue al libro mientras no se este arrastrando. El valor se deja si ya cae en el pliego que se ve: con el teclado la
+     pagina 3 y la 2 son el mismo pliego, y devolverla a la 2 la atascaria. */
+  function syncRuta(en) {
+    if (!ruta || !fb) return;
+    const n = count();
+    const tenia = d.activeElement;
+    if (!dragBar && pliegoDe(Number(bar.value) - 1, n) !== pliegoDe(en, n)) bar.value = String(barraDePliego(en, n));
+    pintarBarra();
+    backBtn.disabled = !rec.hayVuelta(pliegoDe(en, n));
+    rescatarFoco(tenia);
+  }
+  function abrirRuta() {
+    if (!ruta || !fb) return;
+    const n = count();
+    bar.min = '1';
+    bar.max = String(n);
+    bar.value = '1';
+    bar.disabled = n < 2;
+    contBtn.hidden = contenidoAt < 0;
+    ruta.hidden = false;
+    /* Un reencuadernado a mitad de un viaje deja la region muda (empieza() la apago): se vuelve a encender */
+    folio.setAttribute('aria-live', 'polite');
+    syncRuta(fb.getCurrentPageIndex());
+  }
+  function cerrarRuta() {
+    if (!ruta) return;
+    ruta.hidden = true;
+    contBtn.hidden = true;
+    backBtn.disabled = true;
+    dragBar = false;
+    contenidoAt = -1;
+    folio.setAttribute('aria-live', 'polite');
   }
 
   function closeFlip() {
     fbGen++;
+    /* Al cerrar el libro se olvida de donde se salto, y lo que giraba se corta */
+    rec.reiniciar();
+    cerrarRuta();
     if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
     fb = null;
     g = null;
@@ -1768,6 +1848,7 @@ function initBook() {
     const [lib, texts] = await Promise.all([getLib(), getTexts(info)]);
     if (gen !== fbGen) return;          // se cerro o se abrio otra mientras cargaba
     const { PageFlip } = lib;
+    rec.cortar();                       // un reencuadernado a medio viaje: lo que giraba se corta (de donde se salto, no)
 
     /* LAS PAGINAS, aun sueltas: se descargan antes de tocar nada, y sin
        `loading="lazy"`. Las que la libreria no muestra estan en
@@ -1901,9 +1982,17 @@ function initBook() {
     fb.on('changeState', (e) => {
       if (!fb) return;                  // cerrado en pleno giro: la libreria avisa una vez mas, ya sin libro
       if (e.data === 'flipping') land(false);
-      if (e.data === 'read' && was !== 'read' && was !== 'fold_corner') show(fb.getCurrentPageIndex(), 250);
+      if (e.data === 'read' && was !== 'read' && was !== 'fold_corner') {
+        show(fb.getCurrentPageIndex(), 250);
+        rec.alCaer();                   // en un viaje, sale la hoja que sigue; si se pidio algo con una girando, se hace ahora
+      }
       was = e.data;
     });
+
+    /* Recorrer el libro: el contenido se reconoce por sus enlaces (pliegos.js → hojaDelContenido) y la barra va de 1 a la ultima */
+    contenidoAt = hojaDelContenido(texts, n);
+    rec.recortar(n);
+    abrirRuta();
     return fb;
   }
 
@@ -1916,18 +2005,15 @@ function initBook() {
     const left = dragged ? full * 0.5 : full;
     const c = fb.getFlipController().calc;
     let target = null;
-    if (jump) {
-      target = jump.i;
-      if (cam) side = jump.side;
-    } else if (c && (!dragged || c.getPosition().x <= 0)) {
+    if (c && (!dragged || c.getPosition().x <= 0)) {
       const fwd = c.getDirection() === 0;
       const i = fb.getCurrentPageIndex();
       target = fwd ? spreadOf(i === 0 ? 1 : i + 2) : spreadOf(i - 1);
       if (cam) side = fwd ? 'l' : 'r';
     }
-    jump = null;
     if (target != null) show(target, left * 0.95);
-    rustle(heavy, left / 1000);
+    /* En un viaje, una hoja de cada tres suena (las de carton, siempre): un frufru, no una rafaga */
+    if (rec.suena(heavy)) rustle(heavy, left / 1000);
   }
 
   /* Con raton, el arrastre lo lleva la libreria: se suelta en `window`,
@@ -1953,26 +2039,96 @@ function initBook() {
     if (dir > 0) fb.flipNext('bottom'); else fb.flipPrev('bottom');
   }
 
+  /* ---- Ir lejos: el viaje de varias hojas, «Volver», la barra ----
+     Las cuentas (a donde van las hojas, la pila de «Volver», la barra) viven en scripts/lector/ (pliegos.js, recorrido.js);
+     aqui solo se le dice al recorrido como se mueve ESTE libro. */
+  const RAPIDA = 95;          // ms de una hoja cuando pasan muchas seguidas
+  const RAPIDA_DURA = 150;    // y si es de carton
+  const rec = crearRecorrido({
+    n: () => (fb ? count() : 0),
+    estado: () => (fb ? fb.getState() : null),
+    aqui: () => (fb ? pliegoDe(fb.getCurrentPageIndex(), count()) : 0),
+    /* De golpe, sin girar: el libro se pone en el pliego `i` (en silencio: el viaje ya esta en marcha) */
+    saltar(i) {
+      heavy = false;
+      try { fb.turnToPage(i); } catch (err) { /* ya estaba ahi */ }
+      show(i, 0);
+    },
+    /* Una hoja del viaje. Si son varias, rapido; la ultima de un viaje corto, como cualquier hoja. */
+    girar(dir, rapida) {
+      weigh(dir);
+      if (rapida) fb.getSettings().flippingTime = quiet.matches ? LIGHT : heavy ? RAPIDA_DURA : RAPIDA;
+      if (dir > 0) fb.flipNext('bottom'); else fb.flipPrev('bottom');
+    },
+    paso: step,
+    /* Ya estaba donde se pedia (o el viaje no tuvo hojas): se posa mirando hacia donde toca */
+    llego(i, mira) {
+      if (!fb) return;
+      if (cam && mira) side = mira;
+      show(i, 420);
+    },
+    /* Un lector de pantalla no tiene que leer cada hoja que pasa: se dice una sola vez, al llegar */
+    empieza() {
+      clearTimeout(autoOpen);
+      folio.setAttribute('aria-live', 'off');
+    },
+    acaba(fin, mira, forzar) {
+      if (!fb) return;
+      if (forzar) {
+        /* Algo no llego: si una hoja sigue girando (la pestaña estuvo oculta y el reloj de la libreria no corrio), primero se
+           termina; saltar con la hoja en el aire la deja a medias */
+        try { fb.getRender().finishAnimation(); } catch (err) { /* no habia nada girando */ }
+        try { fb.turnToPage(fin); } catch (err) { /* queda donde esta */ }
+      }
+      fb.getSettings().flippingTime = LIGHT;
+      const en = pliegoDe(fb.getCurrentPageIndex(), count());
+      if (cam && mira && en === fin) side = mira;
+      show(en, 380);
+      /* Al llegar se dice la pagina: la region vuelve a hablar y el texto cambia (un espacio de ancho cero, que no se ve) */
+      folio.setAttribute('aria-live', 'polite');
+      if (folio.textContent) folio.textContent += '​';
+    },
+    cambio: () => { if (fb) syncRuta(rec.destino() == null ? fb.getCurrentPageIndex() : rec.destino()); },
+    tope: () => (quiet.matches ? 1 : 10),
+  });
+
+  /* Un salto lejos: una fila del contenido, un enlace de pagina, Inicio, Fin, RePag, AvPag, la barra. Apila de donde se sale. */
   function goTo(p) {
     if (!fb) return;
     clearTimeout(autoOpen);
-    const target = spreadOf(Math.max(0, Math.min(count() - 1, p)));
-    const look = pagesOf(target).length === 2 ? (p === target ? 'l' : 'r') : side;
-    if (target === fb.getCurrentPageIndex()) {
-      if (cam) side = look;
-      show(target, 420);
-      return;
-    }
-    jump = { i: target, side: look };
-    heavy = false;
-    fb.getSettings().flippingTime = LIGHT;
-    fb.flip(target);
+    rec.irA(Math.max(0, Math.min(count() - 1, p)));
   }
+  const goBack = () => { if (fb) { clearTimeout(autoOpen); rec.volver(); } };
+  const goContents = () => { if (fb && contenidoAt >= 0) goTo(contenidoAt); };
+  /* Diez pliegos adelante (d > 0) o atras (d < 0), contados desde donde va el libro (varios se suman) */
+  const goTen = (d) => { if (fb) goTo(pliegoALaVuelta(rec.enViaje() ? rec.lugar() : fb.getCurrentPageIndex(), count(), d)); };
 
   flipBox.addEventListener('click', (e) => {
     const go = e.target.closest('[data-flip-to]');
     if (go) goTo(Number(go.dataset.flipTo));
   });
+
+  backBtn.addEventListener('click', goBack);
+  contBtn.addEventListener('click', goContents);
+  /* Arrastrar la barra dice la pagina; al soltar (`change`) el libro viaja hasta ahi */
+  bar.addEventListener('input', () => { dragBar = true; pintarBarra(); });
+  bar.addEventListener('change', () => {
+    dragBar = false;
+    if (!fb) return;
+    clearTimeout(autoOpen);
+    if (!rec.desdeBarra(bar.value)) syncRuta(rec.destino() == null ? fb.getCurrentPageIndex() : rec.destino());
+  });
+  /* A un `input` siempre le sigue un `change` al soltar: no se suelta en `pointerup` (con el dedo `change` puede llegar en otra
+     tarea y la barra volveria al valor viejo antes de viajar). Solo si el dedo se levanta donde empezo (no habra `change`) o se cancela. */
+  let barAlBajar = null;
+  const barSuelta = () => setTimeout(() => {
+    dragBar = false;
+    if (fb) syncRuta(rec.destino() == null ? fb.getCurrentPageIndex() : rec.destino());
+  }, 0);
+  bar.addEventListener('pointerdown', () => { barAlBajar = bar.value; });
+  bar.addEventListener('pointerup', () => { if (bar.value === barAlBajar) barSuelta(); });
+  bar.addEventListener('pointercancel', barSuelta);
+  bar.addEventListener('blur', barSuelta);
 
   /* ---- El dedo en el movil ----
      Se decide con el primer movimiento claro: hacia la pagina que no se
@@ -2033,7 +2189,7 @@ function initBook() {
     const dx = e.clientX - G.x;
     const fast = Math.abs(dx) / Math.max(1, performance.now() - G.t) > 0.45 && Math.abs(dx) > 30;
     if (!G.mode) {
-      if (e.type === 'pointerup') step(e.clientX > innerWidth * 0.4 ? 1 : -1);
+      if (e.type === 'pointerup') rec.paso(e.clientX > innerWidth * 0.4 ? 1 : -1, true);
     } else if (G.mode === 'pan') {
       if (fast || Math.abs(dx) > pw * 0.22) side = dx < 0 ? 'r' : 'l';
       show(fb.getCurrentPageIndex(), 380);
@@ -2324,8 +2480,8 @@ function initBook() {
   ld.text.addEventListener('click', () => { if (cur && cur.f.v.texto) readText(cur.id, false); });
 
   /* Mientras el PDF llega no hay libro al que pasar hojas (ni el escrito, que esta oculto) */
-  const next = () => (fb ? step(1) : booting ? null : set(k + 1));
-  const prev = () => (fb ? step(-1) : booting ? null : set(k - 1));
+  const next = () => (fb ? rec.paso(1, true) : booting ? null : set(k + 1));
+  const prev = () => (fb ? rec.paso(-1, true) : booting ? null : set(k - 1));
 
   /* ---- Arrastrar la esquina ---- */
   const pageWidth = () => block.getBoundingClientRect().width / (spread ? 2 : 1);
@@ -2420,7 +2576,18 @@ function initBook() {
 
   d.addEventListener('keydown', (e) => {
     if (openSheets[openSheets.length - 1] !== s.panel || booting) return;
-    const keys = { ArrowRight: next, PageDown: next, ArrowLeft: prev, PageUp: prev,
+    /* Con la lupa abierta el libro de fondo no se mueve: ni B ni RePag ni AvPag */
+    if (zoom && fb && /^(b|B|PageUp|PageDown)$/.test(e.key)) return;
+    /* La barra de recorrer tiene sus propias teclas (flechas, Inicio, Fin, RePag, AvPag): se mueve sola y, al soltar, el libro viaja */
+    if (fb && e.target === bar && /^(Arrow|Home$|End$|Page)/.test(e.key)) return;
+    /* B: volver al lugar de donde se salto (solo en los libros en PDF) */
+    if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey && !e.altKey && fb) {
+      e.preventDefault();
+      goBack();
+      return;
+    }
+    /* RePag y AvPag pasan diez hojas en el libro en PDF (el de texto sigue pasando una) */
+    const keys = { ArrowRight: next, PageDown: () => (fb ? goTen(1) : next()), ArrowLeft: prev, PageUp: () => (fb ? goTen(-1) : prev()),
                    Home: () => (fb ? goTo(0) : set(0)),
                    End: () => (fb ? goTo(fb.getPageCount() - 1) : set(maxK())) };
     if (!keys[e.key]) return;

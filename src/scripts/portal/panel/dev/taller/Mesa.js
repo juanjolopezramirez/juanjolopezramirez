@@ -12,6 +12,7 @@ import { ConfigPagina, colorDeLetra } from '../../../../contenido/taller/ConfigP
 import { familiaCss } from '../../../../contenido/taller/fuentes.js';
 import { cssLibro } from '../../../../contenido/taller/hoja.js';
 import { armar } from '../../../../contenido/taller/armar.js';
+import { FIGURA_NUEVA } from '../../../../contenido/taller/Figuras.js';
 import { AL_FINAL, debeFijarPortada, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice as lugarDelIndiceDe, conMinis, opcionesDeIndice as opcionesDe, palabraLimpia, PALABRA_MAX, ROLES, rolLimpio, rotulosDe, tituloDeIndice } from '../../../../contenido/taller/IndiceLibro.js';
 import { grupoDe, gruposDe, planCambio } from '../../../../contenido/taller/OrigenPdf.js';
 import { contextosDeCabeza, lugaresDeCabeza } from '../../../../contenido/taller/CabezaLibro.js';
@@ -977,9 +978,18 @@ export class Mesa {
     if (que === 'cuadro') { this.hojaParaObjeto().agregar({ tipo: 'texto', texto: this.tx.escribeAqui, x: 20, y: 40, w: 60, h: 10, rot: 0, tam: '14pt', color: '', fuente: '', alinear: '' }); return; }
     if (que === 'zona') { this.hojaParaObjeto().agregar({ tipo: 'zona', nombre: this.tx.zonaNueva, x: 16, y: 50, w: 68, h: 22, rot: 0, bloques: [] }); return; }
     if (que === 'boton') { this.ponerBoton(); return; }
+    if (que.startsWith('figura:')) { this.ponerFigura(que.slice(7)); return; }
     if (que === 'pasaje') { this.ponerPasaje(); return; }
     if (que === 'subetapa') { this.ponerSubetapa(); return; }
     if (que === 'capitulo') this.nuevoCapitulo();
+  }
+
+  /* Una figura nueva va al centro de la pagina libre elegida (o de una nueva), con una medida en milimetros que se ve bien en cualquier hoja */
+  ponerFigura(forma) {
+    const base = Object.hasOwn(FIGURA_NUEVA, forma) ? FIGURA_NUEVA[forma] : null;
+    if (!base) return;
+    const p = this.config(), w = (base.mm[0] / p.anchoMm) * 100, h = (base.mm[1] / p.altoMm) * 100;
+    this.hojaParaObjeto().agregar({ tipo: 'figura', forma, ...base.datos, x: Math.round(((100 - w) / 2) * 100) / 100, y: Math.round(((100 - h) / 2) * 100) / 100, w: Math.round(w * 100) / 100, h: Math.round(h * 100) / 100, rot: 0 });
   }
 
   /* En la pagina libre elegida, suelto; si no, en su propia linea del texto, y el panel se abre para llenarlo */

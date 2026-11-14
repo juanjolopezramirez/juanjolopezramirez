@@ -248,6 +248,14 @@ const { tx } = Astro.props;
             <button class="tal-btn" type="button" data-insertar="capitulo">{tx.capituloNuevo}</button>
           </div>
         </details>
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.figuras}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+          <div class="tal-b-panel tal-b-panel--menu">
+            {['rect', 'elipse', 'triangulo', 'flecha', 'plano'].map((f) => (
+              <button class="tal-btn" type="button" data-insertar={`figura:${f}`}>{tx.figFormas[f]}</button>
+            ))}
+            <p class="tal-ayuda">{tx.figurasAyuda}</p>
+          </div>
+        </details>
         <button class="tal-btn" type="button" data-insertar="cuadro">{tx.objCuadro}</button>
         <button class="tal-btn" type="button" data-insertar="boton">{tx.objBoton}</button>
         <button class="tal-btn" type="button" data-insertar="pasaje">{tx.objPasaje}</button>

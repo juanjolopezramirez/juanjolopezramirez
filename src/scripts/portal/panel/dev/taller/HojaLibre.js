@@ -11,6 +11,8 @@ import { fueraDeMargen } from '../../../../contenido/taller/tipos/paginaLibre.js
 import { limpiarObjetos, OBJETOS_MAX, TEXTO_CUADRO_MAX } from '../../../../contenido/taller/tipos/objetos.js';
 import { botonIncompleto, claseDeBoton, estiloDeBoton, hijosDeBoton } from '../../../../contenido/taller/tipos/boton.js';
 import { armar, ponerEstilo } from '../../../../contenido/taller/armar.js';
+import { arbolFigura, opacidadCss } from '../../../../contenido/taller/Figuras.js';
+import { ConfigPagina } from '../../../../contenido/taller/ConfigPagina.js';
 import { TINTA_SOBRE_PDF, variablesDe } from '../../../../contenido/taller/colores.js';
 import { grupoDe, paginaDe } from '../../../../contenido/taller/OrigenPdf.js';
 
@@ -24,7 +26,8 @@ const ASAS = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 
 export class HojaLibre {
   constructor({ node, getPos, editor, mesa }) {
     Object.assign(this, { node, getPos, editor, mesa });
-    this.objetos = limpiarObjetos(node.attrs.objetos);
+    this.ids = [];
+    this.objetos = this.conIds(limpiarObjetos(node.attrs.objetos));
     this.turnoFondo = 0;
     this.elegido = '';
     this.recortando = false;
@@ -48,7 +51,19 @@ export class HojaLibre {
   get attrs() { return this.node.attrs; }
   /* En el telefono y durante un conflicto el capitulo solo se mira. `dispatch` no lo revisa: va aqui. */
   get bloqueada() { return !this.editor.isEditable; }
-  objeto(id = this.elegido) { return this.objetos.find((o) => o.id === id) || null; }
+  objeto(id = this.elegido) { return id ? this.objetos.find((o) => o.id === id) || null : null; }
+
+  /* Un objeto sin id (o con uno repetido) no se podria elegir: recibe uno propio, y lo conserva mientras siga sin tenerlo guardado */
+  conIds(lista) {
+    const vistos = new Set();
+    return lista.map((o, i) => {
+      if (o.id && !vistos.has(o.id)) { vistos.add(o.id); return o; }
+      let id = this.ids[i];
+      if (!id || vistos.has(id)) id = this.ids[i] = nuevoId();
+      vistos.add(id);
+      return { ...o, id };
+    });
+  }
 
   /* ---- Lo que ProseMirror pregunta ---- */
   stopEvent() { return true; }
@@ -57,7 +72,7 @@ export class HojaLibre {
     if (n.type.name !== 'paginaLibre') return false;
     this.node = n;
     if (!this.ocupado) {
-      this.objetos = limpiarObjetos(n.attrs.objetos);
+      this.objetos = this.conIds(limpiarObjetos(n.attrs.objetos));
       if (!this.objeto()) this.elegido = '';
       this.pintar();
       if (this.mesa.hojaActiva === this) this.mesa.alElegir(this);
@@ -162,9 +177,28 @@ export class HojaLibre {
       e.replaceChildren(...hijosDeBoton(o).map((h) => armar(h)).filter(Boolean));
       e.style.fontSize = o.tam;
       ponerEstilo(e, estiloDeBoton(o));
-    } else e.textContent = o.nombre;
+    } else if (o.tipo === 'figura') this.pintarFigura(e, o);
+    else e.textContent = o.nombre;
     if (this.mesa.segura && o.tipo !== 'zona' && fueraDeMargen({ caja: null, objetos: [o] }, this.mesa.margenes()).objetos.length) e.classList.add('fuera');
     return e;
+  }
+
+  /* La figura la dibuja Figuras.js, el mismo dibujo que sale en el PDF. Su viewBox mide milimetros reales: al cambiar de tamaño se vuelve a trazar. */
+  pintarFigura(e, o) {
+    const c = new ConfigPagina(this.mesa.config()), dibujo = armar(arbolFigura(o, { anchoMm: c.anchoMm, altoMm: c.altoMm }));
+    e.replaceChildren(...(dibujo ? [dibujo] : []));
+    e.style.removeProperty('opacity');
+    ponerEstilo(e, o.opacidad < 100 ? { opacity: opacidadCss(o.opacidad) } : {});
+    /* Para el lector de pantalla: lo que el autor dijo que muestra, o su forma («Triángulo, esquina recta») */
+    e.setAttribute('role', 'img');
+    e.setAttribute('aria-label', this.nombreFigura(o));
+    e.dataset.medida = `${o.w}|${o.h}`;
+  }
+
+  nombreFigura(o) {
+    if (o.alt) return o.alt;
+    const tx = this.mesa.tx, v = tx.figVariantes[o.variante], forma = tx.figFormas[o.forma];
+    return v ? `${forma}, ${v[0].toLowerCase()}${v.slice(1)}` : forma;
   }
 
   refrescarObjeto(o) {
@@ -172,6 +206,7 @@ export class HojaLibre {
     if (!e) return;
     this.ponerCaja(e, o);
     if (o.tipo === 'imagen') this.ponerImagen(o, e.querySelector('img'));
+    if (o.tipo === 'figura' && e.dataset.medida !== `${o.w}|${o.h}`) this.pintarFigura(e, o);
   }
 
   pintarMarco() {
@@ -208,7 +243,7 @@ export class HojaLibre {
     this.pintarMarco();
     this.mesa.alElegir(this);
     const o = this.objeto();
-    if (o) this.mesa.decir({ imagen: this.mesa.tx.objImagen, texto: this.mesa.tx.objCuadro, zona: this.mesa.tx.objZona, boton: this.mesa.tx.objBoton }[o.tipo]);
+    if (o) this.mesa.decir({ imagen: this.mesa.tx.objImagen, texto: this.mesa.tx.objCuadro, zona: this.mesa.tx.objZona, boton: this.mesa.tx.objBoton, figura: o.tipo === 'figura' ? this.nombreFigura(o) : '' }[o.tipo]);
   }
 
   /* ---- El puntero ---- */
@@ -308,7 +343,8 @@ export class HojaLibre {
     this.arrastrar(e, (dx, dy, v) => {
       const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
       let nw = Math.max(MINIMO_PX, w0 + sx * lx), nh = Math.max(MINIMO_PX, h0 + sy * ly);
-      if (esquina && o.tipo === 'imagen' && !v.shiftKey) { if (nw / prop > nh) nh = nw / prop; else nw = nh * prop; }
+      /* Una imagen conserva su proporcion y Mayus la suelta; una figura nace libre y Mayus la conserva */
+      if (esquina && ((o.tipo === 'imagen' && !v.shiftKey) || (o.tipo === 'figura' && v.shiftKey))) { if (nw / prop > nh) nh = nw / prop; else nw = nh * prop; }
       if (!sx) nw = w0;
       if (!sy) nh = h0;
       const dw = nw - w0, dh = nh - h0;
