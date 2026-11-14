@@ -200,6 +200,10 @@ export class Mesa {
   esPortada(v) { return this.vivos[0] === v && this.conPortada(); }
 
   medir() {
+    /* LA CONTRAPORTADA va siempre al final: si esta en otro lugar (se acaba de marcar, o se agrego un capitulo despues), se manda
+       alli (moverCapitulo vuelve a medir). Nunca la portada misma. */
+    const contra = this.vivos.find((x) => x.rol === 'contraportada');
+    if (contra && this.editable && !this.moviendo && this.vivos[this.vivos.length - 1] !== contra && !(this.vivos[0] === contra && this.conPortada())) { this.moverCapitulo(contra, 0); return; }
     const p = this.px, entradas = this.entradasDeIndice(), reparto = this.repartoDeIndice(entradas), ind = reparto.length, antes = this.lugarDelIndice();
     this.paginas = [];
     this.gruposCache = null;
@@ -209,8 +213,9 @@ export class Mesa {
     this.vivos.forEach((v, k) => {
       if (k === antes) meterIndice();
       v.primera = n + 1;
-      /* El encabezado va en las hojas de texto de todos los capitulos menos la portada */
-      n += v.medir(n + 1, p, this.z, this.segura, { ...pie, portada: portada && k === 0 }, cabeza && !(portada && k === 0) ? cabeza(k) : null);
+      /* El encabezado va en las hojas de texto de todos los capitulos menos la portada y la contraportada; ninguna de las dos lleva numero */
+      const sinPie = (portada && k === 0) || v.rol === 'contraportada';
+      n += v.medir(n + 1, p, this.z, this.segura, { ...pie, portada: sinPie }, cabeza && !sinPie ? cabeza(k) : null);
       for (const f of v.filas) this.paginas.push({ vivo: v, ...f });
     });
     if (antes >= this.vivos.length) meterIndice();

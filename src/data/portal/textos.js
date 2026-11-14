@@ -191,7 +191,7 @@ export const PORTAL_TEXTOS = {
         objSubetapa: 'Subetapa', subetapaEjemplo: 'Actividades', subetapaNombre: 'Nombre', subetapasUsuales: ['Actividades', 'Quiz', 'Proyecto'],
         subetapaAyuda: 'Una franja que siempre empieza una hoja nueva. Lo que sigue es de esta subetapa.',
         rolDelCapitulo: 'Papel del capítulo', rolOtro: 'Otro…', rolOtroEtiqueta: '¿Cómo se llama?', rolOtroAyuda: 'Hasta 30 letras.', rolQuitar: 'Quitar papel',
-        roles: { prefacio: 'Prefacio', introduccion: 'Introducción', conclusion: 'Conclusión', agradecimientos: 'Agradecimientos', citas: 'Citas', referencias: 'Referencias', apendice: 'Apéndice' },
+        roles: { prefacio: 'Prefacio', introduccion: 'Introducción', conclusion: 'Conclusión', agradecimientos: 'Agradecimientos', citas: 'Citas', referencias: 'Referencias', apendice: 'Apéndice', contraportada: 'Contraportada (al final, sin número)' },
         rolPuesto: 'Listo: este capítulo ya no lleva número.', rolQuitado: 'Listo: este capítulo vuelve a contar.',
         palabraPropia: 'Palabra propia', palabraEtiqueta: '¿Qué palabra usa este capítulo?', palabraAyuda: 'Por ejemplo: Etapa. Sale en vez de «Capítulo» y cuenta aparte. Vacía, usa la del libro.',
         palabraConRol: 'Un capítulo con papel no lleva número.', palabraPuesta: 'Listo: este capítulo usa su propia palabra.', palabraQuitada: 'Listo: vuelve a usar la palabra del libro.',

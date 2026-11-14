@@ -101,11 +101,14 @@ export const palabraDeRotulo = (rotulo, idioma) => textoIndice(rotulo && rotulo.
 /* EL PAPEL DE UN CAPITULO (`rol`): un prefacio, una introduccion, una conclusion... No cuenta en la numeracion: el
    «Capítulo 1» es el primero de verdad. Con «Otro» el autor escribe el nombre (`rolTexto`). Es un nombre del
    libro, asi que sale en el idioma del libro. */
-export const ROLES = ['prefacio', 'introduccion', 'conclusion', 'agradecimientos', 'citas', 'referencias', 'apendice'];
+export const ROLES = ['prefacio', 'introduccion', 'conclusion', 'agradecimientos', 'citas', 'referencias', 'apendice', 'contraportada'];
 const NOMBRES_ROL = {
-  es: { prefacio: 'Prefacio', introduccion: 'Introducción', conclusion: 'Conclusión', agradecimientos: 'Agradecimientos', citas: 'Citas', referencias: 'Referencias', apendice: 'Apéndice' },
-  en: { prefacio: 'Preface', introduccion: 'Introduction', conclusion: 'Conclusion', agradecimientos: 'Acknowledgments', citas: 'Quotes', referencias: 'References', apendice: 'Appendix' }
+  es: { prefacio: 'Prefacio', introduccion: 'Introducción', conclusion: 'Conclusión', agradecimientos: 'Agradecimientos', citas: 'Citas', referencias: 'Referencias', apendice: 'Apéndice', contraportada: 'Contraportada' },
+  en: { prefacio: 'Preface', introduccion: 'Introduction', conclusion: 'Conclusion', agradecimientos: 'Acknowledgments', citas: 'Quotes', referencias: 'References', apendice: 'Appendix', contraportada: 'Back cover' }
 };
+/* LA CONTRAPORTADA es un papel con cuatro efectos: no sale en el contenido, no lleva numero de pagina, no lleva encabezado y
+   siempre va al FINAL del libro (Mesa.ponerRol la manda alli). Como la portada, pero atras. */
+export const esContraportada = (c) => !!c && c.rol === 'contraportada';
 /* Solo un papel de la lista, o `custom` con su texto: lo demas no es papel. Devuelve { rol, rolTexto } limpios. */
 export function rolLimpio(rol, rolTexto) {
   if (typeof rol !== 'string') return { rol: '', rolTexto: '' };
@@ -130,6 +133,7 @@ export function rotulosDe(capitulos, { rotulo = {}, idioma = 'es', portada = fal
   return capitulos.map((c, k) => {
     const rol = nombreDeRol(c.rol, c.rolTexto, idioma);
     if (portada && k === 0) return { numero: 0, orden: '', rotulo: '', rol: '' };
+    if (esContraportada(c)) return { numero: 0, orden: '', rotulo: '', rol: '' };
     if (c.enIndice === false) return { numero: 0, orden: '', rotulo: '', rol };
     if (rol) return { numero: 0, orden: '', rotulo: r.ver === true || verRol === true ? rol : '', rol };
     if (c.numerar === false) return { numero: 0, orden: '', rotulo: '', rol: '' };
@@ -173,6 +177,7 @@ export function entradasDe(capitulos, { subtemas = true, portada = false, rotulo
   for (const [k, c] of capitulos.entries()) {
     if (lista.length >= ENTRADAS_MAX) break;
     if (portada && k === 0) continue;
+    if (esContraportada(c)) continue;
     const nombreCap = textoIndice(c.titulo, TEXTO_FILA_MAX), r = rotulos[k];
     if (c.enIndice === false || (!nombreCap && !r.rotulo)) continue;
     const mini = minis ? miniDe(c) : '';

@@ -145,6 +145,23 @@ const permitido = (n) => {
 await ok('todos los casos salen solo con etiquetas, atributos y estilos permitidos', () => {
   for (const c of Object.values(CASOS).flatMap((x) => [...x.bueno, ...x.hostil])) aNodos(doc(c), 'pdf').forEach(permitido);
 });
+await ok('contraportada: es un papel, no sale en el contenido, no lleva numero ni encabezado y su hoja no cuenta en el PDF', () => {
+  assert.ok(I.ROLES.includes('contraportada'));
+  assert.equal(I.nombreDeRol('contraportada', '', 'es'), 'Contraportada');
+  assert.equal(I.nombreDeRol('contraportada', '', 'en'), 'Back cover');
+  assert.equal(I.esContraportada({ rol: 'contraportada' }), true);
+  assert.equal(I.esContraportada({ rol: 'prefacio' }), false);
+  const caps = [{ titulo: 'Uno', ancla: 't-00000001' }, { titulo: 'Atras', ancla: 't-00000002', rol: 'contraportada' }];
+  const ent = I.entradasDe(caps, { verRol: true });
+  assert.deepEqual(ent.filter((e) => e.nivel === 1).map((e) => e.titulo), ['Uno'], 'la contraportada no sale en el contenido');
+  const rs = I.rotulosDe(caps, { rotulo: { ver: true }, verRol: true });
+  assert.deepEqual([rs[1].numero, rs[1].rotulo, rs[1].rol], [0, '', ''], 'ni numero ni rotulo ni papel visible');
+  assert.equal(rs[0].numero, 1, 'el capitulo 1 sigue siendo el primero');
+  const obra = new Obra({ titulo: 'T', pagina: { cabeza: { ver: true } } }).aDatos();
+  const h = aHoja(obra, [{ titulo: 'Uno', contenido: doc(parrafo('a')) }, { titulo: 'Atras', contenido: { ...doc(parrafo('fin')), rol: 'contraportada' } }], { indice: { numeros: {}, reparto: [] } });
+  assert.match(h.css, /@page contraportada \{[^}]*@bottom-center \{ content: none; \}/, 'su pagina con nombre no lleva numero');
+  assert.match(h.css, /\.capitulo\.capitulo--contraportada \{ page: contraportada; \}/);
+});
 await ok('el indice sale con sus numeros, cada capitulo con su ancla, y la caja del texto en pixeles enteros', () => {
   const obra = new Obra({ titulo: 'T', pagina: { indice: true } }).aDatos();
   const h = aHoja(obra, [{ titulo: 'Uno', contenido: doc(parrafo('a')) }], { indice: { numeros: { 'cap-1': 2 }, reparto: [1] } });

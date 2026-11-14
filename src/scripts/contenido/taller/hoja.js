@@ -16,7 +16,7 @@ import { objeto } from '../comun.js';
 import { el } from './tipos/ayuda.js';
 import { FUENTE_HEBREO } from './tipos/pasaje.js';
 import { FORMAS } from './iconosBoton.js';
-import { conMinis, entradasDe, hayPortada, hojasDeIndice, lugarDelIndice, opcionesDeIndice } from './IndiceLibro.js';
+import { conMinis, entradasDe, esContraportada, hayPortada, hojasDeIndice, lugarDelIndice, opcionesDeIndice } from './IndiceLibro.js';
 
 const tieneClase = (n, c) => !!n && ((n.clase || '').split(' ').includes(c) || (n.hijos || []).some((h) => tieneClase(h, c)));
 
@@ -235,6 +235,12 @@ function cssImpresion(config, usados) {
 .capitulo.capitulo--portada.papel-${nombre(usados.portada)} { page: portada-${nombre(usados.portada)}; }`
       : `\n@page portada { ${sinNumero} }
 .capitulo.capitulo--portada { page: portada; }`;
+  /* La contraportada, lo mismo: su pagina con nombre no lleva numero (y con su papel, el color llega al borde) */
+  const deContra = usados.contra === undefined ? ''
+    : usados.contra ? `\n@page contraportada-${nombre(usados.contra)} { background: ${usados.contra}; ${sinNumero} }
+.capitulo.capitulo--contraportada.papel-${nombre(usados.contra)} { page: contraportada-${nombre(usados.contra)}; }`
+      : `\n@page contraportada { ${sinNumero} }
+.capitulo.capitulo--contraportada { page: contraportada; }`;
   /* EL ENCABEZADO. Chrome no cambia el texto de un margen a mitad de hoja: cada texto distinto es una pagina con nombre
      (cab-N), y lo que sigue a una subetapa va en su propia parte (la subetapa siempre abre hoja). La distancia es la
      del borde de arriba de la hoja (con la sangre de imprenta incluida); el renglon mide lo mismo que en la mesa. */
@@ -269,7 +275,7 @@ ${CSS_FLUJO(p)}
 .obj--imagen { overflow: hidden; } .obj--imagen img { position: absolute; max-width: none; }
 .obj--texto { white-space: pre-wrap; overflow-wrap: anywhere; padding: 4px; font-family: ${familiaCss(b.fuente)}; line-height: 1.3; }
 ${deCapitulos}
-${deLibres}${dePortada}${conCabezas}
+${deLibres}${dePortada}${deContra}${conCabezas}
 .subetapa { break-before: column; }
 .pag-libre.pag-libre--pdf { --hoja-tinta: ${TINTA_SOBRE_PDF}; }
 ${cssLibro(config)}`;
@@ -337,9 +343,12 @@ export function aHoja(obra, capitulos, o = {}) {
     const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres, paginaMm: { anchoMm: config.anchoMm, altoMm: config.altoMm } });
     const esPortada = portada && i === 0;
     if (esPortada) usados.portada = propio || '';
-    /* El encabezado de sus hojas de texto (nunca el de la portada) */
-    const cabeza = contextos && !esPortada ? conCabeza(hijos, contextos[i], config.cabeza, { titulo: obra.titulo, autor: config.autor }, propio, usados) : null;
-    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}${cabeza ? cabeza.clase : ''}`, cabeza ? cabeza.hijos : flujos(hijos), { id: `cap-${i + 1}` }));
+    /* La contraportada: sin numero ni encabezado, como la portada (la mesa hace lo mismo) */
+    const esContra = !esPortada && esContraportada(caps[i]);
+    if (esContra) usados.contra = propio || '';
+    /* El encabezado de sus hojas de texto (nunca el de la portada ni el de la contraportada) */
+    const cabeza = contextos && !esPortada && !esContra ? conCabeza(hijos, contextos[i], config.cabeza, { titulo: obra.titulo, autor: config.autor }, propio, usados) : null;
+    nodos.push(el('section', `capitulo${esPortada ? ' capitulo--portada' : ''}${esContra ? ' capitulo--contraportada' : ''}${propio ? ` papel-${nombre(propio)}` : ''}${cabeza ? cabeza.clase : ''}`, cabeza ? cabeza.hijos : flujos(hijos), { id: `cap-${i + 1}` }));
   });
   if (antes >= capitulos.length) nodos.push(...indice);
   const libro = el('div', 'libro', nodos);
