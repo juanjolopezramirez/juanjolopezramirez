@@ -5226,6 +5226,33 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   .book-panel.is-open .book__ruta { animation: none; }
   .book__ruta-btn { transition: none; }
 }
+
+/* ---- LOS LADOS DEL LIBRO (pantallas anchas, libros en PDF) ----
+   Los botones ya no van todos debajo: le quitaban altura al libro. A la IZQUIERDA lo de volver (la flecha anterior, «Volver»,
+   «Contenido»); a la DERECHA lo de avanzar (la flecha siguiente, la lupa, el sonido); ABAJO solo el folio y la barra de recorrer.
+   Las dos cajas (.book__nav y .book__ruta) dejan de ser cajas (`display: contents`) y cada boton ocupa su lugar en la cuadricula
+   del marco. En el telefono y en ventanas estrechas queda la fila de abajo de siempre. site.js (flipSize) reserva menos alto. */
+@media (min-width: 820px) {
+  .book-panel__frame:has(> .flip:not([hidden])) {
+    grid-template-columns: minmax(4.5rem, 1fr) auto minmax(4.5rem, 1fr);
+    grid-template-rows: 1fr auto auto auto 1fr auto auto;
+    column-gap: 1.1rem; row-gap: .6rem;
+    align-items: center;
+  }
+  .book-panel__frame:has(> .flip:not([hidden])) > .flip,
+  .book-panel__frame:has(> .flip:not([hidden])) > .carga { grid-column: 2; grid-row: 1 / 6; align-self: center; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__nav,
+  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta:not([hidden]) { display: contents; animation: none; }
+  .book-panel__frame:has(> .flip:not([hidden])) [data-book-prev] { grid-column: 1; grid-row: 2; justify-self: end; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-btn[data-book-volver] { grid-column: 1; grid-row: 3; justify-self: end; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-btn[data-book-contenido] { grid-column: 1; grid-row: 4; justify-self: end; }
+  .book-panel__frame:has(> .flip:not([hidden])) [data-book-next] { grid-column: 3; grid-row: 2; justify-self: start; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__zoom { grid-column: 3; grid-row: 3; justify-self: start; position: static; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__sound { grid-column: 3; grid-row: 4; justify-self: start; position: static; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__folio { grid-column: 2; grid-row: 6; justify-self: center; }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-barra { grid-column: 2; grid-row: 7; justify-self: center; width: min(36rem, calc(100vw - 12rem)); }
+  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-valor { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .leaf, .book__block, .page__seal-ink { transition: none; }
   .book-panel__frame { animation: none; transition: opacity .2s linear; }

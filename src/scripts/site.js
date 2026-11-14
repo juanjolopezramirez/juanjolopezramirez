@@ -1715,8 +1715,11 @@ function initBook() {
     /* En una ventana muy baja (un telefono de lado) las filas se aprietan (base.css, max-height: 460px) y el suelo baja: lo de
        abajo tiene que verse entero. */
     const baja = innerHeight <= 460;
-    const room = Math.max(baja ? 120 : 240, innerHeight - (baja ? 9.4 : 11.2) * parseFloat(getComputedStyle(d.documentElement).fontSize));
-    const w = Math.floor(Math.min(two ? (innerWidth - 96) / 2 : innerWidth - 28, room * ratio, 640));
+    /* En pantallas anchas los botones van a los LADOS del libro (base.css, «Los lados del libro»): abajo queda solo el folio y la barra,
+       asi el libro gana altura, y a cambio se le quita el ancho de las dos columnas de botones. */
+    const lados = innerWidth >= 820;
+    const room = Math.max(baja ? 120 : 240, innerHeight - (lados ? 8 : baja ? 9.4 : 11.2) * parseFloat(getComputedStyle(d.documentElement).fontSize));
+    const w = Math.floor(Math.min(two ? (innerWidth - 96 - (lados ? 184 : 0)) / 2 : innerWidth - 28 - (lados ? 184 : 0), room * ratio, 640));
     return { cam: !two, pw: w, ph: Math.round(w / ratio) };
   }
 
