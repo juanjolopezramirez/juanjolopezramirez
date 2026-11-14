@@ -500,7 +500,7 @@ export class Propiedades {
     const tx = this.tx, a = v.node.attrs, l = this.lienzo;
     l.append(crear('h2', '', tx.objImagenTexto), crear('p', '', tx.imagenTextoAyuda));
     l.append(
-      this.segmento([['linea', tx.enLinea], ['izq', tx.aIzquierda], ['der', tx.aDerecha]], a.modo, (k) => { v.updateAttributes({ modo: k }); this.deImagen(v); }),
+      this.segmento([['linea', tx.enLinea], ['izq', tx.aIzquierda], ['centro', tx.aCentro], ['der', tx.aDerecha]], a.modo, (k) => { v.updateAttributes({ modo: k }); this.deImagen(v); }),
       this.par(tx.anchoPct, a.anchoPct, (n) => v.updateAttributes({ anchoPct: n })), this.par(tx.alt, a.alt, (t) => v.updateAttributes({ alt: t }), 'text'), this.par(tx.pie, a.pie, (t) => v.updateAttributes({ pie: t }), 'text'), this.par(tx.adorno, a.decorativa, (s) => v.updateAttributes({ decorativa: s }), 'checkbox')
     );
     const ac = crear('div', 'tal-junto');

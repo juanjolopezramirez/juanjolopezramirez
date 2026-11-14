@@ -143,6 +143,7 @@ const cssBaseDe = (letra, b, capital, conCapital, cita, hilo) => `.libro, .libro
 .libro .imagen img { display: block; max-width: 100%; height: auto; }
 .libro .imagen--izq { float: left; margin: .3em 1em .5em 0; }
 .libro .imagen--der { float: right; margin: .3em 0 .5em 1em; }
+.libro .imagen--centro { margin: .3em auto .5em; }
 .libro .imagen--linea img { margin: 0 auto; }
 .libro .imagen figcaption { font-size: .85em; margin-top: .4em; }
 .libro .columnas { display: grid; gap: 6mm; margin: 1em 0; break-inside: avoid; }

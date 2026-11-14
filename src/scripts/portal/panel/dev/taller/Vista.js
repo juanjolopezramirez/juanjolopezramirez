@@ -33,7 +33,28 @@ export class Vista {
     else this.marco.src = RUTA;
   }
 
-  imprimir() { this.marco.contentWindow.focus(); this.marco.contentWindow.print(); }
+  /* El navegador escribe en el PDF el titulo de la pagina de arriba: se le pone el del libro mientras se imprime */
+  imprimir() {
+    if (this.volverTitulo) this.volverTitulo();                 // una impresion anterior sin terminar: primero se devuelve el titulo
+    const w = this.marco.contentWindow, antes = document.title;
+    let libro = '';
+    try { libro = w.document.title; } catch (e) { /* otro origen: se deja el de arriba */ }
+    if (libro) document.title = libro;
+    let reloj = 0;
+    const volver = () => {
+      clearTimeout(reloj);
+      window.removeEventListener('afterprint', volver);
+      try { w.removeEventListener('afterprint', volver); } catch (e) { /* ya cerrado */ }
+      document.title = antes;
+      this.volverTitulo = null;
+    };
+    this.volverTitulo = volver;
+    window.addEventListener('afterprint', volver);
+    try { w.addEventListener('afterprint', volver); } catch (e) { /* ya cerrado */ }
+    reloj = setTimeout(volver, 60000);
+    w.focus();
+    w.print();
+  }
 
-  soltar() { clearTimeout(this.reloj); window.removeEventListener('message', this.alRecibir); }
+  soltar() { if (this.volverTitulo) this.volverTitulo(); clearTimeout(this.reloj); window.removeEventListener('message', this.alRecibir); }
 }

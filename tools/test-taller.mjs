@@ -2175,16 +2175,19 @@ await ok('revisar el PDF: otra proporcion, otro titulo, la direccion del Taller 
   assert.deepEqual(claves({ ratioPdf: 2 / 3 }), ['edProporcion']);
   assert.deepEqual(claves({ ratioPdf: 148 / 210 * 1.005 }), [], 'un 1 % de margen');
   assert.deepEqual(claves({ ratioPdf: 0 }), ['edVacio']);
-  assert.deepEqual(claves({ tituloPdf: 'Otro libro' }), ['edTitulo']);
-  assert.deepEqual(claves({ tituloPdf: '  MI   libro ' }), [], 'mayusculas y espacios no cuentan');
+  assert.deepEqual(claves({ tituloPdf: 'Otro libro' }), [], 'un titulo distinto NO frena: el navegador puede escribir otro');
+  const aviso = RP.revisarPdf({ ...buenoPdf(), tituloPdf: 'Otro libro' }).avisos.find((a) => a.clave === 'edTitulo');
+  assert.equal(aviso.pdf, 'Otro libro');
+  assert.equal(aviso.libro, 'Mi libro', 'el aviso dice los dos nombres');
+  assert.deepEqual(RP.revisarPdf({ ...buenoPdf(), tituloPdf: '  MI   libro ' }).avisos, [], 'mayusculas y espacios no cuentan');
   assert.deepEqual(claves({ textos: ['hola', 'http://localhost:4321/taller-hoja/ 1/40'] }), ['edEncabezado']);
   assert.deepEqual(claves({ textos: ['TALLER-HOJA'] }), ['edEncabezado']);
   assert.deepEqual(claves({ saltos: [{ ancla: 'cap-1', pagina: 4 }] }), ['edContenido']);
   assert.deepEqual(claves({ saltos: [{ ancla: 'otra', pagina: 9 }] }), [], 'un salto que el Taller no conoce no se juzga');
   assert.deepEqual(claves({ saltos: [{ ancla: '__proto__', pagina: 1 }, { ancla: 'constructor', pagina: 1 }] }), []);
   const dos = RP.revisarPdf({ ...buenoPdf(), tituloPdf: 'Otro', textos: ['taller-hoja', 'taller-hoja'] }).errores;
-  assert.deepEqual(dos.map((e) => e.clave), ['edTitulo', 'edEncabezado']);
-  assert.equal(dos[1].n, 2);
+  assert.deepEqual(dos.map((e) => e.clave), ['edEncabezado']);
+  assert.equal(dos[0].n, 2);
 });
 await ok('PDF para imprenta: la hoja impresa crece 6,35 mm en cada medida y el PDF de sangre NO se rechaza', () => {
   const normal = new ConfigPagina({ anchoMm: 148, altoMm: 210 }), imprenta = new ConfigPagina({ anchoMm: 148, altoMm: 210, imprenta: true });
@@ -2199,6 +2202,12 @@ await ok('PDF para imprenta: la hoja impresa crece 6,35 mm en cada medida y el P
   assert.deepEqual(RP.revisarPdf({ ...buenoPdf(), ratioPdf: pdfChico, ratioLibro: RP.ratioDeHoja(chico) }).errores, []);
   assert.equal(chico.imprenta, true);
   assert.equal(RP.SANGRE_TOTAL_MM, 2 * 9 * 25.4 / 72);
+});
+await ok('imagen en el texto: «Centro» es un modo valido (mesa y PDF lo centran), y un modo raro vuelve a «en linea»', () => {
+  const con = (modo) => limpiarContenido({ doc: { type: 'doc', content: [{ type: 'imagen', attrs: { ruta: 'taller/x/img/a.png', modo, anchoPct: 40 } }] } }).contenido.doc.content[0].attrs.modo;
+  for (const m of ['linea', 'izq', 'centro', 'der']) assert.equal(con(m), m);
+  assert.equal(con('medio'), 'linea');
+  assert.match(cssLibro({}), /\.libro \.imagen--centro \{ margin: \.3em auto \.5em; \}/);
 });
 await ok('revisar el PDF: avisos que no frenan (otro numero de hojas que la mesa, sin titulo)', () => {
   const r = RP.revisarPdf({ ...buenoPdf(), paginas: 42, tituloPdf: '' });

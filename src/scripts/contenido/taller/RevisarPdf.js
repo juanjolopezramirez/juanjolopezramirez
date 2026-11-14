@@ -38,7 +38,11 @@ export function revisarPdf(e) {
   }
 
   const tPdf = normal(e.tituloPdf), tLibro = normal(e.titulo);
-  if (tPdf && tLibro && tPdf !== tLibro) errores.push({ clave: 'edTitulo', pdf: String(e.tituloPdf).slice(0, 80) });
+  /* Solo un AVISO: el navegador suele escribir en el PDF el titulo de la pagina del portal y no el del libro, asi que
+     un titulo distinto no prueba que sea de otro libro. Se dice y se deja subir. */
+  /* Sin caracteres de control ni de direccion (un titulo con ellos podria dar vuelta el aviso al pintarlo) */
+  const limpio = (t) => String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f‪-‮⁦-⁩]/g, '').slice(0, 80);
+  const avisoTitulo = tPdf && tLibro && tPdf !== tLibro ? { clave: 'edTitulo', pdf: limpio(e.tituloPdf), libro: limpio(e.titulo) } : null;
 
   const textos = Array.isArray(e.textos) ? e.textos : [];
   const conEncabezado = textos.filter((t) => /taller-hoja/i.test(String(t || ''))).length;
@@ -53,6 +57,7 @@ export function revisarPdf(e) {
   if (mal) errores.push({ clave: 'edContenido', n: mal });
 
   if (Number.isInteger(e.paginasMesa) && e.paginasMesa > 0 && n >= 1 && n !== e.paginasMesa) avisos.push({ clave: 'edDistintas', pdf: n, mesa: e.paginasMesa });
+  if (avisoTitulo) avisos.push(avisoTitulo);
   if (!tPdf) avisos.push({ clave: 'edSinTitulo' });
   return { errores, avisos };
 }

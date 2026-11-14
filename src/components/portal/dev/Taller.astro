@@ -247,7 +247,7 @@ const { tx } = Astro.props;
         <button class="tal-btn" type="button" data-b-formula title={tx.formulaAyuda}>{tx.formula}</button>
         <button class="tal-btn" type="button" data-b-llave title={tx.llaveAyuda}>{'{llave}'}</button>
         <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.simbolos}</summary><div class="tal-b-panel tal-simbolos" data-b-simbolos></div></details>
-        <input type="file" accept="image/png,image/jpeg,image/webp" data-b-imagen-archivo hidden />
+        <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" data-b-imagen-archivo hidden />
         <input type="file" accept="application/pdf" data-b-pdf-archivo hidden />
       </div>
 
@@ -366,7 +366,7 @@ const { tx } = Astro.props;
               <label><span>{tx.indiceImagenAjuste}</span><select class="tal-ctl" name="indiceImagenAjuste"><option value="cubrir">{tx.ajusteCubrir}</option><option value="contener">{tx.ajusteContener}</option></select></label>
             </div>
             <input type="hidden" name="indiceImagen" />
-            <input type="file" accept="image/webp,image/png,image/jpeg" hidden data-tal-indice-archivo />
+            <input type="file" accept="image/webp,image/png,image/jpeg,image/svg+xml,.svg" hidden data-tal-indice-archivo />
             <div class="tal-fila"><button class="tal-btn tal-btn--fuerte" type="button" data-tal-indice-cerrar>{tx.listo}</button></div>
           </dialog>
         </form>

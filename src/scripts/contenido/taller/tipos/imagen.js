@@ -15,7 +15,7 @@ export function datos(_, a) {
   return {
     ruta: rutaAlmacen(a.ruta, ['webp', 'jpg', 'png']) && a.ruta.startsWith('taller/') ? a.ruta : '',
     alt: texto(a.alt, 300), decorativa: a.decorativa === true, pie: texto(a.pie, 300), anchoPct: ancho, alinear: alineacion(a.alinear),
-    modo: ['linea', 'izq', 'der'].includes(a.modo) ? a.modo : 'linea'
+    modo: ['linea', 'izq', 'centro', 'der'].includes(a.modo) ? a.modo : 'linea'
   };
 }
 

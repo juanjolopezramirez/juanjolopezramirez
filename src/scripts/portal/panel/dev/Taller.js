@@ -21,6 +21,7 @@ import { Cinta } from './taller/Cinta.js';
 import { Mesa } from './taller/Mesa.js';
 import { VistaLibro } from './taller/VistaLibro.js';
 import { Imagenes } from './taller/Imagenes.js';
+import { esSvg, svgAPng } from './taller/SvgAImagen.js';
 import { Vista } from './taller/Vista.js';
 import { cargarFuente } from './taller/Fuentes.js';
 import { importarPdf, subirPdf } from './taller/Importar.js';
@@ -677,7 +678,8 @@ export class Taller extends Seccion {
 
   /* La imagen de arriba del contenido: se sube como las del libro y se guarda en el libro */
   async subirImagenIndice(archivo) {
-    const ext = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' }[archivo.type];
+    if (esSvg(archivo)) { archivo = await svgAPng(archivo); if (!archivo) { this.error('svgNoLee'); return; } }
+    const ext ={ 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' }[archivo.type];
     if (!ext) { this.error('archivoTipo'); return; }
     const turno = this.turnoObra, ruta = `taller/${this.obra.id}/img/${azar()}.${ext}`;
     const r = await this.be.taller.subir(ruta, archivo);
@@ -936,7 +938,9 @@ export class Taller extends Seccion {
 
   /* ---- Lo que entra de fuera ---- */
   async subirImagen(archivo) {
-    const ext = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' }[archivo.type];
+    /* Un SVG no se guarda como SVG (puede traer codigo): sube como PNG, dibujado nitido */
+    if (esSvg(archivo)) { archivo = await svgAPng(archivo); if (!archivo) { this.error('svgNoLee'); return; } }
+    const ext ={ 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' }[archivo.type];
     if (!ext) { this.error('archivoTipo'); return; }
     const ruta = `taller/${this.obra.id}/img/${azar()}.${ext}`;
     const r = await this.be.taller.subir(ruta, archivo);
