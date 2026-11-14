@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Panels from '../components/Panels.astro';
 import Curtain from '../components/Curtain.astro';
+import OpenGraph from '../components/OpenGraph.astro';
 import { AVISO_CSS, AVISO_TEXTOS, AVISO_MARCA, AVISO_RECARGA } from '../data/aviso.js';
 import '../styles/tokens.css';
 import '../styles/base.css';
@@ -18,7 +19,9 @@ import '../styles/carga.css';
 /* `noindex`: paginas que no deben salir en buscadores (el portal). La meta lo pide
    educadamente a Google y a los demas; no esconde la pagina: eso solo lo hace
    no tenerla (ver el aviso de PORTAL.md). */
-const { lang, path = '', active = '', title, description, noindex = false, noche = false, limpio = false, sinReferencia = false } = Astro.props;
+const { lang, path = '', active = '', title, description, noindex = false, noche = false, limpio = false, sinReferencia = false, og = null } = Astro.props;
+/* `og`: la vista previa del enlace (components/OpenGraph.astro). Opcional: sin ella no sale ninguna etiqueta
+   `og:` ni `twitter:`, y la pagina queda como siempre. { title, description, image, url, … } */
 /* `sinReferencia`: la pagina no cuenta de donde vienes ni a donde vas (el libro privado, /vista/, lleva su secreto en la direccion) */
 /* `limpio`: sin la cabecera ni el pie del sitio (las interfaces de trabajo de The
    Alef Code: el portal, el panel y las que vengan; layouts/Terminal.astro). Los
@@ -158,6 +161,7 @@ const canonical = alt(lang);
   {sinReferencia && <meta name="referrer" content="no-referrer" />}
   <title>{title ?? t('doc.title')}</title>
   <meta name="description" content={description ?? t('hero.role')} />
+  {og && <OpenGraph og={og} />}
 
   <link rel="icon" href={limpio ? '/assets/logos/alef-code.svg' : '/assets/logos/mark-icon.svg'} type="image/svg+xml" />
   <!-- Cual es la buena de las cinco. Sin esto, las cinco traducciones

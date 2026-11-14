@@ -29,8 +29,10 @@
      pagina; si no, se dibuja con la palabra. EL LOMO tampoco, pero se puede
      diseñar: public/assets/lomos/<id>.<idioma>.svg o <id>.svg (ver
      data/lomos.js). Sin archivo, el lomo se dibuja solo.
-   - El id del libro es tambien su direccion: /es/writing/#libertad. Por eso
-     es una palabra en minusculas sin guiones, y no se repite.
+   - El id del libro es tambien su direccion: /es/writing/#libertad, y su
+     enlace corto, juanjolopezramirez.com/libertad (pages/[book]/index.astro).
+     Por eso es una palabra en minusculas sin guiones, no se repite y no puede
+     llamarse como una direccion de la web (scripts/biblioteca.js → RUTAS_RESERVADAS).
 
    Campos de un libro:
      id        'libertad'

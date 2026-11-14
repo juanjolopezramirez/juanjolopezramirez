@@ -13,7 +13,8 @@ import fs from 'node:fs';
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cargar = (ruta) => import(pathToFileURL(path.join(raiz, ruta)).href);
 
-const { idDeHash, leerUltimo, guardarUltimo, CLAVE, variante, grosorDe, comprobar, ORDEN, colorLomo, contraste, ola, GIRO_MAX, TONOS, fichaLibro, normalizar, indexar, coincide, BUSCAR_MAX, rutaPortadaValida } = await cargar('src/scripts/biblioteca.js');
+const { idDeHash, leerUltimo, guardarUltimo, CLAVE, variante, grosorDe, comprobar, ORDEN, colorLomo, contraste, ola, GIRO_MAX, TONOS, fichaLibro, normalizar, indexar, coincide, BUSCAR_MAX, rutaPortadaValida,
+  RESERVADOS, ANCLAS_RESERVADAS, RUTAS_RESERVADAS, enlaceCorto, enlaceVisible, enlaceLargo, idiomaDeEnlace, comprobarRutas, urlAbsoluta, recortarTexto, portadaDeLibro, ogDeLibro, OG_MAX_BYTES, OG_RESPALDO, OG_LOCALES } = await cargar('src/scripts/biblioteca.js');
 const { SECCIONES, TIPOS, LIBROS, PORTADAS, CARTELERA } = await cargar('src/data/biblioteca.js');
 const { BOOKS } = await cargar('src/data/books.js');
 const { PIEZAS_PUBLICAS, ABANICO_TRABAJOS } = await cargar('src/data/piezas.js');
@@ -388,6 +389,263 @@ ok('variante: los libros de hoy (español/ingles) se abren igual que antes', () 
   const B2 = hechos('prueba', ['es', 'en']);
   const l = generico({ idiomas: ['es', 'en'] });
   for (const [p, esperado] of [['es', 'es'], ['en', 'en'], ['pt', 'es'], ['fr', 'en'], ['it', 'en']]) assert.equal(variante(l, p, B2).lang, esperado, p);
+});
+
+/* =====================================================================
+   EL ENLACE CORTO: juanjolopezramirez.com/<id>
+   ===================================================================== */
+const leerFuente = (r) => fs.readFileSync(path.join(raiz, r), 'utf8');
+const SITIO = 'https://juanjolopezramirez.com';
+const { enlacesDeLibros, nombresDeLaRaiz, ANCHO_LIVIANA, aligerar } = await cargar('src/data/enlaces-libros.js');
+const { UI, LANGS } = await cargar('src/i18n/ui.js');
+
+console.log('enlace corto: nombres reservados');
+ok('la lista incluye la de la raiz del sitio y los cinco idiomas', () => {
+  for (const id of ['es', 'en', 'pt', 'fr', 'it', 'portal', 'vista', 'actividad', 'taller-hoja', 'api', 'robots', 'sitemap', 'favicon', 'assets', 'books', 'sounds', '_astro', 'admin', 'login', 'www', 'index', '404', 'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public']) {
+    assert.ok(RUTAS_RESERVADAS.includes(id), id);
+    assert.ok(RESERVADOS.has(id), id);
+  }
+  for (const a of ANCLAS_RESERVADAS) assert.ok(RESERVADOS.has(a), a);
+});
+ok('todo lo que HAY en la raiz (public/ y src/pages) esta en la lista reservada', () => {
+  const hay = nombresDeLaRaiz(raiz);
+  assert.ok(hay.length >= 8, 'se leyo la raiz');
+  for (const nombre of hay) assert.ok(RESERVADOS.has(nombre) || nombre === 'robots', `${nombre}: una pagina o carpeta de la raiz que un libro podria quitar`);
+  /* y lo que compila Astro en dist/ si esta */
+  const dist = path.join(raiz, 'dist');
+  if (fs.existsSync(dist)) {
+    for (const e of fs.readdirSync(dist)) {
+      if (e.startsWith('.')) continue;   // .nojekyll
+      const nombre = e.split('.')[0].toLowerCase();
+      if (LIBROS.some((l) => l.id === nombre)) continue;   // las paginas de los libros
+      assert.ok(RESERVADOS.has(nombre), `dist/${e}`);
+    }
+  }
+});
+ok('ningun libro de hoy (ni alias) se llama como una direccion reservada', () => {
+  for (const l of LIBROS) assert.equal(RESERVADOS.has(l.id), false, l.id);
+  for (const alias of ['ahavah', 'agapi']) assert.equal(RESERVADOS.has(alias), false, alias);
+});
+ok('comprobar() para la compilacion si un libro se llama como una direccion, y lo dice en claro', () => {
+  for (const id of ['portal', 'vista', 'actividad', 'api', 'robots', 'sitemap', 'favicon', 'assets', 'books', 'sounds', 'admin', 'login', 'www', 'index', 'es', 'en', 'pt', 'fr', 'it']) {
+    assert.throws(() => comprobar(con({ LIBROS: [...LIBROS, generico({ id })], BOOKS: { ...BOOKS, ...hechos(id, ['es']) } })), /direccion de la web/, id);
+  }
+  assert.throws(() => comprobar(con({ LIBROS: [...LIBROS, generico({ id: 'portal' })], BOOKS: { ...BOOKS, ...hechos('portal', ['es']) } })), /«portal»/);
+  /* y uno normal sigue pasando */
+  comprobar(con({ LIBROS: [...LIBROS, generico({ id: 'libertad' })], BOOKS: { ...BOOKS, ...hechos('libertad', ['es']) } }));
+});
+
+console.log('enlace corto: la direccion');
+ok('enlaceCorto: https://dominio/<id>, sin barra doble y sin ids reservados', () => {
+  assert.equal(enlaceCorto(SITIO, 'ahava'), 'https://juanjolopezramirez.com/ahava');
+  assert.equal(enlaceCorto(SITIO + '/', 'ahava'), 'https://juanjolopezramirez.com/ahava');
+  assert.equal(enlaceCorto('http://localhost:4325', 'ahava'), 'http://localhost:4325/ahava');
+  for (const malo of ['portal', 'es', 'Ahava', 'a-b', '', 'ahava/x', '../x', '__proto__', null, undefined, 5]) assert.equal(enlaceCorto(SITIO, malo), null, String(malo));
+  for (const malo of ['', null, undefined, 'juanjolopezramirez.com', 'javascript:alert(1)', 'https://', 'https://a.com/x']) assert.equal(enlaceCorto(malo, 'ahava'), null, String(malo));
+});
+ok('enlaceVisible: sin https:// («juanjolopezramirez.com/ahava»)', () => {
+  assert.equal(enlaceVisible(SITIO, 'ahava'), 'juanjolopezramirez.com/ahava');
+  assert.equal(enlaceVisible(SITIO, 'portal'), null);
+});
+ok('enlaceLargo: /<idioma>/writing/#<id>, el que el lector ya abre', () => {
+  assert.equal(enlaceLargo(SITIO, 'es', 'ahava'), 'https://juanjolopezramirez.com/es/writing/#ahava');
+  assert.equal(enlaceLargo(SITIO, 'xx1', 'ahava'), null);
+  assert.equal(enlaceLargo(SITIO, 'es', 'A b'), null);
+});
+ok('idiomaDeEnlace: el del navegador si la web lo tiene; si no, español', () => {
+  const L = ['es', 'en', 'pt', 'fr', 'it'];
+  assert.equal(idiomaDeEnlace(['en-US', 'es'], L, 'es'), 'en');
+  assert.equal(idiomaDeEnlace(['pt-BR'], L, 'es'), 'pt');
+  assert.equal(idiomaDeEnlace(['de-DE', 'FR-ca', 'en'], L, 'es'), 'fr');
+  assert.equal(idiomaDeEnlace(['de', 'ja'], L, 'es'), 'es');
+  assert.equal(idiomaDeEnlace([], L, 'es'), 'es');
+  assert.equal(idiomaDeEnlace('it-IT', L, 'es'), 'it');
+  assert.equal(idiomaDeEnlace(undefined, L, 'es'), 'es');
+  assert.equal(idiomaDeEnlace(['constructor', '__proto__'], L, 'es'), 'es');
+});
+
+console.log('enlace corto: comprobarRutas (las paginas)');
+ok('los libros de hoy pasan, aun con lo que hay de verdad en la raiz', () => {
+  assert.deepEqual(comprobarRutas(LIBROS.map((l) => l.id), nombresDeLaRaiz(raiz)), LIBROS.map((l) => l.id));
+});
+ok('se para, en español claro, si un id choca con la lista, con un archivo de la raiz o con otro libro', () => {
+  assert.throws(() => comprobarRutas(['ahava', 'portal']), /«portal».*direccion que ya es de la web/s);
+  assert.throws(() => comprobarRutas(['ahava', 'misitio'], ['MiSitio']), /«misitio».*raiz de la web/s);
+  assert.throws(() => comprobarRutas(['ahava', 'ahava']), /repetido/);
+  assert.throws(() => comprobarRutas(['con-guion']), /sin guiones/);
+  assert.throws(() => comprobarRutas([5]), /enlace corto/);
+});
+
+console.log('enlace corto: una pagina por libro y su vista previa');
+ok('urlAbsoluta: con dominio, sin // ni .. ni esquemas', () => {
+  assert.equal(urlAbsoluta(SITIO, 'books/ahava/es/01-900.jpg'), 'https://juanjolopezramirez.com/books/ahava/es/01-900.jpg');
+  assert.equal(urlAbsoluta(SITIO, '/assets/img/me-quote.jpg'), 'https://juanjolopezramirez.com/assets/img/me-quote.jpg');
+  for (const mala of ['//otro.sitio/x.jpg', 'https://otro.sitio/x.jpg', 'javascript:alert(1)', '../x', 'a b', '', null]) assert.equal(urlAbsoluta(SITIO, mala), null, String(mala));
+  assert.equal(urlAbsoluta('', 'x.jpg'), null);
+});
+ok('recortarTexto: una frase entera si cabe; si no, una palabra entera con «…»', () => {
+  const t = 'Ahavá es amor que se decide más que se siente: como quien defiende a un desconocido del linchamiento aunque le cueste seguidores. No espera «tener ganas»; quiere el bien del otro y actúa por él.';
+  assert.equal(recortarTexto(t), 'Ahavá es amor que se decide más que se siente: como quien defiende a un desconocido del linchamiento aunque le cueste seguidores.');
+  const largo = 'palabra '.repeat(60);
+  const r = recortarTexto(largo, 50);
+  assert.ok(r.endsWith('…') && r.length <= 50 && !/palabr…$/.test(r), r);
+  assert.equal(recortarTexto('  corto   y\nlimpio '), 'corto y limpio');
+  assert.equal(recortarTexto(null), '');
+});
+ok('portadaDeLibro: la primera pagina del PDF a 900 px, con sus medidas; sin PDF, null', () => {
+  const ahava = LIBROS.find((l) => l.id === 'ahava');
+  const p = portadaDeLibro(ahava, BOOKS);
+  assert.deepEqual([p.ruta, p.ancho, p.alto], ['books/ahava/es/01-900.jpg', 900, Math.round(900 / BOOKS.ahava.es.ratio)]);
+  assert.equal(portadaDeLibro(LIBROS.find((l) => l.id === 'emet'), BOOKS), null);
+});
+ok('ogDeLibro: titulo, descripcion, imagen ABSOLUTA, url corta, tipo, locale y medidas', () => {
+  const og = ogDeLibro({ id: 'ahava', titulo: 'Ahavá', glosa: 'Amor', resumen: '', idioma: 'es', origen: SITIO, imagen: { ruta: 'books/ahava/es/01-900.jpg', ancho: 900, alto: 1273, v: 'abc' } });
+  assert.equal(og.title, 'Ahavá · Amor');
+  assert.equal(og.description, 'Amor. Un libro de Juan José López Ramírez.');
+  assert.equal(og.image, 'https://juanjolopezramirez.com/books/ahava/es/01-900.jpg?v=abc');
+  assert.equal(og.url, 'https://juanjolopezramirez.com/ahava/');
+  assert.deepEqual([og.type, og.locale, og.imageWidth, og.imageHeight], ['book', 'es_LA', 900, 1273]);
+  assert.equal(og.imageAlt, 'Portada de «Ahavá»');
+  /* sin glosa ni resumen: una frase corta */
+  assert.match(ogDeLibro({ id: 'x', titulo: 'X', glosa: '', idioma: 'zz', origen: SITIO, imagen: OG_RESPALDO }).description, /^Un libro de Juan José López Ramírez, en su biblioteca de Recursos\.$/);
+  assert.equal(ogDeLibro({ id: 'x', titulo: 'X', idioma: 'zz', origen: SITIO, imagen: OG_RESPALDO }).locale, null);
+  /* un id reservado, o un dominio roto, no dan etiquetas */
+  assert.equal(ogDeLibro({ id: 'portal', titulo: 'X', origen: SITIO, imagen: OG_RESPALDO }), null);
+  assert.equal(ogDeLibro({ id: 'x', titulo: 'X', origen: '', imagen: OG_RESPALDO }), null);
+  assert.ok(Object.keys(OG_LOCALES).every((l) => ['es', 'en', 'pt', 'fr', 'it'].includes(l)));
+});
+ok('una pagina por libro: ahava, emet, agape, rhema; cada una con su vista previa completa', () => {
+  const lista = enlacesDeLibros(SITIO, raiz);
+  /* los que se pueden abrir en algun idioma (un libro del panel sin PDF convertido no sale ni en la estanteria) */
+  assert.deepEqual(lista.map((l) => l.id), LIBROS.filter((l) => fichaLibro(l, 'es', { BOOKS, TIPOS, TERMS, GLOSS }, '/')).map((l) => l.id));
+  for (const id of ['ahava', 'emet', 'agape', 'rhema']) assert.ok(lista.some((l) => l.id === id), id);
+  for (const l of lista) {
+    const og = l.og;
+    assert.ok(og.title && og.description, l.id);
+    assert.equal(og.url, `${SITIO}/${l.id}/`);
+    assert.match(og.image, /^https:\/\/juanjolopezramirez\.com\/[a-z0-9/._-]+\.jpg(\?v=[a-z0-9]+)?$/, l.id);
+    assert.ok(og.imageWidth >= 600 && og.imageHeight > 0, l.id);
+    assert.ok(og.description.length <= 160, l.id);
+    assert.ok(og.imageAlt.includes(og.title.split(' · ')[0]), l.id);
+  }
+  const ahava = lista.find((l) => l.id === 'ahava').og;
+  assert.equal(ahava.image, `${SITIO}/books/ahava/es/01-900.jpg?v=${BOOKS.ahava.es.v}`);
+  assert.equal(lista.find((l) => l.id === 'emet').og.image, `${SITIO}/${OG_RESPALDO.ruta}`);
+});
+ok('las imagenes de la vista previa existen en el disco, miden ≥ 600 px y pesan menos de 300 KB', () => {
+  for (const l of enlacesDeLibros(SITIO, raiz)) {
+    if (l.liviana) continue;   // se arma al compilar (otra prueba)
+    const ruta = new URL(l.og.image).pathname.replace(/^\//, '');
+    const archivo = path.join(raiz, 'public', ruta);
+    assert.ok(fs.existsSync(archivo), ruta);
+    assert.ok(fs.statSync(archivo).size < 300 * 1024, `${ruta}: ${fs.statSync(archivo).size}`);
+  }
+});
+ok('si la portada pesa mas que OG_MAX_BYTES, se ofrece /<id>/portada.jpg (liviana, 700 px) y se marca para aligerar', () => {
+  const tmp = fs.mkdtempSync(path.join(fs.realpathSync(process.env.TEMP || process.env.TMP || '/tmp'), 'og-'));
+  try {
+    const carpeta = path.join(tmp, 'public', 'books', 'ahava', 'es');
+    fs.mkdirSync(carpeta, { recursive: true });
+    fs.writeFileSync(path.join(carpeta, '01-900.jpg'), Buffer.alloc(OG_MAX_BYTES + 1024, 7));
+    const a = enlacesDeLibros(SITIO, tmp).find((l) => l.id === 'ahava');
+    assert.equal(a.liviana, path.join(carpeta, '01-900.jpg'));
+    assert.equal(a.og.image, `${SITIO}/ahava/portada.jpg?v=${BOOKS.ahava.es.v}`);
+    assert.equal(a.og.imageWidth, ANCHO_LIVIANA);
+    assert.ok(ANCHO_LIVIANA >= 600);
+    /* si la portada no esta, se usa la foto de siempre y no se rompe nada */
+    const sin = enlacesDeLibros(SITIO, path.join(tmp, 'vacio')).find((l) => l.id === 'ahava');
+    assert.equal(sin.liviana, null);
+    assert.equal(sin.og.image, `${SITIO}/${OG_RESPALDO.ruta}`);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+console.log('enlace corto: las paginas y el boton «Copiar enlace»');
+ok('la pagina del libro: noindex, canonical a la larga, vista previa, enlace de respaldo y refresco solo sin JavaScript', () => {
+  const p = leerFuente('src/pages/[book]/index.astro');
+  assert.match(p, /<meta name="robots" content="noindex, follow"/);
+  assert.match(p, /<link rel="canonical" href=\{larga\}/);
+  assert.match(p, /<OpenGraph og=\{og\}/);
+  assert.match(p, /<noscript><meta http-equiv="refresh"/);
+  assert.match(p, /class="enlace__abrir" href=/);
+  assert.match(p, /enlacesDeLibros\(/);
+  assert.ok(!/<script[^>]*\bsrc=/.test(p), 'sin guiones de fuera: la politica de contenido solo pone huella a los de adentro');
+});
+ok('no esta en el mapa del sitio', () => {
+  const s = leerFuente('src/pages/sitemap.xml.js');
+  assert.ok(!/enlaces-libros|LIBROS|biblioteca/.test(s));
+});
+ok('Base.astro: la vista previa es opcional (`og`) y solo se emite si se pasa', () => {
+  const b = leerFuente('src/layouts/Base.astro');
+  assert.match(b, /og = null/);
+  assert.match(b, /\{og && <OpenGraph og=\{og\} \/>\}/);
+  assert.ok(!/og:title|og:image/.test(b), 'las etiquetas viven en OpenGraph.astro');
+  const o = leerFuente('src/components/OpenGraph.astro');
+  for (const k of ['og:title', 'og:description', 'og:image"', 'og:image:width', 'og:image:height', 'og:image:alt', 'og:url', 'og:type', 'og:locale', 'twitter:card']) assert.ok(o.includes(k), k);
+  assert.match(o, /summary_large_image/);
+});
+ok('«Copiar enlace»: el boton nace escondido, no sale en el libro privado y usa el dominio de `site`', () => {
+  const p = leerFuente('src/components/Panels.astro');
+  assert.match(p, /<button class="book-panel__enlace"[^>]*data-book-copiar[^>]*\shidden>/);
+  const s = leerFuente('src/scripts/site.js');
+  assert.match(s, /copiarBtn\.hidden = privado\.has\(id\) \|\| !LIBRO\.has\(id\)/);
+  assert.match(s, /enlaceCorto\(import\.meta\.env\.SITE, id\)/);
+  assert.ok(!/location\.origin/.test(s.slice(s.indexOf('copiarBtn'), s.indexOf('copiarBtn') + 4000)), 'copia el dominio del sitio, no el de donde se abrio');
+});
+ok('«Copiar enlace» y «Enlace copiado» estan en los cinco idiomas, sin repetirse', () => {
+  for (const l of LANGS) {
+    for (const k of ['book.copy', 'book.copied', 'book.copyFail', 'a11y.bookCopy', 'enlace.rotulo', 'enlace.abriendo', 'enlace.abrir']) assert.ok(typeof UI[l][k] === 'string' && UI[l][k].length > 2, `${l} ${k}`);
+  }
+  assert.equal(UI.es['book.copy'], 'Copiar enlace');
+  assert.equal(UI.es['book.copied'], 'Enlace copiado');
+  /* una clave de UI repetida dentro de un idioma la pisa en silencio */
+  const fuente = leerFuente('src/i18n/ui.js');
+  for (const k of ['book.copy', 'book.copied', 'book.copyFail', 'a11y.bookCopy', 'enlace.rotulo', 'enlace.abriendo', 'enlace.abrir']) assert.equal(fuente.split(`'${k}':`).length - 1, LANGS.length, k);
+});
+
+console.log('enlace corto: revision (titulos hostiles, portada pesada, guion de la pagina)');
+const oka = async (nombre, fn) => { try { await fn(); n++; console.log('  ok  ' + nombre); } catch (e) { mal++; console.log(' MAL  ' + nombre + ' | ' + String(e.message).split('\n')[0]); } };
+ok('ogDeLibro: un titulo o glosa con saltos de linea, U+2028 o U+2029 sale en UNA linea en title, alt y descripcion', () => {
+  const og = ogDeLibro({ id: 'x', titulo: 'Linea uno\nlinea dos\u2028tres\u2029cuatro\r\n  cinco', glosa: 'sub\ntitulo\u2028raro.', idioma: 'es', origen: SITIO, imagen: OG_RESPALDO });
+  for (const campo of [og.title, og.imageAlt, og.description]) assert.ok(!/[\n\r\u2028\u2029]/.test(campo), JSON.stringify(campo));
+  assert.equal(og.title, 'Linea uno linea dos tres cuatro cinco · sub titulo raro');
+  assert.equal(og.imageAlt, 'Portada de «Linea uno linea dos tres cuatro cinco»');
+  /* un titulo que es solo espacios y saltos cae al id */
+  assert.equal(ogDeLibro({ id: 'x', titulo: ' \n\u2028\u2029 ', origen: SITIO, imagen: OG_RESPALDO }).title, 'x');
+});
+await oka('aligerar: una portada de ruido de mas de 250 KB baja a OG_MAX_BYTES (si `sharp` carga) y, si no carga, se sirve la original sin fallar', async () => {
+  let sharp = null;
+  try { sharp = (await import('sharp')).default; } catch (e) { /* sin sharp en este equipo */ }
+  /* la rama SIN sharp, siempre */
+  const aviso = []; const avisar = console.warn; console.warn = (m) => aviso.push(m);
+  const orig = Buffer.alloc(OG_MAX_BYTES + 5000, 3);
+  try {
+    const r = await aligerar(orig, { cargarSharp: () => Promise.reject(new Error('no carga')) });
+    assert.equal(r.aligerada, false);
+    assert.equal(r.buffer, orig);
+    assert.ok(aviso.length === 1 && /sharp/.test(aviso[0]), 'avisa en el registro');
+  } finally { console.warn = avisar; }
+  if (sharp) {
+    const ruido = await sharp({ create: { width: 1800, height: 2400, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 70 } } }).jpeg({ quality: 95 }).toBuffer();
+    assert.ok(ruido.length > OG_MAX_BYTES, `el ruido pesa ${ruido.length}`);
+    const r = await aligerar(ruido);
+    assert.equal(r.aligerada, true);
+    assert.ok(r.buffer.length <= OG_MAX_BYTES, `pesa ${r.buffer.length}`);
+    const m = await sharp(r.buffer).metadata();
+    assert.ok(m.width >= 600 && m.format === 'jpeg', `${m.width} ${m.format}`);
+  }
+});
+await oka('el guion en linea de dist/ahava/index.html (con un navigator simulado): es-CO → es, pt-BR → pt, zh → es', async () => {
+  const html = path.join(raiz, 'dist', 'ahava', 'index.html');
+  if (!fs.existsSync(html)) { console.log('      (sin dist/: se salta; corre despues de `astro build`)'); return; }
+  const vm = await import('node:vm');
+  const guion = [...fs.readFileSync(html, 'utf8').matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).find((s) => s.includes('location.replace'));
+  assert.ok(guion, 'hay un guion con la redireccion');
+  const destino = (nav) => { let ir = null; vm.runInNewContext(guion, { navigator: nav, location: { replace: (u) => { ir = u; } } }); return ir; };
+  assert.equal(destino({ languages: ['es-CO', 'es'], language: 'es-CO' }), '/es/writing/#ahava');
+  assert.equal(destino({ languages: ['pt-BR'], language: 'pt-BR' }), '/pt/writing/#ahava');
+  assert.equal(destino({ languages: ['zh'], language: 'zh' }), '/es/writing/#ahava');
+  assert.equal(destino({ languages: [], language: 'fr-FR' }), '/fr/writing/#ahava');
+  assert.equal(destino({ languages: ['zh-CN', 'en-GB'], language: 'zh-CN' }), '/en/writing/#ahava');
 });
 
 console.log(`\n${n} bien${mal ? `, ${mal} MAL` : ''}`);

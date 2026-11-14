@@ -7,12 +7,18 @@
      · el tema lo elige el; la pasta sale de «Con tapa dura» de la edicion (blanda → revista, dura → tapa dura);
      · antes de confirmar se dice que Recursos es publico (con la direccion), y hace falta un segundo clic, que no vale si
        llega pegado al primero (doble clic) ni si entre medias se cambia algo;
+     · con el libro publicado se ve su enlace corto para compartir (juanjolopezramirez.com/<id>, con el dominio de `site`) y un
+       boton «Copiar enlace»; el privado no se toca;
      · publicar otra edicion REEMPLAZA el mismo libro; borrar el libro del Taller o una edicion NO lo quita de Recursos;
      · «Quitar de Recursos» corta la descarga del PDF al instante; el libro sigue en la web hasta el proximo «Actualizar la web».
    Publicar no crea ni apaga enlaces privados. Todo texto se escribe con textContent. */
 import { Libro } from '../../../../contenido/Libro.js';
 import { TEMAS, proponerId, publicarLibro, quitarDeRecursos, recortarTitulo } from '../../../../contenido/taller/Recursos.js';
+import { enlaceCorto, enlaceVisible } from '../../../../biblioteca.js';
 
+/* El dominio REAL del sitio (`site` en astro.config.mjs), no el de donde se abre el Taller (localhost, una copia de prueba).
+   Fuera del navegador compilado (las pruebas en Node) no existe `import.meta.env`: queda vacio y no hay enlace. */
+const sitio = () => { try { return String(import.meta.env.SITE || ''); } catch (e) { return ''; } };
 const poner = (t, datos) => Object.entries(datos || {}).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), t || '');
 const CLAVES = {
   idNoValido: 'rcIdNoValido', idCambia: 'rcIdCambia', idOcupado: 'rcIdOcupado', temaNoExiste: 'rcTemaFalta', tituloFalta: 'rcTituloFalta',
@@ -40,6 +46,27 @@ export class PublicarRecursos {
     this.quitar = q('[data-rc-quitar]');
     this.aviso = q('[data-rc-aviso]');
     this.estado = q('[data-rc-estado]');
+    /* El enlace corto para compartir (juanjolopezramirez.com/<id>): se arma aqui, debajo de «Ya esta en Recursos», y solo se ve con
+       el libro publicado. Todo con textContent. */
+    this.enlaceCaja = document.createElement('div');
+    this.enlaceCaja.hidden = true;
+    this.enlaceTxt = document.createElement('p');
+    this.enlaceTxt.className = 'tal-comp__actual';
+    const fila = document.createElement('div');
+    fila.className = 'tal-fila';
+    this.enlaceBtn = document.createElement('button');
+    this.enlaceBtn.type = 'button';
+    this.enlaceBtn.className = 'tal-btn';
+    this.enlaceBtn.textContent = tx.rcEnlaceCopiar;
+    fila.append(this.enlaceBtn);
+    this.enlaceEstado = document.createElement('p');
+    this.enlaceEstado.className = 'tal-ayuda';
+    this.enlaceEstado.setAttribute('role', 'status');
+    this.enlaceCaja.append(this.enlaceTxt, fila, this.enlaceEstado);
+    this.yaTxt.after(this.enlaceCaja);
+    this.enlaceBtn.addEventListener('click', () => this.copiarEnlace());
+    this.enlaceId = '';
+    this.recien = false;  // se acaba de publicar en esta ventana: la web aun no lo tiene hasta «Actualizar la web»
     this.ed = null;
     this.libroId = '';
     this.ocupado = false;
@@ -88,10 +115,34 @@ export class PublicarRecursos {
     this.idAyuda.textContent = '';
     this.estado.textContent = '';
     this.yaTxt.hidden = true;
+    this.pintarEnlace('', false);
+    this.recien = false;
     this.quitar.hidden = true;
     this.ed = null;
     this.libroId = '';
     this.ocupado = false;
+  }
+
+  /* El enlace corto del libro: se ve solo si el libro esta publicado en Recursos y su id da un enlace valido.
+     «Abre el libro en cuanto la web se actualice» solo justo despues de publicar (la web aun no lo tiene). */
+  pintarEnlace(id, publicado) {
+    const visible = publicado && id ? enlaceVisible(sitio(), id) : null;
+    this.enlaceId = visible ? id : '';
+    this.enlaceCaja.hidden = !visible;
+    this.enlaceEstado.textContent = '';
+    this.enlaceTxt.textContent = visible ? poner(this.tx.rcEnlace, { direccion: visible }) : '';
+    if (visible && this.recien) this.enlaceEstado.textContent = this.tx.rcEnlaceReciente;
+  }
+
+  async copiarEnlace() {
+    const url = this.enlaceId ? enlaceCorto(sitio(), this.enlaceId) : null;
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.enlaceEstado.textContent = this.tx.rcEnlaceCopiado;
+    } catch (e) {
+      this.enlaceEstado.textContent = poner(this.tx.rcEnlaceNoCopio, { direccion: url });
+    }
   }
 
   desarmar() {
@@ -118,6 +169,7 @@ export class PublicarRecursos {
     this.yaTxt.hidden = true;
     const sinBase = !be || !obraId;
     for (const n of [this.id, this.tit, this.tema, this.publicar]) n.disabled = sinBase || !ed || this.ocupado;
+    this.pintarEnlace('', false);
     let entrada = null;
     if (!sinBase) {
       const [l, lista] = await Promise.all([be.taller.libroDe(obraId), be.contenido.repositorio(Libro).listar()]);
@@ -128,6 +180,7 @@ export class PublicarRecursos {
         this.yaTxt.hidden = false;
         this.yaTxt.textContent = poner(this.tx.rcYa, { id: this.libroId, estado: entrada && entrada.publicado ? this.tx.rcEstadoPublicado : this.tx.rcEstadoFuera });
         this.quitar.hidden = !(entrada && entrada.publicado);
+        this.pintarEnlace(this.libroId, !!(entrada && entrada.publicado));
       }
     }
     if (!ed || sinBase) { this.edicionTxt.textContent = this.tx.rcSinEdicion; return; }
@@ -179,6 +232,7 @@ export class PublicarRecursos {
         be: this.be(), obraId: this.obraId(), edicionId: this.ed.id, libroId: this.id.value.trim(), lang: this.idiomaDe(),
         tema: this.tema.value, titulo: this.tit.value, blando: this.ed.blando
       });
+      this.recien = !r.error;
       texto = r.error ? this.mensaje(r) : (r.reemplaza ? this.tx.rcReemplazado : this.tx.rcListo) + (r.sueltos ? ` ${poner(this.tx.cpSueltos, { n: r.sueltos })}` : '');
     } catch (e) {
       texto = this.tx.rcFalla;
@@ -200,6 +254,7 @@ export class PublicarRecursos {
     const vida = this.vida;
     let texto = '';
     try {
+      this.recien = false;
       const r = await quitarDeRecursos({ be: this.be(), obraId: this.obraId() });
       texto = r.error ? this.mensaje(r) : this.tx.rcQuitado;
     } catch (e) {

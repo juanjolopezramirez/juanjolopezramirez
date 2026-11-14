@@ -1,0 +1,90 @@
+---
+import OpenGraph from '../../components/OpenGraph.astro';
+import { LANGS, DEFAULT_LANG, META, UI } from '../../i18n/ui.js';
+import { enlacesDeLibros } from '../../data/enlaces-libros.js';
+import { enlaceLargo, idiomaDeEnlace } from '../../scripts/biblioteca.js';
+
+/* EL ENLACE CORTO DE UN LIBRO: https://juanjolopezramirez.com/ahava  (y /ahava/)
+
+   Una pagina por libro en la RAIZ, hecha de la misma lista que pinta la estanteria (data/enlaces-libros.js:
+   los libros del codigo y los del panel). Es la que se manda por WhatsApp, Telegram, correo…
+
+   QUE HACE.
+     · Las redes leen su HTML sin ejecutar nada y arman la tarjeta con las etiquetas de vista previa
+       (components/OpenGraph.astro): titulo, descripcion y portada, con direccion absoluta.
+     · A una persona la lleva a /<idioma>/writing/#<id>, donde la estanteria ya abre el libro por su ancla.
+       El idioma es el del navegador si la web lo tiene; si no, el de siempre (el mismo cuento que la raiz,
+       pages/index.astro). Un guion de dos lineas, sin esperar a nada.
+     · SIN JAVASCRIPT: un enlace de verdad a la direccion larga (siempre visible), y en <noscript> un
+       aviso de redireccion a un segundo y un enlace por idioma. No se usa una redireccion inmediata:
+       los rastreadores de las redes leen la tarjeta de ESTA pagina y no deben irse antes.
+     · NO se indexa (noindex, follow) y no esta en el mapa del sitio (pages/sitemap.xml.js sale de las
+       secciones, no de aqui): la direccion buena para los buscadores es la larga (canonical).
+
+   El enlace PRIVADO (#k=…, /vista/) no pasa por aqui. Un libro no puede llamarse como una direccion de la
+   web (scripts/biblioteca.js → RUTAS_RESERVADAS); si lo hace, esto no compila y dice cual.
+
+   `[book]` y `[lang]` son los dos «una sola palabra» de la raiz: no se pisan porque cada uno solo da sus
+   propias direcciones (los idiomas estan reservados). */
+export function getStaticPaths() {
+  /* El dominio sale de `site` en astro.config.mjs: un solo sitio donde cambiarlo */
+  return enlacesDeLibros(String(import.meta.env.SITE || '')).map((l) => ({ params: { book: l.id }, props: { og: l.og } }));
+}
+
+const { book } = Astro.params;
+const { og } = Astro.props;
+const sitio = String(Astro.site ?? '').replace(/\/$/, '');
+const larga = enlaceLargo(sitio, DEFAULT_LANG, book);
+/* El guion es EXACTAMENTE la funcion probada (idiomaDeEnlace, tools/test-biblioteca.mjs): se escribe en la pagina
+   tal cual, sin importar nada. La politica de contenido le pone su huella al compilar. */
+const guion = `var f=${idiomaDeEnlace.toString()};location.replace('/'+f(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||''],${JSON.stringify(LANGS)},${JSON.stringify(DEFAULT_LANG)})+'/writing/#'+${JSON.stringify(book)});`;
+const titulo = og.title;
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#263B28" />
+  <meta name="robots" content="noindex, follow" />
+  <title>{titulo} — Juan José López Ramírez</title>
+  <meta name="description" content={og.description} />
+  <link rel="icon" href="/assets/logos/mark-icon.svg" type="image/svg+xml" />
+  <link rel="canonical" href={larga} />
+  <OpenGraph og={og} />
+  <noscript><meta http-equiv="refresh" content={`1; url=/${DEFAULT_LANG}/writing/#${book}`} /></noscript>
+  <style is:global>
+    html, body { height: 100%; }
+    body {
+      margin: 0; display: grid; place-items: center; padding: 1.5rem; box-sizing: border-box;
+      background: #263B28; color: #F1EFE9;
+      font-family: Georgia, 'Times New Roman', serif; text-align: center;
+    }
+    .enlace { display: grid; justify-items: center; gap: .9rem; max-width: 28rem; }
+    .enlace__marca { width: 15px; height: auto; }
+    .enlace__rotulo { margin: 0; font: 600 .7rem/1.4 system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #E0B778; }
+    .enlace__titulo { margin: 0; font-size: clamp(1.7rem, 6vw, 2.4rem); line-height: 1.15; font-weight: 400; }
+    .enlace__texto { margin: 0; font: 400 1rem/1.5 system-ui, sans-serif; opacity: .85; }
+    .enlace a { color: #F1EFE9; text-underline-offset: .2em; }
+    .enlace__abrir { display: inline-block; margin-top: .3rem; padding: .7rem 1.3rem; border-radius: 999px; background: #F1EFE9; color: #263B28 !important; font: 600 .95rem/1 system-ui, sans-serif; text-decoration: none; }
+    .enlace__idiomas { margin: .4rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem 1rem; font: 400 .9rem/1.4 system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <main class="enlace">
+    <img class="enlace__marca" src="/assets/logos/mark-bone.svg" alt="" width="19" height="32" />
+    {/* Sin JavaScript no se sabe el idioma: el texto sale en español (el de siempre) y los otros cuatro quedan como
+        enlaces de respaldo, cada uno con su «Abrir el libro» en su idioma. */}
+    <p class="enlace__rotulo">{UI[DEFAULT_LANG]['enlace.rotulo']}</p>
+    <h1 class="enlace__titulo">{titulo}</h1>
+    <p class="enlace__texto">{UI[DEFAULT_LANG]['enlace.abriendo']}</p>
+    <a class="enlace__abrir" href={`/${DEFAULT_LANG}/writing/#${book}`}>{UI[DEFAULT_LANG]['enlace.abrir']}</a>
+    <noscript>
+      <ul class="enlace__idiomas">
+        {LANGS.filter((l) => l !== DEFAULT_LANG).map((l) => <li><a href={`/${l}/writing/#${book}`} lang={l}>{UI[l]['enlace.abrir']}</a></li>)}
+      </ul>
+    </noscript>
+  </main>
+  <script is:inline set:html={guion}></script>
+</body>
+</html>

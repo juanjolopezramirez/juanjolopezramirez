@@ -4646,6 +4646,29 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   transition: background-color .2s var(--ease);
 }
 .book-panel__close:hover { background: var(--pine); }
+/* «Copiar enlace»: en la esquina de enfrente de la ×, y opaco como ella */
+.book-panel__enlace {
+  position: absolute; z-index: 2;
+  top: calc(.75rem + env(safe-area-inset-top)); left: .75rem;
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 2.75rem; padding: 0 1rem 0 .85rem;
+  border-radius: 1.4rem;
+  font-size: .78rem; font-weight: 600; letter-spacing: .04em;
+  white-space: nowrap;
+  color: var(--bone);
+  background: var(--night);
+  box-shadow: inset 0 0 0 1px rgb(241 239 233 / .14);
+  transition: background-color .2s var(--ease);
+}
+.book-panel__enlace[hidden] { display: none; }
+/* Si la copia falla, el rotulo es la direccion entera: nunca pasa de la × (la completa va por el estado, sr-only) */
+.book-panel__enlace span { max-width: calc(100vw - 9rem); overflow: hidden; text-overflow: ellipsis; }
+.book-panel__enlace:hover, .book-panel__enlace[data-hecho] { background: var(--pine); }
+.book-panel__enlace svg {
+  width: 1.05rem; height: 1.05rem; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 
 /* LLEGA LANZADO SOBRE LA MESA. Sale de cerca y de arriba, ladeado,
    cae cada vez mas deprisa, golpea (al 55%: 396 ms, cuando suena

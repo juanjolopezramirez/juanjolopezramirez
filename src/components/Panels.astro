@@ -131,6 +131,13 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
 <div class="book-panel" id="book-panel" role="dialog" aria-modal="true" aria-labelledby="book-title" hidden>
   <div class="book-panel__scrim" data-close-book></div>
   <button class="book-panel__close" type="button" data-close-book aria-label={t('a11y.termClose')}>&times;</button>
+  <!-- «Copiar enlace»: copia el enlace CORTO del libro (juanjolopezramirez.com/<id>). Nace escondido: site.js lo muestra solo en los
+       libros de la biblioteca; el libro privado (/vista/) no lo trae. «Enlace copiado» se dice en el propio boton y por el estado. -->
+  <button class="book-panel__enlace" type="button" data-book-copiar title={t('a11y.bookCopy')} hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" /><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" /></svg>
+    <span data-book-copiar-texto>{t('book.copy')}</span>
+  </button>
+  <p class="sr-only" role="status" data-book-copiar-estado></p>
   <div class="book-panel__frame">
     <h2 class="sr-only" id="book-title"></h2>
     <div class="book" id="book">

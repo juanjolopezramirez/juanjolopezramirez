@@ -1,0 +1,32 @@
+---
+/* LA VISTA PREVIA: las etiquetas que WhatsApp, Telegram, iMessage, LinkedIn y compañia leen
+   del HTML crudo (sin ejecutar nada) para armar la tarjeta de un enlace.
+
+   Solo se pone en las paginas que la piden: Base.astro la emite cuando recibe `og`, y la pagina
+   de cada libro (pages/[book]/index.astro) la usa directa. El resto del sitio no cambia.
+
+   `og` = { title, description, image, url, imageWidth, imageHeight, imageAlt, type, locale, siteName }
+   Solo `title` y `url` son obligatorias; cada una de las otras se pone si viene. `image` va con
+   direccion ABSOLUTA (https://dominio/…): las redes no resuelven direcciones relativas. */
+const { og } = Astro.props;
+const o = og || {};
+---
+{o.title && o.url && (
+  <>
+    <meta property="og:title" content={o.title} />
+    {o.description && <meta property="og:description" content={o.description} />}
+    <meta property="og:url" content={o.url} />
+    <meta property="og:type" content={o.type || 'website'} />
+    {o.siteName && <meta property="og:site_name" content={o.siteName} />}
+    {o.locale && <meta property="og:locale" content={o.locale} />}
+    {o.image && <meta property="og:image" content={o.image} />}
+    {o.image && o.imageWidth && <meta property="og:image:width" content={String(o.imageWidth)} />}
+    {o.image && o.imageHeight && <meta property="og:image:height" content={String(o.imageHeight)} />}
+    {o.image && o.imageAlt && <meta property="og:image:alt" content={o.imageAlt} />}
+    <meta name="twitter:card" content={o.image ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={o.title} />
+    {o.description && <meta name="twitter:description" content={o.description} />}
+    {o.image && <meta name="twitter:image" content={o.image} />}
+    {o.image && o.imageAlt && <meta name="twitter:image:alt" content={o.imageAlt} />}
+  </>
+)}

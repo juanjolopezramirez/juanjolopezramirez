@@ -13,7 +13,7 @@ import { DEEP } from '../i18n/term-book.js';
 import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI } from '../i18n/ui.js';
-import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar } from './biblioteca.js';
+import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar, enlaceCorto, enlaceVisible } from './biblioteca.js';
 import { LIBROS, TIPOS } from '../data/biblioteca.js';
 /* Las ayudas para recorrer un libro largo (Volver, la barra, Contenido, RePag/AvPag): una sola cuenta, en scripts/lector/ */
 import { barraDePliego, hojaDelContenido, paginasDe, pliegoALaVuelta, pliegoDe } from './lector/pliegos.js';
@@ -870,6 +870,60 @@ function initBook() {
   const contBtn = s.panel.querySelector('[data-book-contenido]');
   const bar = s.panel.querySelector('[data-book-barra]');
   const barValor = s.panel.querySelector('[data-book-barra-valor]');
+  /* «Copiar enlace»: el enlace CORTO del libro (juanjolopezramirez.com/ahava), el que se manda por WhatsApp. Solo en los
+     libros de la biblioteca: el privado de /vista/ (`privado`) no se copia ni se acorta, y ahi el boton no sale. El dominio
+     es el de `site` (astro.config.mjs), tambien en una copia de prueba. */
+  const copiarBtn = s.panel.querySelector('[data-book-copiar]');
+  const copiarRotulo = s.panel.querySelector('[data-book-copiar-texto]');
+  const copiarEstado = s.panel.querySelector('[data-book-copiar-estado]');
+  let copiarTimer = 0;
+  const copiarReponer = () => {
+    clearTimeout(copiarTimer);
+    if (copiarRotulo) copiarRotulo.textContent = t('book.copy');
+    if (copiarEstado) copiarEstado.textContent = '';
+    if (copiarBtn) copiarBtn.removeAttribute('data-hecho');
+  };
+  const copiarAlPortapapeles = async (texto) => {
+    try { await navigator.clipboard.writeText(texto); return true; } catch (err) { /* sin permiso o sin https: el metodo viejo */ }
+    const caja = d.createElement('textarea');
+    try {
+      caja.value = texto;
+      caja.setAttribute('readonly', '');
+      caja.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+      s.panel.appendChild(caja);
+      caja.select();
+      return d.execCommand('copy');
+    } catch (err) {
+      return false;
+    } finally {
+      /* Pase lo que pase: la caja se va y el foco vuelve al boton */
+      caja.remove();
+      copiarBtn.focus({ preventScroll: true });
+    }
+  };
+  if (copiarBtn) {
+    /* El nombre del boton no cambia con el rotulo: «Enlace copiado» lo anuncia solo el estado (role=status), no dos veces */
+    copiarBtn.setAttribute('aria-label', t('book.copy'));
+    copiarBtn.addEventListener('click', async () => {
+      const id = abiertoId;
+      if (!id || privado.has(id)) return;
+      const largo = enlaceCorto(import.meta.env.SITE, id);
+      if (!largo) return;
+      const bien = await copiarAlPortapapeles(largo);
+      clearTimeout(copiarTimer);
+      /* El aviso breve: el rotulo del boton lo dice (y un lector de pantalla lo oye por el estado) */
+      if (bien) {
+        copiarRotulo.textContent = t('book.copied');
+        copiarEstado.textContent = t('book.copied');
+        copiarBtn.setAttribute('data-hecho', '');
+      } else {
+        /* No se pudo copiar: se ve la direccion para escribirla a mano */
+        copiarRotulo.textContent = enlaceVisible(import.meta.env.SITE, id);
+        copiarEstado.textContent = t('book.copyFail') + largo;
+      }
+      copiarTimer = setTimeout(copiarReponer, bien ? 2600 : 7000);
+    });
+  }
   const wide = matchMedia('(min-width: 900px)');
   const quiet = matchMedia('(prefers-reduced-motion: reduce)');
   const TURN = 900;       // lo mismo que dura la transicion de --a en base.css
@@ -2634,6 +2688,8 @@ function initBook() {
     /* Ya esta a la vista (recargar en #libro tras «Intentar otra vez» lo
        abre dos veces): no se vuelve a armar. */
     if (abiertoId === id && openSheets.includes(s.panel)) return;
+    /* «Copiar enlace»: solo los libros de la biblioteca; el privado (/vista/) no lo trae */
+    if (copiarBtn) { copiarReponer(); copiarBtn.hidden = privado.has(id) || !LIBRO.has(id) || !enlaceCorto(import.meta.env.SITE, id); }
     clearTimeout(autoOpen);
     const tapped = performance.now();
     const pdf = f.v.pdf;

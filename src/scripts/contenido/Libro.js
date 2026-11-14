@@ -4,7 +4,9 @@
    data/biblioteca.js se quedan en el codigo (lo decidio el fundador): desde el panel solo
    llegan los NUEVOS. Por eso un libro del panel no puede llamarse como uno de esos.
 
-     id         una palabra en minusculas sin guiones (es su ancla: /es/writing/#libertad)
+     id         una palabra en minusculas sin guiones (es su ancla, /es/writing/#libertad, y su enlace corto,
+                juanjolopezramirez.com/libertad: por eso no puede llamarse como una direccion de la web, ver
+                scripts/biblioteca.js → RUTAS_RESERVADAS)
      seccion    un tema de data/biblioteca.js → SECCIONES
      tipo       'tapa-dura' | 'revista' | 'comic'  (data/biblioteca.js → TIPOS)
      grosor     'fino' | 'medio' | 'grueso' (opcional: si no, sale de las paginas)

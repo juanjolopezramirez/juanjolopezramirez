@@ -206,6 +206,35 @@ await ok('los otros nombres de books.py (ALIAS) tampoco valen: taparian el PDF d
   assert.deepEqual([...alias].sort(), [...ALIAS_DE_BOOKS].sort());
   for (const id of alias) assert.ok(tieneError(new Libro({ ...libroBueno(), id }).validar(), 'id', 'reservado'), id);
 });
+await ok('enlace corto: ningun libro del panel puede llamarse como una direccion de la raiz de la web', async () => {
+  const { RUTAS_RESERVADAS, RESERVADOS } = await cargar('src/scripts/biblioteca.js');
+  /* La lista exacta que pidio el fundador, y los cinco idiomas */
+  for (const id of ['es', 'en', 'pt', 'fr', 'it', 'portal', 'vista', 'actividad', 'taller-hoja', 'api', 'robots', 'sitemap', 'favicon', 'assets', 'books', 'sounds', '_astro', 'admin', 'login', 'www', 'index', '404']) {
+    assert.ok(RUTAS_RESERVADAS.includes(id), id);
+    assert.ok(RESERVADOS.has(id), id);
+  }
+  /* Los que tienen forma de id (una palabra en minusculas) no pasan: ni validar() ni idValido() */
+  for (const id of RUTAS_RESERVADAS.filter((x) => /^[a-z][a-z0-9]*$/.test(x))) {
+    assert.equal(Libro.idValido(id), false, id);
+    assert.ok(tieneError(new Libro({ ...libroBueno(), id }).validar(), 'id', 'reservado'), id);
+  }
+  /* Y una palabra cualquiera, si */
+  assert.equal(Libro.idValido('libertad'), true);
+});
+await ok('enlace corto en el Taller: «Enlace para compartir» y «Copiar enlace» salen del dominio del sitio, con textos en español', async () => {
+  const { PORTAL_TEXTOS } = await cargar('src/data/portal/textos.js');
+  const tx = PORTAL_TEXTOS.es.panel.taller;
+  for (const k of ['rcEnlace', 'rcEnlaceCopiar', 'rcEnlaceCopiado', 'rcEnlaceNoCopio', 'rcEnlaceReciente']) assert.ok(typeof tx[k] === 'string' && tx[k], k);
+  assert.match(tx.rcEnlace, /^Enlace para compartir: \{direccion\}$/);
+  assert.equal(tx.rcEnlaceCopiar, 'Copiar enlace');
+  const f = leer('src/scripts/portal/panel/dev/taller/PublicarRecursos.js');
+  /* El dominio sale de `site` (import.meta.env.SITE), no de window.location ni escrito a mano */
+  assert.match(f, /import\.meta\.env\.SITE/);
+  assert.ok(!/juanjolopezramirez\.com/.test(f.replace(/\/\*[\s\S]*?\*\//g, '')), 'el dominio no se escribe a mano');
+  assert.ok(!/location\.(origin|host)/.test(f), 'no se usa la direccion de donde se abre el Taller');
+  assert.match(f, /enlaceVisible\(sitio\(\), id\)/);
+  assert.match(f, /enlaceCorto\(sitio\(\), this\.enlaceId\)/);
+});
 await ok('RepositorioMemoria: algo NUEVO con un id que ya existe no lo pisa', async () => {
   const repo = new R.RepositorioMemoria(Libro);
   assert.ok((await repo.guardarBorrador(new Libro(libroBueno()), { nuevo: true })).ok);

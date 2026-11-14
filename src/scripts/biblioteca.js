@@ -295,8 +295,25 @@ export function coincide(consulta, indice) {
    ancla. Los demas ids de la pagina llevan guion (`book-panel`,
    `biblio-titulo`) y no pueden chocar porque el id de un libro no puede
    llevarlo. */
-export const RESERVADOS = new Set(['top', 'main', 'biblioteca', 'destacados', 'book', 'flip', 'arrow', 'info', 'mark', 'corner', 'toast',
-  'curtain', 'globe', 'lockup', 'links', 'mas']);
+export const ANCLAS_RESERVADAS = ['top', 'main', 'biblioteca', 'destacados', 'book', 'flip', 'arrow', 'info', 'mark', 'corner', 'toast',
+  'curtain', 'globe', 'lockup', 'links', 'mas'];
+/* LAS DIRECCIONES DE LA RAIZ. Cada libro tiene un enlace corto, juanjolopezramirez.com/<id> (ver «El enlace corto», al
+   final): un libro NUNCA puede quitarle una direccion al sitio. Esta es la lista de lo que ya vive en la raiz —las
+   carpetas de idioma, las paginas sueltas (src/pages), lo que va tal cual (public/) y lo que Astro y GitHub Pages
+   dejan en dist/— mas los nombres que no conviene regalar (admin, login, www, api…). Los nombres con guion o con
+   guion bajo (taller-hoja, _astro) ni siquiera pasarian por ser un id, y se dejan aqui para que la lista diga todo. Ademas,
+   al compilar, la pagina de los enlaces cortos mira lo que hay de verdad en public/ y src/pages
+   (data/enlaces-libros.js) y se para si un libro choca con algo que esta lista no conocia. */
+export const RUTAS_RESERVADAS = [
+  'es', 'en', 'pt', 'fr', 'it',                                     // los cinco idiomas
+  'portal', 'vista', 'actividad', 'taller-hoja', 'api',             // el portal, el libro privado, lo que vendra
+  'robots', 'sitemap', 'favicon', 'cname',                          // lo que lee un buscador o GitHub Pages
+  'assets', 'books', 'sounds', 'vendor', '_astro',                  // las carpetas de archivos
+  'admin', 'login', 'www', 'index', '404',                          // nombres que no se regalan
+  'writing', 'work', 'projects', 'about', 'contact', 'meet', 'direct',  // las secciones de cada idioma
+  'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public'   // archivos que los buscadores y los navegadores piden en la raiz
+];
+export const RESERVADOS = new Set([...ANCLAS_RESERVADAS, ...RUTAS_RESERVADAS]);
 /* Lo que makePages (site.js) necesita para armar un libro de una palabra: si
    falta una de estas, el libro se abriria en blanco o rompiendo. */
 const LECTURAS = ['now', 'history', 'theology'];
@@ -330,7 +347,7 @@ export function comprobar(datos) {
     const donde = `biblioteca.js: el libro «${b.id}»`;
     if (typeof b.id !== 'string' || !/^[a-z][a-z0-9]*$/.test(b.id)) throw new Error(`${donde} tiene un id que no es una palabra en minusculas sin guiones.`);
     if (vistos.has(b.id)) throw new Error(`${donde} esta repetido.`);
-    if (RESERVADOS.has(b.id)) throw new Error(`${donde} se llama como una ancla de la pagina.`);
+    if (RESERVADOS.has(b.id)) throw new Error(`${donde} se llama como una ancla de la pagina o como una direccion de la web (su enlace corto, /${b.id}, le quitaria el sitio): ponle otro id.`);
     if (!secciones.has(b.seccion)) throw new Error(`${donde} esta en la seccion «${b.seccion}», que no existe.`);
     if (!tiene(TIPOS, b.tipo)) throw new Error(`${donde} tiene el tipo «${b.tipo}», que no existe (${Object.keys(TIPOS).join(', ')}).`);
     if (b.grosor !== undefined && !GROSORES.includes(b.grosor)) throw new Error(`${donde} tiene el grosor «${b.grosor}» (usa ${GROSORES.join(', ')}).`);
@@ -409,4 +426,135 @@ export function comprobar(datos) {
   for (const id of Object.keys(BOOKS || {})) if (!vistos.has(id)) avisos.push(`hay un PDF convertido para «${id}», pero no esta en LIBROS.`);
 
   return avisos;
+}
+
+/* ---- El enlace corto de cada libro ------------------------------------------
+
+   https://juanjolopezramirez.com/ahava lleva al libro (pages/[book]/index.astro) y es el que se manda por
+   WhatsApp, Telegram, correo… El enlace largo, /es/writing/#ahava, sigue funcionando igual, y el PRIVADO
+   (#k=…, /vista/) no cambia en nada: no se copia ni se acorta.
+
+   Todo lo de aqui es puro (sin DOM ni disco) para probarlo en Node: lo usan site.js (el boton «Copiar
+   enlace» del lector), el Taller (despues de publicar en Recursos) y data/enlaces-libros.js (las paginas). */
+const ID_LIBRO = /^[a-z][a-z0-9]*$/;
+const ORIGEN = /^https?:\/\/[^\s/?#]+$/;
+
+/* «https://juanjolopezramirez.com/ahava», o null si el origen o el id no sirven (un id reservado tampoco:
+   no seria una pagina de libro). */
+export function enlaceCorto(origen, id) {
+  const o = typeof origen === 'string' ? origen.trim().replace(/\/+$/, '') : '';
+  if (!ORIGEN.test(o) || typeof id !== 'string' || !ID_LIBRO.test(id) || RESERVADOS.has(id)) return null;
+  return `${o}/${id}`;
+}
+
+/* Lo mismo sin «https://», para decirlo en voz alta en una pantalla: «juanjolopezramirez.com/ahava» */
+export const enlaceVisible = (origen, id) => {
+  const e = enlaceCorto(origen, id);
+  return e ? e.replace(/^https?:\/\//, '') : null;
+};
+
+/* La direccion larga del libro, la que la pagina corta abre: /es/writing/#ahava */
+export function enlaceLargo(origen, lang, id) {
+  const o = typeof origen === 'string' ? origen.trim().replace(/\/+$/, '') : '';
+  if (!ORIGEN.test(o) || typeof id !== 'string' || !ID_LIBRO.test(id) || !/^[a-z]{2}$/.test(String(lang))) return null;
+  return `${o}/${lang}/writing/#${id}`;
+}
+
+/* Que idioma de la web se abre con el enlace corto: el primero del navegador que la web tenga; si no, el de
+   siempre. El mismo cuento que cuenta pages/index.astro para la raiz. `preferidos` es navigator.languages. */
+export function idiomaDeEnlace(preferidos, soportados, porDefecto) {
+  const lista = Array.isArray(preferidos) ? preferidos : [preferidos];
+  for (const p of lista) {
+    const l = String(p == null ? '' : p).toLowerCase().split('-')[0];
+    if (soportados.includes(l)) return l;
+  }
+  return porDefecto;
+}
+
+/* La prueba de la compilacion: ningun libro puede quitarle una direccion al sitio. `existentes` son los nombres
+   que de verdad hay en la raiz (public/ y src/pages, leidos del disco). Devuelve los ids; si alguno choca, lanza
+   un Error en claro que dice cual y que hacer. */
+export function comprobarRutas(ids, existentes = []) {
+  const ocupadas = new Set([...existentes].map((x) => String(x).toLowerCase()));
+  const vistos = new Set();
+  for (const id of ids) {
+    const quien = `El libro «${String(id)}»`;
+    if (typeof id !== 'string' || !ID_LIBRO.test(id)) throw new Error(`${quien} no puede tener enlace corto: su id tiene que ser una palabra en minusculas, sin guiones, que empiece por una letra.`);
+    if (RESERVADOS.has(id)) throw new Error(`${quien} se llama como una direccion que ya es de la web: su enlace corto (/${id}) le quitaria el sitio. Ponle otro id (en src/data/biblioteca.js, o en Developer-Mode si viene del panel).`);
+    if (ocupadas.has(id)) throw new Error(`${quien} se llama como algo que ya existe en la raiz de la web (public/ o src/pages): su enlace corto (/${id}) taparia ese archivo o esa pagina. Ponle otro id.`);
+    if (vistos.has(id)) throw new Error(`${quien} esta repetido: dos libros no pueden tener el mismo enlace corto.`);
+    vistos.add(id);
+  }
+  return [...ids];
+}
+
+/* ---- La vista previa (Open Graph) -----------------------------------------
+
+   Lo que WhatsApp, Telegram, iMessage, LinkedIn… leen del HTML crudo para armar la tarjeta. */
+export const AUTOR = 'Juan José López Ramírez';
+export const OG_LOCALES = { es: 'es_LA', en: 'en_US', pt: 'pt_BR', fr: 'fr_FR', it: 'it_IT' };
+/* WhatsApp no pinta miniaturas que pasan de ~300 KB: se queda con una mas liviana si la portada pesa mas que esto */
+export const OG_MAX_BYTES = 250 * 1024;
+/* Una portada para los libros que no tienen PDF (los de una palabra aun sin PDF): la foto de siempre */
+export const OG_RESPALDO = { ruta: 'assets/img/me-quote.jpg', ancho: 1080, alto: 1920 };
+
+/* Un texto corto: sin saltos ni espacios de mas, cortado en una palabra entera y con «…» si se acorto */
+export function recortarTexto(texto, max = 155) {
+  const t = typeof texto === 'string' ? texto.replace(/\s+/g, ' ').trim() : '';
+  if (t.length <= max) return t;
+  /* Si cabe una frase entera (mas de la mitad del espacio), se queda en ese punto, sin «…» */
+  const ultima = [...t.slice(0, max).matchAll(/[.!?]["»”’)]?(?=\s|$)/g)].pop();
+  if (ultima && ultima.index + ultima[0].length > max * 0.5) return t.slice(0, ultima.index + ultima[0].length);
+  const corte = t.slice(0, max - 1);
+  const espacio = corte.lastIndexOf(' ');
+  return (espacio > max * 0.6 ? corte.slice(0, espacio) : corte).replace(/[\s,;:.\-–—]+$/, '') + '…';
+}
+
+/* Una ruta de archivo del sitio («books/ahava/es/01-900.jpg», con o sin «/» al principio) hecha direccion
+   ABSOLUTA con el dominio. Una URL ya completa, «//otro.sitio» o algo con «..» no se acepta: null. */
+export function urlAbsoluta(origen, ruta) {
+  const o = typeof origen === 'string' ? origen.trim().replace(/\/+$/, '') : '';
+  if (!ORIGEN.test(o) || typeof ruta !== 'string' || !ruta.replace(/^\/+/, '') || /^[a-z][a-z0-9+.-]*:|^\/\/|\.\.|\\|\s/i.test(ruta)) return null;
+  return `${o}/${ruta.replace(/^\/+/, '')}`;
+}
+
+/* La portada que se ofrece a las redes: la primera pagina del PDF (900 px) del idioma que abre la pagina, con
+   sus medidas; o null si el libro no tiene PDF. `v` es la version del PDF (para que una portada vieja no se
+   quede en la memoria de las redes). */
+export function portadaDeLibro(libro, BOOKS, pagina = 'es') {
+  const v = variante(libro, pagina, BOOKS);
+  if (!v || !v.pdf) return null;
+  const ratio = v.pdf.ratio > 0 ? v.pdf.ratio : 5 / 7;
+  return { ruta: `books/${libro.id}/${v.cual}/01-900.jpg`, ancho: 900, alto: Math.round(900 / ratio), v: v.pdf.v || '' };
+}
+
+/* TODO lo que lleva la vista previa de un libro, listo para <OpenGraph>.
+     id, titulo, glosa   de fichaLibro (titulo y glosa en el idioma en que esta el libro)
+     resumen             un parrafo del libro, si lo hay (los de una palabra: su primera lectura)
+     idioma              el idioma del titulo (fichaLibro → idioma): fija og:locale
+     imagen              { ruta, ancho, alto, v } de portadaDeLibro, o OG_RESPALDO */
+export function ogDeLibro({ id, titulo, glosa, resumen, idioma, origen, imagen }) {
+  const url = enlaceCorto(origen, id);
+  const img = imagen && urlAbsoluta(origen, imagen.ruta);
+  if (!url || !img) return null;
+  /* Una sola linea: un salto de linea o U+2028/U+2029 (que `\s` ya incluye) en un titulo del panel no debe llegar a las etiquetas */
+  const una = (x) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim() : '');
+  const nombre = una(titulo) || id;
+  const g = una(glosa).replace(/[.\s]+$/, '');
+  const descripcion = typeof resumen === 'string' && resumen.trim()
+    ? recortarTexto(resumen)
+    : g ? `${g}. Un libro de ${AUTOR}.` : `Un libro de ${AUTOR}, en su biblioteca de Recursos.`;
+  return {
+    title: g ? `${nombre} · ${g}` : nombre,
+    description: descripcion,
+    image: img + (imagen.v ? `?v=${encodeURIComponent(imagen.v)}` : ''),
+    imageWidth: imagen.ancho,
+    imageHeight: imagen.alto,
+    imageAlt: `Portada de «${nombre}»`,
+    /* Con «/» al final: es donde GitHub Pages sirve la pagina, y asi la direccion de la tarjeta es la final */
+    url: url + '/',
+    type: 'book',
+    locale: OG_LOCALES[idioma] || null,
+    siteName: AUTOR
+  };
 }
