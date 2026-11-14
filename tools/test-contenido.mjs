@@ -308,7 +308,7 @@ await ok('Trabajo y Proyecto son Casas, cada una con su clase', () => {
   assert.ok(t.validar().ok, claves(t.validar()).join(','));
 });
 await ok('el slug: minusculas con guiones, y nunca el de una seccion de la web', () => {
-  for (const id of ['work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status', 'Casa', 'casa_x', '-casa', 'casa-', 'ca--sa', '']) {
+  for (const id of ['work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status', 'vista', 'actividad', 'Casa', 'casa_x', '-casa', 'casa-', 'ca--sa', '']) {
     assert.ok(tieneError(new Trabajo({ ...casaBuena(), id }).validar(), 'id'), id);
   }
   assert.ok(new Trabajo({ ...casaBuena(), id: 'casa-san-pedro2', logo: { src: 'casas/casa-san-pedro2/logo.png', w: 2, h: 1 } }).validar().ok);

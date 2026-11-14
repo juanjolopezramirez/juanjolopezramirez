@@ -73,8 +73,50 @@ const { tx } = Astro.props;
             </div>
           </details>
         </div>
+        <button class="tal-btn" type="button" data-tal-compartir>{tx.compartir}</button>
       </div>
     </header>
+
+    <!-- Compartir con un enlace privado (taller/Publicar.js): subir el PDF que se saco, y crear, ver y apagar enlaces -->
+    <dialog class="tal-borrar tal-comp" data-tal-compartir-dialogo aria-labelledby="tal-comp-titulo">
+      <div class="tal-borrar__caja">
+        <h2 class="tal-borrar__titulo" id="tal-comp-titulo">{tx.compartirTitulo}</h2>
+        <section class="tal-comp__seccion" aria-labelledby="tal-comp-ed">
+          <h3 class="tal-rotulo" id="tal-comp-ed">{tx.cpEdicionTitulo}</h3>
+          <p class="tal-ayuda">{tx.cpEdicionAyuda}</p>
+          <p class="tal-comp__actual" data-cp-actual role="status"></p>
+          <label class="tal-marca"><input type="checkbox" data-cp-duro /><span>{tx.cpTapaDura}</span></label>
+          <div class="tal-fila">
+            <button class="tal-btn tal-btn--fuerte" type="button" data-cp-subir>{tx.cpSubir}</button>
+            <button class="tal-btn" type="button" data-cp-parar hidden>{tx.cpParar}</button>
+          </div>
+          <input type="file" accept="application/pdf,.pdf" data-cp-archivo hidden />
+          <p class="tal-borrar__estado" data-cp-avance aria-hidden="true"></p>
+          <p class="tal-borrar__estado" data-cp-estado role="status"></p>
+          <ul class="tal-comp__fallas" role="list" data-cp-fallas></ul>
+        </section>
+        <section class="tal-comp__seccion" aria-labelledby="tal-comp-en">
+          <h3 class="tal-rotulo" id="tal-comp-en" tabindex="-1" data-cp-enlaces-titulo>{tx.cpEnlacesTitulo}</h3>
+          <div class="tal-fila tal-comp__nuevo-fila">
+            <label class="tal-comp__campo"><span>{tx.cpNombre}</span><input class="portal__entrada" data-cp-nombre maxlength="80" autocomplete="off" placeholder={tx.cpNombreAyuda} /></label>
+            <label class="tal-comp__campo"><span>{tx.cpDura}</span><select class="portal__entrada" data-cp-dias></select></label>
+            <button class="tal-btn tal-btn--fuerte" type="button" data-cp-crear disabled>{tx.cpCrear}</button>
+          </div>
+          <div class="tal-comp__nuevo" data-cp-nuevo hidden>
+            <p class="tal-ayuda">{tx.cpNuevo}</p>
+            <div class="tal-fila">
+              <input class="portal__entrada tal-comp__direccion" data-cp-direccion readonly aria-label={tx.cpDireccion} spellcheck="false" autocomplete="off" />
+              <button class="tal-btn" type="button" data-cp-copiar>{tx.cpCopiar}</button>
+            </div>
+            <p class="tal-ayuda" data-cp-dicho role="status"></p>
+          </div>
+          <ul class="tal-comp__lista" role="list" data-cp-lista></ul>
+        </section>
+        <div class="tal-fila tal-borrar__botones">
+          <button class="portal__boton portal__boton--suave" type="button" data-cp-cerrar>{tx.cpCerrar}</button>
+        </div>
+      </div>
+    </dialog>
 
     <p class="tal-celular">{tx.celular}</p>
     <p class="tal-error" data-tal-error role="alert" hidden></p>

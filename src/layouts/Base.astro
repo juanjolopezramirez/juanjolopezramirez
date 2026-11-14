@@ -18,7 +18,8 @@ import '../styles/carga.css';
 /* `noindex`: paginas que no deben salir en buscadores (el portal). La meta lo pide
    educadamente a Google y a los demas; no esconde la pagina: eso solo lo hace
    no tenerla (ver el aviso de PORTAL.md). */
-const { lang, path = '', active = '', title, description, noindex = false, noche = false, limpio = false } = Astro.props;
+const { lang, path = '', active = '', title, description, noindex = false, noche = false, limpio = false, sinReferencia = false } = Astro.props;
+/* `sinReferencia`: la pagina no cuenta de donde vienes ni a donde vas (el libro privado, /vista/, lleva su secreto en la direccion) */
 /* `limpio`: sin la cabecera ni el pie del sitio (las interfaces de trabajo de The
    Alef Code: el portal, el panel y las que vengan; layouts/Terminal.astro). Los
    paneles, el telon y site.js se quedan: el guardian de arriba espera `js-ready`. */
@@ -154,6 +155,7 @@ const canonical = alt(lang);
   {noche && <meta name="color-scheme" content="dark" />}
   {noche && <style is:inline>html { background: #050806; }</style>}
   {noindex && <meta name="robots" content="noindex, nofollow" />}
+  {sinReferencia && <meta name="referrer" content="no-referrer" />}
   <title>{title ?? t('doc.title')}</title>
   <meta name="description" content={description ?? t('hero.role')} />
 

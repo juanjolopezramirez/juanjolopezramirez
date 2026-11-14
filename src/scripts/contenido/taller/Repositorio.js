@@ -5,6 +5,8 @@
      crearCapitulo(obraId, titulo) · guardarCapitulo(datos, pestana) · ordenar(obraId, ids) · borrarCapitulo(id)
      crearPieza(datos) · guardarPieza(datos, pestana) · borrarPieza(id)
      copia(obraId, motivo, nombre) · versiones(obraId) · restaurar(versionId)
+     ediciones(obraId) · crearEdicion(datos) · borrarEdicion(id)            (supabase/013_publicar.sql)
+     enlaces(edicionId) · crearEnlace(datos) · apagarEnlace(id)
 
    DOS PESTAÑAS NO SE PISAN. Cada fila lleva `rev`, que la base sube sola, y `pestana`, quien
    guardo. Se guarda SOLO si `rev` sigue siendo la que se leyo. Si no, `decidir` mira quien
@@ -12,6 +14,7 @@
    y nunca se sobrescribe en silencio. */
 import { deFila } from '../comun.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
+import { DIAS_MAX, NOMBRE_MAX } from './Enlaces.js';
 
 export function decidir(actual, pestana) {
   if (!actual) return { error: 'permiso' };
@@ -26,7 +29,7 @@ const COPIAS_AUTO = 30;
 
 /* EN MEMORIA: la misma forma, para probar en Node y en el modo demo */
 export class RepositorioTallerMemoria {
-  constructor() { this.obrasM = new Map(); this.capitulosM = new Map(); this.piezasM = new Map(); this.versionesL = []; }
+  constructor() { this.obrasM = new Map(); this.capitulosM = new Map(); this.piezasM = new Map(); this.versionesL = []; this.edicionesM = new Map(); this.enlacesM = new Map(); this.reloj = () => Date.now(); }
 
   async obras() {
     return { ok: true, filas: [...this.obrasM.values()].map(copiaProfunda) };
@@ -64,6 +67,7 @@ export class RepositorioTallerMemoria {
     if (!this.quitarFilas(id)) return { error: 'noExiste' };
     /* Como en la base (on delete cascade): sus copias se van con el */
     this.versionesL = this.versionesL.filter((v) => v.obraId !== id);
+    for (const e of [...this.edicionesM.values()]) if (e.obraId === id) this.quitarEdicion(e.id);
     return { ok: true };
   }
   async crearCapitulo(obraId, titulo = '') {
@@ -101,6 +105,63 @@ export class RepositorioTallerMemoria {
   async versiones(obraId) {
     return { ok: true, filas: this.versionesL.filter((v) => v.obraId === obraId).map(({ id, motivo, nombre, creado }) => ({ id, motivo, nombre, creado })) };
   }
+  /* ---- Compartir (supabase/013_publicar.sql): ediciones y enlaces. Las mismas reglas que la base. ---- */
+  quitarEdicion(id) {
+    this.edicionesM.delete(id);
+    for (const [k, v] of this.enlacesM) if (v.edicionId === id) this.enlacesM.delete(k);
+  }
+  async ediciones(obraId) {
+    const filas = [...this.edicionesM.values()].filter((e) => e.obraId === obraId)
+      .sort((a, b) => (a.creado < b.creado ? 1 : a.creado > b.creado ? -1 : 0))
+      .map(({ id, titulo, paginas, ratio, blando, creado }) => ({ id, titulo, paginas, ratio, blando, creado }));
+    return { ok: true, filas };
+  }
+  async crearEdicion(d) {
+    if (!this.obrasM.has(d.obraId)) return { error: 'noExiste' };
+    const paginas = d.paginas, hojas = copiaProfunda(d.hojas);
+    if (!Number.isInteger(paginas) || paginas < 1 || paginas > 300 || !Array.isArray(hojas) || hojas.length !== paginas) return { error: 'lleno' };
+    if (!(d.ratio > 0.2 && d.ratio < 5) || !d.titulo || d.titulo.length > 200 || JSON.stringify(hojas).length > 4000000) return { error: 'lleno' };
+    const id = d.id || nuevoId();
+    const carpeta = `taller/${d.obraId}/ediciones/${id}/`;
+    this.edicionesM.set(id, { id, obraId: d.obraId, titulo: d.titulo, idioma: d.idioma || 'es', paginas, ratio: d.ratio, blando: d.blando !== false, carpeta, pdf: `${carpeta}original.pdf`, hojas, creado: new Date(this.reloj()).toISOString() });
+    return { ok: true, id, carpeta };
+  }
+  async borrarEdicion(id) {
+    if (!this.edicionesM.has(id)) return { error: 'noExiste' };
+    this.quitarEdicion(id);
+    return { ok: true };
+  }
+  async enlaces(edicionId) {
+    const filas = [...this.enlacesM.values()].filter((e) => e.edicionId === edicionId)
+      .sort((a, b) => (a.creado < b.creado ? 1 : a.creado > b.creado ? -1 : 0))
+      .map(({ hash, ...resto }) => ({ ...resto }));
+    return { ok: true, filas };
+  }
+  /* `hash` es el bytea de la huella: una barra, una x y 64 letras. Como en la base, la hora y los contadores los pone ella */
+  async crearEnlace(d) {
+    if (!this.edicionesM.has(d.edicionId)) return { error: 'noExiste' };
+    if (typeof d.hash !== 'string' || !/^\\x[0-9a-f]{64}$/.test(d.hash)) return { error: 'lleno' };
+    if ([...this.enlacesM.values()].some((e) => e.hash === d.hash)) return { error: 'generico' };
+    const nombre = String(d.nombre || '');
+    if (nombre.length > NOMBRE_MAX) return { error: 'lleno' };
+    const ahora = this.reloj();
+    const quiere = Date.parse(d.vence);
+    if (!Number.isFinite(quiere) || quiere <= ahora) return { error: 'lleno' };
+    const vence = new Date(Math.min(quiere, ahora + DIAS_MAX * 86400000)).toISOString();
+    const id = d.id || nuevoId();
+    this.enlacesM.set(id, { id, edicionId: d.edicionId, hash: d.hash, nombre, creado: new Date(ahora).toISOString(), vence, revocado: false, vistas: 0, ultimaVista: null });
+    return { ok: true, id, vence };
+  }
+  /* Solo se apaga: un enlace apagado no se enciende */
+  async apagarEnlace(id) {
+    const e = this.enlacesM.get(id);
+    if (!e) return { error: 'noExiste' };
+    e.revocado = true;
+    return { ok: true };
+  }
+  /* LO QUE HACE LA FUNCION DE BORDE (supabase/functions/vista), para el modo demo y las pruebas */
+  buscarEnlace(hash) { return [...this.enlacesM.values()].find((e) => e.hash === hash) || null; }
+
   async restaurar(id) {
     const v = this.versionesL.find((x) => x.id === id);
     if (!v) return { error: 'noExiste' };
@@ -213,5 +274,40 @@ export class RepositorioTallerSupabase {
   async restaurar(id) {
     const r = await this.pedir(this.sb.rpc('taller_restaurar', { p_version: id }));
     return r.error ? r : { ok: true };
+  }
+
+  /* ---- Compartir (supabase/013_publicar.sql). Nunca se pide `hash` de vuelta ni `hojas` en una lista. ---- */
+  async ediciones(obraId) {
+    const r = await this.pedir(this.sb.from('taller_ediciones').select('id,titulo,paginas,ratio,blando,creado').eq('obra_id', obraId).order('creado', { ascending: false }).limit(20));
+    return r.error ? r : { ok: true, filas: r.data.map((f) => ({ ...f, ratio: Number(f.ratio) })) };
+  }
+  async crearEdicion(d) {
+    const id = d.id || nuevoId();
+    const carpeta = `taller/${d.obraId}/ediciones/${id}/`;
+    const r = await this.pedir(this.sb.from('taller_ediciones').insert({
+      id, obra_id: d.obraId, titulo: d.titulo, idioma: d.idioma || 'es', paginas: d.paginas, ratio: d.ratio, blando: d.blando !== false,
+      carpeta, pdf: `${carpeta}original.pdf`, hojas: d.hojas
+    }));
+    return r.error ? r : { ok: true, id, carpeta };
+  }
+  async borrarEdicion(id) {
+    const r = await this.pedir(this.sb.from('taller_ediciones').delete().eq('id', id).select('id'));
+    if (r.error) return r;
+    return Array.isArray(r.data) && r.data.length === 1 ? { ok: true } : { error: 'noExiste' };
+  }
+  async enlaces(edicionId) {
+    const r = await this.pedir(this.sb.from('taller_enlaces').select('id,edicion_id,nombre,creado,vence,revocado,vistas,ultima_vista').eq('edicion_id', edicionId).order('creado', { ascending: false }).limit(100));
+    return r.error ? r : { ok: true, filas: r.data.map(deFila) };
+  }
+  async crearEnlace(d) {
+    const id = d.id || nuevoId();
+    const r = await this.pedir(this.sb.from('taller_enlaces').insert({ id, edicion_id: d.edicionId, hash: d.hash, nombre: d.nombre || '', vence: d.vence }).select('id,vence').single());
+    return r.error ? r : { ok: true, id, vence: r.data.vence };
+  }
+  /* Si las reglas no dejan, la base no da error: cambia cero filas. Por eso se pide la fila */
+  async apagarEnlace(id) {
+    const r = await this.pedir(this.sb.from('taller_enlaces').update({ revocado: true }).eq('id', id).select('id'));
+    if (r.error) return r;
+    return Array.isArray(r.data) && r.data.length === 1 ? { ok: true } : { error: 'noExiste' };
   }
 }

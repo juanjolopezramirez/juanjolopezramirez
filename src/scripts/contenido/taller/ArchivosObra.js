@@ -4,7 +4,7 @@
 export const ES_ID_OBRA = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const POR_PAGINA = 100;
 export const POR_TANDA = 100;
-const HONDO = 4;                     // hoy son dos niveles (img, pdf): mas hondo no hay que buscar
+const HONDO = 4;                     // hoy son tres niveles (img, pdf y ediciones/<id>): mas hondo no hay que buscar
 
 /* `listar(carpeta, desde)` → { data: [{ name, id, metadata }], error }; una carpeta llega con id null.
    Devuelve { ok, archivos: [{ ruta, peso }] }, con la ruta como la guardan las filas («taller/…»). */

@@ -1,0 +1,5 @@
+# Ajustes de las funciones de borde. Sin llaves ni id de proyecto: eso va en el entorno de Supabase, nunca aqui.
+# `vista` no lleva control de JWT: quien abre el enlace no tiene sesion, su unico secreto es el enlace.
+# (Tambien se pide con `--no-verify-jwt` al publicarla: ver functions/vista/README.md.)
+[functions.vista]
+verify_jwt = false

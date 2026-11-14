@@ -31,6 +31,27 @@
 .tal-borrar__si:not(:disabled) { background: var(--alerta); border-color: var(--alerta); color: #fff; }
 .tal-borrar__si:disabled, .tal-borrar button:disabled { opacity: .5; cursor: not-allowed; }
 
+/* ---- Compartir con un enlace privado (taller/Publicar.js) ---- */
+.tal-comp { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100svh - 2rem); overflow: auto; }
+.tal-comp__seccion { display: grid; gap: .55rem; padding: .8rem 0 .2rem; border-top: 1px solid var(--raya); }
+.tal-comp__seccion .tal-rotulo { margin: 0; }
+.tal-comp__actual { margin: 0; color: var(--tiza); min-height: 1.4em; }
+.tal-comp__fallas { margin: 0; padding: 0; list-style: none; display: grid; gap: .3rem; color: var(--alerta); }
+.tal-comp__fallas:empty { display: none; }
+.tal-comp__nuevo-fila { align-items: end; flex-wrap: wrap; }
+.tal-comp__campo { display: grid; gap: .2rem; min-width: 0; flex: 1 1 9rem; color: var(--tiza-2); }
+.tal-comp__nuevo { display: grid; gap: .4rem; padding: .7rem; border: 1px solid var(--prompt); border-radius: 10px; background: rgb(var(--prompt-rgb) / .08); }
+.tal-comp__direccion { flex: 1 1 auto; min-width: 0; font-family: var(--mono); font-size: .8rem; }
+.tal-comp__lista { margin: 0; padding: 0; list-style: none; display: grid; gap: .6rem; }
+.tal-comp__edicion { display: grid; gap: .35rem; padding: .55rem .65rem; border: 1px solid var(--raya); border-radius: 10px; }
+.tal-comp__cab { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.tal-comp__enlaces { margin: 0; padding: 0; list-style: none; display: grid; gap: .3rem; }
+.tal-comp__enlace { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .1rem .6rem; align-items: center; }
+.tal-comp__enlace > span { grid-column: 1; color: var(--tiza-2); overflow-wrap: anywhere; }
+.tal-comp__enlace > .tal-btn { grid-column: 2; grid-row: 1 / span 2; }
+.tal-comp__enlace[data-estado="vencido"], .tal-comp__enlace[data-estado="apagado"] { opacity: .6; }
+.tal-comp .tal-btn[data-armado="1"] { background: var(--alerta); border-color: var(--alerta); color: #fff; }
+
 /* ---- La mesa ---- */
 .tal-mesa { position: fixed; inset: 0; z-index: 1000; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto; gap: 0; background: var(--consola); color: var(--tiza); font: 13px/1.4 var(--mono); }
 .tal-mesa[hidden] { display: none; }

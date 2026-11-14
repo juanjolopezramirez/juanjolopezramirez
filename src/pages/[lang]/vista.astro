@@ -1,0 +1,32 @@
+---
+import { LANGS, useT } from '../../i18n/utils.js';
+import Base from '../../layouts/Base.astro';
+import '../../styles/vista.css';
+
+/* EL LIBRO PRIVADO: /es/vista/#k=<secreto>
+
+   Un libro del Taller que el fundador comparte con un enlace. Sin entrar, sin cuenta: el secreto va en la direccion,
+   detras de «#», que el navegador no manda a ningun servidor. Lo primero que hace la pagina es quitarlo de la barra
+   (scripts/lector/vista.js) y preguntarle a la funcion de borde `vista` (supabase/functions/vista).
+
+   Se abre con el mismo lector de Recursos (site.js): giro, enlaces, sonido y lupa. Si el enlace esta mal escrito,
+   vencio, se apago o nunca existio, se dice UNA sola cosa: «Este enlace ya no abre».
+
+   Sale de los buscadores (noindex), no cuenta de donde vienes ni a donde vas (`sinReferencia`) y no esta en el mapa
+   del sitio. «vista» es un nombre reservado: ninguna casa puede llamarse asi (Casa.RESERVADOS). */
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+const t = useT(lang);
+---
+<Base lang={lang} path="vista" noindex limpio sinReferencia title={t('vista.titulo')} description={t('vista.titulo')}>
+  <section class="vista" data-vista data-malo={t('vista.malo')} data-red={t('vista.red')} data-cargando={t('vista.cargando')}>
+    <h1 class="vista__titulo" data-vista-titulo>{t('vista.titulo')}</h1>
+    <p class="vista__estado" data-vista-estado role="status">{t('vista.cargando')}</p>
+    <p class="vista__ayuda" data-vista-ayuda hidden>{t('vista.malo2')}</p>
+    <button class="vista__abrir" type="button" data-vista-abrir hidden>{t('vista.abrir')}</button>
+  </section>
+  <script>import '../../scripts/lector/vista.js';</script>
+</Base>

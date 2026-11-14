@@ -233,3 +233,14 @@ Donde se escriben los libros. Saca el PDF desde el navegador; ese PDF se sube en
 - **Colores:** el papel y la letra de cada libro van en `pagina`; el de un capítulo, en `contenido.papel`; el de una página libre, en su `papel`. Un PDF traído conserva su fondo. «PDF para imprenta» agrega unos 3 mm de color por lado.
 - **Botón:** abre un enlace `https://` o copia un texto. Un PDF no puede copiar: ahí solo se dibuja. El lector web debe copiar con `navigator.clipboard.writeText`, solo al hacer clic, y mostrar antes el texto.
 - **Borrar o reemplazar un diseño** no borra sus archivos del cajón: las copias los pueden necesitar.
+
+## Compartir un libro con un enlace privado (Taller → «Compartir», etapa A3a)
+
+Escrito y probado en demo, **sin pegar ni publicar nada todavía**. Los dos pasos son tuyos y van en este orden:
+
+1. **Pegar `supabase/013_publicar.sql`** (Supabase → SQL Editor). Crea `taller_ediciones` y `taller_enlaces` (solo el admin, nada para `anon`), añade `taller_obras.libro_id` y reserva `vista` y `actividad` como nombres de casa. Se puede pegar dos veces. Luego `990_comprobar_rls.sql`, consultas 24 a 27.
+2. **Publicar la función de borde:** `supabase functions deploy vista --no-verify-jwt --project-ref <tu-proyecto>` (ver `supabase/functions/vista/README.md`). Sin `--no-verify-jwt`, quien abre el enlace recibiría «no autorizado». La llave de servicio la pone Supabase en el entorno de la función; nunca va a este repositorio.
+
+Cómo funciona: en «Compartir» subes el PDF que sacaste con «Hacer el PDF»; el navegador lo revisa, pinta cada página (900 y 1600 px) y sube todo a `taller/<libro>/ediciones/<id>/`. Cada enlace lleva 32 bytes al azar, se ve una vez como `https://<sitio>/<idioma>/vista/#k=…` (lo que va detrás de «#» no llega a ningún servidor) y la base guarda solo su SHA-256. Vence a los 7, 30 o 90 días (nunca «para siempre») o lo apagas, y un enlace apagado no se enciende. `/vista/` quita el secreto de la barra, pregunta a la función y abre el libro con el lector de Recursos; todo fallo dice lo mismo: «Este enlace ya no abre». La política de contenido deja imágenes de Supabase SOLO a esa página (`tools/politica-contenido.mjs`).
+
+Límites conocidos de esta etapa: `vistas` es aproximado (una por minuto y enlace); apagar un enlace tarda hasta 10 minutos en cerrar las imágenes ya firmadas; el enlace se comparte por un canal privado; `taller_obras.libro_id` no tiene llave foránea todavía (A3b); la tabla `borradores` (008) no se tocó. Al publicar la función, define `VISTA_ORIGENES` solo con el dominio real y añade el límite de peticiones del panel de Supabase.

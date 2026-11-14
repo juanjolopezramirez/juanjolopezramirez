@@ -379,7 +379,7 @@ ok('ni en lo compilado (dist/), si existe', () => {
 ok('«service_role» solo aparece en el guardian (estado.js y config.js)', () => {
   const donde = aBuscar.filter((f) => /service_role/i.test(leer(f)) && !f.startsWith('supabase/') && f !== 'PORTAL.md' && f !== 'README.md');
   /* `.env.example` la nombra solo para decir que NO se ponga. */
-  const permitidos = ['src/scripts/portal/estado.js', 'src/scripts/portal/config.js', '.env.example'];
+  const permitidos = ['src/scripts/portal/estado.js', 'src/scripts/portal/config.js', '.env.example', 'tools/test-taller-base.mjs'];   // esta ultima solo crea el ROL de mentira que prueba 013
   assert.deepEqual(donde.filter((f) => !permitidos.includes(f)), []);
 });
 ok('.env no se sube, .env.example no lleva valores', () => {
@@ -1428,6 +1428,85 @@ ok('012: todo es solo del admin, nadie sin entrar llega, el cajon es privado y l
   assert.equal((sql.match(/create policy "alef_taller_admin/g) || []).length, 4);
   assert.ok(!/security definer/i.test(sql));
   assert.match(leer('supabase/990_comprobar_rls.sql'), /taller_versiones/);
+});
+ok('013: compartir con un enlace privado: solo el admin, nada para anon, sin «security definer», con sus topes', () => {
+  const sql = sinComentarioSql(leer('supabase/013_publicar.sql'));
+  for (const t of ['taller_ediciones', 'taller_enlaces']) { assert.ok(sql.includes(`'${t}'`), t); assert.ok(sql.includes(`public.${t}`), t); }
+  assert.match(sql, /enable row level security/);
+  assert.match(sql, /revoke all on table public\.%I from anon, authenticated/);
+  assert.match(sql, /grant select, insert, delete on table public\.%I to authenticated/);
+  assert.match(sql, /using \(\(select public\.es_admin\(\)\)\) with check \(\(select public\.es_admin\(\)\)\)/);
+  assert.ok(!/\bto anon\b/i.test(sql), 'nada para anon');
+  assert.ok(!/security definer/i.test(sql), 'ninguna funcion «security definer»');
+  assert.equal((sql.match(/create or replace function/g) || []).length, (sql.match(/set search_path = ''/g) || []).length);
+  assert.ok(!/drop table/i.test(sql), 'nada se borra');
+  /* del enlace, el admin solo cambia si esta apagado; la huella son 32 bytes; nunca mas de 90 dias; la carpeta sale de los ids */
+  assert.match(sql, /grant update \(revocado\) on table public\.taller_enlaces to authenticated/);
+  assert.ok(!/grant update on table public\.%I/.test(sql), 'ninguna tabla se abre a «update» entera');
+  assert.match(sql, /octet_length\(hash\) = 32/);
+  assert.match(sql, /vence <= creado \+ interval '90 days'/);
+  assert.match(sql, /carpeta = 'taller\/' \|\| obra_id \|\| '\/ediciones\/' \|\| id \|\| '\/'/);
+  assert.match(sql, /octet_length\(hojas::text\) <= 4000000/);
+  assert.match(sql, /un enlace apagado no se enciende/);
+  for (const s of ['vista', 'actividad']) assert.ok(sql.includes(`'${s}'`), s);
+  /* la funcion de borde (llave de servicio): solo lo que necesita, y la cuenta de visitas por una funcion que no es «definer» */
+  assert.match(sql, /grant select on public\.taller_ediciones, public\.taller_enlaces to service_role/);
+  assert.match(sql, /grant update \(vistas, ultima_vista\) on public\.taller_enlaces to service_role/);
+  assert.match(sql, /function public\.taller_contar_vista\(p_enlace uuid\)[\s\S]*?security invoker\s+set search_path = ''/);
+  assert.match(sql, /revoke execute on function public\.taller_contar_vista\(uuid\) from public, anon, authenticated/);
+  assert.match(sql, /grant execute on function public\.taller_contar_vista\(uuid\) to service_role/);
+  assert.match(sql, /interval '60 seconds'/);
+  assert.match(sql, /vence es obligatorio/);
+  assert.match(leer('supabase/990_comprobar_rls.sql'), /taller_enlaces/);
+});
+ok('013: la funcion de borde: una sola respuesta mala, la llave del entorno, el token no se escribe en ningun registro', () => {
+  const ts = leer('supabase/functions/vista/index.ts'), nucleo = leer('supabase/functions/vista/nucleo.js'), leame = leer('supabase/functions/vista/README.md');
+  assert.match(ts, /Deno\.env\.get\('SUPABASE_SERVICE_ROLE_KEY'\)/);
+  assert.ok(!SECRETA.test(ts + nucleo) && !UN_JWT.test(ts + nucleo), 'ninguna llave escrita');
+  assert.ok(!/console\.(log|info|warn|error|debug|trace)/.test(ts + nucleo), 'no escribe en ningun registro');
+  assert.ok(!/status:\s*(400|401|403|405|429|500|503)\b/.test(ts), 'ningun otro codigo de error que delate algo');
+  assert.equal((ts.match(/status:\s*404/g) || []).length, 1, 'un solo sitio fabrica la respuesta mala');
+  assert.ok(ts.includes('CUERPO_MALO'));
+  assert.match(nucleo, /export const MENSAJE = 'Este enlace ya no abre'/);
+  assert.match(ts, /VERIFY_JWT DEBE ESTAR APAGADO/);
+  assert.match(leame, /supabase functions deploy vista --no-verify-jwt/);
+  assert.match(ts, /\.eq\('hash', huella\)/);
+  assert.ok(!/\.from\('taller_(obras|capitulos|piezas|versiones)'\)/.test(ts), 'solo lee lo de compartir');
+  assert.match(ts, /vigente\(data, Date\.now\(\)\)/);
+  assert.match(ts, /sb\.rpc\('taller_contar_vista'/);
+  assert.ok(!/\.update\(/.test(ts), 'la cuenta de visitas va por la funcion de 013, no por un update suelto');
+  assert.match(ts, /crearLimitador\(\)/);
+  const toml = leer('supabase/config.toml');
+  assert.match(toml, /\[functions\.vista\]\s+verify_jwt = false/);
+  assert.ok(!SECRETA.test(toml) && !UN_JWT.test(toml) && !/project_id|project-ref/i.test(toml.replace(/#.*$/gm, '')), 'config.toml sin llaves ni id de proyecto');
+  assert.match(nucleo, /'Cache-Control': 'no-store'/);
+  assert.match(nucleo, /'Referrer-Policy': 'no-referrer'/);
+});
+ok('013: la pagina del libro privado: quita el secreto de la barra antes de nada, sin buscadores ni referencias, fuera del mapa', () => {
+  const js = leer('src/scripts/lector/vista.js'), pag = leer('src/pages/[lang]/vista.astro');
+  assert.ok(js.indexOf('replaceState') > 0 && js.indexOf('replaceState') < js.indexOf('await pedir('), 'el secreto sale de la barra antes de preguntar');
+  const pregunta = leer('src/scripts/lector/preguntar.js');
+  assert.match(pregunta, /referrerPolicy: 'no-referrer'/);
+  assert.match(pregunta, /credentials: 'omit'/);
+  assert.ok(!/console\./.test(pregunta) && !/localStorage|sessionStorage|document\.cookie|innerHTML/.test(pregunta));
+  assert.ok(!/console\./.test(js), 'el secreto no se escribe en la consola');
+  assert.ok(!/localStorage|sessionStorage|document\.cookie|innerHTML/.test(js), 'ni se guarda ni se pinta como codigo');
+  assert.match(pag, /\bnoindex\b/);
+  assert.match(pag, /\bsinReferencia\b/);
+  assert.ok(!/vista/.test(leer('src/pages/sitemap.xml.js')), 'fuera del mapa del sitio');
+  assert.ok(!archivos('src', (r) => TEXTO.test(r)).some((f) => /SERVICE_ROLE/.test(leer(f))), 'ninguna llave de servicio en src/');
+  /* la direccion buena es https://<sitio>/<idioma>/vista/#k=… y el reservado no deja que una casa la tape */
+  assert.ok(leer('src/scripts/contenido/Casa.js').includes("'vista', 'actividad'"));
+});
+ok('013: la politica deja imagenes de Supabase SOLO a la pagina del libro privado', () => {
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>';
+  const otra = PC.ponerPolitica(html, { supabase: URL_BUENA }).match(/content="([^"]+)"/)[1];
+  assert.match(otra, /img-src 'self' data:(;|$)/);
+  assert.ok(!otra.split('; ').find((d) => d.startsWith('img-src')).includes('supabase'));
+  const vista = PC.ponerPolitica(html, { supabase: URL_BUENA, imagenesDe: [URL_BUENA] }).match(/content="([^"]+)"/)[1];
+  assert.ok(vista.split('; ').find((d) => d.startsWith('img-src')) === `img-src 'self' data: ${URL_BUENA}`);
+  assert.match(vista, /default-src 'self'/);
+  assert.ok(!/img-src[^;]*\*/.test(vista));
 });
 
 console.log(`\n${n} bien, ${mal} mal`);

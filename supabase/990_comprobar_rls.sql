@@ -33,6 +33,14 @@
 --  Tras 009 (tablero):
 --  20. «Tablero»                   dos filas (lecturas y piedras): rls true, anon_lee false, una regla
 --                                  tablero_*_solo_lo_mio:ALL cada una.
+--  Tras 013 (compartir con un enlace privado):
+--  24. «Compartir»                 dos filas (ediciones y enlaces): rls true, anon_lee false, una regla
+--                                  *_todo_el_admin:ALL cada una.
+--  24. tambien anon_escribe false.
+--  25. «Lo que el admin cambia»    true SOLO en taller_enlaces · revocado.
+--  26. «Disparadores y funciones»  2 disparadores; las tres funciones: security_definer false, anon y authenticated
+--                                  false, service_role true solo en taller_contar_vista.
+--  27. «vista y actividad»         UNA regla sobre casas.id (reglas_sobre_casas_id = 1), true, y la columna libro_id.
 --  Los Advisors de Supabase (Security) avisarán, y está bien, de las 4 funciones
 --  «security definer» que un usuario con sesión puede ejecutar (es_admin,
 --  esta_aprobado, decidir_acceso, reclamar_invitacion): es a propósito y cada una
@@ -175,3 +183,39 @@ select count(*) as reglas from pg_policies where schemaname = 'storage' and poli
 -- 23. Sus disparadores (DEBEN salir 6 filas) y las versiones no se editan (DEBE decir false)
 select tgname from pg_trigger where not tgisinternal and tgname ~ '^taller_.*_(editado|rev)$' order by 1;
 select has_table_privilege('authenticated', 'public.taller_versiones', 'UPDATE') as se_editan;
+
+-- 24. Compartir con un enlace privado (013): 2 filas, rls true, anon_lee false, anon_escribe false (insert, update y
+--     delete), 1 regla «_todo_el_admin:ALL» cada una
+select c.relname as tabla, c.relrowsecurity as rls, has_table_privilege('anon', c.oid, 'SELECT') as anon_lee,
+       (has_table_privilege('anon', c.oid, 'INSERT') or has_table_privilege('anon', c.oid, 'UPDATE')
+        or has_table_privilege('anon', c.oid, 'DELETE')) as anon_escribe,
+       (select string_agg(policyname || ':' || cmd, ', ') from pg_policies
+         where schemaname = 'public' and tablename = c.relname) as reglas
+  from pg_class c
+ where c.oid in (to_regclass('public.taller_ediciones'), to_regclass('public.taller_enlaces'))
+ order by 1;
+
+-- 25. De un enlace, el admin solo puede cambiar «revocado» (DEBE salir true SOLO en la fila de revocado), y de una
+--     edicion, nada (la tabla entera se mira: has_column_privilege cuenta tambien un permiso de tabla)
+select t.tabla, a.attname as columna, has_column_privilege('authenticated', t.tabla::regclass, a.attname, 'UPDATE') as el_admin_puede_cambiarla
+  from (values ('public.taller_ediciones'), ('public.taller_enlaces')) t(tabla)
+  join pg_attribute a on a.attrelid = t.tabla::regclass and a.attnum > 0 and not a.attisdropped
+ order by 1, 2;
+
+-- 26. Sus dos disparadores (DEBEN salir 2 filas), y ninguna funcion «taller_enlace*» / «taller_contar_vista» es
+--     security definer ni la ejecuta anon ni authenticated (DEBE salir: false, false, false en las tres)
+select tgname from pg_trigger where not tgisinternal and tgname in ('taller_enlaces_nuevo', 'taller_enlaces_cambia') order by 1;
+select p.proname, p.prosecdef as security_definer, has_function_privilege('anon', p.oid, 'execute') as anon_ejecuta,
+       has_function_privilege('authenticated', p.oid, 'execute') as authenticated_ejecuta,
+       has_function_privilege('service_role', p.oid, 'execute') as service_role_ejecuta
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and (p.proname like 'taller_enlace%' or p.proname = 'taller_contar_vista')
+ order by 1;
+
+-- 27. «vista» y «actividad» no pueden ser una casa. DEBE salir UNA sola regla sobre casas.id con char_length (la que
+--     pone 013) y decir true; si salen dos, la de 007 quedo viva con otro nombre: borrala.
+select conname, pg_get_constraintdef(oid) like '%''vista''%' and pg_get_constraintdef(oid) like '%''actividad''%' as reserva_vista_y_actividad,
+       (select count(*) from pg_constraint c2 where c2.conrelid = 'public.casas'::regclass and c2.contype = 'c'
+           and pg_get_constraintdef(c2.oid) like '%char_length(id)%') as reglas_sobre_casas_id
+  from pg_constraint where conrelid = 'public.casas'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%char_length(id)%';
+select column_name from information_schema.columns where table_schema = 'public' and table_name = 'taller_obras' and column_name = 'libro_id';

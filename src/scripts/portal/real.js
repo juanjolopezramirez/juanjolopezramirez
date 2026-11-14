@@ -311,7 +311,7 @@ export async function abrirReal(cfg, lang) {
         if (r.error) return r;
         if (r.donde.cajon !== 'taller') return { error: 'archivoRuta' };
         try {
-          const { error } = await sb.storage.from('taller').upload(r.donde.nombre, archivo, { contentType: r.donde.mime, upsert: false });
+          const { error } = await sb.storage.from('taller').upload(r.donde.nombre, archivo, { contentType: r.donde.mime, upsert: false, ...(r.donde.nombre.includes('/ediciones/') ? { cacheControl: '0' } : {}) });
           return error ? { error: 'subida' } : { ok: true };
         } catch (e) { return { error: 'red' }; }
       },

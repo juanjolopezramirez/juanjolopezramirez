@@ -33,7 +33,7 @@ export class Casa extends TipoDeContenido {
   static clase = '';
   /* Las secciones de la web (data/social.js → NAV) y las paginas sueltas: una casa que se
      llamara asi se quedaria sin pagina (data/entities.js lo explica). */
-  static RESERVADOS = ['work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status'];
+  static RESERVADOS = ['work', 'projects', 'writing', 'about', 'contact', 'direct', 'meet', 'portal', 'status', 'vista', 'actividad'];
 
   static campos(d) {
     const logo = objeto(d.logo);

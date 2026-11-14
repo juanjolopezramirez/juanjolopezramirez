@@ -848,6 +848,7 @@ const LEIBLES = new Set(LIBRO.keys());
 function initBook() {
   let abiertoId = null;     // el libro que esta a la vista
   let alCerrar = null;      // lo que quiera enterarse de que se cerro (la biblioteca, initBiblioteca)
+  const privado = new Map(); // libros que no estan en la biblioteca: el de /vista/ (scripts/lector/vista.js)
   const s = sheet('book-panel', 'data-close-book', () => {
     abiertoId = null;
     if (alCerrar) alCerrar();
@@ -1543,6 +1544,8 @@ function initBook() {
   /* Lo que el PDF tiene escrito: ayuda a quien no ve la imagen, no es lo
      que se espera, asi que no puede retener el libro. */
   function getTexts(info) {
+    /* Un libro privado (/vista/) ya trae sus textos y enlaces: no hay pages.json que pedir */
+    if (info.textos) return Promise.resolve(info.textos);
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 8000);
     return fetch(info.base + 'pages.json?v=' + info.v, { signal: ctl.signal })
@@ -1551,8 +1554,10 @@ function initBook() {
       .finally(() => clearTimeout(to));
   }
 
-  const pageSrc = (info, i, w, retry) =>
-    info.base + String(i + 1).padStart(2, '0') + '-' + w + '.jpg?v=' + info.v + (retry ? '&r=' + retry : '');
+  /* `info.src(i, w, retry)`: un libro privado (/vista/) da la direccion de cada pagina por su cuenta */
+  const pageSrc = (info, i, w, retry) => (info.src
+    ? info.src(i, w, retry)
+    : info.base + String(i + 1).padStart(2, '0') + '-' + w + '.jpg?v=' + info.v + (retry ? '&r=' + retry : ''));
   /* Con ahorro de datos o red de 3G para abajo, solo la imagen de 900 */
   const frugal = () => {
     const c = navigator.connection;
@@ -1797,7 +1802,7 @@ function initBook() {
          su pagina, los de fuera abren en otra pestaña. */
       ((texts[i] && texts[i].links) || []).forEach((L) => {
         const a = h(L.href ? 'a' : 'button', 'flip__link');
-        if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener'; }
+        if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
         else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
         a.setAttribute('aria-label', L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
         Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
@@ -1886,7 +1891,7 @@ function initBook() {
        Si no se pudiera, la revista gira con la tapa rigida y sin cartones. */
     if (blando) [0, n - 1].forEach((i) => { try { fb.getPage(i).setDensity('soft'); } catch (err) { /* se queda como esta */ } });
     fb.on('init', () => show(fb.getCurrentPageIndex(), 0));
-    fb.on('flip', () => { show(fb.getCurrentPageIndex(), 250); thud(); });
+    fb.on('flip', () => { if (!fb) return; show(fb.getCurrentPageIndex(), 250); thud(); });
 
     /* Al girar solo (flecha, toque, indice) la libreria avisa con
        «flipping»; al soltar un arrastre no avisa, asi que eso se atiende
@@ -1894,6 +1899,7 @@ function initBook() {
        pone como de verdad quedo: tambien si la hoja volvio a su sitio. */
     let was = 'read';
     fb.on('changeState', (e) => {
+      if (!fb) return;                  // cerrado en pleno giro: la libreria avisa una vez mas, ya sin libro
       if (e.data === 'flipping') land(false);
       if (e.data === 'read' && was !== 'read' && was !== 'fold_corner') show(fb.getCurrentPageIndex(), 250);
       was = e.data;
@@ -2438,6 +2444,7 @@ function initBook() {
      titulo del glosario, en el idioma de la pagina; los demas, de su registro,
      en el idioma del libro. */
   function ficha(id) {
+    if (privado.has(id)) return privado.get(id);
     const libro = LIBRO.get(id);
     if (!libro) return null;
     const v = variante(libro, lang, BOOKS);
@@ -2481,6 +2488,19 @@ function initBook() {
   }
   open.close = s.close;
   open.alCerrar = (fn) => { alCerrar = fn; };
+  /* EL LIBRO PRIVADO. /vista/ trae el suyo ya armado (titulo, paginas, textos, direccion de cada imagen) y lo
+     entrega por aqui: se abre con el mismo lector, y lo que sigue (carga, giro, enlaces, sonido, lupa) es lo mismo.
+     detail = { titulo, paginas, ratio, blando, board, textos, src(i, w, retry), alCerrar }. */
+  d.addEventListener('lector:abrir', (e) => {
+    const x = e.detail || {};
+    if (!(x.paginas >= 1) || typeof x.src !== 'function') return;
+    const pdf = { pages: x.paginas, ratio: x.ratio > 0 ? x.ratio : 5 / 7, v: 'privado', board: x.board || null, textos: Array.isArray(x.textos) ? x.textos : [], src: x.src };
+    privado.set('privado', { libro: null, v: { lang, pdf, cual: 'privado', texto: false, marca: null }, blando: !!x.blando, titulo: String(x.titulo || ''), glosa: '' });
+    alCerrar = typeof x.alCerrar === 'function' ? x.alCerrar : null;
+    open('privado');
+  });
+  d.documentElement.dataset.lector = 'listo';
+  d.dispatchEvent(new Event('lector:listo'));
   return open;
 }
 

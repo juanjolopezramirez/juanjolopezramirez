@@ -1,0 +1,44 @@
+/* EL LIBRO PRIVADO (/vista/): una pagina casi vacia. El libro se abre encima con el lector de siempre (site.js);
+   aqui solo vive lo que se ve antes y despues de abrirlo. */
+.vista {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 2rem 16px;
+  text-align: center;
+  background: var(--bone, #F1EFE9);
+  color: var(--pine, #263B28);
+}
+.vista__titulo {
+  margin: 0;
+  font-family: 'Young Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.vista__estado {
+  margin: 0;
+  font-size: 1.05rem;
+  opacity: .8;
+}
+.vista__ayuda {
+  margin: 0;
+  max-width: 28rem;
+  font-size: .95rem;
+  opacity: .7;
+}
+.vista__abrir {
+  font: inherit;
+  font-weight: 600;
+  padding: .8rem 1.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pine, #263B28);
+  color: var(--bone, #F1EFE9);
+  cursor: pointer;
+}
+.vista__abrir:focus-visible { outline: 3px solid var(--ring, #C08A2E); outline-offset: 3px; }
+.vista[data-malo-visto] .vista__estado { font-size: 1.3rem; font-weight: 600; opacity: 1; }

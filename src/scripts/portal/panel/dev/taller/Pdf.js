@@ -70,7 +70,7 @@ function cajaDe(canvas) {
 }
 
 /* Safari devuelve PNG aunque se le pida WebP: se mira lo que de verdad salio */
-async function aArchivo(canvas) {
+export async function aArchivo(canvas) {
   const pedir = (tipo, q) => new Promise((ok) => canvas.toBlob(ok, tipo, q));
   const webp = await pedir('image/webp', 0.85);
   if (webp && webp.type === 'image/webp') return { blob: webp, ext: 'webp' };

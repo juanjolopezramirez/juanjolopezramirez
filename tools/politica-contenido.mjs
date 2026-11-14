@@ -24,6 +24,10 @@
                 reproductor de YouTube sin cookies (los tres videos de
                 Piezas, que site.js abre al pulsarlos). Si algun dia se mete otra
                 pagina ajena, se añade aqui (MARCOS) o el navegador no la abre.
+     imagenes   el sitio y data:. SOLO la pagina del libro privado (/<idioma>/vista/) suma ademas TU proyecto de
+                Supabase: sus paginas llegan por direcciones firmadas del cajon «taller» (A3a, 2026-11-14). Se
+                eligio esto y no bajarlas a data: porque son hasta 600 imagenes y 70 MB: pasarlas por memoria
+                congelaria un telefono. Ninguna otra pagina del sitio puede cargar imagenes de fuera.
      objetos    ninguno (object-src 'none'); <base> y formularios solo hacia el sitio.
 
    SEGURO: si una pagina trae un manejador en linea que no es el permitido
@@ -47,7 +51,7 @@ const DATOS = /^(application\/json|application\/ld\+json)$/i;
 
 /* La politica para UNA pagina (su HTML ya compilado). Devuelve el HTML con la <meta>
    puesta. Lanza si la pagina no se puede proteger con seguridad. */
-export function ponerPolitica(html, { supabase = '' } = {}) {
+export function ponerPolitica(html, { supabase = '', imagenesDe = [] } = {}) {
   const guiones = new Set();
   const pares = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
   /* Si la cuenta de aperturas no cuadra con los pares, la lectura de aqui y la del
@@ -77,7 +81,7 @@ export function ponerPolitica(html, { supabase = '' } = {}) {
     `script-src 'self' ${[...guiones].join(' ')}${manejadores.length ? ` 'unsafe-hashes' ${huella(MANEJADOR_PERMITIDO)}` : ''}`.trim(),
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data:",
+    `img-src ${["'self'", 'data:', ...imagenesDe].join(' ')}`,
     "media-src 'self'",
     `connect-src ${conexiones.join(' ')}`,
     `frame-src ${MARCOS.join(' ')}`,
@@ -116,7 +120,9 @@ export function politicaDeContenido({ supabase = '' } = {}) {
         const lista = await paginas(raiz);
         for (const f of lista) {
           try {
-            await writeFile(f, ponerPolitica(await readFile(f, 'utf8'), { supabase }));
+            /* Solo el libro privado puede traer imagenes de Supabase (ver «imagenes» arriba) */
+            const esVista = /^[a-z]{2}\/vista\/index\.html$/.test(path.relative(raiz, f).split(path.sep).join('/'));
+            await writeFile(f, ponerPolitica(await readFile(f, 'utf8'), { supabase, imagenesDe: esVista && supabase ? [supabase] : [] }));
           } catch (e) {
             throw new Error(`\n\n  POLITICA DE CONTENIDO: ${path.relative(raiz, f)}: ${e.message}\n`);
           }

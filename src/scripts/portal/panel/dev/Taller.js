@@ -29,6 +29,8 @@ import { bajarLibro, entregar, nombreDeArchivo } from './taller/Descarga.js';
 import { SelectorColor } from './taller/SelectorColor.js';
 import { Selector } from './taller/Selector.js';
 import { BorrarLibro } from './taller/BorrarLibro.js';
+import { Publicar } from './taller/Publicar.js';
+import { ratioDeHoja } from '../../../contenido/taller/RevisarPdf.js';
 import { icono } from './taller/iconos.js';
 import { familiaCss } from '../../../contenido/taller/fuentes.js';
 import { RECIENTES_MAX, textosPocoVisibles, variablesDe } from '../../../contenido/taller/colores.js';
@@ -118,6 +120,12 @@ export class Taller extends Seccion {
     m('[data-tal-libro]').addEventListener('click', (e) => this.vistaLibro.abrir(e.currentTarget));
     m('[data-tal-imprimir]').addEventListener('click', () => this.sacarPdf());
     m('[data-tal-bajar]').addEventListener('click', () => this.bajar());
+    /* Compartir con un enlace privado: sube el PDF que se saco y crea los enlaces (taller/Publicar.js) */
+    this.publicar = new Publicar(m('[data-tal-compartir-dialogo]'), {
+      tx: this.tx, be: () => this.be, textoDe: (c) => ctx.textoDe(c), fecha: (d) => ctx.fecha(d), lang: ctx.lang,
+      contexto: () => this.contextoDeCompartir(), obraId: () => (this.obra ? this.obra.id : '')
+    });
+    m('[data-tal-compartir]').addEventListener('click', () => this.publicar.abrir());
     m('[data-tal-version]').addEventListener('click', () => this.guardarVersion());
     m('[data-tal-quedarme]').addEventListener('click', () => this.resolver(true));
     m('[data-tal-traer]').addEventListener('click', () => this.resolver(false));
@@ -324,6 +332,7 @@ export class Taller extends Seccion {
   }
 
   cerrarObra() {
+    if (this.publicar) this.publicar.cerrarYa();
     this.aislar(false);
     if (this.tituloPanel) { document.title = this.tituloPanel; this.tituloPanel = ''; }
     this.formulas.cerrar(false);
@@ -1074,6 +1083,19 @@ export class Taller extends Seccion {
     if (dice) this.decir(dice);
     this.asegurarVista();
     this.vista.pintar(aHoja(this.obra.aDatos(), caps.map((c) => c.aDatos()), { imagenes: mapa, indice }));
+  }
+
+  /* Lo que la ventana de Compartir necesita saber del libro, guardado y medido al momento (como al sacar el PDF) */
+  async contextoDeCompartir() {
+    if (!this.obra || !this.mesa) return null;
+    if (!(await this.vaciarTodo())) { this.error('noGuardado'); return null; }
+    this.mesa.medir();
+    const indice = this.mesa.datosDeIndice;
+    const p = this.obra.pagina;
+    return {
+      obraId: this.obra.id, titulo: this.obra.titulo, idioma: this.obra.idioma, ratioLibro: ratioDeHoja(p),
+      numeros: indice ? indice.numeros : {}, paginasMesa: this.mesa.paginas.length
+    };
   }
 
   /* ---- Copias ---- */

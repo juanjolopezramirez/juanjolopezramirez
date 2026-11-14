@@ -881,6 +881,21 @@ await ok('en la base, borrar sin filas borradas (reglas que no dejan) no es «li
   assert.ok((await con([{ id: 'a' }]).borrarObra('a')).ok);
   assert.equal((await con([]).borrarObra('a')).error, 'noExiste');
 });
+await ok('borrar un libro encuentra tambien los archivos de sus ediciones (taller/<libro>/ediciones/<id>/…)', async () => {
+  const { listarObra, nombresDeObra } = await import('../src/scripts/contenido/taller/ArchivosObra.js');
+  const id = '0f8fad5b-d9cb-469f-a165-70867728950e', ed = 'fedc0123-0123-4abc-8abc-0123456789ab';
+  const arbol = { [id]: [{ name: 'ediciones', id: null }], [`${id}/ediciones`]: [{ name: ed, id: null }], [`${id}/ediciones/${ed}`]: [{ name: 'original.pdf', id: 'a', metadata: { size: 9 } }, { name: 'p001-900.webp', id: 'b', metadata: { size: 5 } }, { name: 'p001-1600.webp', id: 'c', metadata: { size: 7 } }] };
+  const r = await listarObra(async (c, d) => ({ data: (arbol[c] || []).slice(d, d + 100), error: null }), id);
+  assert.deepEqual(r.archivos.map((a) => a.ruta).sort(), [`taller/${id}/ediciones/${ed}/original.pdf`, `taller/${id}/ediciones/${ed}/p001-1600.webp`, `taller/${id}/ediciones/${ed}/p001-900.webp`]);
+  assert.equal(nombresDeObra(r.archivos.map((a) => a.ruta), id).length, 3);
+  /* Los nombres que sube el Taller son los que firma la funcion de borde */
+  const { rutasDeEdicion } = await import('../src/scripts/portal/panel/dev/taller/Publicar.js');
+  const N2 = await import('../supabase/functions/vista/nucleo.js');
+  const subidas = rutasDeEdicion(id, ed, 3);
+  assert.equal(subidas[0], `taller/${id}/ediciones/${ed}/original.pdf`);
+  const firmadas = N2.rutasDe(`taller/${id}/ediciones/${ed}/`, 3);
+  assert.deepEqual(subidas.slice(1).sort(), [...firmadas[900], ...firmadas[1600]].map((x) => `taller/${x}`).sort());
+});
 await ok('los archivos de un libro: todas las carpetas, de a paginas, y nunca fuera de su carpeta', async () => {
   const { listarObra, nombresDeObra, enTandas, pesoLegible, POR_PAGINA } = await import('../src/scripts/contenido/taller/ArchivosObra.js');
   const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
@@ -1991,6 +2006,278 @@ await ok('viaje: un destino fuera del libro cae en el borde, y el tope siempre e
   assert.equal(planDeViaje(0, 39, 40, { tope: 0 }).pasos.length, 1);
   assert.equal(planDeViaje(0, 39, 40, { tope: 3 }).pasos.length, 3);
   assert.equal(planDeViaje(0, 39, 40, { tope: Infinity }).pasos.length, 10);
+});
+
+console.log('compartir con un enlace privado (A3a)');
+const E = await import('../src/scripts/contenido/taller/Enlaces.js');
+const N = await import('../supabase/functions/vista/nucleo.js');
+const PE = await import('../src/scripts/contenido/taller/PaginasEdicion.js');
+const RP = await import('../src/scripts/contenido/taller/RevisarPdf.js');
+const VECTOR = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8';
+const VECTOR_HUELLA = '630dcd2966c4336691125448bbb25b4ff412a49c732db2c8abc1b8581bd710dd';
+await ok('token: 32 bytes al azar → 43 letras base64url, y dos nunca salen iguales', () => {
+  const a = E.crearToken(), b = E.crearToken();
+  assert.match(a, /^[A-Za-z0-9_-]{43}$/);
+  assert.notEqual(a, b);
+  assert.equal(E.leerToken(a).length, 32);
+  let pedidos = 0;
+  E.crearToken((x) => { pedidos = x.length; return x.fill(7); });
+  assert.equal(pedidos, 32, 'pide exactamente 32 bytes');
+});
+await ok('token: un vector conocido da la misma huella en el Taller y en la funcion de borde', async () => {
+  const bytes = Uint8Array.from({ length: 32 }, (_, i) => i);
+  assert.equal(E.aBase64Url(bytes), VECTOR);
+  const h = await E.huella(VECTOR);
+  assert.equal(h.hex, VECTOR_HUELLA);
+  assert.equal(h.bytea, `\\x${VECTOR_HUELLA}`);
+  assert.equal(await N.huellaBytea(N.leerToken(VECTOR)), h.bytea);
+  assert.deepEqual([...N.leerToken(VECTOR)], [...bytes]);
+});
+await ok('token: lo que no es EXACTAMENTE un token no se lee (largo, letras, otra forma de decir lo mismo)', () => {
+  const malos = ['', 'a', VECTOR + 'A', VECTOR.slice(0, 42), VECTOR.replace('A', '+'), VECTOR.replace('A', '='), ` ${VECTOR.slice(1)}`, VECTOR.slice(0, 42) + '9', null, undefined, 42, {}, [VECTOR], 'é'.repeat(43), '__proto__'.padEnd(43, 'x')];
+  for (const m of malos) { assert.equal(E.leerToken(m), null, String(m)); assert.equal(N.leerToken(m), null, String(m)); }
+  assert.ok(E.leerToken(VECTOR));
+});
+await ok('direccion: el secreto va detras de «#», y el idioma solo es de dos letras', () => {
+  assert.equal(E.direccion('https://juanjolopezramirez.com/', 'es', VECTOR), `https://juanjolopezramirez.com/es/vista/#k=${VECTOR}`);
+  assert.equal(E.direccion('http://localhost:4321', 'xx-evil', VECTOR), `http://localhost:4321/es/vista/#k=${VECTOR}`);
+});
+await ok('vence: 7, 30 o 90; todo lo demas vale 30; nunca mas de 90 dias ni «para siempre»', () => {
+  for (const d of [7, 30, 90, '7', '90']) assert.equal(E.diasValidos(d), Number(d));
+  for (const d of [0, -5, 1, 365, 91, 1e9, Infinity, NaN, 'siempre', null, undefined, {}, [], 30.5]) assert.equal(E.diasValidos(d), 30, String(d));
+  const t0 = Date.UTC(2026, 10, 14);
+  assert.equal(E.vencimiento(7, t0), new Date(t0 + 7 * 864e5).toISOString());
+  assert.equal(E.vencimiento(99999, t0), new Date(t0 + 30 * 864e5).toISOString());
+  assert.ok(Date.parse(E.vencimiento(90, t0)) - t0 <= 90 * 864e5);
+  assert.equal(E.DIAS_MAX, 90);
+});
+await ok('nombre: 80 letras, sin saltos ni signos de control', () => {
+  assert.equal(E.nombreLimpio('  Ana\n\tLopez\u0000  '), 'Ana Lopez');
+  assert.equal(E.nombreLimpio('x'.repeat(500)).length, 80);
+  assert.equal(E.nombreLimpio(null), '');
+  assert.equal(E.nombreLimpio({ toString() { return 'a b'; } }), 'a b');
+});
+await ok('estado de un enlace: activo, vencido, apagado (y lo raro, vencido)', () => {
+  const t = Date.UTC(2026, 10, 14), f = (x) => ({ vence: new Date(t + x).toISOString(), revocado: false });
+  assert.equal(E.estadoDe(f(1000), t), 'activo');
+  assert.equal(E.estadoDe(f(0), t), 'vencido');
+  assert.equal(E.estadoDe(f(-1), t), 'vencido');
+  assert.equal(E.estadoDe({ ...f(1000), revocado: true }, t), 'apagado');
+  assert.equal(E.estadoDe({ vence: 'ayer', revocado: false }, t), 'vencido');
+  assert.equal(E.estadoDe(null, t), 'vencido');
+});
+await ok('funcion de borde: vigente solo si existe, no esta apagado y no ha vencido; un solo mensaje malo', () => {
+  const t = Date.UTC(2026, 10, 14);
+  assert.equal(N.vigente({ vence: new Date(t + 1).toISOString(), revocado: false }, t), true);
+  for (const x of [null, undefined, {}, { vence: new Date(t).toISOString(), revocado: false }, { vence: new Date(t + 9e9).toISOString(), revocado: true }, { vence: 'x', revocado: false }]) {
+    assert.equal(N.vigente(x, t), false, JSON.stringify(x));
+  }
+  assert.deepEqual(JSON.parse(N.CUERPO_MALO), { error: 'Este enlace ya no abre' });
+  assert.equal(N.MENSAJE, 'Este enlace ya no abre');
+});
+await ok('funcion de borde: las rutas a firmar salen de una carpeta con la forma de la base, y de ninguna otra', () => {
+  const o = '0123abcd-0123-4abc-8abc-0123456789ab', e = 'fedc0123-0123-4abc-8abc-0123456789ab';
+  const r = N.rutasDe(`taller/${o}/ediciones/${e}/`, 3);
+  assert.deepEqual(r[900], [`${o}/ediciones/${e}/p001-900.webp`, `${o}/ediciones/${e}/p002-900.webp`, `${o}/ediciones/${e}/p003-900.webp`]);
+  assert.equal(r[1600].length, 3);
+  for (const c of ['', 'taller/../x/', `taller/${o}/ediciones/${e}`, `taller/${o}/ediciones/${e}/../`, `libros/${o}/ediciones/${e}/`, null, `taller/${o}/img/${e}/`]) assert.equal(N.rutasDe(c, 3), null, String(c));
+  for (const n of [0, 301, 1.5, '3', NaN, -1]) assert.equal(N.rutasDe(`taller/${o}/ediciones/${e}/`, n), null, String(n));
+});
+await ok('funcion de borde: CORS solo para el sitio y localhost; la respuesta no se guarda ni cuenta de donde vienes', () => {
+  const h = N.cabeceras('https://juanjolopezramirez.com');
+  assert.equal(h['Access-Control-Allow-Origin'], 'https://juanjolopezramirez.com');
+  assert.equal(h['Cache-Control'], 'no-store');
+  assert.equal(h['Referrer-Policy'], 'no-referrer');
+  for (const o of ['https://evil.example', 'null', '', null, undefined, 'https://juanjolopezramirez.com.evil.example', 'http://juanjolopezramirez.com']) assert.equal(N.cabeceras(o)['Access-Control-Allow-Origin'], undefined, String(o));
+  assert.equal(N.cabeceras('http://localhost:4321')['Access-Control-Allow-Origin'], 'http://localhost:4321');
+  const cuerpo = JSON.parse(N.cuerpoBueno({ titulo: 'T', idioma: 'es', paginas: 2, ratio: '0.7', blando: true, hojas: [{ text: 'a' }, { text: 'b' }] }, { 900: ['a', 'b'], 1600: ['c', 'd'] }));
+  assert.deepEqual(Object.keys(cuerpo).sort(), ['blando', 'hojas', 'idioma', 'paginas', 'ratio', 'segundos', 'titulo', 'urls']);
+  assert.equal(cuerpo.ratio, 0.7);
+  assert.equal(cuerpo.segundos, 600);
+});
+
+const enlace = (rect, extra) => ({ rect, ...extra });
+await ok('hoja: solo https y mailto, nada de http, javascript, data ni direcciones con espacios o signos', () => {
+  const bien = (href) => PE.enlaceDePagina(enlace([10, 10, 50, 20], { href }), 100, 200, 5);
+  assert.deepEqual(bien('https://a.com/x?y=1'), { x: 0.1, y: 0.05, w: 0.4, h: 0.05, href: 'https://a.com/x?y=1' });
+  assert.ok(bien('HTTPS://A.COM'));
+  assert.ok(bien('mailto:a@b.co'));
+  for (const m of ['http://a.com', 'javascript:alert(1)', 'JaVaScRiPt:1', 'data:text/html,x', 'ftp://a', '//a.com', 'https://a.com/ b', 'https://a.com/\u0000', 'https://a.com/"onclick=', 'https://a.com/<x>', ` https://a.com`, 'https://a.com/\\x', 'https://' + 'a'.repeat(2100), '', 42, null, {}]) assert.equal(bien(m), null, String(m).slice(0, 30));
+});
+await ok('hoja: un salto interno cae siempre dentro del libro', () => {
+  const sal = (pagina) => PE.enlaceDePagina(enlace([0, 0, 10, 10], { pagina }), 100, 200, 5);
+  assert.equal(sal(0).page, 0);
+  assert.equal(sal(4).page, 4);
+  for (const p of [5, -1, 1.5, '2', NaN, Infinity, null, undefined, {}]) assert.equal(sal(p), null, String(p));
+});
+await ok('hoja: recortado a la pagina, redondeado, y un enlace que tapa mas de un cuarto es una trampa', () => {
+  const l = (rect) => PE.enlaceDePagina(enlace(rect, { href: 'https://a.com' }), 100, 200, 1);
+  assert.deepEqual(l([-50, -50, 20, 20]), { x: 0, y: 0, w: 0.2, h: 0.1, href: 'https://a.com' });
+  assert.deepEqual(l([90, 190, 500, 900]), { x: 0.9, y: 0.95, w: 0.1, h: 0.05, href: 'https://a.com' });
+  assert.deepEqual(l([50, 20, 10, 10]), { x: 0.1, y: 0.05, w: 0.4, h: 0.05, href: 'https://a.com' }, 'las esquinas en cualquier orden');
+  assert.equal(l([0, 0, 100, 200]), null, 'toda la pagina');
+  assert.equal(l([0, 0, 100, 51]), null, 'mas de un cuarto');
+  assert.ok(l([0, 0, 100, 49]), 'justo menos de un cuarto');
+  assert.equal(l([200, 0, 300, 10]), null, 'fuera de la pagina');
+  assert.equal(l([10, 10, 10, 50]), null, 'sin ancho');
+  for (const r of [null, [], [1, 2, 3], [NaN, 0, 5, 5], ['a', 0, 5, 5], [0, 0, Infinity, 5], { 0: 1 }]) assert.equal(l(r), null, JSON.stringify(r));
+  assert.equal(PE.enlaceDePagina(enlace([0, 0, 5, 5], { href: 'https://a.com' }), 0, 200, 1), null);
+  assert.equal(PE.enlaceDePagina(enlace([0, 0, 5, 5], { href: 'https://a.com' }), 100, NaN, 1), null);
+  assert.equal(PE.enlaceDePagina(null, 100, 200, 1), null);
+});
+await ok('hoja: 200 enlaces por pagina como mucho, y el texto se junta en una linea', () => {
+  const muchos = Array.from({ length: 500 }, (_, i) => enlace([i % 90, 0, (i % 90) + 5, 5], { href: `https://a.com/${i}` }));
+  const h = PE.hojaDe({ texto: ' uno \n\n dos\t tres ', enlaces: muchos }, 100, 200, 1);
+  assert.equal(h.links.length, 200);
+  assert.equal(h.text, 'uno dos tres');
+  assert.deepEqual(PE.hojaDe({ texto: 'x', enlaces: [{ rect: [0, 0, 1, 1], href: 'http://no' }] }, 100, 200, 1), { text: 'x' });
+  assert.deepEqual(PE.hojaDe(null, 100, 200, 1), { text: '' });
+  assert.equal(PE.hojaDe({ texto: 'a'.repeat(99999) }, 100, 200, 1).text.length, PE.TEXTO_MAX);
+});
+await ok('edicion: de 1 a 300 paginas; si el texto no cabe se recorta, y si ni asi, no se guarda', () => {
+  assert.equal(PE.hojasDeEdicion([], 100, 200).error, 'paginas');
+  assert.equal(PE.hojasDeEdicion(Array.from({ length: 301 }, () => ({})), 100, 200).error, 'paginas');
+  assert.equal(PE.hojasDeEdicion(null, 100, 200).error, 'paginas');
+  assert.equal(PE.hojasDeEdicion([{ texto: 'a' }], [100], [200]).hojas.length, 1);
+  const largo = Array.from({ length: 300 }, () => ({ texto: 'a'.repeat(PE.TEXTO_MAX) }));
+  const r = PE.hojasDeEdicion(largo, 100, 200);
+  assert.ok(r.hojas, 'recortado');
+  assert.ok(r.hojas.every((h) => h.text.length <= 1500));
+  assert.ok(new TextEncoder().encode(JSON.stringify(r.hojas)).length <= PE.HOJAS_MAX_BYTES);
+  const hostil = Array.from({ length: 300 }, () => ({ texto: 'a', enlaces: Array.from({ length: 200 }, (_, i) => enlace([i % 90, 0, (i % 90) + 1, 1], { href: 'https://a.com/' + 'x'.repeat(1900) })) }));
+  assert.equal(PE.hojasDeEdicion(hostil, 100, 200).error, 'grande');
+});
+await ok('hoja segura: lo que llega de fuera se vuelve a limpiar y siempre salen `n` filas', () => {
+  const sucio = [{ text: 'a', links: [{ x: 0.1, y: 0.1, w: 0.1, h: 0.1, href: 'javascript:alert(1)' }, { x: 0.1, y: 0.1, w: 0.1, h: 0.1, page: 99 }, { x: -1, y: 0, w: 0.1, h: 0.1, page: 0 }, { x: 0, y: 0, w: 1, h: 1, page: 0 }, { x: 0.95, y: 0, w: 0.1, h: 0.1, page: 0 }, { x: 0.1, y: 0.1, w: 0.1, h: 0.1, page: 1 }, { x: 0.2, y: 0.2, w: 0.1, h: 0.1, href: 'https://ok.com' }, null, 5, 'x', { x: '0.1', y: 0.1, w: 0.1, h: 0.1, page: 0 }] }, null, 'basura', { text: 5, links: 'no' }];
+  const r = PE.hojasSeguras(sucio, 6);
+  assert.equal(r.length, 6);
+  assert.deepEqual(r[0], { text: 'a', links: [{ x: 0.1, y: 0.1, w: 0.1, h: 0.1, page: 1 }, { x: 0.2, y: 0.2, w: 0.1, h: 0.1, href: 'https://ok.com' }] });
+  assert.deepEqual(r[1], { text: '' });
+  assert.deepEqual(r[3], { text: '' });
+  assert.deepEqual(r[5], { text: '' });
+  assert.equal(PE.hojasSeguras('no', 2).length, 2);
+  assert.equal(Object.getPrototypeOf(r[0]), Object.prototype);
+});
+const buenoPdf = () => ({ paginas: 40, ratioPdf: 148 / 210, ratioLibro: 148 / 210, titulo: 'Mi libro', tituloPdf: 'Mi libro', textos: ['uno', 'dos'], saltos: [{ ancla: 'cap-1', pagina: 3 }], numeros: { 'cap-1': 3 }, paginasMesa: 40 });
+await ok('revisar el PDF: uno bueno no trae ni errores ni avisos', () => {
+  assert.deepEqual(RP.revisarPdf(buenoPdf()), { errores: [], avisos: [] });
+});
+await ok('revisar el PDF: paginas 0, de mas de 300 o raras', () => {
+  const claves = (o) => RP.revisarPdf({ ...buenoPdf(), ...o }).errores.map((e) => e.clave);
+  assert.deepEqual(claves({ paginas: 0 }), ['edVacio']);
+  assert.deepEqual(claves({ paginas: 301 }), ['edLargo']);
+  assert.deepEqual(claves({ paginas: 300 }), []);
+  assert.deepEqual(claves({ paginas: 1 }), []);
+  for (const p of [NaN, -3, 2.5, undefined, null, '40x']) assert.deepEqual(claves({ paginas: p }), ['edVacio'], String(p));
+});
+await ok('revisar el PDF: otra proporcion, otro titulo, la direccion del Taller impresa, un contenido que salta mal', () => {
+  const claves = (o) => RP.revisarPdf({ ...buenoPdf(), ...o }).errores.map((e) => e.clave);
+  assert.deepEqual(claves({ ratioPdf: 2 / 3 }), ['edProporcion']);
+  assert.deepEqual(claves({ ratioPdf: 148 / 210 * 1.005 }), [], 'un 1 % de margen');
+  assert.deepEqual(claves({ ratioPdf: 0 }), ['edVacio']);
+  assert.deepEqual(claves({ tituloPdf: 'Otro libro' }), ['edTitulo']);
+  assert.deepEqual(claves({ tituloPdf: '  MI   libro ' }), [], 'mayusculas y espacios no cuentan');
+  assert.deepEqual(claves({ textos: ['hola', 'http://localhost:4321/taller-hoja/ 1/40'] }), ['edEncabezado']);
+  assert.deepEqual(claves({ textos: ['TALLER-HOJA'] }), ['edEncabezado']);
+  assert.deepEqual(claves({ saltos: [{ ancla: 'cap-1', pagina: 4 }] }), ['edContenido']);
+  assert.deepEqual(claves({ saltos: [{ ancla: 'otra', pagina: 9 }] }), [], 'un salto que el Taller no conoce no se juzga');
+  assert.deepEqual(claves({ saltos: [{ ancla: '__proto__', pagina: 1 }, { ancla: 'constructor', pagina: 1 }] }), []);
+  const dos = RP.revisarPdf({ ...buenoPdf(), tituloPdf: 'Otro', textos: ['taller-hoja', 'taller-hoja'] }).errores;
+  assert.deepEqual(dos.map((e) => e.clave), ['edTitulo', 'edEncabezado']);
+  assert.equal(dos[1].n, 2);
+});
+await ok('PDF para imprenta: la hoja impresa crece 6,35 mm en cada medida y el PDF de sangre NO se rechaza', () => {
+  const normal = new ConfigPagina({ anchoMm: 148, altoMm: 210 }), imprenta = new ConfigPagina({ anchoMm: 148, altoMm: 210, imprenta: true });
+  assert.equal(RP.ratioDeHoja(normal), 148 / 210);
+  assert.equal(RP.ratioDeHoja(imprenta), (148 + 6.35) / (210 + 6.35));
+  /* el mismo PDF, con la medida de sangre que imprime el Taller (9 pt = 3,175 mm por lado) */
+  const pdfDeSangre = (148 + 6.35) / (210 + 6.35);
+  assert.deepEqual(RP.revisarPdf({ ...buenoPdf(), ratioPdf: pdfDeSangre, ratioLibro: RP.ratioDeHoja(imprenta) }).errores, []);
+  assert.deepEqual(RP.revisarPdf({ ...buenoPdf(), ratioPdf: pdfDeSangre, ratioLibro: RP.ratioDeHoja(normal) }).errores.map((e) => e.clave), ['edProporcion'], 'sin contar la sangre (el error de antes), tambien en A5 se rechazaba: 1,2 %');
+  const chico = new ConfigPagina({ anchoMm: 100, altoMm: 150, imprenta: true });
+  const pdfChico = (100 + 6.35) / (150 + 6.35);
+  assert.deepEqual(RP.revisarPdf({ ...buenoPdf(), ratioPdf: pdfChico, ratioLibro: RP.ratioDeHoja(chico) }).errores, []);
+  assert.equal(chico.imprenta, true);
+  assert.equal(RP.SANGRE_TOTAL_MM, 2 * 9 * 25.4 / 72);
+});
+await ok('revisar el PDF: avisos que no frenan (otro numero de hojas que la mesa, sin titulo)', () => {
+  const r = RP.revisarPdf({ ...buenoPdf(), paginas: 42, tituloPdf: '' });
+  assert.deepEqual(r.errores, []);
+  assert.deepEqual(r.avisos.map((a) => a.clave), ['edDistintas', 'edSinTitulo']);
+});
+
+await ok('repositorio en memoria: ediciones y enlaces con las reglas de la base', async () => {
+  const repo = new RepositorioTallerMemoria();
+  const ahora = Date.UTC(2026, 10, 14);
+  repo.reloj = () => ahora;
+  const o = (await repo.crearObra({ titulo: 'L', idioma: 'es', pagina: {}, fuentes: [] })).id;
+  const hojas = (n) => Array.from({ length: n }, () => ({ text: 'x' }));
+  assert.equal((await repo.crearEdicion({ obraId: 'no', titulo: 'x', paginas: 1, ratio: 0.7, hojas: hojas(1) })).error, 'noExiste');
+  for (const malo of [{ paginas: 0, hojas: [] }, { paginas: 301, hojas: hojas(301) }, { paginas: 2, hojas: hojas(1) }, { paginas: 1, hojas: hojas(1), ratio: 9 }, { paginas: 1, hojas: hojas(1), titulo: '' }]) {
+    assert.equal((await repo.crearEdicion({ obraId: o, titulo: 'T', paginas: 1, ratio: 0.7, hojas: hojas(1), ...malo })).error, 'lleno', JSON.stringify(malo).slice(0, 40));
+  }
+  const e = await repo.crearEdicion({ obraId: o, titulo: 'T', paginas: 2, ratio: 0.7, hojas: hojas(2) });
+  assert.ok(e.ok);
+  assert.equal(e.carpeta, `taller/${o}/ediciones/${e.id}/`);
+  const lista = await repo.ediciones(o);
+  assert.equal(lista.filas.length, 1);
+  assert.equal(lista.filas[0].hojas, undefined, 'la lista no trae las hojas');
+  const hash = `\\x${'ab'.repeat(32)}`;
+  for (const malo of ['', 'ab', `\\x${'ab'.repeat(31)}`, `\\x${'AB'.repeat(32)}`, null, 5]) assert.equal((await repo.crearEnlace({ edicionId: e.id, hash: malo, vence: E.vencimiento(30, ahora) })).error, 'lleno', String(malo));
+  assert.equal((await repo.crearEnlace({ edicionId: 'no', hash, vence: E.vencimiento(30, ahora) })).error, 'noExiste');
+  assert.equal((await repo.crearEnlace({ edicionId: e.id, hash, vence: E.vencimiento(30, ahora), nombre: 'x'.repeat(81) })).error, 'lleno');
+  assert.equal((await repo.crearEnlace({ edicionId: e.id, hash, vence: new Date(ahora - 1).toISOString() })).error, 'lleno', 'ya vencido');
+  const l = await repo.crearEnlace({ edicionId: e.id, hash, nombre: 'Ana', vence: new Date(ahora + 400 * 864e5).toISOString() });
+  assert.ok(l.ok);
+  assert.equal(Date.parse(l.vence) - ahora, 90 * 864e5, 'nunca mas de 90 dias');
+  assert.equal((await repo.crearEnlace({ edicionId: e.id, hash, vence: E.vencimiento(30, ahora) })).error, 'generico', 'la misma huella no se repite');
+  const filas = (await repo.enlaces(e.id)).filas;
+  assert.equal(filas.length, 1);
+  assert.equal(filas[0].hash, undefined, 'la huella no sale de la base');
+  assert.equal(filas[0].vistas, 0);
+  assert.equal(filas[0].revocado, false);
+  assert.equal(repo.buscarEnlace(hash).id, l.id);
+  assert.equal((await repo.apagarEnlace('no')).error, 'noExiste');
+  assert.ok((await repo.apagarEnlace(l.id)).ok);
+  assert.equal((await repo.enlaces(e.id)).filas[0].revocado, true);
+  assert.ok((await repo.apagarEnlace(l.id)).ok, 'apagar dos veces sigue apagado');
+  assert.ok((await repo.borrarEdicion(e.id)).ok);
+  assert.equal((await repo.enlaces(e.id)).filas.length, 0, 'los enlaces se van con su edicion');
+  assert.equal((await repo.borrarEdicion(e.id)).error, 'noExiste');
+  /* borrar el libro se lleva sus ediciones y enlaces */
+  const e2 = await repo.crearEdicion({ obraId: o, titulo: 'T', paginas: 1, ratio: 0.7, hojas: hojas(1) });
+  await repo.crearEnlace({ edicionId: e2.id, hash: `\\x${'cd'.repeat(32)}`, vence: E.vencimiento(7, ahora) });
+  assert.ok((await repo.borrarObra(o)).ok);
+  assert.equal(repo.edicionesM.size, 0);
+  assert.equal(repo.enlacesM.size, 0);
+});
+
+await ok('/vista/ pregunta a la funcion: 404 = «ya no abre»; sin red, tiempo agotado, 5xx, 429 o una respuesta rota = «no se pudo abrir ahora»', async () => {
+  const { preguntar, TOPE_RESPUESTA } = await import('../src/scripts/lector/preguntar.js');
+  const cfg = { url: 'https://x.supabase.co', clave: 'sb_publishable_x' };
+  const resp = (status, cuerpo, cabeceras = {}) => async () => new Response(cuerpo, { status, headers: cabeceras });
+  assert.equal(await preguntar(cfg, 'k', false, resp(404, '{"error":"x"}')), null);
+  for (const [status, cuerpo] of [[500, '{}'], [502, ''], [503, ''], [429, ''], [401, ''], [400, '']]) assert.deepEqual(await preguntar(cfg, 'k', false, resp(status, cuerpo)), { red: true }, String(status));
+  assert.deepEqual(await preguntar(cfg, 'k', false, async () => { throw new TypeError('Failed to fetch'); }), { red: true });
+  assert.deepEqual(await preguntar(cfg, 'k', false, resp(200, '{no json')), { red: true });
+  assert.deepEqual(await preguntar(cfg, 'k', false, resp(200, '{}', { 'content-length': String(TOPE_RESPUESTA + 1) })), { red: true });
+  assert.deepEqual(await preguntar(cfg, 'k', false, resp(200, 'x'.repeat(TOPE_RESPUESTA + 1))), { red: true });
+  const ok1 = await preguntar(cfg, 'k', true, async (url, o) => {
+    assert.equal(url, 'https://x.supabase.co/functions/v1/vista');
+    assert.deepEqual(JSON.parse(o.body), { k: 'k', renovar: true });
+    assert.equal(o.credentials, 'omit');
+    assert.equal(o.referrerPolicy, 'no-referrer');
+    assert.equal(o.cache, 'no-store');
+    return new Response('{"paginas":1}', { status: 200 });
+  });
+  assert.deepEqual(ok1, { ok: true, datos: { paginas: 1 } });
+  assert.deepEqual(JSON.parse((await (async () => { let b; await preguntar(cfg, 'k', false, async (u, o) => { b = o.body; return new Response('{}', { status: 404 }); }); return { toString: () => b }; })()).toString()), { k: 'k' });
+});
+await ok('la funcion de borde `vista` corre de verdad (tools/test-vista.mjs): una sola respuesta mala, una visita por apertura', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const r = spawnSync(process.execPath, [(await import('node:url')).fileURLToPath(new URL('./test-vista.mjs', import.meta.url))], { encoding: 'utf8' });
+  assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`.split('\n').filter((l) => /FALLA|Error|mal/.test(l)).slice(0, 6).join('\n'));
+  assert.match(r.stdout, /\d+ bien, 0 mal/);
 });
 
 console.log('la puerta de los bloques');

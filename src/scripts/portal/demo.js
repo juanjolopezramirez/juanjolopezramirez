@@ -77,6 +77,16 @@ export function abrirDemo() {
   const tallerMemoria = new RepositorioTallerMemoria();
   /* Para ver el aviso de dos pestañas sin abrir dos (este archivo solo existe con `npm run dev`) */
   window.__simularOtraPestana = () => tallerMemoria.capitulosM.forEach((c) => { c.rev += 1; c.pestana = 'otra'; });
+  /* Compartir en la demo: la pagina del libro privado (/vista/) es OTRA pestaña y no ve esta memoria. Para probarla,
+     la prueba pide una copia de lo compartido (ediciones, enlaces e imagenes) y se la pone a esa pestaña antes de que cargue. */
+  window.__vistaDemoCopia = async () => {
+    const aUrl = (f) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.readAsDataURL(f); });
+    const archivos = {};
+    for (const [ruta, f] of subidos) if (/\/ediciones\/[^/]+\/p\d+-\d+\.webp$/.test(ruta)) archivos[ruta] = await aUrl(f);
+    return JSON.parse(JSON.stringify({ ediciones: [...tallerMemoria.edicionesM.values()], enlaces: [...tallerMemoria.enlacesM.values()], archivos }));
+  };
+  /* Para ver «vencido» sin esperar semanas: pone la fecha del enlace en el pasado */
+  window.__caducarEnlace = (id) => { const e = tallerMemoria.enlacesM.get(id); if (e) e.vence = new Date(Date.now() - 1000).toISOString(); };
   tallerMemoria.crearObra({ titulo: 'Libro de prueba', idioma: 'es', pagina: { anchoMm: 148, altoMm: 210, indice: true }, fuentes: [] })
     .then((r) => tallerMemoria.abrir(r.id)).then((r) => tallerMemoria.guardarCapitulo({
       ...r.capitulos[0],
