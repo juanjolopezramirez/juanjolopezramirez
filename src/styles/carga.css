@@ -255,12 +255,15 @@
           mask-image: var(--tr-marco);
   transition: opacity .2s var(--ease), background-color .2s var(--ease);
 }
-.carga__btn:hover { background: rgb(241 239 233 / .1); }
+/* Al pasar por encima: el de linea toma un velo, el lleno da un paso mas lejos del fondo. Los dos son oficios
+   (--carga-velo, --carga-lleno-sobre) y no colores: el lector en papel (base.css, «El lector») los cambia, y sobre el
+   papel un velo de hueso o un boton blanco no se verian. Sin nadie que los cambie, son los de siempre. */
+.carga__btn:hover { background: var(--carga-velo, rgb(241 239 233 / .1)); }
 .carga__btn:hover::after, .carga__btn:focus-visible::after { background: var(--bone); opacity: 1; }
 .carga__btn--si { background: var(--bone); color: var(--night); }
 .carga__btn--si::after { inset: -2px; background: var(--bone); opacity: 1; }
-.carga__btn--si:hover { background: #fff; }
-.carga__btn--si:hover::after { background: #fff; }
+.carga__btn--si:hover { background: var(--carga-lleno-sobre, #fff); }
+.carga__btn--si:hover::after { background: var(--carga-lleno-sobre, #fff); }
 .carga__btn:focus-visible { outline: 2px solid var(--bone); outline-offset: 4px; }
 .carga__btn[hidden] { display: none; }
 

@@ -130,7 +130,41 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
      mientras esta abierto (site.js). -->
 <div class="book-panel" id="book-panel" role="dialog" aria-modal="true" aria-labelledby="book-title" hidden>
   <div class="book-panel__scrim" data-close-book></div>
-  <button class="book-panel__close" type="button" data-close-book aria-label={t('a11y.termClose')}>&times;</button>
+  <!-- LA BANDA DEL LECTOR (solo los libros en PDF; styles/base.css, «El lector»). A la izquierda, la marca (lleva al sitio) y el
+       titulo del libro; a la derecha, el idioma del libro y el tema en una pastilla, y la × redonda. En el libro escrito (HTML)
+       la banda no pinta nada: solo queda la ×, en su esquina de siempre. Los rotulos los pone site.js en el idioma del LIBRO
+       (ui.js, «lector.*»). El titulo sigue siendo el nombre accesible del dialogo. -->
+  <header class="lector__banda" data-lector-banda>
+    <a class="lector__pastilla lector__marca" data-lector-sitio href={`/${lang}/`}>
+      <span class="lector__marca-pez"><Icon id="mark" /></span>
+      <!-- La firma entera (de 820 px para arriba) no se escribe aqui otra vez: site.js copia la de la cabecera al abrir un libro,
+           con sus ids renombrados. Donde no hay cabecera (/vista/) se queda el pez. -->
+      <span class="lector__marca-firma" data-lector-firma></span>
+    </a>
+    <h2 class="lector__titulo" id="book-title"></h2>
+    <div class="lector__pastilla lector__ajustes" role="group" data-lector-ajustes>
+      <div class="lector__idioma" data-lector-idioma data-flag-es={META.es.flag} data-flag-en={META.en.flag}>
+        <button class="lector__idioma-actual" type="button" data-lector-idioma-btn aria-expanded="false" aria-controls="lector-idioma-lista" hidden>
+          <img alt="" width="40" height="40" src={META.es.flag} data-lector-bandera />
+        </button>
+        <span class="lector__idioma-actual" role="img" data-lector-idioma-fija>
+          <img alt="" width="40" height="40" src={META.es.flag} data-lector-bandera />
+        </span>
+        <div class="lector__idioma-lista" id="lector-idioma-lista" role="group" hidden>
+          <p data-lector-idioma-titulo></p>
+          <button class="lector__idioma-op" type="button" data-lector-idioma-op>
+            <img alt="" width="40" height="40" src={META.en.flag} />
+            <span></span>
+          </button>
+        </div>
+      </div>
+      <button class="lector__tema" type="button" data-lector-tema aria-pressed="false">
+        <svg class="lector__tema-luna" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+        <svg class="lector__tema-sol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" /></svg>
+      </button>
+    </div>
+    <button class="book-panel__close" type="button" data-close-book aria-label={t('a11y.termClose')}>&times;</button>
+  </header>
   <!-- «Copiar enlace»: copia el enlace CORTO del libro (juanjolopezramirez.com/<id>). Nace escondido: site.js lo muestra solo en los
        libros de la biblioteca; el libro privado (/vista/) no lo trae. «Enlace copiado» se dice en el propio boton y por el estado. -->
   <button class="book-panel__enlace" type="button" data-book-copiar title={t('a11y.bookCopy')} hidden>
@@ -139,7 +173,6 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
   </button>
   <p class="sr-only" role="status" data-book-copiar-estado></p>
   <div class="book-panel__frame">
-    <h2 class="sr-only" id="book-title"></h2>
     <div class="book" id="book">
       <div class="book__block" id="book-block"></div>
     </div>
@@ -169,16 +202,6 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
       </div>
     </div>
     <nav class="book__nav">
-      <!-- La lupa: la unica manera de agrandar el libro (el zoom del
-           navegador esta apagado aqui dentro). Solo en los libros en PDF. -->
-      <button class="book__arrow book__zoom" type="button" data-book-zoom aria-pressed="false" aria-label={t('a11y.bookZoom')} hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="10.5" cy="10.5" r="6" />
-          <path d="M15 15l5 5" />
-          <path d="M8 10.5h5" />
-          <path class="book__zoom-plus" d="M10.5 8v5" />
-        </svg>
-      </button>
       <button class="book__arrow" type="button" data-book-prev aria-label={t('a11y.bookPrev')} title={t('a11y.bookPrevHelp')} aria-keyshortcuts="ArrowLeft">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
@@ -196,25 +219,88 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
         </svg>
       </button>
     </nav>
-    <!-- RECORRER EL LIBRO (solo los libros en PDF; site.js lo muestra al abrir). «Volver» lleva al lugar de donde se salto
-         (tecla B, hasta 20 veces); «Contenido» solo sale si el libro tiene hoja de contenido; la barra va de la primera
-         a la ultima pagina y, al soltarla, las hojas giran hasta alli. -->
-    <div class="book__ruta" data-book-ruta hidden>
-      <button class="book__ruta-btn" type="button" data-book-volver aria-keyshortcuts="B" title={t('a11y.bookBack')} disabled>
+  </div>
+  <!-- LAS FLECHAS DE LOS LADOS (libros en PDF, de 820 px para arriba): a cada lado del libro, solo pasar la hoja. -->
+  <div class="lector__lado lector__lado--a" data-lector-lado>
+    <button class="lector__redondo" type="button" data-book-prev aria-keyshortcuts="ArrowLeft" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+    </button>
+  </div>
+  <div class="lector__lado lector__lado--d" data-lector-lado>
+    <button class="lector__redondo" type="button" data-book-next aria-keyshortcuts="ArrowRight" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+    </button>
+  </div>
+  <!-- EL MUELLE (solo los libros en PDF; site.js lo muestra al abrir). Dos grupos:
+       · IR LEJOS: «Volver a la pág. N» (tecla B; solo sale si hay a donde volver), «Contenido» (solo si el libro tiene hoja de
+         contenido), la barra de la primera a la ultima pagina y el campo «Pág. … de N» (Enter salta, Escape lo deja como estaba).
+       · HERRAMIENTAS: la lupa, el sonido y «Copiar enlace» (este, solo en los libros de la biblioteca). Aqui caben, mas adelante,
+         «Marcar» e «Índice».
+       En el telefono: la barra arriba; debajo Contenido, ‹, el campo, › y «Más», que abre las herramientas en una hoja.
+       EL ASA esconde la banda y el muelle para ver solo el libro, y los devuelve: va siempre en el mismo sitio. -->
+  <footer class="book__ruta" data-book-ruta hidden>
+    <button class="lector__asa" type="button" data-lector-asa>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6.5l6 6 6-6M6 12.5l6 6 6-6" /></svg>
+      <span data-lector-asa-folio></span>
+    </button>
+    <div class="lector__grupo lector__grupo--lejos" role="group" data-lector-lejos>
+      <button class="book__ruta-btn lector__volver" type="button" data-book-volver aria-keyshortcuts="B" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
-        <span>{t('book.back')}</span>
+        <span data-lector-volver-texto></span>
       </button>
-      <button class="book__ruta-btn" type="button" data-book-contenido title={t('a11y.bookContents')} hidden>
+      <button class="book__ruta-btn lector__cont" type="button" data-book-contenido hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></svg>
-        <span>{t('book.toContents')}</span>
+        <span data-lector-cont-texto></span>
       </button>
       <label class="book__ruta-barra">
-        <span class="sr-only">{t('a11y.bookSlider')}</span>
+        <span class="sr-only" data-lector-barra-rotulo></span>
         <input class="book__ruta-rango" type="range" min="1" max="1" step="1" value="1" data-book-barra aria-keyshortcuts="Home End PageUp PageDown" />
       </label>
-      <output class="book__ruta-valor" data-book-barra-valor aria-hidden="true"></output>
+      <button class="lector__redondo lector__paso lector__paso--a" type="button" data-book-prev aria-keyshortcuts="ArrowLeft" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
+      <label class="lector__campo" data-lector-campo>
+        <span data-lector-campo-rotulo></span>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="go" maxlength="5" autocomplete="off" data-lector-pagina />
+        <span data-lector-campo-de></span>
+      </label>
+      <button class="lector__redondo lector__paso lector__paso--d" type="button" data-book-next aria-keyshortcuts="ArrowRight" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+      </button>
+      <button class="book__ruta-btn lector__icono lector__mas-btn" type="button" data-lector-mas aria-haspopup="dialog" aria-expanded="false" aria-controls="lector-mas">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="lector__puntos" d="M5 12h.01M12 12h.01M19 12h.01" /></svg>
+      </button>
     </div>
-  </div>
+    <div class="lector__grupo lector__herr" role="group" data-lector-herr>
+      <!-- La lupa: la unica manera de agrandar el libro (el zoom del navegador esta apagado aqui dentro). -->
+      <button class="book__ruta-btn lector__icono" type="button" data-book-zoom aria-pressed="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" /><path d="M8 10.5h5" /><path class="book__zoom-plus" d="M10.5 8v5" /></svg>
+      </button>
+      <button class="book__ruta-btn lector__icono lector__son" type="button" data-book-sound aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" />
+          <path class="book__sound-on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" />
+          <path class="book__sound-off" d="M16 9.5l5 5M21 9.5l-5 5" />
+        </svg>
+      </button>
+      <!-- «Copiar enlace»: al copiar, el propio boton dice «Copiado» un momento (y el estado de arriba lo anuncia). -->
+      <button class="book__ruta-btn lector__icono lector__copiar" type="button" data-lector-copiar hidden>
+        <svg class="lector__copiar-sin" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" /><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" /></svg>
+        <span class="lector__copiar-hecho"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg><span data-lector-copiar-hecho></span></span>
+      </button>
+    </div>
+  </footer>
+  <!-- «MÁS» (telefono): las herramientas, con su nombre, en una hoja que sube dentro del lector. Las filas las pone site.js. -->
+  <div class="lector__fondo" data-lector-fondo></div>
+  <section class="lector__hoja" id="lector-mas" role="dialog" aria-modal="true" aria-labelledby="lector-mas-t" data-lector-hoja>
+    <div class="lector__hoja-cab">
+      <h3 id="lector-mas-t"></h3>
+      <button class="lector__redondo" type="button" data-lector-hoja-cierra>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </div>
+    <ul data-lector-mas-lista></ul>
+  </section>
   <!-- El sello, para que el guion lo copie en «Lo que es» y en la contratapa -->
   <template id="book-mark"><Icon id="mark" /></template>
 </div>

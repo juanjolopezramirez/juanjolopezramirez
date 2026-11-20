@@ -12,11 +12,11 @@ import { CARDS, GLOSS } from '../i18n/term-cards.js';
 import { DEEP } from '../i18n/term-book.js';
 import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
-import { UI } from '../i18n/ui.js';
+import { UI, META } from '../i18n/ui.js';
 import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar, enlaceCorto, enlaceVisible } from './biblioteca.js';
 import { LIBROS, TIPOS } from '../data/biblioteca.js';
 /* Las ayudas para recorrer un libro largo (Volver, la barra, Contenido, RePag/AvPag): una sola cuenta, en scripts/lector/ */
-import { barraDePliego, hojaDelContenido, paginasDe, pliegoALaVuelta, pliegoDe } from './lector/pliegos.js';
+import { barraDePliego, hojaDelContenido, idiomaDelLector, leerPagina, numeracion, otraEdicion, paginasDe, pliegoALaVuelta, pliegoDe, rotuloDeVuelta } from './lector/pliegos.js';
 import { crearRecorrido } from './lector/recorrido.js';
 import { textoDeCopia } from './lector/copiaEnPdf.js';
 /* El salto al hiperespacio va DENTRO (1.3 KB): traerlo al pulsar lo hacia arrancar tarde
@@ -486,6 +486,12 @@ function initLang() {
    se vuelve a mirar cada minuto y al volver a la pestaña. El lugar se saca
    una sola vez de la zona horaria (data/zonas.js, que se baja solo
    entonces) y se guarda; la cuenta del sol vive en la cabecera (jlrSol). */
+let temaSitio = null;       // { elegir(modo) }: lo deja initTema para que el lector cambie el MISMO tema (initBook)
+/* Los modos que el sitio guarda en `jlr:tema` (sin nada guardado: «Automático», como el dispositivo). Los usan initTema y el
+   lector de /vista/, que no tiene el selector: una sola regla de que vale. */
+const TEMA_CLAVE = 'jlr:tema';
+const TEMA_MODOS = ['claro', 'oscuro', 'sol'];
+const temaValido = (m) => (TEMA_MODOS.includes(m) ? m : 'sistema');
 function initTema() {
   const html = d.documentElement;
   const root = d.querySelector('[data-tema-picker]');
@@ -495,7 +501,7 @@ function initTema() {
   const opciones = [...root.querySelectorAll('[data-tema-set]')];
   const oscuroSistema = matchMedia('(prefers-color-scheme: dark)');
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const MODOS = ['claro', 'oscuro', 'sol'];
+  const MODOS = TEMA_MODOS;
   let hideTimer = null;
   let fundido = null;
   let cierre = null;
@@ -511,8 +517,8 @@ function initTema() {
     try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
     catch (e) { /* sin almacenamiento: vale para esta pagina */ }
   };
-  const valido = (m) => (MODOS.includes(m) ? m : 'sistema');
-  let elegido = valido(leer('jlr:tema'));
+  const valido = temaValido;
+  let elegido = valido(leer(TEMA_CLAVE));
 
   const oscuroAhora = () => {
     const t = html.getAttribute('data-tema');
@@ -540,7 +546,7 @@ function initTema() {
 
   const elegir = (modo) => {
     elegido = modo;
-    escribir('jlr:tema', modo === 'sistema' ? null : modo);
+    escribir(TEMA_CLAVE, modo === 'sistema' ? null : modo);
     pintar();
     if (modo === 'sol' && !leer('jlr:sol')) {
       import('../data/zonas.js').then(({ lugar }) => {
@@ -551,6 +557,8 @@ function initTema() {
       }).catch(() => {});
     }
   };
+
+  temaSitio = { elegir };
 
   const enfocar = () =>
     (opciones.find((b) => b.getAttribute('aria-pressed') === 'true') || opciones[0]).focus();
@@ -724,8 +732,8 @@ function initTema() {
 
   // Otra pestaña, el dispositivo o volver a esta: se repinta lo que toque.
   addEventListener('storage', (e) => {
-    if (e.key === 'jlr:tema') elegido = valido(e.newValue);
-    if (e.key === 'jlr:tema' || e.key === 'jlr:sol') pintar();
+    if (e.key === TEMA_CLAVE) elegido = valido(e.newValue);
+    if (e.key === TEMA_CLAVE || e.key === 'jlr:sol') pintar();
   });
   oscuroSistema.addEventListener('change', pintar);
   d.addEventListener('visibilitychange', () => { if (!d.hidden && elegido === 'sol') pintar(); });
@@ -863,14 +871,48 @@ function initBook() {
   const block = el('book-block');
   const folio = el('book-folio');
   const markTpl = el('book-mark');
-  const prevBtn = s.panel.querySelector('[data-book-prev]');
-  const nextBtn = s.panel.querySelector('[data-book-next]');
+  /* Las flechas: las de la fila del libro escrito, las de los lados del lector (pantalla ancha) y las del muelle (telefono).
+     Se encienden y se apagan todas a la vez; solo se ven las que tocan. */
+  const prevBtns = [...s.panel.querySelectorAll('[data-book-prev]')];
+  const nextBtns = [...s.panel.querySelectorAll('[data-book-next]')];
+  const flechas = (sinAntes, sinDespues) => {
+    prevBtns.forEach((b) => { b.disabled = sinAntes; });
+    nextBtns.forEach((b) => { b.disabled = sinDespues; });
+  };
+  const seVe = (x) => !!x && x.getClientRects().length > 0;
   /* Recorrer el libro: «Volver», «Contenido» y la barra de 1 a la ultima pagina (solo en los libros en PDF) */
   const ruta = s.panel.querySelector('[data-book-ruta]');
   const backBtn = s.panel.querySelector('[data-book-volver]');
   const contBtn = s.panel.querySelector('[data-book-contenido]');
   const bar = s.panel.querySelector('[data-book-barra]');
-  const barValor = s.panel.querySelector('[data-book-barra-valor]');
+  /* EL LECTOR (libros en PDF): la banda de arriba, el muelle de abajo, el asa y la hoja de «Más» (components/Panels.astro,
+     styles/base.css «El lector»). Sus rotulos hablan el idioma del LIBRO (`tl`), no el de la pagina: ui.js, «lector.*». */
+  const lz = (sel) => s.panel.querySelector(sel);
+  const marco = lz('.book-panel__frame');
+  const banda = lz('[data-lector-banda]');
+  const lados = [...s.panel.querySelectorAll('[data-lector-lado]')];
+  const cerrarBtn = lz('.book-panel__close');
+  const sitioLink = lz('[data-lector-sitio]');
+  const idiomaBtn = lz('[data-lector-idioma-btn]');
+  const idiomaFija = lz('[data-lector-idioma-fija]');
+  const idiomaLista = lz('#lector-idioma-lista');
+  const idiomaOp = lz('[data-lector-idioma-op]');
+  const temaBtn = lz('[data-lector-tema]');
+  const asa = lz('[data-lector-asa]');
+  const asaFolio = lz('[data-lector-asa-folio]');
+  const volverTexto = lz('[data-lector-volver-texto]');
+  const campoCaja = lz('[data-lector-campo]');
+  const campo = lz('[data-lector-pagina]');
+  const masBtn = lz('[data-lector-mas]');
+  const hojaMas = lz('[data-lector-hoja]');
+  const hojaFondo = lz('[data-lector-fondo]');
+  const masLista = lz('[data-lector-mas-lista]');
+  const copiarMuelle = lz('[data-lector-copiar]');
+  let lectorLang = idiomaDelLector(null, lang);
+  const tl = (k) => (UI[lectorLang] && UI[lectorLang]['lector.' + k]) || UI.en['lector.' + k] || k;
+  let otroIdioma = null;      // la otra edicion del libro abierto ('es' | 'en'), o null
+  let solo = false;           // el asa: la banda y el muelle estan escondidos (dura lo que dura la pagina; no se guarda)
+  let hojaVuelve = null;      // a donde vuelve el foco al cerrar «Más»
   /* «Copiar enlace»: el enlace CORTO del libro (juanjolopezramirez.com/ahava), el que se manda por WhatsApp. Solo en los
      libros de la biblioteca: el privado de /vista/ (`privado`) no se copia ni se acorta, y ahi el boton no sale. El dominio
      es el de `site` (astro.config.mjs), tambien en una copia de prueba. */
@@ -878,13 +920,17 @@ function initBook() {
   const copiarRotulo = s.panel.querySelector('[data-book-copiar-texto]');
   const copiarEstado = s.panel.querySelector('[data-book-copiar-estado]');
   let copiarTimer = 0;
+  let copiado = false;        // el muelle (y la fila de «Más») dicen «Copiado» un momento
   const copiarReponer = () => {
     clearTimeout(copiarTimer);
+    copiado = false;
     if (copiarRotulo) copiarRotulo.textContent = t('book.copy');
     if (copiarEstado) copiarEstado.textContent = '';
     if (copiarBtn) copiarBtn.removeAttribute('data-hecho');
+    if (copiarMuelle) copiarMuelle.removeAttribute('data-hecho');
+    if (hojaMas && hojaMas.classList.contains('is-abierta')) pintarMas();
   };
-  const copiarAlPortapapeles = async (texto) => {
+  const copiarAlPortapapeles = async (texto, vuelve) => {
     try { await navigator.clipboard.writeText(texto); return true; } catch (err) { /* sin permiso o sin https: el metodo viejo */ }
     const caja = d.createElement('textarea');
     try {
@@ -899,33 +945,53 @@ function initBook() {
     } finally {
       /* Pase lo que pase: la caja se va y el foco vuelve al boton */
       caja.remove();
-      copiarBtn.focus({ preventScroll: true });
+      if (vuelve && vuelve.isConnected) vuelve.focus({ preventScroll: true });
     }
+  };
+  /* `enLector`: lo pide el muelle o la hoja de «Más» (libro en PDF); si no, el boton de arriba del libro escrito */
+  const copiarEnlace = async (desde, enLector) => {
+    const id = abiertoId;
+    if (!id || privado.has(id)) return;
+    const largo = enlaceCorto(import.meta.env.SITE, id);
+    if (!largo) return;
+    const bien = await copiarAlPortapapeles(largo, desde);
+    clearTimeout(copiarTimer);
+    if (enLector) {
+      /* El propio boton pasa de «Copiar» a «Copiado»; un lector de pantalla lo oye por el estado */
+      if (bien) {
+        copiado = true;
+        lz('[data-lector-copiar-hecho]').textContent = tl('copiado');
+        copiarMuelle.setAttribute('data-hecho', '');
+        copiarEstado.textContent = tl('enlaceCopiado');
+        if (hojaMas.classList.contains('is-abierta')) pintarMas();
+      } else {
+        /* No se pudo copiar: se ve la direccion para escribirla a mano */
+        decir(tl('enlaceNo') + enlaceVisible(import.meta.env.SITE, id), 7000);
+        copiarEstado.textContent = tl('enlaceNo') + largo;
+      }
+      copiarTimer = setTimeout(copiarReponer, bien ? 2200 : 7000);
+      return;
+    }
+    /* El aviso breve: el rotulo del boton lo dice (y un lector de pantalla lo oye por el estado) */
+    if (bien) {
+      copiarRotulo.textContent = t('book.copied');
+      copiarEstado.textContent = t('book.copied');
+      copiarBtn.setAttribute('data-hecho', '');
+    } else {
+      /* No se pudo copiar: se ve la direccion para escribirla a mano */
+      copiarRotulo.textContent = enlaceVisible(import.meta.env.SITE, id);
+      copiarEstado.textContent = t('book.copyFail') + largo;
+    }
+    copiarTimer = setTimeout(copiarReponer, bien ? 2600 : 7000);
   };
   if (copiarBtn) {
     /* El nombre del boton no cambia con el rotulo: «Enlace copiado» lo anuncia solo el estado (role=status), no dos veces */
     copiarBtn.setAttribute('aria-label', t('book.copy'));
-    copiarBtn.addEventListener('click', async () => {
-      const id = abiertoId;
-      if (!id || privado.has(id)) return;
-      const largo = enlaceCorto(import.meta.env.SITE, id);
-      if (!largo) return;
-      const bien = await copiarAlPortapapeles(largo);
-      clearTimeout(copiarTimer);
-      /* El aviso breve: el rotulo del boton lo dice (y un lector de pantalla lo oye por el estado) */
-      if (bien) {
-        copiarRotulo.textContent = t('book.copied');
-        copiarEstado.textContent = t('book.copied');
-        copiarBtn.setAttribute('data-hecho', '');
-      } else {
-        /* No se pudo copiar: se ve la direccion para escribirla a mano */
-        copiarRotulo.textContent = enlaceVisible(import.meta.env.SITE, id);
-        copiarEstado.textContent = t('book.copyFail') + largo;
-      }
-      copiarTimer = setTimeout(copiarReponer, bien ? 2600 : 7000);
-    });
+    copiarBtn.addEventListener('click', () => copiarEnlace(copiarBtn, false));
   }
+  if (copiarMuelle) copiarMuelle.addEventListener('click', () => copiarEnlace(copiarMuelle, true));
   const wide = matchMedia('(min-width: 900px)');
+  const dedo = matchMedia('(pointer: coarse)');   // se lee con el dedo: soltar el campo «Pág.» cierra el teclado
   const quiet = matchMedia('(prefers-reduced-motion: reduce)');
   const TURN = 900;       // lo mismo que dura la transicion de --a en base.css
   const STAGGER = 110;    // saltar desde el indice pasa las hojas en cascada
@@ -1150,8 +1216,7 @@ function initBook() {
     }
 
     book.dataset.state = k === 0 ? 'front' : (spread && k === n ? 'back' : 'open');
-    prevBtn.disabled = k === 0;
-    nextBtn.disabled = k === maxK();
+    flechas(k === 0, k === maxK());
 
     /* Solo se puede tocar lo que se ve: las caras tapadas no entran en el
        orden del tabulador ni las lee un lector de pantalla. */
@@ -1199,7 +1264,7 @@ function initBook() {
 
      Mientras la grabacion carga (o si fallara) suena un papel hecho aqui
      con ruido. El boton del altavoz lo apaga todo; se recuerda. */
-  const soundBtn = s.panel.querySelector('[data-book-sound]');
+  const soundBtns = [...s.panel.querySelectorAll('[data-book-sound]')];
   let soundOn = true;
   try { soundOn = localStorage.getItem('book-sound') !== 'off'; } catch (err) { /* sin almacenamiento */ }
   let ac = null;
@@ -1227,14 +1292,15 @@ function initBook() {
   const CUT = 0.95;       // y donde se corta: despues queda un clic suelto
   const COVER_HIT = 0.27; // en la de las tapas: cuando cae el carton
 
-  const paintSound = () => { if (soundBtn) soundBtn.setAttribute('aria-pressed', String(soundOn)); };
+  const paintSound = () => soundBtns.forEach((b) => b.setAttribute('aria-pressed', String(soundOn)));
   paintSound();
-  if (soundBtn) soundBtn.addEventListener('click', () => {
+  const cambiarSonido = () => {
     soundOn = !soundOn;
     paintSound();
     try { localStorage.setItem('book-sound', soundOn ? 'on' : 'off'); } catch (err) { /* nada */ }
     if (soundOn) rustle(false, 0.7);
-  });
+  };
+  soundBtns.forEach((b) => b.addEventListener('click', cambiarSonido));
 
   function audio() {
     if (ac) return ac;
@@ -1709,17 +1775,23 @@ function initBook() {
   let lastVis = [];      // las paginas que se ven ahora (para la lupa)
   let g = null;          // el dedo, mientras esta sobre el libro
 
+  /* CUANTO CABE. El libro ocupa lo que la banda y el muelle le dejan: se MIDEN (no son un numero fijo), asi el libro nunca
+     los pisa y crece cuando el asa los esconde. En pantalla ancha se le quita tambien el ancho de las dos columnas de las
+     flechas; en el telefono, el hueco del asa y de «Volver» bajo el libro (el margen del marco, base.css `--l-hueco`).
+     Una banda que flota (un telefono de lado: solo queda la ×) no le quita alto. */
   function flipSize(ratio) {
     const two = wide.matches;
-    /* Debajo del libro van dos filas: las flechas y la de recorrer (Volver, Contenido, la barra) */
-    /* En una ventana muy baja (un telefono de lado) las filas se aprietan (base.css, max-height: 460px) y el suelo baja: lo de
-       abajo tiene que verse entero. */
+    const rem = parseFloat(getComputedStyle(d.documentElement).fontSize) || 16;
     const baja = innerHeight <= 460;
-    /* En pantallas anchas los botones van a los LADOS del libro (base.css, «Los lados del libro»): abajo queda solo el folio y la barra,
-       asi el libro gana altura, y a cambio se le quita el ancho de las dos columnas de botones. */
-    const lados = innerWidth >= 820;
-    const room = Math.max(baja ? 120 : 240, innerHeight - (lados ? 8 : baja ? 9.4 : 11.2) * parseFloat(getComputedStyle(d.documentElement).fontSize));
-    const w = Math.floor(Math.min(two ? (innerWidth - 96 - (lados ? 184 : 0)) / 2 : innerWidth - 28 - (lados ? 184 : 0), room * ratio, 640));
+    const arriba = seVe(banda) && getComputedStyle(banda).position !== 'absolute' ? banda.getBoundingClientRect().bottom : 0;
+    const abajo = seVe(ruta) ? innerHeight - ruta.getBoundingClientRect().top : 0;
+    /* El aviso breve se posa encima del muelle (base.css, .book__toast): sabe cuanto mide por aqui */
+    s.panel.style.setProperty('--l-suelo', Math.max(0, Math.round(abajo)) + 'px');
+    const hueco = parseFloat(getComputedStyle(marco).marginBottom) || 0;
+    const aLosLados = lados.reduce((a, l) => a + (seVe(l) ? l.getBoundingClientRect().width : 0), 0);
+    /* El aire del libro: los cartones asoman por arriba y por abajo, y la sombra pide un poco mas */
+    const room = Math.max(baja ? 120 : 240, innerHeight - arriba - abajo - hueco - 1.5 * rem);
+    const w = Math.floor(Math.min(two ? (innerWidth - aLosLados - 40) / 2 : innerWidth - aLosLados - 28, room * ratio, 640));
     return { cam: !two, pw: w, ph: Math.round(w / ratio) };
   }
 
@@ -1752,8 +1824,7 @@ function initBook() {
     lastVis = vis;
     /* Un boton apagado con el foco lo suelta, y el teclado deja de llegar: se cuida aqui (rescatarFoco) */
     const tenia = d.activeElement;
-    prevBtn.disabled = vis[0] === 0;
-    nextBtn.disabled = vis[vis.length - 1] >= n - 1;
+    flechas(vis[0] === 0, vis[vis.length - 1] >= n - 1);
     rescatarFoco(tenia);
 
     /* Cerrado solo hay tapa; al final, contratapa. El canto de cada lado
@@ -1770,8 +1841,14 @@ function initBook() {
     const nums = vis.map(folioNum).filter((x) => x != null);
     folio.textContent = nums.length ? nums.join('–') + ' / ' + total : '';
     folio.setAttribute('aria-label', nums.length
-      ? t('book.pageOf').replace('{n}', nums.join('–')).replace('{t}', total)
+      ? tl('paginaDe').replace('{n}', nums.join('–')).replace('{t}', total)
       : el('book-title').textContent);
+    /* El campo «Pág.» y la pastilla del asa dicen lo mismo que el folio. Lo que se esta escribiendo no se pisa. */
+    if (d.activeElement !== campo && !dragBar) campo.value = rotuloDe(vis);
+    /* Sin numero: la tapa, la contratapa, o (unas guardas, o un libro sin numeros) las hojas tal cual, contadas desde 1 */
+    asaFolio.textContent = nums.length ? nums.join('–') + ' / ' + total
+      : vis[0] === 0 ? tl('portada') : vis[vis.length - 1] >= n - 1 ? tl('contratapa')
+      : vis.map((x) => x + 1).join('–') + ' / ' + n;
 
     flipBox.querySelectorAll('.flip__page').forEach((p, x) => {
       const on = vis.includes(x);
@@ -1785,22 +1862,28 @@ function initBook() {
 
   /* La numeracion que se ve: la impresa del PDF si la tiene (tools/books.py la lee del pie de las paginas); tapas y guardas no
      llevan numero (null) */
-  function folioNum(x) {
-    const n = count();
-    const off = fbInfo.offset;
-    return off == null ? x + 1 : (x > 0 && x < n - 1 && x + 1 - off >= 1 ? x + 1 - off : null);
-  }
-  const folioTotal = () => (fbInfo.offset == null ? count() : count() - 1 - fbInfo.offset);
+  let num = numeracion(0);    // pliegos.js: la cuenta de este libro (se hace al encuadernar)
+  const folioNum = (x) => num.folioDe(x);
+  const folioTotal = () => num.total;
+  /* Lo que se lee en el campo para unas paginas: «6–7», «4», o una raya si no llevan numero (tapas y guardas) */
+  const rotuloDe = (pags) => pags.map(folioNum).filter((x) => x != null).join('–') || '—';
+  /* ...y para un valor de la barra: en el telefono, esa pagina; en pantalla ancha, su pliego */
+  const rotuloDeBarra = (valor) => {
+    const x = Math.max(0, Math.min(count() - 1, Math.round(Number(valor)) - 1));
+    return rotuloDe(cam ? [x] : pagesOf(spreadOf(x)));
+  };
 
   /* Un boton que se apaga con el foco encima lo suelta; el foco pasa a otro control que sirva (o al libro) para que el teclado
      (flechas, Inicio, Fin, B) siga llegando */
   function rescatarFoco(tenia) {
-    if (!tenia || !tenia.disabled || !s.panel.contains(tenia)) return;
-    const otros = [prevBtn, nextBtn, bar, backBtn, contBtn].filter((b) => b !== tenia && b && !b.disabled && !b.hidden && !b.closest('[hidden]'));
-    const a = tenia === prevBtn ? [nextBtn, bar, backBtn] : tenia === nextBtn ? [prevBtn, bar, backBtn] : tenia === backBtn ? [contBtn, bar, prevBtn, nextBtn] : [prevBtn, nextBtn, bar];
-    const donde = a.find((b) => otros.includes(b)) || otros[0];
+    if (!tenia || !s.panel.contains(tenia) || !(tenia.disabled || tenia.hidden)) return;
+    const sirve = (b) => b && b !== tenia && !b.disabled && seVe(b);
+    const antes = prevBtns.find(sirve), despues = nextBtns.find(sirve);
+    const orden = prevBtns.includes(tenia) ? [despues, bar, backBtn] : nextBtns.includes(tenia) ? [antes, bar, backBtn]
+      : tenia === backBtn ? [contBtn, bar, antes, despues] : [antes, despues, bar];
+    const donde = orden.find(sirve) || [antes, despues, bar, contBtn, asa].find(sirve);
     if (donde) donde.focus({ preventScroll: true });
-    else { s.panel.querySelector('.book-panel__close').focus({ preventScroll: true }); }
+    else if (seVe(cerrarBtn)) cerrarBtn.focus({ preventScroll: true });
   }
 
   /* ---- Recorrer el libro: Volver, Contenido y la barra ---- */
@@ -1809,16 +1892,28 @@ function initBook() {
   const textoBarra = (valor) => {
     const x = Math.max(0, Math.min(count() - 1, Math.round(Number(valor)) - 1));
     const num = folioNum(x);
-    if (num != null) return t('book.pageOf').replace('{n}', num).replace('{t}', folioTotal());
-    if (x === 0) return t('book.sliderCover');
-    if (x === count() - 1) return t('book.sliderBack');
-    return t('book.pageOf').replace('{n}', x + 1).replace('{t}', count());
+    if (num != null) return tl('paginaDe').replace('{n}', num).replace('{t}', folioTotal());
+    if (x === 0) return tl('portada');
+    if (x === count() - 1) return tl('contratapa');
+    return tl('paginaDe').replace('{n}', x + 1).replace('{t}', count());
   };
   function pintarBarra() {
     if (!ruta || !fb) return;
-    const txt = textoBarra(bar.value);
-    bar.setAttribute('aria-valuetext', txt);
-    if (barValor.textContent !== txt) barValor.textContent = txt;
+    bar.setAttribute('aria-valuetext', textoBarra(bar.value));
+    /* Lo recorrido se pinta lleno (base.css: --lleno) */
+    const max = Number(bar.max) || 1;
+    bar.style.setProperty('--lleno', (max > 1 ? ((Number(bar.value) - 1) / (max - 1)) * 100 : 0) + '%');
+  }
+  /* «Volver» solo sale si hay a donde volver, y dice a donde: «Volver a la pág. 7» (la numeracion impresa) */
+  function pintarVolver(en) {
+    const n = count();
+    const destino = rec.proxima(pliegoDe(en, n));
+    backBtn.hidden = destino == null;
+    if (destino == null) return;
+    /* pliegos.js → rotuloDeVuelta: el numero impreso, o la tapa, la contratapa, o solo «Volver» para unas guardas */
+    const r = rotuloDeVuelta(destino, n, folioNum, { cam });
+    const txt = !r ? tl('volverSolo') : r.folios ? tl('volver').replace('{n}', r.folios) : tl(r.clave);
+    if (volverTexto.textContent !== txt) volverTexto.textContent = txt;
   }
   /* La barra sigue al libro mientras no se este arrastrando. El valor se deja si ya cae en el pliego que se ve: con el teclado la
      pagina 3 y la 2 son el mismo pliego, y devolverla a la 2 la atascaria. */
@@ -1828,7 +1923,7 @@ function initBook() {
     const tenia = d.activeElement;
     if (!dragBar && pliegoDe(Number(bar.value) - 1, n) !== pliegoDe(en, n)) bar.value = String(barraDePliego(en, n));
     pintarBarra();
-    backBtn.disabled = !rec.hayVuelta(pliegoDe(en, n));
+    pintarVolver(en);
     rescatarFoco(tenia);
   }
   function abrirRuta() {
@@ -1840,6 +1935,9 @@ function initBook() {
     bar.disabled = n < 2;
     contBtn.hidden = contenidoAt < 0;
     ruta.hidden = false;
+    lz('[data-lector-campo-de]').textContent = tl('de').replace('{t}', folioTotal());
+    /* Un libro sin ningun numero impreso no tiene a que pagina ir por numero («del 1 al 0»): el campo no sale; la barra basta */
+    campoCaja.hidden = num.primero == null;
     /* Un reencuadernado a mitad de un viaje deja la region muda (empieza() la apago): se vuelve a encender */
     folio.setAttribute('aria-live', 'polite');
     syncRuta(fb.getCurrentPageIndex());
@@ -1848,7 +1946,7 @@ function initBook() {
     if (!ruta) return;
     ruta.hidden = true;
     contBtn.hidden = true;
-    backBtn.disabled = true;
+    backBtn.hidden = true;
     dragBar = false;
     contenidoAt = -1;
     folio.setAttribute('aria-live', 'polite');
@@ -1859,6 +1957,7 @@ function initBook() {
     /* Al cerrar el libro se olvida de donde se salto, y lo que giraba se corta */
     rec.reiniciar();
     cerrarRuta();
+    salirDelLector();
     if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
     fb = null;
     g = null;
@@ -1947,7 +2046,7 @@ function initBook() {
         if (copia) { a.type = 'button'; a.dataset.flipCopia = '1'; copias.set(a, copia); }
         else if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
         else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
-        a.setAttribute('aria-label', copia ? t('book.copyMsg') : L.href || t('book.pageOf').replace('{n}', L.page + 1).replace('{t}', n));
+        a.setAttribute('aria-label', copia ? tl('copiarMsg') : L.href || tl('paginaDe').replace('{n}', L.page + 1).replace('{t}', n));
         Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
         pg.appendChild(a);
       });
@@ -1977,6 +2076,7 @@ function initBook() {
 
     if (fb) { try { fb.destroy(); } catch (err) { /* nada */ } }
     flipBox.textContent = '';
+    num = numeracion(n, { offset: info.offset, folios: info.folios });
     const size = flipSize(info.ratio);
     cam = size.cam;
     pw = size.pw;
@@ -2165,15 +2265,17 @@ function initBook() {
   /* Diez pliegos adelante (d > 0) o atras (d < 0), contados desde donde va el libro (varios se suman) */
   const goTen = (d) => { if (fb) goTo(pliegoALaVuelta(rec.enViaje() ? rec.lugar() : fb.getCurrentPageIndex(), count(), d)); };
 
-  /* El aviso de «Mensaje copiado»: un banner breve sobre el libro (y lo anuncia un lector de pantalla), sin repetir lo copiado */
-  let avisoCopia = null, avisoCopiaTimer = 0;
-  const avisarCopia = (bien) => {
-    if (!avisoCopia) { avisoCopia = d.createElement('div'); avisoCopia.className = 'book__toast'; avisoCopia.setAttribute('role', 'status'); s.panel.appendChild(avisoCopia); }
-    avisoCopia.textContent = t(bien ? 'book.msgCopied' : 'book.msgCopyFail');
-    avisoCopia.setAttribute('data-visible', '');
-    clearTimeout(avisoCopiaTimer);
-    avisoCopiaTimer = setTimeout(() => { if (avisoCopia) avisoCopia.removeAttribute('data-visible'); }, bien ? 1900 : 4200);
-  };
+  /* EL AVISO BREVE: una pastilla sobre el muelle («Mensaje copiado», «El libro llega hasta la 11»). La anuncia un lector de
+     pantalla (role=status) y se va sola. */
+  let aviso = null, avisoTimer = 0;
+  function decir(texto, ms = 2200) {
+    if (!aviso) { aviso = d.createElement('p'); aviso.className = 'book__toast'; aviso.setAttribute('role', 'status'); s.panel.appendChild(aviso); }
+    aviso.textContent = texto;
+    aviso.setAttribute('data-visible', '');
+    clearTimeout(avisoTimer);
+    avisoTimer = setTimeout(() => { if (aviso) { aviso.removeAttribute('data-visible'); aviso.textContent = ''; } }, ms);
+  }
+  const avisarCopia = (bien) => decir(tl(bien ? 'msgCopiado' : 'msgNo'), bien ? 1900 : 4200);
   const copiarMensaje = async (texto) => {
     let bien = false;
     try { await navigator.clipboard.writeText(texto); bien = true; } catch (err) { /* sin permiso o sin https: el metodo viejo */ }
@@ -2200,7 +2302,7 @@ function initBook() {
   backBtn.addEventListener('click', goBack);
   contBtn.addEventListener('click', goContents);
   /* Arrastrar la barra dice la pagina; al soltar (`change`) el libro viaja hasta ahi */
-  bar.addEventListener('input', () => { dragBar = true; pintarBarra(); });
+  bar.addEventListener('input', () => { dragBar = true; pintarBarra(); if (fb) campo.value = rotuloDeBarra(bar.value); });
   bar.addEventListener('change', () => {
     dragBar = false;
     if (!fb) return;
@@ -2212,7 +2314,9 @@ function initBook() {
   let barAlBajar = null;
   const barSuelta = () => setTimeout(() => {
     dragBar = false;
-    if (fb) syncRuta(rec.destino() == null ? fb.getCurrentPageIndex() : rec.destino());
+    if (!fb) return;
+    syncRuta(rec.destino() == null ? fb.getCurrentPageIndex() : rec.destino());
+    if (d.activeElement !== campo && !rec.enViaje()) campo.value = rotuloDe(lastVis);
   }, 0);
   bar.addEventListener('pointerdown', () => { barAlBajar = bar.value; });
   bar.addEventListener('pointerup', () => { if (bar.value === barAlBajar) barSuelta(); });
@@ -2299,16 +2403,33 @@ function initBook() {
      cruzar los 900px cambia de pliego a camara, y la altura cambia con
      la barra del navegador del movil. */
   let fbResize = 0;
-  addEventListener('resize', () => {
+  let medidaPendiente = false;
+  /* Con el campo «Pág.» en la mano NO se reencuaderna: en el telefono, el teclado cambia el alto de la ventana y el libro
+     saltaria debajo de lo que se escribe. Se apunta, y se hace al soltar el campo. `ms`: cuanto esperar (el asa, casi nada). */
+  function reajustar(ms = 180) {
     if (!fb || s.panel.hidden) return;
+    if (d.activeElement === campo) { medidaPendiente = true; return; }
+    medidaPendiente = false;
     dropZoom();
     clearTimeout(fbResize);
     fbResize = setTimeout(() => {
       if (!fb) return;
+      if (d.activeElement === campo) { medidaPendiente = true; return; }
+      /* Con hojas girando (un viaje de varias, o una sola en el aire) no se desarma el libro: quedaria a medias hasta el reloj de
+         seguridad. Se espera a que se pose y se vuelve a mirar. */
+      if (rec.enViaje() || fb.getState() !== 'read') { reajustar(150); return; }
       const fit = flipSize(fbInfo.ratio);
       if (fit.cam === cam && Math.abs(fit.pw - pw) < 2) return;
       buildFlip(fbInfo.id, fb.getCurrentPageIndex()).catch(() => { /* se queda el que habia */ });
-    }, 180);
+    }, ms);
+  }
+  addEventListener('resize', () => {
+    if (!s.panel.hasAttribute('data-lector')) return;
+    /* «Más» es del telefono: si la ventana crece, las herramientas ya estan a la vista (el foco va a una que se vea) */
+    if (innerWidth >= 820) cerrarHoja();
+    /* Lo que tenia el foco pudo quedar escondido por el cambio de ancho (la flecha del muelle del telefono): pasa a su gemelo */
+    focoVisible();
+    reajustar();
   });
 
   /* Cerrar el panel suelta el libro: sin eso seguiria escuchando el raton */
@@ -2363,7 +2484,7 @@ function initBook() {
 
     const layer = h('div', 'zoom');
     layer.setAttribute('role', 'dialog');
-    layer.setAttribute('aria-label', t('a11y.bookZoom'));
+    layer.setAttribute('aria-label', tl('lupa'));
     const canvas = h('div', 'zoom__canvas');
     canvas.style.width = w + 'px';
     canvas.style.height = hh + 'px';
@@ -2381,7 +2502,7 @@ function initBook() {
     });
     const out = h('button', 'zoom__out');
     out.type = 'button';
-    out.setAttribute('aria-label', t('a11y.bookZoom'));
+    out.setAttribute('aria-label', tl('lupa'));
     out.setAttribute('aria-pressed', 'true');
     out.innerHTML = ZOOM_OUT_SVG;
     out.addEventListener('click', zoomOut);
@@ -2447,7 +2568,8 @@ function initBook() {
     zoom = null;
     setTimeout(() => Z.layer.remove(), 340);
     zoomBtn.setAttribute('aria-pressed', 'false');
-    zoomBtn.focus();
+    /* En el telefono la lupa vive en «Más»: el foco vuelve a ese boton */
+    (seVe(zoomBtn) ? zoomBtn : seVe(masBtn) ? masBtn : asa).focus({ preventScroll: true });
   }
 
   /* Sin animacion: al cerrar el libro o si cambia el tamaño */
@@ -2482,6 +2604,319 @@ function initBook() {
     if (!s.panel.hidden && !zoom && e.touches.length > 1) e.preventDefault();
   }, { passive: false });
 
+  /* ---- EL LECTOR: la banda, el muelle, el asa y «Más» ----------
+     Todo esto es solo de los libros en PDF. El panel lleva `data-lector` mientras hay uno abierto (base.css pinta la banda
+     y el muelle con eso); el libro escrito no lo lleva y se queda con su fila de siempre. */
+
+  /* Los rotulos, en el idioma del LIBRO. Se ponen al abrir (y al cambiar de edicion). */
+  function rotular(enVista) {
+    const pon = (nodo, texto, conTitulo = true) => { if (!nodo) return; nodo.setAttribute('aria-label', texto); if (conTitulo) nodo.title = texto; };
+    [banda, ruta, hojaMas, ...lados].forEach((x) => x.setAttribute('lang', lectorLang));
+    pon(sitioLink, tl(enVista ? 'sitioNueva' : 'sitio'));
+    pon(lz('[data-lector-ajustes]'), tl('ajustes'), false);
+    pon(temaBtn, tl('tema'));
+    pon(cerrarBtn, tl('cerrar'));
+    prevBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => { b.setAttribute('aria-label', tl('atras')); b.title = tl('atrasAyuda'); });
+    nextBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => { b.setAttribute('aria-label', tl('adel')); b.title = tl('adelAyuda'); });
+    backBtn.title = tl('volverAyuda');
+    lz('[data-lector-cont-texto]').textContent = tl('contenido');
+    contBtn.setAttribute('aria-label', tl('contenido'));
+    contBtn.title = tl('contenidoAyuda');
+    lz('[data-lector-barra-rotulo]').textContent = tl('barra');
+    pon(lz('[data-lector-lejos]'), tl('barra'), false);
+    pon(lz('[data-lector-herr]'), tl('mas'), false);
+    lz('[data-lector-campo-rotulo]').textContent = tl('pag');
+    lz('[data-lector-campo-de]').textContent = '';
+    campo.setAttribute('aria-label', tl('irA'));
+    pon(masBtn, tl('mas'));
+    lz('#lector-mas-t').textContent = tl('mas');
+    pon(lz('[data-lector-hoja-cierra]'), tl('cerrarHoja'));
+    pon(zoomBtn, tl('lupa'));
+    soundBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => pon(b, tl('sonido')));
+    pon(copiarMuelle, tl('enlace'));
+    pon(asa, tl(solo ? 'mostrar' : 'esconder'));
+  }
+
+  /* EL IDIOMA DEL LIBRO. La bandera del que esta puesto; si el libro tiene otra edicion (el mismo libro en el otro idioma),
+     la bandera es un boton que la ofrece con su nombre en su propio idioma. Si no, es solo una bandera con su nombre. */
+  function pintarIdioma() {
+    const bandera = META[lectorLang].flag;
+    s.panel.querySelectorAll('[data-lector-bandera]').forEach((img) => { img.src = bandera; });
+    idiomaLista.hidden = true;
+    idiomaBtn.setAttribute('aria-expanded', 'false');
+    idiomaBtn.hidden = !otroIdioma;
+    idiomaFija.hidden = !!otroIdioma;
+    if (otroIdioma) {
+      idiomaBtn.setAttribute('aria-label', tl('idioma'));
+      idiomaBtn.title = tl('idioma');
+      lz('[data-lector-idioma-titulo]').textContent = tl('idiomaEn');
+      idiomaOp.querySelector('img').src = META[otroIdioma].flag;
+      idiomaOp.querySelector('span').textContent = META[otroIdioma].name;
+      idiomaOp.setAttribute('lang', otroIdioma);
+    } else {
+      idiomaFija.setAttribute('aria-label', tl('idiomaSolo'));
+      idiomaFija.title = tl('idiomaSolo');
+    }
+  }
+  const listaIdioma = (ver, foco) => {
+    if (idiomaLista.hidden === !ver) return;
+    idiomaLista.hidden = !ver;
+    idiomaBtn.setAttribute('aria-expanded', String(ver));
+    if (ver) idiomaOp.focus({ preventScroll: true });
+    else if (foco) idiomaBtn.focus({ preventScroll: true });
+  };
+  idiomaBtn.addEventListener('click', (e) => { e.stopPropagation(); listaIdioma(idiomaLista.hidden); });
+  d.addEventListener('click', (e) => { if (!idiomaLista.hidden && !e.target.closest('[data-lector-idioma]')) listaIdioma(false); });
+  /* La otra edicion: el mismo libro, en el otro idioma, desde la tapa (la numeracion puede no ser la misma) */
+  idiomaOp.addEventListener('click', () => {
+    const id = abiertoId, otro = otroIdioma;
+    listaIdioma(false);
+    /* Un libro privado no tiene otra edicion (y no se busca una con su id) */
+    if (!id || !otro || privado.has(id)) return;
+    const f = ficha(id, otro);
+    if (!f || !f.v.pdf) return;
+    ponerTitulo(f);
+    openFlip(id, f, null, true);
+    (seVe(idiomaBtn) ? idiomaBtn : cerrarBtn).focus({ preventScroll: true });
+  });
+
+  /* EL TEMA: el mismo del sitio (initTema lo guarda y lo aplica). Tocarlo es lo mismo que tocar el interruptor del sitio: una
+     eleccion clara u oscura. En una pagina sin su selector (/vista/) se hace aqui con las MISMAS reglas (TEMA_MODOS, temaValido):
+     solo se escribe un valor que el sitio acepta, y solo cuando se toca; abrir el libro no cambia nada de lo guardado (ni
+     «Automático» ni «Según el sol»). Apretado = claro. */
+  const html = d.documentElement;
+  const oscuroDelAparato = matchMedia('(prefers-color-scheme: dark)');
+  const temaClaro = () => { const a = html.getAttribute('data-tema'); return a ? a === 'claro' : !oscuroDelAparato.matches; };
+  const pintarTema = () => temaBtn.setAttribute('aria-pressed', String(temaClaro()));
+  temaBtn.addEventListener('click', () => {
+    const modo = temaValido(temaClaro() ? 'oscuro' : 'claro');
+    if (temaSitio) temaSitio.elegir(modo);
+    else if (modo === 'claro' || modo === 'oscuro') {
+      try { localStorage.setItem(TEMA_CLAVE, modo); } catch (err) { /* sin almacenamiento: vale para esta pagina */ }
+      html.setAttribute('data-tema', modo);
+    }
+    pintarTema();
+  });
+  new MutationObserver(pintarTema).observe(html, { attributes: true, attributeFilter: ['data-tema'] });
+  oscuroDelAparato.addEventListener('change', pintarTema);
+  pintarTema();
+
+  /* EL ASA: esconde la banda y el muelle para ver solo el libro (queda una pastilla con el folio), y los devuelve. El libro se
+     vuelve a medir: crece con lo que se le deja. */
+  /* El asa dice lo que HARA («Esconder los botones» / «Mostrar los botones»): su nombre cambia y no lleva aria-pressed (las
+     dos cosas a la vez se anunciaban dos veces). */
+  function ponerSolo(si) {
+    solo = !!si;
+    const dentro = d.activeElement;
+    s.panel.toggleAttribute('data-solo', solo);
+    const r = tl(solo ? 'mostrar' : 'esconder');
+    asa.setAttribute('aria-label', r);
+    asa.title = r;
+    listaIdioma(false);
+    /* Lo que tenia el foco se escondio: el foco pasa al asa, que es lo que queda */
+    if (solo && dentro && dentro !== asa && s.panel.contains(dentro) && !seVe(dentro)) asa.focus({ preventScroll: true });
+    reajustar(30);
+  }
+  asa.addEventListener('click', () => ponerSolo(!solo));
+
+  /* Un cambio de ancho puede esconder lo que tiene el foco (la flecha del muelle del telefono, «Más»): el foco pasa a su gemelo
+     que si se ve (la flecha del lado, la primera herramienta) o, si no hay, al asa o a la ×. Nunca se queda en el vacio. */
+  function focoVisible() {
+    const a = d.activeElement;
+    if (!a || !s.panel.contains(a) || seVe(a)) return;
+    const libre = (b) => b && b !== a && seVe(b) && !b.disabled;
+    const gemelo = prevBtns.includes(a) ? prevBtns.find(libre)
+      : nextBtns.includes(a) ? nextBtns.find(libre)
+      : a === masBtn ? [zoomBtn, ...soundBtns, copiarMuelle].find(libre) : null;
+    const donde = gemelo || [asa, cerrarBtn].find(libre);
+    if (donde) donde.focus({ preventScroll: true });
+  }
+
+  /* EL CAMPO «PÁG.»: se escribe el numero impreso. Enter salta (y «Volver» lo recuerda), Escape lo deja como estaba, y al
+     salir del campo vuelve a decir donde esta el libro. */
+  campo.addEventListener('focus', () => campo.select());
+  campo.addEventListener('blur', () => {
+    if (fb) campo.value = rotuloDe(lastVis);
+    campoCaja.classList.remove('is-mal');
+    if (medidaPendiente) reajustar();
+  });
+  let malTimer = 0;
+  campo.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      /* Solo suelta el campo: no cierra el libro */
+      e.preventDefault();
+      e.stopPropagation();
+      campo.blur();
+      return;
+    }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!fb || booting) return;
+    const r = leerPagina(campo.value, num);
+    if (r.error) {
+      campoCaja.classList.remove('is-mal');
+      void campoCaja.offsetWidth;
+      campoCaja.classList.add('is-mal');
+      clearTimeout(malTimer);
+      malTimer = setTimeout(() => campoCaja.classList.remove('is-mal'), 900);
+      decir(tl('numero').replace('{a}', num.primero == null ? 1 : num.primero).replace('{n}', num.total));
+      campo.select();
+      return;
+    }
+    if (r.ajustado) decir(tl(r.ajustado === 'alto' ? 'llega' : 'empieza').replace('{n}', r.ajustado === 'alto' ? num.ultimo : num.primero));
+    /* Con el dedo, soltar el campo cierra el teclado del telefono. Con teclado, el foco no se pierde en la pagina: pasa a la
+       barra, que es lo de al lado y sigue moviendo el libro (y Tab sigue donde estaba). */
+    if (dedo.matches || bar.disabled || !seVe(bar)) campo.blur();
+    else bar.focus({ preventScroll: true });
+    goTo(r.indice);
+  });
+
+  /* «MÁS» (telefono): las herramientas con su nombre, en una hoja que sube dentro del lector. Mientras esta abierta, lo
+     demas del lector queda inerte (el resto de la pagina ya lo estaba). */
+  /* Lo que queda inerte detras de «Más»: el lector entero (banda, libro, muelle, lados), el velo y el «Copiar enlace» viejo */
+  const detras = () => [banda, marco, ruta, ...lados, lz('.book-panel__scrim'), copiarBtn].filter(Boolean);
+  /* Las filas se vuelven a escribir (el sonido cambia, «Copiar» pasa a «Copiado» y vuelve): el foco se queda en la misma fila */
+  function pintarMas() {
+    const filasAntes = [...masLista.querySelectorAll('button')];
+    const enFila = filasAntes.indexOf(d.activeElement);
+    pintarFilasMas();
+    if (enFila >= 0) {
+      const b = masLista.querySelectorAll('button')[enFila];
+      if (b) b.focus({ preventScroll: true });
+    }
+  }
+  function pintarFilasMas() {
+    const fila = (icono, texto, fn, estado) => {
+      const li = d.createElement('li');
+      const b = d.createElement('button');
+      b.type = 'button';
+      if (estado != null) b.setAttribute('aria-pressed', String(estado));
+      if (icono) { const svg = icono.cloneNode(true); svg.removeAttribute('class'); b.appendChild(svg); }
+      b.appendChild(h('span', '', texto));
+      if (estado != null) b.appendChild(h('em', '', tl(estado ? 'si' : 'no')));
+      b.addEventListener('click', fn);
+      li.appendChild(b);
+      return li;
+    };
+    const son = soundBtns.find((b) => !b.classList.contains('book__arrow'));
+    const filas = [
+      fila(zoomBtn.querySelector('svg'), tl('lupa'), () => { cerrarHoja(true); zoomIn(); }),
+      fila(son && son.querySelector('svg'), tl('sonido'), () => { cambiarSonido(); pintarMas(); }, soundOn),
+    ];
+    if (!copiarMuelle.hidden) {
+      const dibujo = copiarMuelle.querySelector(copiado ? '.lector__copiar-hecho svg' : '.lector__copiar-sin');
+      /* `desde`: la fila, para que el metodo viejo de copiar (una caja de texto) le devuelva el foco a ella */
+      filas.push(fila(dibujo, tl(copiado ? 'copiado' : 'enlace'), (e) => copiarEnlace(e.currentTarget, true)));
+    }
+    masLista.replaceChildren(...filas);
+  }
+  function abrirHoja() {
+    if (hojaMas.classList.contains('is-abierta') || !fb) return;
+    hojaVuelve = d.activeElement;
+    listaIdioma(false);
+    pintarMas();
+    hojaMas.classList.add('is-abierta');
+    hojaFondo.classList.add('is-abierta');
+    masBtn.setAttribute('aria-expanded', 'true');
+    detras().forEach((x) => { x.inert = true; });
+    lz('[data-lector-hoja-cierra]').focus({ preventScroll: true });
+  }
+  function cerrarHoja(sinFoco) {
+    if (!hojaMas.classList.contains('is-abierta')) return;
+    hojaMas.classList.remove('is-abierta');
+    hojaFondo.classList.remove('is-abierta');
+    masBtn.setAttribute('aria-expanded', 'false');
+    detras().forEach((x) => { x.inert = false; });
+    const a = hojaVuelve;
+    hojaVuelve = null;
+    if (sinFoco) return;
+    /* Al boton que la abrio; si ya no se ve (la ventana crecio de 820 px), a la primera herramienta, que ahora esta a la vista */
+    const donde = [a, masBtn, zoomBtn, ...soundBtns, asa, cerrarBtn].find((b) => b && b.isConnected && seVe(b) && !b.disabled);
+    if (donde) donde.focus({ preventScroll: true });
+  }
+  masBtn.addEventListener('click', abrirHoja);
+  hojaFondo.addEventListener('click', () => cerrarHoja());
+  lz('[data-lector-hoja-cierra]').addEventListener('click', () => cerrarHoja());
+
+  /* ESCAPE, POR ORDEN: primero lo que este abierto encima (la lista del idioma, «Más»); luego, si los botones estan
+     escondidos, vuelven; luego la lupa (que tiene su propio oido, arriba); y solo al final se cierra el libro (sheet()).
+     Va en la captura para llegar antes que quien cierra el libro. */
+  d.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !s.panel.hasAttribute('data-lector') || openSheets[openSheets.length - 1] !== s.panel) return;
+    if (!idiomaLista.hidden) listaIdioma(false, true);
+    else if (hojaMas.classList.contains('is-abierta')) cerrarHoja();
+    else if (zoom) return;
+    else if (solo) ponerSolo(false);
+    else return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
+
+  /* LA FIRMA DE LA MARCA, de 820 px para arriba. No va escrita dos veces en cada pagina (son 14 KB): se copia la de la
+     cabecera la primera vez que se abre un libro. La copia lleva sus ids (mascaras, recortes) renombrados, y sus `url(#…)`
+     apuntan a los nuevos: dos ids iguales en una pagina no valen. Donde no hay cabecera (/vista/), la marca es el pez. */
+  function ponerFirma() {
+    const hueco = lz('[data-lector-firma]');
+    if (!hueco || hueco.firstElementChild) return;
+    const original = d.querySelector('.site-header .brand__lockup');
+    sitioLink.toggleAttribute('data-sin-firma', !original);
+    if (!original) return;
+    const copia = original.cloneNode(true);
+    const nuevos = new Map();
+    copia.querySelectorAll('[id]').forEach((x) => { const id = x.id + '-lector'; nuevos.set(x.id, id); x.id = id; });
+    const cambiar = (v) => v.replace(/url\(#([^)]+)\)/g, (m, id) => (nuevos.has(id) ? 'url(#' + nuevos.get(id) + ')' : m));
+    [copia, ...copia.querySelectorAll('*')].forEach((x) => {
+      for (const at of [...x.attributes]) {
+        if (at.value.includes('url(#')) x.setAttribute(at.name, cambiar(at.value));
+        else if ((at.name === 'href' || at.name === 'xlink:href') && at.value.startsWith('#') && nuevos.has(at.value.slice(1))) x.setAttribute(at.name, '#' + nuevos.get(at.value.slice(1)));
+      }
+    });
+    /* Sin la clase de la cabecera (pinta la firma en hueso fijo): aqui toma el color de la pastilla, tambien sobre el papel */
+    copia.removeAttribute('class');
+    copia.setAttribute('aria-hidden', 'true');
+    copia.setAttribute('focusable', 'false');
+    hueco.appendChild(copia);
+  }
+
+  /* Entra un libro en PDF: el panel pasa a ser el lector, en el idioma del libro */
+  function entrarAlLector(id, f) {
+    ponerFirma();
+    const esPrivado = privado.has(id);
+    lectorLang = idiomaDelLector(f.v.cual === 'all' || esPrivado ? null : f.v.lang, lang);
+    const hechos = !esPrivado && Object.prototype.hasOwnProperty.call(BOOKS, id) ? BOOKS[id] : null;
+    otroIdioma = f.libro ? otraEdicion(f.v.cual, hechos, f.libro.glosario ? null : f.libro.idiomas) : null;
+    s.panel.setAttribute('data-lector', '');
+    /* Cada libro empieza con los botones a la vista (el asa no se arrastra de un libro al siguiente) */
+    solo = false;
+    s.panel.removeAttribute('data-solo');
+    /* Salir de un libro privado lo pierde (el secreto ya no esta en la direccion): el sitio se abre en otra pestaña, sin decirle
+       al sitio de donde se viene */
+    if (esPrivado) { sitioLink.target = '_blank'; sitioLink.rel = 'noopener noreferrer'; }
+    else { sitioLink.removeAttribute('target'); sitioLink.removeAttribute('rel'); }
+    rotular(esPrivado);
+    pintarIdioma();
+    pintarTema();
+    campo.value = '';
+    asaFolio.textContent = '';
+    /* El muelle ya ocupa su sitio (carga.css lo deja sin verse mientras el libro llega): asi se puede medir */
+    ruta.hidden = false;
+  }
+  function salirDelLector() {
+    if (!s.panel.hasAttribute('data-lector')) return;
+    cerrarHoja(true);
+    listaIdioma(false);
+    clearTimeout(fbResize);
+    medidaPendiente = false;
+    s.panel.removeAttribute('data-lector');
+    s.panel.removeAttribute('data-solo');
+    if (aviso) { clearTimeout(avisoTimer); aviso.removeAttribute('data-visible'); aviso.textContent = ''; }
+    cerrarBtn.setAttribute('aria-label', t('a11y.termClose'));
+    cerrarBtn.removeAttribute('title');
+    /* El idioma del libro se va con el: el libro escrito que se abra despues habla el de la pagina, como antes */
+    [banda, ruta, hojaMas, ...lados].forEach((x) => x.removeAttribute('lang'));
+    otroIdioma = null;
+  }
+
   /* Abre el libro en PDF con su carga: el libro se arma en su sitio pero
      no se ve hasta estar entero (ver «La carga», arriba). La caja ya tiene
      el tamaño que tendra, para que la carga quede centrada justo encima y,
@@ -2500,14 +2935,15 @@ function initBook() {
     if (f.v.lang !== lang) flipBox.setAttribute('lang', f.v.lang); else flipBox.removeAttribute('lang');
     el('book').hidden = true;
     flipBox.hidden = false;
+    /* La banda y el muelle se ponen ANTES de medir: el libro ocupa lo que le dejan */
+    entrarAlLector(id, f);
     const fit = flipSize(pdf.ratio);
     flipBox.style.width = fit.pw * 2 + 'px';
     flipBox.style.height = fit.ph + 'px';
     flipBox.style.marginInline = fit.cam ? -fit.pw / 2 + 'px' : '';
     zoomBtn.hidden = false;
     folio.textContent = '';
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
+    flechas(true, true);
     side = 'r';
     booting = true;
     ldBegin(id, pdf.pages);
@@ -2660,11 +3096,14 @@ function initBook() {
     if (x < (spread ? 0.5 : 0.3)) prev(); else next();
   });
 
-  prevBtn.addEventListener('click', () => { clearTimeout(autoOpen); prev(); });
-  nextBtn.addEventListener('click', () => { clearTimeout(autoOpen); next(); });
+  prevBtns.forEach((b) => b.addEventListener('click', () => { clearTimeout(autoOpen); prev(); }));
+  nextBtns.forEach((b) => b.addEventListener('click', () => { clearTimeout(autoOpen); next(); }));
 
   d.addEventListener('keydown', (e) => {
     if (openSheets[openSheets.length - 1] !== s.panel || booting) return;
+    /* Quien escribe (el campo «Pág.») no pasa hojas: ni las flechas ni la B son del libro mientras tanto. Y con «Más» abierta, tampoco. */
+    if (e.target && e.target.matches && e.target.matches('input[type="text"], input[type="search"], textarea')) return;
+    if (hojaMas.classList.contains('is-abierta')) return;
     /* Con la lupa abierta el libro de fondo no se mueve: ni B ni RePag ni AvPag */
     if (zoom && fb && /^(b|B|PageUp|PageDown)$/.test(e.key)) return;
     /* La barra de recorrer tiene sus propias teclas (flechas, Inicio, Fin, RePag, AvPag): se mueve sola y, al soltar, el libro viaja */
@@ -2699,15 +3138,34 @@ function initBook() {
      blanda. null si no hay con que abrirlo. Un libro de una palabra saca su
      titulo del glosario, en el idioma de la pagina; los demas, de su registro,
      en el idioma del libro. */
-  function ficha(id) {
-    if (privado.has(id)) return privado.get(id);
+  function ficha(id, edicion) {
+    if (privado.has(id)) return edicion ? null : privado.get(id);
     const libro = LIBRO.get(id);
     if (!libro) return null;
+    const blando = blandoDe(libro);
+    /* `edicion`: la OTRA edicion del mismo libro ('es' | 'en'), pedida desde la bandera del lector. Solo si existe su PDF. */
+    if (edicion) {
+      const hechos = Object.prototype.hasOwnProperty.call(BOOKS, id) ? BOOKS[id] : null;
+      const otra = edicion === 'es' ? 'en' : 'es';
+      if (otraEdicion(otra, hechos, libro.glosario ? null : libro.idiomas) !== edicion) return null;
+      const en = (o) => (o ? (o[edicion] || o.en || o.es || '') : '');
+      const ve = { lang: edicion, pdf: hechos[edicion], cual: edicion, texto: !!libro.glosario, marca: edicion !== lang ? edicion.toUpperCase() : null };
+      if (libro.glosario) return { libro, v: ve, blando, titulo: en(TERMS[id].title), glosa: en(GLOSS[id]) };
+      return { libro, v: ve, blando, titulo: en(libro.titulo), glosa: en(libro.subtitulo) };
+    }
     const v = variante(libro, lang, BOOKS);
     if (!v) return null;
-    const blando = blandoDe(libro);
     if (libro.glosario) return { libro, v, blando, titulo: say(TERMS[id].title), glosa: say(GLOSS[id]) };
     return { libro, v, blando, titulo: libro.titulo[v.lang], glosa: libro.subtitulo ? libro.subtitulo[v.lang] || '' : '' };
+  }
+
+  /* El titulo del panel: el nombre accesible del dialogo y, en el lector, lo que se lee en la banda. Ahi se ve solo el
+     titulo; la glosa («· amor») queda para quien escucha. */
+  function ponerTitulo(f) {
+    const titulo = el('book-title');
+    titulo.replaceChildren(h('span', '', f.titulo));
+    if (f.glosa) titulo.appendChild(h('span', 'sr-only', ' · ' + f.glosa));
+    if (f.v.lang !== lang) titulo.setAttribute('lang', f.v.lang); else titulo.removeAttribute('lang');
   }
 
   /* Se abre cerrado, con la tapa delante, y a los pocos instantes se
@@ -2724,7 +3182,11 @@ function initBook() {
        abre dos veces): no se vuelve a armar. */
     if (abiertoId === id && openSheets.includes(s.panel)) return;
     /* «Copiar enlace»: solo los libros de la biblioteca; el privado (/vista/) no lo trae */
-    if (copiarBtn) { copiarReponer(); copiarBtn.hidden = privado.has(id) || !LIBRO.has(id) || !enlaceCorto(import.meta.env.SITE, id); }
+    if (copiarBtn) {
+      copiarReponer();
+      copiarBtn.hidden = privado.has(id) || !LIBRO.has(id) || !enlaceCorto(import.meta.env.SITE, id);
+      copiarMuelle.hidden = copiarBtn.hidden;
+    }
     clearTimeout(autoOpen);
     const tapped = performance.now();
     const pdf = f.v.pdf;
@@ -2738,9 +3200,7 @@ function initBook() {
     /* El ultimo libro que se abre, de donde sea, es el que la biblioteca
        ofrece seguir leyendo. Sin almacenamiento, no pasa nada. */
     try { guardarUltimo(localStorage, id, LEIBLES); } catch (err) { /* bloqueado */ }
-    const titulo = el('book-title');
-    titulo.textContent = f.glosa ? f.titulo + ' · ' + f.glosa : f.titulo;
-    if (f.v.lang !== lang) titulo.setAttribute('lang', f.v.lang); else titulo.removeAttribute('lang');
+    ponerTitulo(f);
     if (pdf) { s.open(); openFlip(id, f, tapped, silent); return; }
     readText(id, true);
   }

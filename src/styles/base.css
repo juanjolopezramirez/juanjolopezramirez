@@ -4662,16 +4662,20 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 .book-panel__enlace[hidden] { display: none; }
 
-/* «Mensaje copiado»: un banner breve centrado sobre el libro, cuando alguien toca un boton de copiar de un PDF */
+/* El aviso breve del lector («Mensaje copiado», «El libro llega hasta la 11»): una pastilla de hueso sobre el pinar (o de tinta
+   sobre el papel), centrada sobre el muelle. Lo pone site.js (decir) y lo anuncia un lector de pantalla.
+   DONDE SE POSA: encima de todo lo de abajo, nunca encima de un boton. `--l-suelo` es el alto del muelle tal como se ve (lo
+   mide site.js con el libro: cambia con el asa y con el ancho) y `--l-hueco` la fila de «Volver» y del asa en el telefono. */
 .book__toast {
-  position: absolute; left: 50%; bottom: 5.5rem; z-index: 6;
-  max-width: calc(100% - 2rem); padding: .6rem 1.1rem; border-radius: 999px;
-  background: #1c1c1c; color: #fff; font: 600 .95rem/1.2 system-ui, sans-serif; text-align: center;
-  box-shadow: 0 6px 22px #0006;
-  opacity: 0; transform: translate(-50%, .6rem); pointer-events: none;
-  transition: opacity .18s ease, transform .18s ease;
+  position: absolute; left: 50%; bottom: calc(var(--l-suelo, 4.5rem) + var(--l-hueco, 0rem) + .6rem); z-index: 12;
+  max-width: calc(100% - 2rem); margin: 0; padding: .6rem 1.1rem; border-radius: 999px;
+  background: var(--l-tinta, var(--bone)); color: var(--l-sobre, var(--pine-900));
+  font-size: .9rem; font-weight: 600; line-height: 1.25; text-align: center;
+  box-shadow: 0 10px 26px -8px rgb(0 0 0 / .7);
+  opacity: 0; translate: -50% .6rem; pointer-events: none;
+  transition: opacity .2s var(--ease), translate .3s var(--ease-smooth);
 }
-.book__toast[data-visible] { opacity: 1; transform: translate(-50%, 0); }
+.book__toast[data-visible] { opacity: 1; translate: -50% 0; }
 @media (prefers-reduced-motion: reduce) { .book__toast { transition: none; } }
 /* Si la copia falla, el rotulo es la direccion entera: nunca pasa de la × (la completa va por el estado, sr-only) */
 .book-panel__enlace span { max-width: calc(100vw - 9rem); overflow: hidden; text-overflow: ellipsis; }
@@ -5084,23 +5088,12 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 .book__sound svg { width: 1.05rem; height: 1.05rem; }
 .book__sound[aria-pressed="true"] .book__sound-off,
 .book__sound[aria-pressed="false"] .book__sound-on { display: none; }
-/* La lupa, en el lado de enfrente */
-.book__zoom {
-  position: absolute; right: calc(100% + .9rem);
-  width: 2.3rem; height: 2.3rem;
-  opacity: .75;
-}
-.book__zoom:hover { opacity: 1; }
-.book__zoom[hidden] { display: none; }
-.book__zoom svg { width: 1.1rem; height: 1.1rem; }
-.book__zoom[aria-pressed="true"] .book__zoom-plus { display: none; }
-
 /* ---- La lupa abierta ----
    Una capa que tapa el libro: las paginas que se veian, a 2400 px, se
    agrandan desde donde estaban. Se arrastran, se pellizcan, y en el
    ordenador la rueda acerca y aleja. Aqui el dedo es de quien mira. */
 .zoom {
-  position: fixed; inset: 0; z-index: 1;
+  position: fixed; inset: 0; z-index: 20;   /* por encima de la banda y del muelle del lector; la × (21) sigue encima */
   background: rgb(11 20 13 / 0);
   touch-action: none;
   cursor: grab;
@@ -5147,112 +5140,420 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
   opacity: .8;
 }
 
-/* ---- Recorrer el libro ----
-   Una fila discreta debajo de las flechas: «Volver» (de donde saltaste), «Contenido» (solo si el libro lo tiene) y una barra de
-   la primera a la ultima pagina con la pagina a la derecha. Lo tactil mide 44 px; en el telefono la barra pasa a su propia fila. */
-.book__ruta {
-  display: grid;
-  grid-template-columns: auto auto minmax(7rem, 1fr) auto;
-  grid-template-areas: "volver contenido barra valor";
-  align-items: center; gap: .15rem .6rem;
+/* =============================================================
+   EL LECTOR (los libros en PDF: Recursos y el enlace privado /vista/)
+
+   Una sola pantalla: una BANDA arriba (la marca, el titulo, idioma y tema,
+   la ×), el libro en medio con una flecha a cada lado (de 820 px para
+   arriba) y un MUELLE abajo con dos grupos: ir lejos y herramientas.
+   site.js marca el panel con `data-lector` al abrir un libro en PDF; el
+   libro escrito (HTML) no lo lleva y se queda con su fila de siempre.
+
+   Los colores son OFICIOS (--l-*), no colores sueltos: de noche el pinar,
+   y con el tema claro del sitio, el papel de la casa. Se cambian los
+   oficios, no cada regla. site.js (flipSize) MIDE la banda y el muelle
+   para darle al libro justo lo que queda.
+   ============================================================= */
+.book-panel:not([data-lector]) .lector__banda > :not(.book-panel__close) { display: none; }
+.lector__banda { display: contents; }
+.lector__lado, .lector__fondo, .lector__hoja { display: none; }
+.lector__banda [hidden], .book__ruta [hidden], .lector__hoja [hidden] { display: none !important; }
+
+.book-panel[data-lector] {
+  --l-fondo: #0E1711;                       /* el velo del lector, ya mezclado */
+  --l-tinta: #F1EFE9;                       /* la letra y los trazos */
+  --l-sobre: #16231A;                       /* la letra sobre un boton lleno */
+  --l-noche: #1D2E1F;                       /* el fondo de las pastillas */
+  --l-hilo: rgb(241 239 233 / .14);         /* el hilo que despega las piezas */
+  --l-velo: rgb(241 239 233 / .1);          /* el fondo de un boton */
+  --l-velo-2: rgb(241 239 233 / .2);
+  --l-riel: rgb(241 239 233 / .26);         /* lo que falta de la barra */
+  --l-tenue: #B9C2B6;                       /* letra de segundo orden */
+  --l-oro: var(--ring-300);                 /* el oro que marca: fino sobre oscuro, hondo sobre claro */
+  --l-mal: #E58A6B;                         /* «ese numero no»: un barro claro sobre el pinar (5.9:1), hondo sobre el papel */
+  --l-lleno-sobre: #FFFFFF;                 /* un boton lleno al pasar por encima: un paso mas lejos del fondo */
+  --l-toque: 2.75rem;
+  --l-gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --l-gut-r: max(16px, env(safe-area-inset-right, 0px));
+  --l-hueco: 3.3rem;                        /* el sitio del asa y de «Volver», bajo el libro (telefono) */
+  --l-sale: cubic-bezier(.16, 1, .3, 1);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  place-items: stretch;
+  color: var(--l-tinta);
+}
+/* El tema claro: el mismo mecanismo que el resto del sitio (tokens.css). Elegir oscuro gana siempre. */
+html[data-tema="claro"] .book-panel[data-lector] {
+  --l-fondo: #E7E4DB; --l-tinta: #16231A; --l-sobre: #F4F2EC; --l-noche: #F6F3EA;
+  --l-hilo: rgb(22 35 26 / .18); --l-velo: rgb(22 35 26 / .07); --l-velo-2: rgb(22 35 26 / .14);
+  --l-riel: rgb(22 35 26 / .2); --l-tenue: #55625A; --l-oro: var(--ring-700);
+  --l-mal: #A8401A; --l-lleno-sobre: #33463A;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-tema="oscuro"]) .book-panel[data-lector] {
+    --l-fondo: #E7E4DB; --l-tinta: #16231A; --l-sobre: #F4F2EC; --l-noche: #F6F3EA;
+    --l-hilo: rgb(22 35 26 / .18); --l-velo: rgb(22 35 26 / .07); --l-velo-2: rgb(22 35 26 / .14);
+    --l-riel: rgb(22 35 26 / .2); --l-tenue: #55625A; --l-oro: var(--ring-700);
+    --l-mal: #A8401A; --l-lleno-sobre: #33463A;
+  }
+}
+.book-panel[data-lector] .book-panel__scrim { background: var(--l-fondo); transition: opacity .4s var(--ease), background-color .35s var(--ease); }
+.book-panel[data-lector] :focus-visible { outline: 2px solid var(--l-tinta); outline-offset: 2px; }
+/* La carga (carga.css) esta dibujada en tiza: aqui la tiza es la tinta del lector, para que se vea tambien sobre el papel */
+.book-panel[data-lector] .carga {
+  --bone: var(--l-tinta); --night: var(--l-sobre);
+  /* Los botones de la carga (carga.css) pasan por encima con los oficios del lector: sobre el papel tambien se ven */
+  --carga-velo: var(--l-velo); --carga-lleno-sobre: var(--l-lleno-sobre);
+}
+.book-panel[data-lector] .carga__paso,
+.book-panel[data-lector] .carga__vera { color: var(--l-tenue); }
+.book-panel[data-lector] .carga__norte { fill: var(--l-velo); }
+
+.book-panel[data-lector] .book-panel__frame { grid-row: 2; grid-column: 1; place-self: center; margin-bottom: var(--l-hueco); }
+/* La fila del libro escrito no se ve aqui; el folio se queda para quien escucha (aria-live) */
+.book-panel[data-lector] .book__nav {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; animation: none;
+}
+.book-panel[data-lector] .book__nav > button,
+.book-panel[data-lector] .book-panel__enlace { display: none; }
+
+/* ---------- Arriba: salir y saber donde estoy ---------- */
+.book-panel[data-lector] .lector__banda {
+  grid-row: 1; grid-column: 1 / -1;
+  position: relative;
+  display: flex; align-items: center; gap: .5rem;
+  padding: calc(.4rem + env(safe-area-inset-top, 0px)) var(--l-gut-r) .4rem var(--l-gut-l);
+  /* En el telefono, como hoy: pinar cerrado y un hilo. De 820 px para arriba, el aro dorado. */
+  --p-borde: 1px solid var(--l-hilo);
+}
+.lector__pastilla {
+  display: flex; align-items: center; flex: none;
   box-sizing: border-box;
-  width: min(36rem, calc(100vw - 2rem));
-  margin-top: -.35rem;
-  color: var(--bone);
+  min-height: var(--l-toque);
+  border-radius: 999px;
+  background: var(--l-noche); color: var(--l-tinta);
+  border: var(--p-borde);
+  box-shadow: 0 12px 30px -14px rgb(11 20 13 / .75);
+  transition: background-color .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease);
 }
-.book__ruta[hidden] { display: none; }
-.book-panel.is-open .book__ruta { animation: book-nav .45s .5s var(--ease) both; }
-.book__ruta-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
-  min-height: 2.75rem; min-width: 2.75rem;
-  padding: 0 .9rem;
-  border-radius: 1.4rem;
-  background: rgb(241 239 233 / .1);
-  color: inherit;
-  font-size: .78rem; font-weight: 600; letter-spacing: .04em;
-  white-space: nowrap;
-  transition: background-color .2s var(--ease), opacity .2s var(--ease);
+.lector__marca { padding-inline: .85rem; text-decoration: none; }
+.lector__marca svg { display: block; height: 1.5rem; width: auto; max-width: none; color: inherit; }
+.lector__marca-firma { display: none; }
+.lector__titulo {
+  flex: 1; min-width: 0; margin: 0;
+  padding-left: .2rem;
+  font-family: var(--serif); font-size: 1.05rem; font-weight: 400; line-height: 1.2; letter-spacing: -.005em;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--l-tinta);
 }
-.book__ruta-btn[data-book-volver] { grid-area: volver; }
-.book__ruta-btn[data-book-contenido] { grid-area: contenido; }
-.book__ruta-btn:hover { background: rgb(241 239 233 / .2); }
-.book__ruta-btn:disabled { opacity: .3; cursor: default; background: rgb(241 239 233 / .1); }
-.book__ruta-btn[hidden] { display: none; }
-.book__ruta-btn svg {
-  width: 1.05rem; height: 1.05rem; flex: none;
+/* El idioma, como en el sitio: la bandera del que esta puesto y, al tocarla, el otro con su nombre.
+   Los dos botones de la pastilla miden lo que un dedo (2.75rem); la bandera, lo de siempre. */
+.lector__idioma { position: relative; display: flex; }
+.lector__idioma-actual {
+  display: grid; place-items: center;
+  box-sizing: border-box;
+  width: var(--l-toque); height: var(--l-toque); padding: .35rem;
+  border-radius: 50%; color: inherit;
+  transition: background-color .2s var(--ease);
+}
+button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"] { background: var(--l-velo); }
+.lector__idioma img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px var(--l-hilo); }
+.lector__idioma-lista {
+  position: absolute; z-index: 7; top: calc(100% + .7rem); right: -.25rem;
+  min-width: 11.5rem; padding: .55rem;
+  border-radius: 1rem; background: var(--l-noche); color: var(--l-tinta);
+  box-shadow: inset 0 0 0 1px var(--l-hilo), 0 22px 46px -20px rgb(11 20 13 / .8);
+  animation: lector-baja .3s var(--l-sale) both;
+}
+@keyframes lector-baja { from { opacity: 0; translate: 0 -.4rem; } }
+.lector__idioma-lista p { margin: .2rem .55rem .45rem; font-size: .78rem; font-weight: 500; color: var(--l-tenue); }
+.lector__idioma-op {
+  display: flex; align-items: center; gap: .75rem;
+  width: 100%; min-height: var(--l-toque); padding: 0 .55rem;
+  border-radius: .7rem; color: inherit; font-weight: 500; text-align: left;
+}
+.lector__idioma-op:hover { background: var(--l-velo); }
+.lector__idioma-op img { width: 1.75rem; height: 1.75rem; flex: none; }
+.lector__tema {
+  display: grid; place-items: center;
+  width: var(--l-toque); height: var(--l-toque);
+  border-radius: 50%; color: inherit;
+  transition: background-color .2s var(--ease);
+}
+.lector__tema:hover { background: var(--l-velo); }
+.lector__tema svg, .lector__redondo svg, .lector__asa svg, .lector__hoja li svg, .lector__copiar-hecho svg {
+  width: 1.2rem; height: 1.2rem; flex: none;
   fill: none; stroke: currentColor; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
-.book__ruta-barra { grid-area: barra; display: block; min-width: 0; }
+.lector__tema svg { width: 1.15rem; height: 1.15rem; }
+.lector__tema-sol, .lector__tema[aria-pressed="true"] .lector__tema-luna { display: none; }
+.lector__tema[aria-pressed="true"] .lector__tema-sol { display: block; }
+.book-panel[data-lector] .book-panel__close {
+  position: relative; top: auto; right: auto; z-index: 21;
+  flex: none;
+  color: var(--l-tinta); background: var(--l-noche);
+  box-shadow: inset 0 0 0 1px var(--l-hilo);
+  transition: background-color .3s var(--ease), box-shadow .2s var(--ease);
+}
+.book-panel[data-lector] .book-panel__close:hover { background: var(--l-noche); box-shadow: inset 0 0 0 1.5px var(--l-tinta); }
+
+/* ---------- El boton redondo: las flechas y cerrar una hoja ---------- */
+.lector__redondo {
+  display: grid; place-items: center; flex: none;
+  width: var(--l-toque); height: var(--l-toque);
+  border-radius: 50%;
+  background: var(--l-velo); color: var(--l-tinta);
+  transition: background-color .2s var(--ease), opacity .2s var(--ease), scale .12s var(--ease);
+}
+.lector__redondo:hover { background: var(--l-velo-2); }
+.lector__redondo:active { scale: .94; }
+.lector__redondo:disabled { opacity: .3; cursor: default; background: var(--l-velo); scale: 1; }
+
+/* ---------- Abajo: el muelle ---------- */
+.book__ruta {
+  grid-row: 3; grid-column: 1 / -1;
+  position: relative; z-index: 4;
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "barra barra barra barra barra" "cont atras campo adel mas";
+  align-items: center; gap: .1rem .5rem;
+  box-sizing: border-box;
+  padding: .1rem var(--l-gut-r) calc(.6rem + env(safe-area-inset-bottom, 0px)) var(--l-gut-l);
+  color: var(--l-tinta);
+}
+.book__ruta[hidden] { display: none; }
+.book-panel.is-open .book__ruta { animation: lector-entra .45s .5s var(--ease) both; }
+@keyframes lector-entra { from { opacity: 0; } }
+.lector__grupo { display: contents; }
+.book__ruta-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  min-height: 2.75rem; min-width: 2.75rem;
+  padding: 0 .95rem;
+  border-radius: 999px;
+  background: var(--l-velo); color: var(--l-tinta);
+  font-size: .82rem; font-weight: 600; letter-spacing: .02em;
+  white-space: nowrap;
+  transition: background-color .2s var(--ease), color .2s var(--ease), opacity .2s var(--ease), scale .12s var(--ease);
+}
+.book__ruta-btn:hover { background: var(--l-velo-2); }
+.book__ruta-btn:active { scale: .96; }
+.book__ruta-btn:disabled { opacity: .3; cursor: default; background: var(--l-velo); scale: 1; }
+.book__ruta-btn svg {
+  width: 1.1rem; height: 1.1rem; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.lector__icono { padding: 0; }
+.lector__puntos { stroke-width: 3; }
+.book__ruta-btn[data-book-zoom][aria-pressed="true"] { background: var(--l-tinta); color: var(--l-sobre); }
+[aria-pressed="true"] > svg .book__zoom-plus { display: none; }
+.lector__son[aria-pressed="true"] .book__sound-off, .lector__son[aria-pressed="false"] .book__sound-on,
+.lector__hoja [aria-pressed="true"] .book__sound-off, .lector__hoja [aria-pressed="false"] .book__sound-on { display: none; }
+.lector__cont { grid-area: cont; }
+.lector__cont span { display: none; }
+.lector__paso--a { grid-area: atras; justify-self: end; }
+.lector__paso--d { grid-area: adel; justify-self: start; }
+.lector__mas-btn { grid-area: mas; }
+.lector__herr { display: none; }
+/* «Volver a la pág. N»: en el telefono flota sobre el muelle, centrado, y nunca llega hasta el asa (su ancho tiene tope: a
+   cada lado le deja el asa y su aire; lo que sobre se corta con «…»). De 820 px para arriba va en la fila. */
+.lector__volver {
+  position: absolute; left: 50%; bottom: calc(100% + .35rem); translate: -50% 0;
+  max-width: calc(100% - 2 * (var(--l-gut-r) + var(--l-toque) + .5rem));
+  background: var(--l-noche);
+  box-shadow: inset 0 0 0 1px var(--l-hilo), 0 10px 24px -10px rgb(0 0 0 / .7);
+  font-variant-numeric: tabular-nums;
+  animation: lector-sube .45s var(--l-sale) both;
+}
+.lector__volver span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lector__volver:hover { background: var(--l-noche); box-shadow: inset 0 0 0 1.5px var(--l-tinta); }
+/* Un telefono estrecho (320 px): centrado, el rotulo entero ya no cabe entre los dos huecos del asa. Se apoya a la izquierda,
+   como en el telefono de lado, y llega hasta el asa sin tocarla. */
+@media (max-width: 379px) {
+  .lector__volver {
+    left: var(--l-gut-l); translate: none; animation-name: lector-llega;
+    max-width: calc(100% - var(--l-gut-l) - var(--l-gut-r) - var(--l-toque) - .5rem);
+  }
+}
+@keyframes lector-sube { from { opacity: 0; translate: -50% .5rem; } }
+@keyframes lector-llega { from { opacity: 0; scale: .92; } }
+/* «Copiar» pasa a «Copiado» en el propio boton. El boton CRECE (no salta): su ancho tiene tope y el tope se anima, asi lo que
+   tiene al lado (la barra) se corre despacio. El rotulo se descubre mientras crece. */
+.lector__copiar {
+  interpolate-size: allow-keywords;
+  width: var(--l-toque); max-width: 11rem; overflow: hidden;
+  transition: width .4s cubic-bezier(.45, 0, .2, 1), padding .4s cubic-bezier(.45, 0, .2, 1),
+    background-color .2s var(--ease), color .2s var(--ease), scale .12s var(--ease);
+}
+.lector__copiar-hecho, .lector__copiar[data-hecho] .lector__copiar-sin { display: none; }
+.lector__copiar[data-hecho] { width: auto; justify-content: flex-start; padding: 0 .95rem; background: var(--l-tinta); color: var(--l-sobre); }
+.lector__copiar[data-hecho] .lector__copiar-hecho { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
+
+/* EL ASA: esconde la banda y el muelle para ver solo el libro, y los devuelve. Va siempre en el mismo sitio. */
+.lector__asa {
+  position: absolute; z-index: 5; right: var(--l-gut-r); bottom: calc(100% + .3rem);
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  box-sizing: border-box;
+  min-width: var(--l-toque); height: var(--l-toque);
+  border-radius: 999px;
+  background: var(--l-noche); color: var(--l-tinta);
+  box-shadow: inset 0 0 0 1px var(--l-hilo), 0 10px 24px -10px rgb(0 0 0 / .7);
+  font-size: .8rem; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; white-space: nowrap;
+  transition: scale .12s var(--ease), box-shadow .2s var(--ease), background-color .3s var(--ease);
+}
+.lector__asa:hover { box-shadow: inset 0 0 0 1.5px var(--l-tinta), 0 10px 24px -10px rgb(0 0 0 / .7); }
+.lector__asa:active { scale: .94; }
+.lector__asa svg { transition: rotate .4s var(--l-sale); }
+.lector__asa span { display: none; }
+.book-panel[data-lector][data-solo] .lector__banda,
+.book-panel[data-solo] .book__ruta .lector__grupo { display: none; }
+.book-panel[data-solo] .book__ruta { display: block; height: calc(.5rem + env(safe-area-inset-bottom, 0px)); padding-block: 0; }
+.book-panel[data-solo] .lector__asa { padding: 0 1rem 0 .8rem; }
+.book-panel[data-solo] .lector__asa svg { rotate: 180deg; }
+.book-panel[data-solo] .lector__asa span { display: inline; }
+
+/* La barra: de la primera a la ultima pagina, con lo ya recorrido lleno */
+.book__ruta-barra { grid-area: barra; position: relative; display: block; min-width: 0; }
 .book__ruta-rango {
   display: block; width: 100%; height: 2.75rem; margin: 0; padding: 0;
   background: transparent; cursor: pointer;
   -webkit-appearance: none; appearance: none;
-  accent-color: var(--bone);
   touch-action: none;
 }
 .book__ruta-rango:disabled { opacity: .3; cursor: default; }
-.book__ruta-rango:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; border-radius: 8px; }
-.book__ruta-rango::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: rgb(241 239 233 / .3); }
-.book__ruta-rango::-moz-range-track { height: 4px; border-radius: 999px; background: rgb(241 239 233 / .3); }
-.book__ruta-rango::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; border: 2px solid var(--night); background: var(--bone); box-shadow: 0 0 0 1px rgb(241 239 233 / .5); }
-.book__ruta-rango::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--night); background: var(--bone); box-shadow: 0 0 0 1px rgb(241 239 233 / .5); }
-.book__ruta-valor {
-  grid-area: valor;
-  min-width: 6.4rem; text-align: right;
-  font-size: .72rem; font-weight: 600; letter-spacing: .06em;
-  font-variant-numeric: tabular-nums;
-  opacity: .8;
+.book__ruta-rango:focus-visible { outline: 2px solid var(--l-tinta); outline-offset: -4px; border-radius: 999px; }
+.book__ruta-rango::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--l-tinta) var(--lleno, 0%), var(--l-riel) var(--lleno, 0%)); }
+.book__ruta-rango::-moz-range-track { height: 6px; border-radius: 999px; background: var(--l-riel); }
+.book__ruta-rango::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--l-tinta); }
+.book__ruta-rango::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: var(--l-tinta); border: 3px solid var(--l-fondo); box-shadow: 0 0 0 1px var(--l-tenue); }
+.book__ruta-rango::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--l-tinta); border: 3px solid var(--l-fondo); box-shadow: 0 0 0 1px var(--l-tenue); }
+
+/* El campo «Pág. … de N»: se escribe el numero impreso y Enter lleva alli */
+.lector__campo {
+  grid-area: campo; justify-self: center;
+  display: inline-flex; align-items: center; gap: .4rem;
+  box-sizing: border-box;
+  min-height: var(--l-toque); padding: 0 .9rem 0 .95rem;
+  border-radius: 999px; box-shadow: inset 0 0 0 1px var(--l-hilo);
+  font-size: .82rem; font-weight: 600; letter-spacing: .02em; color: var(--l-tenue);
+  font-variant-numeric: tabular-nums; cursor: text; white-space: nowrap;
+  transition: box-shadow .2s var(--ease), background-color .2s var(--ease);
 }
-@media (max-width: 560px) {
-  .book__ruta {
-    grid-template-columns: auto auto 1fr;
-    grid-template-areas: "volver contenido valor" "barra barra barra";
-    margin-top: -.55rem;
+.lector__campo:hover { box-shadow: inset 0 0 0 1px var(--l-velo-2); }
+.lector__campo:focus-within { box-shadow: inset 0 0 0 2px var(--l-oro); background: var(--l-velo); }
+.lector__campo input {
+  width: 2.8rem; height: 2rem; padding: 0; margin: 0;
+  border: 0; border-radius: 0; background: none; outline: none;
+  text-align: center; font: inherit; font-size: 1rem; font-weight: 600; letter-spacing: 0;
+  color: var(--l-tinta); caret-color: var(--l-oro);
+  border-bottom: 1.5px solid var(--l-riel);
+}
+.book-panel[data-lector] .lector__campo input:focus-visible { outline: none; }
+.lector__campo:focus-within input { border-bottom-color: var(--l-oro); }
+.lector__campo.is-mal { animation: lector-no .32s var(--ease); box-shadow: inset 0 0 0 2px var(--l-mal); }
+@keyframes lector-no { 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+
+/* ---------- «Más»: las herramientas en una hoja que sube dentro del lector ---------- */
+.book-panel[data-lector] .lector__fondo {
+  display: block;
+  position: absolute; inset: 0; z-index: 8;
+  background: rgb(5 10 6 / .5);
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s var(--ease), visibility 0s linear .25s;
+}
+.book-panel[data-lector] .lector__fondo.is-abierta { opacity: 1; visibility: visible; transition-delay: 0s; }
+.book-panel[data-lector] .lector__hoja {
+  position: absolute; z-index: 9; left: 0; right: 0; bottom: 0; max-height: 82%;
+  display: flex; flex-direction: column;
+  padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--l-noche); color: var(--l-tinta);
+  box-shadow: 0 -1px 0 var(--l-hilo);
+  translate: 0 105%; visibility: hidden;
+  transition: translate .42s var(--l-sale), visibility 0s linear .42s;
+}
+.book-panel[data-lector] .lector__hoja.is-abierta { translate: 0 0; visibility: visible; transition-delay: 0s; }
+.lector__hoja-cab { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .6rem .6rem .2rem 1.25rem; }
+.lector__hoja-cab h3 { margin: 0; font-family: var(--serif); font-size: 1.15rem; font-weight: 400; line-height: 1.2; color: inherit; }
+.lector__hoja ul { list-style: none; margin: 0; padding: 0 .6rem; }
+.lector__hoja li button {
+  display: flex; align-items: center; gap: .9rem;
+  width: 100%; min-height: 3.25rem; padding: 0 .75rem;
+  border-radius: .85rem; color: inherit; text-align: left; font-weight: 500;
+}
+.lector__hoja li button:hover { background: var(--l-velo); }
+.lector__hoja li button em { margin-left: auto; font-style: normal; font-size: .8rem; color: var(--l-tenue); }
+.lector__hoja li button[aria-pressed="true"] em { color: var(--l-oro); }
+
+/* Mientras el libro llega (carga.css esconde el muelle), las flechas de los lados tampoco estan */
+.book-panel[data-carga] .lector__lado { visibility: hidden; }
+
+/* ---------- De 560 px para arriba: el muelle respira ---------- */
+@media (min-width: 560px) {
+  .lector__cont span { display: inline; }
+  .lector__cont { padding: 0 .95rem; }
+  .lector__titulo { font-size: 1.15rem; }
+}
+/* ---------- De 820 px: flechas a los lados, muelle en una fila, herramientas a la vista ---------- */
+@media (min-width: 820px) {
+  .book-panel[data-lector] { grid-template-columns: 4.5rem minmax(0, 1fr) 4.5rem; --l-hueco: 0rem; }
+  .book-panel[data-lector] .book-panel__frame { grid-column: 2; }
+  .book-panel[data-lector] .lector__banda { padding-block: calc(.5rem + env(safe-area-inset-top, 0px)) .5rem; gap: .75rem; --p-borde: 1.5px solid var(--ring); }
+  .lector__marca-pez { display: none; }
+  .lector__marca-firma { display: block; }
+  .book-panel[data-lector] .lector__lado { display: grid; place-items: center; grid-row: 2; position: relative; z-index: 2; }
+  .book-panel[data-lector] .lector__lado--a { grid-column: 1; }
+  .book-panel[data-lector] .lector__lado--d { grid-column: 3; }
+  .lector__lado .lector__redondo { width: 3.25rem; height: 3.25rem; }
+  .lector__lado .lector__redondo svg { width: 1.4rem; height: 1.4rem; }
+  .book__ruta { display: flex; gap: .5rem; padding-block: .35rem calc(.7rem + env(safe-area-inset-bottom, 0px)); }
+  .lector__grupo { display: flex; align-items: center; gap: .5rem; }
+  .lector__grupo--lejos { flex: 1; min-width: 0; }
+  .book__ruta-barra { flex: 1; }
+  .lector__paso, .lector__mas-btn { display: none; }
+  .lector__herr { display: flex; padding-left: .75rem; margin-left: .25rem; box-shadow: -1px 0 0 var(--l-hilo); }
+  /* En la fila, «Volver» no empuja la barra de golpe: entra y sale creciendo de ancho cero (y su hueco de la fila con el),
+     asi la barra se corre despacio. Sin soporte para @starting-style, aparece como antes, sin mas. */
+  .book__ruta { interpolate-size: allow-keywords; }
+  .lector__volver {
+    position: static; translate: none; animation: none;
+    width: auto; max-width: 15rem; overflow: hidden;
+    transition: width .45s cubic-bezier(.45, 0, .2, 1), padding .45s cubic-bezier(.45, 0, .2, 1), margin .45s cubic-bezier(.45, 0, .2, 1),
+      min-width .45s cubic-bezier(.45, 0, .2, 1), opacity .3s var(--ease), display .45s allow-discrete,
+      background-color .2s var(--ease), box-shadow .2s var(--ease);
   }
-  .book__ruta-valor { min-width: 0; }
+  .lector__volver[hidden] { width: 0; min-width: 0; padding-inline: 0; margin-right: -.5rem; opacity: 0; }
+  @starting-style {
+    .lector__volver { width: 0; min-width: 0; padding-inline: 0; margin-right: -.5rem; opacity: 0; }
+  }
+  .book-panel[data-lector] .lector__fondo, .book-panel[data-lector] .lector__hoja { display: none; }
+  /* La firma no llego (una pagina sin cabecera, /vista/): queda el pez */
+  .lector__marca[data-sin-firma] .lector__marca-pez { display: block; }
+  .lector__marca[data-sin-firma] .lector__marca-firma { display: none; }
 }
-
-/* Ventanas muy bajas (un telefono de lado): las filas de abajo se aprietan, y la pagina que se esta recorriendo la dice la barra
-   (aria-valuetext) y el folio; el numero suelto se esconde. site.js baja el tamaño del libro en proporcion (flipSize). */
+/* ---------- Un telefono de lado: la banda se guarda y queda la × ---------- */
 @media (max-height: 460px) {
-  .book-panel__frame { gap: .4rem; }
-  .book__ruta { margin-top: 0; grid-template-columns: auto auto minmax(4rem, 1fr); grid-template-areas: "volver contenido barra"; }
-  .book__ruta-valor { display: none; }
-  .book__ruta-btn { padding: 0 .7rem; }
+  .book-panel[data-lector] .lector__banda { position: absolute; inset: 0 0 auto; z-index: 3; pointer-events: none; justify-content: flex-end; }
+  .book-panel[data-lector] .lector__banda > :not(.book-panel__close) { display: none; }
+  .book-panel[data-lector] .book-panel__close { pointer-events: auto; }
+  .book__ruta { padding-bottom: calc(.35rem + env(safe-area-inset-bottom, 0px)); }
+  .book-panel[data-lector] { --l-hueco: 0rem; }
 }
-
+/* ...y si ademas es estrecho, «Volver» se va a la esquina: el libro, pequeño y centrado, no llega hasta alli */
+@media (max-height: 460px) and (max-width: 819px) {
+  .lector__volver {
+    left: var(--l-gut-l); translate: none; animation-name: lector-llega;
+    max-width: calc(100% - var(--l-gut-l) - var(--l-gut-r) - var(--l-toque) - .5rem);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .book-panel.is-open .book__ruta { animation: none; }
-  .book__ruta-btn { transition: none; }
+  .book__ruta-btn, .lector__redondo, .lector__asa, .lector__asa svg, .lector__pastilla, .lector__campo, .lector__volver, .lector__copiar { transition: none; }
+  .lector__volver, .lector__idioma-lista, .lector__campo.is-mal, .lector__copiar[data-hecho] .lector__copiar-hecho { animation: none; }
+  .book-panel[data-lector] .lector__hoja, .book-panel[data-lector] .lector__fondo { transition-duration: .01ms; }
 }
 
-/* ---- LOS LADOS DEL LIBRO (pantallas anchas, libros en PDF) ----
-   Los botones ya no van todos debajo: le quitaban altura al libro. A la IZQUIERDA lo de volver (la flecha anterior, «Volver»,
-   «Contenido»); a la DERECHA lo de avanzar (la flecha siguiente, la lupa, el sonido); ABAJO solo el folio y la barra de recorrer.
-   Las dos cajas (.book__nav y .book__ruta) dejan de ser cajas (`display: contents`) y cada boton ocupa su lugar en la cuadricula
-   del marco. En el telefono y en ventanas estrechas queda la fila de abajo de siempre. site.js (flipSize) reserva menos alto. */
-@media (min-width: 820px) {
-  .book-panel__frame:has(> .flip:not([hidden])) {
-    grid-template-columns: minmax(4.5rem, 1fr) auto minmax(4.5rem, 1fr);
-    grid-template-rows: 1fr auto auto auto 1fr auto auto;
-    column-gap: 1.1rem; row-gap: .6rem;
-    align-items: center;
-  }
-  .book-panel__frame:has(> .flip:not([hidden])) > .flip,
-  .book-panel__frame:has(> .flip:not([hidden])) > .carga { grid-column: 2; grid-row: 1 / 6; align-self: center; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__nav,
-  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta:not([hidden]) { display: contents; animation: none; }
-  .book-panel__frame:has(> .flip:not([hidden])) [data-book-prev] { grid-column: 1; grid-row: 2; justify-self: end; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-btn[data-book-volver] { grid-column: 1; grid-row: 3; justify-self: end; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-btn[data-book-contenido] { grid-column: 1; grid-row: 4; justify-self: end; }
-  .book-panel__frame:has(> .flip:not([hidden])) [data-book-next] { grid-column: 3; grid-row: 2; justify-self: start; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__zoom { grid-column: 3; grid-row: 3; justify-self: start; position: static; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__sound { grid-column: 3; grid-row: 4; justify-self: start; position: static; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__folio { grid-column: 2; grid-row: 6; justify-self: center; }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-barra { grid-column: 2; grid-row: 7; justify-self: center; width: min(36rem, calc(100vw - 12rem)); }
-  .book-panel__frame:has(> .flip:not([hidden])) .book__ruta-valor { display: none; }
-}
 @media (prefers-reduced-motion: reduce) {
   .leaf, .book__block, .page__seal-ink { transition: none; }
   .book-panel__frame { animation: none; transition: opacity .2s linear; }

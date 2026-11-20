@@ -28,7 +28,7 @@
      programar(f)  hacer `f` en el cuadro que viene (por omision, requestAnimationFrame)
      ahora()       el reloj en ms (por omision, performance.now)
    } */
-import { apilarVuelta, miradaDe, pliegoDe, pliegoDeBarra, pliegoVecino, planDeViaje, sacarVuelta } from './pliegos.js';
+import { apilarVuelta, miradaDe, pliegoDe, pliegoDeBarra, pliegoVecino, planDeViaje, proximaVuelta, sacarVuelta } from './pliegos.js';
 
 export const SEGUIDO_MS = 1500;      // lo que se mueve la barra en menos de esto es UN salto para «Volver»
 
@@ -180,6 +180,8 @@ export function crearRecorrido(motor) {
     irA, paso, volver, desdeBarra, alCaer, lugar,
     /* ¿Hay a donde volver? Un lugar que es donde ya se esta no cuenta */
     hayVuelta: (donde = m.aqui()) => pila.some((x) => x !== donde),
+    /* A donde llevaria «Volver» ahora (solo mira, no saca nada), o null: para decirlo en el boton */
+    proxima: (donde = m.aqui()) => proximaVuelta(pila, donde),
     pila: () => pila.slice(),
     enViaje: () => !!viaje,
     destino: () => (viaje && viaje.plan.pasos.length ? viaje.plan.pasos[viaje.plan.pasos.length - 1] : null),

@@ -141,3 +141,119 @@ export function hojaDelContenido(hojas, n = Array.isArray(hojas) ? hojas.length 
   }
   return -1;
 }
+
+/* «VOLVER», SIN GASTARLO: el lugar al que llevaria el proximo «Volver» (lo mismo que sacaria `sacarVuelta`), o null si no hay
+   ninguno. Solo mira: la lista queda como estaba. Sirve para decirlo en el boton: «Volver a la pág. 7». */
+export function proximaVuelta(pila, actual) {
+  if (!Array.isArray(pila)) return null;
+  for (let i = pila.length - 1; i >= 0; i--) {
+    const x = pila[i];
+    if (!Number.isInteger(x) || x < 0) continue;
+    if (x !== actual) return x;
+  }
+  return null;
+}
+
+/* LA NUMERACION QUE SE VE. La barra cuenta imagenes (de 0 a n - 1); la gente lee el numero impreso al pie de la hoja.
+   - sin `offset`: cada imagen es una pagina, de la 1 a la n (la tapa es la 1).
+   - con `offset` (tools/books.py lo lee del pie de las paginas): la tapa y la contratapa no llevan numero, y la imagen `x`
+     lleva el `x + 1 - offset` (si da 1 o mas).
+   - con `folios`: la lista ya hecha, un numero (o null) por imagen; manda sobre `offset`.
+   Devuelve { folioDe(indice) → numero | null, indiceDe(folio) → indice | -1, anterior(folio) → el numero que existe igual
+   o justo por debajo (o null), total (el ultimo numero), primero, ultimo }.
+
+   Puede llegar de fuera (un libro privado trae sus datos de la funcion de borde): nada aqui crece con lo que diga un numero.
+   Cada folio vale de 1 a FOLIO_MAX (lo demas no tiene numero), el libro tiene a lo sumo PAGINAS_LECTOR_MAX imagenes, y todo
+   se cuenta UNA vez: un mapa folio → imagen y la lista ordenada de los folios (para buscar el de debajo, a saltos). */
+export const FOLIO_MAX = 100000;
+export const PAGINAS_LECTOR_MAX = 100000;
+export function numeracion(n, { offset = null, folios = null } = {}) {
+  const cuantas = Number.isInteger(n) && n > 0 ? Math.min(n, PAGINAS_LECTOR_MAX) : 0;
+  const off = Number.isInteger(offset) && offset >= 0 && offset <= cuantas ? offset : null;
+  const bueno = (f) => Number.isInteger(f) && f >= 1 && f <= FOLIO_MAX;
+  const lista = new Array(cuantas);
+  const donde = new Map();             // folio → la PRIMERA imagen que lo lleva
+  let primero = null, ultimo = null;
+  for (let x = 0; x < cuantas; x++) {
+    let f;
+    if (Array.isArray(folios)) f = bueno(folios[x]) ? folios[x] : null;
+    else if (off == null) f = x + 1;
+    else f = x > 0 && x < cuantas - 1 && x + 1 - off >= 1 ? x + 1 - off : null;
+    if (f != null && !bueno(f)) f = null;
+    lista[x] = f;
+    if (f == null) continue;
+    if (!donde.has(f)) donde.set(f, x);
+    if (primero == null || f < primero) primero = f;
+    if (ultimo == null || f > ultimo) ultimo = f;
+  }
+  const orden = [...donde.keys()].sort((a, b) => a - b);
+  /* El folio que existe igual o justo por debajo de `f`: busqueda binaria, no una cuenta atras */
+  const anterior = (f) => {
+    if (!Number.isFinite(f) || !orden.length || f < orden[0]) return null;
+    let a = 0, b = orden.length - 1;
+    while (a < b) { const m = (a + b + 1) >> 1; if (orden[m] <= f) a = m; else b = m - 1; }
+    return orden[a];
+  };
+  return {
+    folioDe: (i) => (Number.isInteger(i) && i >= 0 && i < cuantas ? lista[i] : null),
+    indiceDe: (f) => (bueno(f) && donde.has(f) ? donde.get(f) : -1),
+    anterior,
+    total: ultimo == null ? 0 : ultimo,
+    primero, ultimo,
+  };
+}
+
+/* «VOLVER», CON SU NOMBRE. A donde lleva el proximo «Volver» (un pliego por su primera pagina) dicho como se lee:
+     { folios: '6–7' }          las paginas con numero de ese pliego (en el telefono, la que se mira primero)
+     { clave: 'volverTapa' }    la tapa · { clave: 'volverContra' } la contratapa
+     { clave: 'volverSolo' }    unas hojas sin numero en medio del libro (las guardas): solo «Volver»
+   o null si no hay a donde. `folioDe` es el de numeracion(). */
+export function rotuloDeVuelta(destino, n, folioDe, { cam = false } = {}) {
+  if (!Number.isInteger(destino) || destino < 0 || !(n > 0) || destino > n - 1 || typeof folioDe !== 'function') return null;
+  const pags = paginasDe(destino, n);
+  const de = (lista) => lista.map(folioDe).filter((x) => x != null);
+  let nums = de(cam ? pags.slice(0, 1) : pags);
+  if (!nums.length && cam) nums = de(pags);
+  if (nums.length) return { folios: nums.join('–') };
+  if (destino === 0) return { clave: 'volverTapa' };
+  /* El ultimo pliego lleva la contratapa (sola, o junto a una hoja sin numero) */
+  if (pags[pags.length - 1] >= n - 1) return { clave: 'volverContra' };
+  return { clave: 'volverSolo' };
+}
+
+/* LO QUE SE ESCRIBE EN «PÁG.». Solo cuentan las cifras: «p. 12» es 12, y de «4–5» se lee el 4. Devuelve
+     { indice, ajustado }   la imagen a la que ir; `ajustado` es 'bajo' o 'alto' si el numero se salia del libro (se va a la
+                            primera o a la ultima pagina con numero), y null si estaba dentro
+     { error }              'vacio' si no se escribio nada, 'no-numero' si no hay ninguna cifra (o el libro no tiene numeros) */
+export function leerPagina(texto, num) {
+  const crudo = String(texto == null ? '' : texto).trim();
+  if (!crudo) return { error: 'vacio' };
+  const cifras = crudo.replace(/[‐-―−-].*$/, '').replace(/\D+/g, '').slice(0, 9);
+  if (!cifras || !num || num.primero == null) return { error: 'no-numero' };
+  const pedido = Number(cifras);
+  if (pedido < num.primero) return { indice: num.indiceDe(num.primero), ajustado: 'bajo' };
+  if (pedido > num.ultimo) return { indice: num.indiceDe(num.ultimo), ajustado: 'alto' };
+  /* Un numero que el libro se salta (una lista de folios con huecos): el anterior que si exista */
+  const f = typeof num.anterior === 'function' ? num.anterior(pedido) : null;
+  const i = f == null ? -1 : num.indiceDe(f);
+  if (i >= 0) return { indice: i, ajustado: null };
+  return { indice: num.indiceDe(num.primero), ajustado: 'bajo' };
+}
+
+/* EN QUE IDIOMA HABLAN LOS BOTONES DEL LECTOR: el del LIBRO, no el de la pagina. Solo hay español e ingles. Si el libro no
+   dice el suyo (o esta en otro), el de la pagina; y si la pagina tampoco es uno de los dos, el mas cercano: el portugues
+   lee español, los demas ingles. */
+export function idiomaDelLector(libro, pagina) {
+  const uno = (l) => (l === 'es' || l === 'en' ? l : null);
+  return uno(libro) || uno(pagina) || (pagina === 'pt' ? 'es' : 'en');
+}
+
+/* LA OTRA EDICION del mismo libro: 'es' o 'en' si el libro tiene tambien su PDF en el otro idioma, o null. `hechos` es lo que
+   dice de el el indice de tools/books.py ({ es: {...}, en: {...} }); `idiomas`, los que declara su ficha (null: no se mira). */
+export function otraEdicion(actual, hechos, idiomas = null) {
+  const otro = actual === 'es' ? 'en' : actual === 'en' ? 'es' : null;
+  if (!otro || !hechos || typeof hechos !== 'object') return null;
+  if (!Object.prototype.hasOwnProperty.call(hechos, otro) || !hechos[otro]) return null;
+  if (Array.isArray(idiomas) && !idiomas.includes(otro)) return null;
+  return otro;
+}
