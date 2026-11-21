@@ -118,6 +118,18 @@ await ok('un enlace bueno entrega el libro, firma las dos medidas por diez minut
   assert.equal(bd.consultas.at(-1).filtros.hash, h.bytea);
   assert.ok(!JSON.stringify(bd.consultas).includes(TOKEN));
 });
+await ok('las hojas llegan tal cual: el numero impreso de cada pagina (folio) viaja con ellas', async () => {
+  const k = Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => (i * 11 + 3) & 255)).toString('base64url');
+  const hojas = [{ text: 'tapa' }, { text: 'uno', folio: 1 }, { text: 'dos', folio: 2, links: [{ x: 0.1, y: 0.1, w: 0.1, h: 0.1, page: 1 }] }];
+  await enlace(k, { edicion: edicion({ hojas }) });
+  const r = await pedir({ k });
+  assert.equal(r.status, 200);
+  const j = JSON.parse(await r.text());
+  assert.deepEqual(j.hojas, hojas);
+  assert.equal(j.idioma, 'es');
+  const N = await import('../supabase/functions/vista/nucleo.js');
+  assert.deepEqual(JSON.parse(N.cuerpoBueno(edicion({ hojas }), { 900: [], 1600: [] })).hojas[2].folio, 2);
+});
 await ok('renovar las direcciones no cuenta otra visita', async () => {
   const antes = buena.vistas;
   const r = await pedir({ k: TOKEN, renovar: true });

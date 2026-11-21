@@ -8,7 +8,7 @@
 
    Todo lo que trae el PDF es dato ajeno: lo que sale de aqui pasa luego por revisarPdf / hojasDeEdicion. */
 import { abrirPdf, aArchivo, escalaDePagina } from './Pdf.js';
-import { PAGINAS_MAX } from '../../../../contenido/taller/PaginasEdicion.js';
+import { PAGINAS_MAX, folioDeTextos } from '../../../../contenido/taller/PaginasEdicion.js';
 
 const TEXTO_POR_PAGINA = 30000;
 
@@ -41,7 +41,20 @@ async function paginaDeRef(doc, ref) {
   return null;
 }
 
-/* → { doc, paginas, ratio, anchos[], altos[], titulo, textos[], datos[] (para hojasDeEdicion), saltos[] } */
+/* Un texto de la pagina que podria ser su numero impreso (de 1 a 4 cifras, solo) → { str, y0, y1 }: su caja en la pagina vista
+   (origen arriba), del renglon hacia arriba lo que mide la letra. Lo demas → null. Se usa la misma matriz que los enlaces. */
+const CIFRAS = /^\s*\d{1,4}\s*$/;
+export function numeroDeTexto(v, item) {
+  if (!item || typeof item.str !== 'string' || !CIFRAS.test(item.str) || !Array.isArray(item.transform)) return null;
+  const x = Number(item.transform[4]), y = Number(item.transform[5]);
+  const w = Number(item.width) || 0, h = Number(item.height) || 0;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const [, y0, , y1] = rectEnPagina(v, [x, y, x + w, y + h]);
+  return { str: item.str, y0, y1 };
+}
+
+/* → { doc, paginas, ratio, anchos[], altos[], titulo, textos[], datos[] (para hojasDeEdicion), saltos[],
+       candidatos[] (el numero impreso que parece llevar cada pagina, o null: lo junta foliosDeEdicion) } */
 export async function mirar(archivo, { sigue = () => true, alPagina = () => {} } = {}) {
   const doc = await abrirPdf(archivo);
   try {
@@ -49,7 +62,7 @@ export async function mirar(archivo, { sigue = () => true, alPagina = () => {} }
     if (!Number.isInteger(paginas) || paginas < 1 || paginas > PAGINAS_MAX) return { doc, paginas };
     let titulo = '';
     try { const m = await doc.getMetadata(); titulo = String((m.info && m.info.Title) || ''); } catch (e) { /* sin titulo */ }
-    const anchos = [], altos = [], textos = [], datos = [], saltos = [];
+    const anchos = [], altos = [], textos = [], datos = [], saltos = [], candidatos = [];
     const cache = new Map();
     for (let n = 1; n <= paginas; n++) {
       if (!sigue()) return { doc, paginas: 0, parado: true };
@@ -57,8 +70,13 @@ export async function mirar(archivo, { sigue = () => true, alPagina = () => {} }
       const p = await doc.getPage(n);
       const v = p.getViewport({ scale: 1 });
       anchos.push(v.width); altos.push(v.height);
-      const texto = (await p.getTextContent()).items.map((x) => x.str || '').join(' ').replace(/\s+/g, ' ').trim().slice(0, TEXTO_POR_PAGINA);
+      const items = (await p.getTextContent()).items;
+      const texto = items.map((x) => x.str || '').join(' ').replace(/\s+/g, ' ').trim().slice(0, TEXTO_POR_PAGINA);
       textos.push(texto);
+      /* El numero del pie (o de la cabeza): solo los textos que son cifras sueltas, con su sitio en la pagina */
+      const numeros = [];
+      for (const it of items) { const c = numeroDeTexto(v, it); if (c) numeros.push(c); }
+      candidatos.push(folioDeTextos(numeros, v.height));
       const enlaces = [];
       for (const a of await p.getAnnotations()) {
         if (!a || a.subtype !== 'Link' || !Array.isArray(a.rect) || a.rect.length !== 4) continue;
@@ -73,7 +91,7 @@ export async function mirar(archivo, { sigue = () => true, alPagina = () => {} }
       datos.push({ texto, enlaces });
       p.cleanup();
     }
-    return { doc, paginas, ratio: anchos[0] / altos[0], anchos, altos, titulo, textos, datos, saltos };
+    return { doc, paginas, ratio: anchos[0] / altos[0], anchos, altos, titulo, textos, datos, saltos, candidatos };
   } catch (e) {
     doc.loadingTask.destroy();
     throw e;

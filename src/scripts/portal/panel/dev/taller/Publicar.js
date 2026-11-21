@@ -12,7 +12,7 @@
    Aqui no se guarda el secreto en ninguna parte: vive en el cuadro de «tu enlace» hasta que se cierra la ventana o se crea otro.
    Todo texto de la pagina se escribe con textContent. Lo que sube y baja pasa por be.taller (real.js / demo.js). */
 import { crearToken, direccion, diasValidos, estadoDe, huella, nombreLimpio, vencimiento, DIAS, DIAS_POR_DEFECTO, EDICIONES_MAX } from '../../../../contenido/taller/Enlaces.js';
-import { hojasDeEdicion } from '../../../../contenido/taller/PaginasEdicion.js';
+import { hojasDeEdicion, foliosDeEdicion } from '../../../../contenido/taller/PaginasEdicion.js';
 import { revisarPdf } from '../../../../contenido/taller/RevisarPdf.js';
 import { revisarArchivo } from '../../../archivos.js';
 import { mirar, pintar } from './LeerEdicion.js';
@@ -322,7 +322,8 @@ export class Publicar {
         this.estado.textContent = this.tx.cpNoSube;
         return;
       }
-      const hojas = hojasDeEdicion(leido.datos, leido.anchos, leido.altos);
+      /* Los numeros impresos de cada pagina (los folios): el lector los usa en «Pág.», la barra y «Volver» */
+      const hojas = hojasDeEdicion(leido.datos, leido.anchos, leido.altos, foliosDeEdicion(leido.candidatos, leido.paginas));
       if (hojas.error) { id = ''; this.falla(hojas.error === 'grande' ? 'edGrande' : 'edLargo', { max: 300 }); return; }
       rev.avisos.forEach((x) => this.falla(x.clave, x));
 

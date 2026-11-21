@@ -234,8 +234,8 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
   <!-- EL MUELLE (solo los libros en PDF; site.js lo muestra al abrir). Dos grupos:
        · IR LEJOS: «Volver a la pág. N» (tecla B; solo sale si hay a donde volver), «Contenido» (solo si el libro tiene hoja de
          contenido), la barra de la primera a la ultima pagina y el campo «Pág. … de N» (Enter salta, Escape lo deja como estaba).
-       · HERRAMIENTAS: la lupa, el sonido y «Copiar enlace» (este, solo en los libros de la biblioteca). Aqui caben, mas adelante,
-         «Marcar» e «Índice».
+       · HERRAMIENTAS: «Marcar» (tecla M) y la lista «Marcadores» (solo si el navegador deja guardar), la lupa, el sonido y
+         «Copiar enlace» (este, solo en los libros de la biblioteca). Mas adelante, «Índice».
        En el telefono: la barra arriba; debajo Contenido, ‹, el campo, › y «Más», que abre las herramientas en una hoja.
        EL ASA esconde la banda y el muelle para ver solo el libro, y los devuelve: va siempre en el mismo sitio. -->
   <footer class="book__ruta" data-book-ruta hidden>
@@ -272,6 +272,15 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
       </button>
     </div>
     <div class="lector__grupo lector__herr" role="group" data-lector-herr>
+      <!-- «Marcar»: la cinta se llena de oro si el pliego que se ve tiene marca (aria-pressed). «Índice»: Palabras, Citas,
+           Marcadores y Buscar, en una hoja con pestañas (lleva su nombre escrito: es la puerta a todo lo que el libro trae). -->
+      <button class="book__ruta-btn lector__icono lector__marcar" type="button" data-lector-marcar aria-pressed="false" aria-keyshortcuts="M" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h10v15l-5-3.6-5 3.6z" /></svg>
+      </button>
+      <button class="book__ruta-btn lector__indice-btn" type="button" data-lector-indice aria-haspopup="dialog" aria-expanded="false" aria-controls="lector-indice" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg>
+        <span data-lector-indice-texto></span>
+      </button>
       <!-- La lupa: la unica manera de agrandar el libro (el zoom del navegador esta apagado aqui dentro). -->
       <button class="book__ruta-btn lector__icono" type="button" data-book-zoom aria-pressed="false" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" /><path d="M8 10.5h5" /><path class="book__zoom-plus" d="M10.5 8v5" /></svg>
@@ -301,8 +310,37 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     </div>
     <ul data-lector-mas-lista></ul>
   </section>
+  <!-- «ÍNDICE»: lo que el libro trae, en cuatro pestañas. Palabras (las definiciones) y Citas (en el orden de la Biblia) abren
+       su nota y llevan a su pagina; Marcadores son las paginas marcadas (cada una con su × para quitarla); Buscar busca en el
+       texto del libro sin mirar tildes. Cada salto pasa por el recorrido: «Volver» recuerda de donde se vino.
+       En el telefono sube desde abajo, como «Más»; de 820 px para arriba es un cajon a la derecha. El contenido lo pone site.js. -->
+  <section class="lector__hoja lector__hoja--indice" id="lector-indice" role="dialog" aria-modal="true" aria-labelledby="lector-indice-t" data-lector-indice-hoja>
+    <div class="lector__hoja-cab">
+      <h3 id="lector-indice-t"></h3>
+      <button class="lector__redondo" type="button" data-lector-indice-cierra>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </div>
+    <div class="lector__pestanas" role="tablist" data-lector-pestanas>
+      <button type="button" role="tab" id="lector-tab-palabras" aria-controls="lector-tabpanel" aria-selected="true" data-pestana="palabras"></button>
+      <button type="button" role="tab" id="lector-tab-citas" aria-controls="lector-tabpanel" aria-selected="false" tabindex="-1" data-pestana="citas"></button>
+      <button type="button" role="tab" id="lector-tab-marcadores" aria-controls="lector-tabpanel" aria-selected="false" tabindex="-1" data-pestana="marcadores"></button>
+      <button type="button" role="tab" id="lector-tab-buscar" aria-controls="lector-tabpanel" aria-selected="false" tabindex="-1" data-pestana="buscar"></button>
+    </div>
+    <div class="lector__tabpanel" id="lector-tabpanel" role="tabpanel" aria-labelledby="lector-tab-palabras" data-lector-tabpanel>
+      <label class="lector__buscar" data-lector-buscar hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" /></svg>
+        <input type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" maxlength="80" data-lector-busca />
+      </label>
+      <p class="sr-only" role="status" data-lector-busca-estado></p>
+      <ul class="lector__filas" data-lector-filas></ul>
+      <p class="lector__vacio" data-lector-vacio hidden></p>
+    </div>
+  </section>
   <!-- El sello, para que el guion lo copie en «Lo que es» y en la contratapa -->
   <template id="book-mark"><Icon id="mark" /></template>
+  <!-- El dibujo de «Marcadores» (una lista con su cinta) para su fila en «Más»: distinto de «Marcar» -->
+  <template id="lector-icono-marcas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h8M4 12h8M4 17h5" /><path d="M15.5 5h4.5v14l-2.25-1.6-2.25 1.6z" /></svg></template>
 </div>
 
 <!-- Las piezas: dos pasos en la misma hoja.

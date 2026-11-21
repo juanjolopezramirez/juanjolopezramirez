@@ -19,6 +19,9 @@ import { LIBROS, TIPOS } from '../data/biblioteca.js';
 import { barraDePliego, hojaDelContenido, idiomaDelLector, leerPagina, numeracion, otraEdicion, paginasDe, pliegoALaVuelta, pliegoDe, rotuloDeVuelta } from './lector/pliegos.js';
 import { crearRecorrido } from './lector/recorrido.js';
 import { textoDeCopia } from './lector/copiaEnPdf.js';
+import { almacenDisponible, claveRecursos, claveValida, crearMarcadores } from './lector/marcadores.js';
+/* Las notas (lector/notaEnPdf.js), el indice (lector/indiceLector.js) y la hoja de la nota (lector/hojaNota.js) NO van aqui:
+   traen la tabla de la Biblia y solo hacen falta en un libro que las use. Se piden con import() la primera vez. */
 /* El salto al hiperespacio va DENTRO (1.3 KB): traerlo al pulsar lo hacia arrancar tarde
    en el telefono, y el salto se veia a trompicones. */
 import { saltar as lanzarSalto, calentar as calentarSalto } from './portal/salto.js';
@@ -908,6 +911,41 @@ function initBook() {
   const hojaFondo = lz('[data-lector-fondo]');
   const masLista = lz('[data-lector-mas-lista]');
   const copiarMuelle = lz('[data-lector-copiar]');
+  /* LOS MARCADORES (lector/marcadores.js): «Marcar», y su pestaña en el «Índice». Viven solo en este navegador. */
+  const marcarBtn = lz('[data-lector-marcar]');
+  let marcas = null;          // los del libro abierto, o null (sin almacen, o un libro sin clave)
+  /* EL ÍNDICE (lector/indiceLector.js): Palabras, Citas, Marcadores y Buscar en una hoja con pestañas */
+  const indiceBtn = lz('[data-lector-indice]');
+  const hojaIndice = lz('[data-lector-indice-hoja]');
+  const tabpanel = lz('[data-lector-tabpanel]');
+  const pestanas = [...s.panel.querySelectorAll('[data-pestana]')];
+  const filasIndice = lz('[data-lector-filas]');
+  const vacioIndice = lz('[data-lector-vacio]');
+  const cajaBusca = lz('[data-lector-buscar]');
+  const campoBusca = lz('[data-lector-busca]');
+  const estadoBusca = lz('[data-lector-busca-estado]');
+  let indiceVuelve = null;    // a donde vuelve el foco al cerrar el indice
+  let pestana = 'palabras';
+  let hojasLibro = [];        // el texto y los enlaces de cada pagina del libro abierto (pages.json o el enlace privado)
+  let datosIndice = null;     // { palabras, citas }, armado la primera vez que se abre el indice de este libro
+  let modIndice = null;       // lector/indiceLector.js, cuando ya llego
+  /* LAS NOTAS (lector/notaEnPdf.js): una palabra con definicion o una cita, dentro de un enlace del PDF. Se aceptan las del
+     sitio de verdad y las de esta copia (npm run dev, o el sitio en una subcarpeta). */
+  const ORIGENES_NOTA = [location.origin + import.meta.env.BASE_URL];
+  const notas = new WeakMap();   // boton de una nota en la hoja → la nota (ya limpia)
+  let hojaNota = null;           // lector/hojaNota.js armada, la primera vez que se abre una nota
+  const notaAbierta = () => !!(hojaNota && hojaNota.abierta());
+  let libroN = 0;                // sube con cada libro que se abre: lo que llega tarde (el indice, la nota) mira si sigue siendo el suyo
+  /* Un enlace de fuera, al pintarlo: solo https y mailto, sin espacios, comillas ni controles, y de un largo razonable */
+  // eslint-disable-next-line no-control-regex
+  const enlaceDeFueraBueno = (href) => typeof href === 'string' && href.length <= 2000 && /^(https:\/\/|mailto:)/i.test(href) && !/[\u0000-\u0020\u007f-\u009f<>"\\`]/.test(href);
+  let almacenMarcas;          // el almacen del navegador, si deja guardar (se mira una vez, al abrir el primer libro)
+  const almacen = () => {
+    if (almacenMarcas === undefined) {
+      try { almacenMarcas = almacenDisponible(window.localStorage) ? window.localStorage : null; } catch (err) { almacenMarcas = null; }
+    }
+    return almacenMarcas;
+  };
   let lectorLang = idiomaDelLector(null, lang);
   const tl = (k) => (UI[lectorLang] && UI[lectorLang]['lector.' + k]) || UI.en['lector.' + k] || k;
   let otroIdioma = null;      // la otra edicion del libro abierto ('es' | 'en'), o null
@@ -1855,6 +1893,7 @@ function initBook() {
       p.inert = !on;
       p.toggleAttribute('aria-hidden', !on);
     });
+    pintarMarcar();
     /* La barra y «Volver» siguen al libro (con un viaje en marcha, al lugar adonde va) */
     const dest = rec.destino();
     syncRuta(dest == null ? v[0] : dest);
@@ -1958,6 +1997,8 @@ function initBook() {
     rec.reiniciar();
     cerrarRuta();
     salirDelLector();
+    marcas = null;
+    lastVis = [];
     if (fb) { try { fb.destroy(); } catch (err) { /* ya no estaba */ } }
     fb = null;
     g = null;
@@ -2004,6 +2045,11 @@ function initBook() {
     const n = info.pages;
     if (boot) ldStep('lib');
     const [lib, texts] = await Promise.all([getLib(), getTexts(info)]);
+    /* Si alguna pagina trae una nota (/nota/#n=…), se pide su lector antes de armar las hojas: un libro sin notas no lo baja */
+    const conNotas = Array.isArray(texts) && texts.some((x) => x && Array.isArray(x.links) && x.links.some((L) => L && typeof L.href === 'string' && L.href.includes('/nota/')));
+    const leerNota = conNotas ? await import('./lector/notaEnPdf.js').catch(() => null) : null;
+    if (gen !== fbGen) return;
+    if (boot) { hojasLibro = Array.isArray(texts) ? texts : []; datosIndice = null; }
     if (gen !== fbGen) return;          // se cerro o se abrio otra mientras cargaba
     const { PageFlip } = lib;
     rec.cortar();                       // un reencuadernado a medio viaje: lo que giraba se corta (de donde se salto, no)
@@ -2032,6 +2078,10 @@ function initBook() {
       img.draggable = false;
       img.decoding = 'async';
       pg.appendChild(img);
+      /* La cinta de un marcador: cuelga del borde de arriba y solo se ve si la pagina esta marcada (base.css, .flip__cinta) */
+      const cinta = h('span', 'flip__cinta');
+      cinta.setAttribute('aria-hidden', 'true');
+      pg.appendChild(cinta);
 
       /* Lo que el PDF tiene escrito, para quien no ve la imagen */
       const txt = texts[i] && texts[i].text;
@@ -2040,13 +2090,23 @@ function initBook() {
       /* Los enlaces del PDF siguen siendo enlaces: los del indice pasan a
          su pagina, los de fuera abren en otra pestaña. */
       ((texts[i] && texts[i].links) || []).forEach((L) => {
+        /* Una NOTA (lector/notaEnPdf.js): una palabra con su definicion o una cita. Abre su hoja encima del libro. Lo que dice
+           ser una nota y no se deja leer como una no se pinta (ni como enlace). */
+        const pareceNota = !!L.href && L.href.includes('/nota/') && (!leerNota || leerNota.pareceEnlaceNota(L.href, { origenes: ORIGENES_NOTA }));
+        const nota = pareceNota && leerNota ? leerNota.notaDeEnlace(L.href, { origenes: ORIGENES_NOTA }) : null;
+        if (pareceNota && !nota) return;
         /* Un boton de COPIAR exportado en el PDF (lector/copiaEnPdf.js): copia su texto, no abre nada */
-        const copia = L.href ? textoDeCopia(L.href) : null;
-        const a = h(L.href && !copia ? 'a' : 'button', 'flip__link');
-        if (copia) { a.type = 'button'; a.dataset.flipCopia = '1'; copias.set(a, copia); }
+        const copia = L.href && !nota ? textoDeCopia(L.href) : null;
+        /* Lo demas es un enlace de fuera: se vuelve a mirar aqui, al pintarlo (solo https y mailto, sin espacios ni comillas),
+           aunque pages.json y el enlace privado ya lo hayan filtrado */
+        if (L.href && !nota && !copia && !enlaceDeFueraBueno(L.href)) return;
+        const a = h(L.href && !copia && !nota ? 'a' : 'button', nota ? 'flip__link flip__nota' : 'flip__link');
+        if (nota) { a.type = 'button'; a.dataset.flipNota = nota.k; a.setAttribute('aria-haspopup', 'dialog'); notas.set(a, nota); }
+        else if (copia) { a.type = 'button'; a.dataset.flipCopia = '1'; copias.set(a, copia); }
         else if (L.href) { a.href = L.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
         else { a.type = 'button'; a.dataset.flipTo = String(L.page); }
-        a.setAttribute('aria-label', copia ? tl('copiarMsg') : L.href || tl('paginaDe').replace('{n}', L.page + 1).replace('{t}', n));
+        a.setAttribute('aria-label', nota ? tl(nota.k === 'd' ? 'definicion' : 'cita').replace('{t}', () => leerNota.tituloDeNota(nota, lectorLang))
+          : copia ? tl('copiarMsg') : L.href || tl('paginaDe').replace('{n}', L.page + 1).replace('{t}', n));
         Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
         pg.appendChild(a);
       });
@@ -2110,6 +2170,7 @@ function initBook() {
     if (blando) flipBox.append(stage); else flipBox.append(shelf, stage);
     flipBox.dataset.tipo = blando ? 'blando' : 'duro';
     els.forEach((pg) => stage.appendChild(pg));
+    pintarCintas();
 
     fb = new PageFlip(stage, {
       width: pw, height: ph,
@@ -2275,8 +2336,32 @@ function initBook() {
     clearTimeout(avisoTimer);
     avisoTimer = setTimeout(() => { if (aviso) { aviso.removeAttribute('data-visible'); aviso.textContent = ''; } }, ms);
   }
-  const avisarCopia = (bien) => decir(tl(bien ? 'msgCopiado' : 'msgNo'), bien ? 1900 : 4200);
-  const copiarMensaje = async (texto) => {
+  /* Copiado: el propio boton de la hoja dice «Copiado» un momento (una pastilla pequeña encima de el; el estado de arriba lo
+     anuncia a quien no ve). Si no se pudo, el aviso de abajo lo dice. Un boton con su propio dibujo de «Copiado» es de la
+     etapa 5b: este es el de siempre. */
+  let copiadoTimer = 0;
+  const avisarCopia = (bien, boton) => {
+    if (!bien || !boton || !boton.isConnected) { decir(tl(bien ? 'msgCopiado' : 'msgNo'), bien ? 1900 : 4200); return; }
+    flipBox.querySelectorAll('.flip__copiado').forEach((x) => x.remove());
+    const sello = h('span', 'flip__copiado', tl('copiado'));
+    sello.setAttribute('aria-hidden', 'true');
+    sello.style.left = parseFloat(boton.style.left) + parseFloat(boton.style.width) / 2 + '%';
+    sello.style.top = boton.style.top;
+    boton.after(sello);
+    /* La hoja recorta lo que se sale (overflow hidden): la pastilla se queda DENTRO de la pagina. Pegada a un borde se corre
+       hacia dentro; sin sitio encima del boton, va debajo. */
+    const caja = boton.parentElement.getBoundingClientRect(), b = boton.getBoundingClientRect(), r = sello.getBoundingClientRect();
+    if (caja.width > 0 && caja.height > 0) {
+      const medio = r.width / 2 + 6;
+      const x = Math.max(medio, Math.min(caja.width - medio, b.left + b.width / 2 - caja.left));
+      sello.style.left = (x / caja.width) * 100 + '%';
+      if (b.top - caja.top < r.height + 10) { sello.style.top = ((b.bottom - caja.top) / caja.height) * 100 + '%'; sello.dataset.abajo = ''; }
+    }
+    copiarEstado.textContent = tl('msgCopiado');
+    clearTimeout(copiadoTimer);
+    copiadoTimer = setTimeout(() => { sello.remove(); copiarEstado.textContent = ''; }, 1600);
+  };
+  const copiarMensaje = async (texto, boton) => {
     let bien = false;
     try { await navigator.clipboard.writeText(texto); bien = true; } catch (err) { /* sin permiso o sin https: el metodo viejo */ }
     if (!bien) {
@@ -2290,13 +2375,293 @@ function initBook() {
         bien = d.execCommand('copy');
       } catch (err) { bien = false; } finally { caja.remove(); }
     }
-    avisarCopia(bien);
+    avisarCopia(bien, boton);
   };
+  /* ---- LOS MARCADORES ----
+     «Marcar» marca la pagina que se ve (en un pliego, la de la izquierda que lleva numero; si ninguna lo lleva, la primera
+     que se ve) y, si alguna de las que se ven ya esta marcada, la desmarca: el boton dice si ESTE pliego tiene marca. La
+     pagina marcada lleva una cinta. La lista «Marcadores» salta por el recorrido (asi «Volver» sabe de donde se vino). */
+  const hayMarcas = () => !!(marcas && fb);
+  /* Como se nombra una pagina en la lista y en el aviso: «Pág. 12», «Portada», «Contratapa», o «Hoja 3» si no lleva numero */
+  function nombreDePagina(p) {
+    const f = folioNum(p);
+    if (f != null) return tl('pagN').replace('{n}', f);
+    if (p === 0) return tl('portada');
+    if (p === count() - 1) return tl('contratapa');
+    return tl('hojaN').replace('{n}', p + 1);
+  }
+  function pintarCintas() {
+    flipBox.querySelectorAll('.flip__page').forEach((pg, x) => pg.toggleAttribute('data-marca', !!(marcas && marcas.tiene(x))));
+  }
+  function pintarMarcar() {
+    const hay = !!marcas;
+    marcarBtn.hidden = !hay;
+    /* Sin donde guardar no hay marcadores: su pestaña del indice tampoco sale */
+    pestanas.forEach((b) => { if (b.dataset.pestana === 'marcadores') b.hidden = !hay; });
+    if (!hay) return;
+    marcarBtn.setAttribute('aria-pressed', String(lastVis.some((x) => marcas.tiene(x))));
+  }
+  function alternarMarca() {
+    if (!hayMarcas() || booting || !lastVis.length) return;
+    const puestas = lastVis.filter((x) => marcas.tiene(x));
+    if (puestas.length) {
+      /* Dos paginas marcadas en el pliego: se quitan las dos. Si una no se pudo quitar, se dice cual quedo. */
+      const quedan = puestas.filter((x) => marcas.quitar(x) === 'falla');
+      if (!quedan.length) decir(tl('marcaQuitada'));
+      else if (quedan.length < puestas.length) decir(tl('marcaQueda').replace('{n}', nombreDePagina(quedan[0])), 4200);
+      else decir(tl('marcaNoQuita'), 4200);
+    } else {
+      const p = lastVis.find((x) => folioNum(x) != null) ?? lastVis[0];
+      const r = marcas.poner(p, folioNum(p));
+      if (r === 'ok') decir(tl('marcada').replace('{n}', nombreDePagina(p)));
+      else if (r === 'lleno') decir(tl('marcasLlenas'), 4200);
+      else if (r === 'falla') decir(tl('marcaNo'), 4200);
+    }
+    pintarCintas();
+    pintarMarcar();
+    if (indiceAbierto() && pestana === 'marcadores') pintarIndice();
+  }
+  const volverFoco = (a) => {
+    const donde = [a, indiceBtn, masBtn, asa, cerrarBtn].find((b) => b && b.isConnected && seVe(b) && !b.disabled);
+    if (donde) donde.focus({ preventScroll: true });
+  };
+  marcarBtn.addEventListener('click', alternarMarca);
+
+  /* ---- EL ÍNDICE ----
+     Cuatro pestañas en una hoja (role=tablist; las flechas, Inicio y Fin pasan de una a otra). Palabras y Citas salen de los
+     enlaces de nota del libro (lector/indiceLector.js, que llega con import() la primera vez); una fila lleva a su pagina y abre
+     su nota. Marcadores: las paginas marcadas, cada una con su × para quitarla. Buscar: en el texto del libro, sin tildes. Todo
+     salto pasa por el recorrido (goTo), asi «Volver» sabe de donde se vino. */
+  const indiceAbierto = () => hojaIndice.classList.contains('is-abierta');
+  const pestanasVisibles = () => pestanas.filter((b) => !b.hidden);
+  const tabActiva = () => pestanas.find((b) => b.dataset.pestana === pestana) || pestanas[0];
+  /* «pág. 12», «págs. 4, 9, 15…» (el numero impreso; sin el, la hoja contada desde 1) */
+  function rotuloPaginas(lista) {
+    const orden = [...lista].sort((a, b) => a - b);
+    if (orden.length === 1) {
+      const f = folioNum(orden[0]);
+      return f != null ? tl('pagCorta').replace('{n}', f) : nombreDePagina(orden[0]);
+    }
+    return tl('pagsCorta').replace('{n}', orden.slice(0, 3).map((p) => folioNum(p) ?? p + 1).join(', ') + (orden.length > 3 ? '…' : ''));
+  }
+  function filaIndice(titulo, paginas, resto, fn) {
+    const li = d.createElement('li');
+    const b = h('button', 'lector__fila');
+    b.type = 'button';
+    b.appendChild(h('strong', '', titulo));
+    if (paginas) b.appendChild(h('em', '', paginas));
+    if (resto) b.appendChild(resto);
+    b.addEventListener('click', fn);
+    li.appendChild(b);
+    return li;
+  }
+  function vacioDeIndice(texto) {
+    filasIndice.replaceChildren();
+    vacioIndice.textContent = texto || '';
+    vacioIndice.hidden = !texto;
+  }
+  /* Ir a la pagina de una nota y abrirla: el indice se cierra, la nota vuelve el foco a quien abrio el indice. Si quien lo
+     abrio era una palabra de la pagina (desde una nota), esa pagina se va con el salto: el foco vuelve a «Índice». */
+  const vueltaDelIndice = () => (indiceVuelve && flipBox.contains(indiceVuelve) ? indiceBtn : indiceVuelve);
+  function irANota(nota, p) {
+    const a = vueltaDelIndice();
+    cerrarIndice(true);
+    goTo(p);
+    abrirNota(nota, a);
+  }
+  function irAPagina(p) {
+    const a = vueltaDelIndice();
+    cerrarIndice(true);
+    goTo(p);
+    volverFoco(a);
+  }
+  /* La pestaña de los marcadores. Al quitar una marca, el foco pasa a la fila que queda en su sitio. */
+  function pintarMarcadores(foco) {
+    const lista = marcas ? marcas.lista() : [];
+    const cinta = marcarBtn.querySelector('svg');
+    const filas = lista.map(({ p }) => {
+      const li = d.createElement('li');
+      li.className = 'lector__marca';
+      const ir = h('button', 'lector__marca-ir');
+      ir.type = 'button';
+      if (cinta) { const c = cinta.cloneNode(true); c.removeAttribute('class'); ir.appendChild(c); }
+      const nombre = nombreDePagina(p);
+      ir.appendChild(h('span', '', nombre));
+      ir.addEventListener('click', () => irAPagina(p));
+      const quita = h('button', 'lector__redondo lector__marca-quita');
+      quita.type = 'button';
+      quita.setAttribute('aria-label', tl('quitarMarca').replace('{n}', nombre));
+      quita.title = tl('quitarMarca').replace('{n}', nombre);
+      const x = lz('[data-lector-hoja-cierra] svg');
+      if (x) quita.appendChild(x.cloneNode(true));
+      quita.addEventListener('click', () => {
+        const i = marcas ? marcas.lista().findIndex((m) => m.p === p) : -1;
+        const r = marcas ? marcas.quitar(p) : 'falla';
+        decir(tl(r === 'falla' ? 'marcaNoQuita' : 'marcaQuitada'), r === 'falla' ? 4200 : 2200);
+        pintarCintas();
+        pintarMarcar();
+        pintarMarcadores(i);
+      });
+      li.append(ir, quita);
+      return li;
+    });
+    filasIndice.replaceChildren(...filas);
+    vacioIndice.textContent = tl('sinMarcadores');
+    vacioIndice.hidden = filas.length > 0;
+    if (Number.isInteger(foco)) {
+      const botones = filasIndice.querySelectorAll('.lector__marca-ir');
+      const b = botones[Math.min(foco, botones.length - 1)];
+      (b || tabActiva()).focus({ preventScroll: true });
+    }
+  }
+  /* La pestaña de buscar: una fila por pagina, con lo hallado resaltado en su trozo de texto */
+  let buscaTimer = 0;
+  function pintarBusqueda() {
+    if (!modIndice || !datosIndice) return;
+    if (!datosIndice.texto) { cajaBusca.hidden = true; vacioDeIndice(tl('sinTexto')); estadoBusca.textContent = ''; return; }
+    cajaBusca.hidden = false;
+    const q = campoBusca.value.trim();
+    const r = modIndice.buscar(hojasLibro, q);
+    if (r.corto) { vacioDeIndice(q ? tl('buscaYa') : ''); estadoBusca.textContent = ''; return; }
+    if (!r.filas.length) { const no = tl('sinNada').replace('{q}', () => q); vacioDeIndice(no); estadoBusca.textContent = no; return; }
+    vacioIndice.hidden = true;
+    const filas = r.filas.map(({ p, antes, hallado, despues }) => {
+      const trozo = h('span', '');
+      trozo.append(d.createTextNode(antes), h('mark', '', hallado), d.createTextNode(despues));
+      return filaIndice(nombreDePagina(p), '', trozo, () => irAPagina(p));
+    });
+    if (r.tope) filas.push(h('li', 'lector__fila-nota', tl('primeras').replace('{n}', r.filas.length)));
+    filasIndice.replaceChildren(...filas);
+    estadoBusca.textContent = r.filas.length === 1 ? tl('hallado1') : tl('hallados').replace('{n}', r.filas.length);
+  }
+  function pintarPestanas() {
+    if (pestana === 'marcadores' && !marcas) pestana = 'palabras';
+    pestanas.forEach((b) => {
+      const si = b.dataset.pestana === pestana;
+      b.setAttribute('aria-selected', String(si));
+      b.tabIndex = si ? 0 : -1;
+    });
+    tabpanel.setAttribute('aria-labelledby', 'lector-tab-' + pestana);
+  }
+  function pintarIndice(foco) {
+    pintarPestanas();
+    cajaBusca.hidden = pestana !== 'buscar';
+    if (pestana !== 'buscar') estadoBusca.textContent = '';
+    tabpanel.toggleAttribute('data-buscar', pestana === 'buscar');
+    if (pestana === 'marcadores') { pintarMarcadores(foco); return; }
+    const datos = datosIndice;
+    /* El indice aun no llego (la primera vez): la hoja se ve ya, y se llena al llegar */
+    if (!datos) { vacioDeIndice(''); cajaBusca.hidden = true; return; }
+    if (pestana === 'buscar') { pintarBusqueda(); return; }
+    const lista = pestana === 'palabras' ? datos.palabras : datos.citas;
+    if (!lista.length) { vacioDeIndice(tl(pestana === 'palabras' ? 'sinPalabras' : 'sinCitas')); return; }
+    vacioIndice.hidden = true;
+    filasIndice.replaceChildren(...lista.map(({ nota, paginas }) => {
+      const resto = nota.k === 'd' && nota.d ? h('span', '', nota.d) : null;
+      return filaIndice(modIndice.tituloDeNota(nota, lectorLang), rotuloPaginas(paginas), resto, () => irANota(nota, Math.min(...paginas)));
+    }));
+  }
+  async function cargarIndice() {
+    if (!modIndice) modIndice = await import('./lector/indiceLector.js');
+    if (!datosIndice) {
+      const o = { origenes: ORIGENES_NOTA };
+      datosIndice = { palabras: modIndice.palabrasDe(hojasLibro, o), citas: modIndice.citasDe(hojasLibro, o), texto: modIndice.hayTexto(hojasLibro) };
+    }
+  }
+  function abrirIndice(tab, desde) {
+    if (!fb) return;
+    if (tab) pestana = tab;
+    if (!indiceAbierto()) {
+      indiceVuelve = desde || d.activeElement;
+      listaIdioma(false);
+      hojaIndice.classList.add('is-abierta');
+      hojaFondo.classList.add('is-abierta', 'is-indice');
+      indiceBtn.setAttribute('aria-expanded', 'true');
+      detras().forEach((x) => { x.inert = true; });
+    }
+    pintarIndice();
+    tabActiva().focus({ preventScroll: true });
+    const mio = libroN;
+    cargarIndice()
+      .then(() => { if (indiceAbierto() && libroN === mio) pintarIndice(); })
+      .catch(() => { if (indiceAbierto() && libroN === mio) { cajaBusca.hidden = true; vacioDeIndice(tl('indiceNo')); } });
+  }
+  function cerrarIndice(sinFoco) {
+    if (!indiceAbierto()) return;
+    clearTimeout(buscaTimer);
+    hojaIndice.classList.remove('is-abierta');
+    hojaFondo.classList.remove('is-abierta', 'is-indice');
+    indiceBtn.setAttribute('aria-expanded', 'false');
+    detras().forEach((x) => { x.inert = false; });
+    const a = indiceVuelve;
+    indiceVuelve = null;
+    if (!sinFoco) volverFoco(a);
+  }
+  indiceBtn.addEventListener('click', () => abrirIndice(null, indiceBtn));
+  lz('[data-lector-indice-cierra]').addEventListener('click', () => cerrarIndice());
+  pestanas.forEach((b) => b.addEventListener('click', (e) => {
+    pestana = b.dataset.pestana;
+    pintarIndice();
+    /* Con el dedo o el raton (e.detail > 0), «Buscar» deja escribiendo; con el teclado (Enter, Espacio) el foco se queda en
+       la pestaña */
+    if (pestana === 'buscar' && !cajaBusca.hidden && e.detail > 0) campoBusca.focus({ preventScroll: true });
+  }));
+  lz('[data-lector-pestanas]').addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const vis = pestanasVisibles();
+    const i = vis.indexOf(e.target);
+    if (i < 0) return;
+    const j = e.key === 'ArrowRight' ? (i + 1) % vis.length : e.key === 'ArrowLeft' ? (i - 1 + vis.length) % vis.length
+      : e.key === 'Home' ? 0 : e.key === 'End' ? vis.length - 1 : -1;
+    if (j < 0) return;
+    e.preventDefault();
+    pestana = vis[j].dataset.pestana;
+    pintarIndice();
+    vis[j].focus({ preventScroll: true });
+  });
+  campoBusca.addEventListener('input', () => { clearTimeout(buscaTimer); buscaTimer = setTimeout(pintarBusqueda, 140); });
+  campoBusca.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    clearTimeout(buscaTimer);
+    pintarBusqueda();
+    const primera = filasIndice.querySelector('button');
+    if (primera) primera.focus({ preventScroll: true });
+  });
+
+  /* ---- LA NOTA: lector/hojaNota.js llega con import() la primera vez que se toca una ---- */
+  async function abrirNota(nota, desde) {
+    if (!nota || !fb) return;
+    /* La primera vez hay que esperar la hoja: si mientras tanto se cerro el libro o se abrio otro, no se abre nada */
+    const mio = libroN;
+    if (!hojaNota) {
+      try {
+        const m = await import('./lector/hojaNota.js');
+        hojaNota = hojaNota || m.crearHojaNota({
+          panel: s.panel, tl, idioma: () => lectorLang, base: import.meta.env.BASE_URL, fondo: hojaFondo,
+          detras: () => detras(), verIndice: (tab, a) => abrirIndice(tab, a),
+          alCerrar: (a, sinFoco) => { if (!sinFoco) volverFoco(a); },
+        });
+      } catch (err) {
+        if (libroN !== mio) return;
+        decir(tl('citaNo'), 4200);
+        volverFoco(desde);
+        return;
+      }
+    }
+    if (!fb || libroN !== mio) return;
+    cerrarHoja(true);
+    cerrarIndice(true);
+    hojaNota.abrir(nota, desde);
+  }
+
   flipBox.addEventListener('click', (e) => {
     const go = e.target.closest('[data-flip-to]');
     if (go) goTo(Number(go.dataset.flipTo));
+    const nt = e.target.closest('[data-flip-nota]');
+    if (nt && notas.has(nt)) abrirNota(notas.get(nt), nt);
     const cp = e.target.closest('[data-flip-copia]');
-    if (cp && copias.has(cp)) copiarMensaje(copias.get(cp));
+    if (cp && copias.has(cp)) copiarMensaje(copias.get(cp), cp);
   });
 
   backBtn.addEventListener('click', goBack);
@@ -2611,7 +2976,7 @@ function initBook() {
   /* Los rotulos, en el idioma del LIBRO. Se ponen al abrir (y al cambiar de edicion). */
   function rotular(enVista) {
     const pon = (nodo, texto, conTitulo = true) => { if (!nodo) return; nodo.setAttribute('aria-label', texto); if (conTitulo) nodo.title = texto; };
-    [banda, ruta, hojaMas, ...lados].forEach((x) => x.setAttribute('lang', lectorLang));
+    [banda, ruta, hojaMas, hojaIndice, ...lados].forEach((x) => x.setAttribute('lang', lectorLang));
     pon(sitioLink, tl(enVista ? 'sitioNueva' : 'sitio'));
     pon(lz('[data-lector-ajustes]'), tl('ajustes'), false);
     pon(temaBtn, tl('tema'));
@@ -2635,6 +3000,18 @@ function initBook() {
     soundBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => pon(b, tl('sonido')));
     pon(copiarMuelle, tl('enlace'));
     pon(asa, tl(solo ? 'mostrar' : 'esconder'));
+    marcarBtn.setAttribute('aria-label', tl('marcarPagina'));
+    marcarBtn.title = tl('marcarAyuda');
+    /* «Índice» lleva su nombre escrito; el titulo dice lo que trae */
+    lz('[data-lector-indice-texto]').textContent = tl('indice');
+    indiceBtn.setAttribute('aria-label', tl('indice'));
+    indiceBtn.title = tl('indiceAyuda');
+    lz('#lector-indice-t').textContent = tl('indice');
+    pon(lz('[data-lector-indice-cierra]'), tl('cerrarHoja'));
+    pestanas.forEach((b) => { b.textContent = tl(b.dataset.pestana); });
+    tabpanel.setAttribute('aria-label', tl('indice'));
+    campoBusca.placeholder = tl('buscarCampo');
+    campoBusca.setAttribute('aria-label', tl('buscarCampo'));
   }
 
   /* EL IDIOMA DEL LIBRO. La bandera del que esta puesto; si el libro tiene otra edicion (el mismo libro en el otro idioma),
@@ -2727,7 +3104,8 @@ function initBook() {
     const libre = (b) => b && b !== a && seVe(b) && !b.disabled;
     const gemelo = prevBtns.includes(a) ? prevBtns.find(libre)
       : nextBtns.includes(a) ? nextBtns.find(libre)
-      : a === masBtn ? [zoomBtn, ...soundBtns, copiarMuelle].find(libre) : null;
+      : a === masBtn ? [marcarBtn, zoomBtn, ...soundBtns, copiarMuelle].find(libre)
+      : a === marcarBtn || a === indiceBtn ? masBtn : null;
     const donde = gemelo || [asa, cerrarBtn].find(libre);
     if (donde) donde.focus({ preventScroll: true });
   }
@@ -2799,10 +3177,30 @@ function initBook() {
       return li;
     };
     const son = soundBtns.find((b) => !b.classList.contains('book__arrow'));
-    const filas = [
+    const filas = [];
+    /* Marcar (dice lo que hara: marcar esta pagina o quitar su marca) y la lista, con cuantas hay */
+    if (marcas) {
+      const puesta = lastVis.some((x) => marcas.tiene(x));
+      const fm = fila(marcarBtn.querySelector('svg'), tl(puesta ? 'desmarcar' : 'marcarPagina'), () => { alternarMarca(); pintarMas(); });
+      fm.firstChild.toggleAttribute('data-marcada', puesta);
+      filas.push(fm);
+    }
+    /* «Índice» abre en la pestaña de antes; «Marcadores» lo abre directo en la suya, con cuantas hay */
+    const fi = fila(indiceBtn.querySelector('svg'), tl('indice'), () => { const a = hojaVuelve; cerrarHoja(true); abrirIndice(null, a || masBtn); });
+    fi.firstChild.setAttribute('aria-haspopup', 'dialog');
+    filas.push(fi);
+    if (marcas) {
+      const cuantas = marcas.lista().length;
+      const dibujo = d.getElementById('lector-icono-marcas');
+      const fl = fila(dibujo && dibujo.content.querySelector('svg'), tl('marcadores'), () => { const a = hojaVuelve; cerrarHoja(true); abrirIndice('marcadores', a || masBtn); });
+      if (cuantas) fl.firstChild.appendChild(h('em', '', String(cuantas)));
+      fl.firstChild.setAttribute('aria-haspopup', 'dialog');
+      filas.push(fl);
+    }
+    filas.push(
       fila(zoomBtn.querySelector('svg'), tl('lupa'), () => { cerrarHoja(true); zoomIn(); }),
       fila(son && son.querySelector('svg'), tl('sonido'), () => { cambiarSonido(); pintarMas(); }, soundOn),
-    ];
+    );
     if (!copiarMuelle.hidden) {
       const dibujo = copiarMuelle.querySelector(copiado ? '.lector__copiar-hecho svg' : '.lector__copiar-sin');
       /* `desde`: la fila, para que el metodo viejo de copiar (una caja de texto) le devuelva el foco a ella */
@@ -2835,7 +3233,7 @@ function initBook() {
     if (donde) donde.focus({ preventScroll: true });
   }
   masBtn.addEventListener('click', abrirHoja);
-  hojaFondo.addEventListener('click', () => cerrarHoja());
+  hojaFondo.addEventListener('click', () => { cerrarHoja(); cerrarIndice(); if (hojaNota) hojaNota.cerrar(); });
   lz('[data-lector-hoja-cierra]').addEventListener('click', () => cerrarHoja());
 
   /* ESCAPE, POR ORDEN: primero lo que este abierto encima (la lista del idioma, «Más»); luego, si los botones estan
@@ -2844,6 +3242,12 @@ function initBook() {
   d.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !s.panel.hasAttribute('data-lector') || openSheets[openSheets.length - 1] !== s.panel) return;
     if (!idiomaLista.hidden) listaIdioma(false, true);
+    else if (notaAbierta()) hojaNota.cerrar();
+    else if (indiceAbierto()) {
+      /* En el campo de buscar, el primer Escape borra lo escrito; el siguiente cierra el indice */
+      if (d.activeElement === campoBusca && campoBusca.value) { campoBusca.value = ''; pintarBusqueda(); }
+      else cerrarIndice();
+    }
     else if (hojaMas.classList.contains('is-abierta')) cerrarHoja();
     else if (zoom) return;
     else if (solo) ponerSolo(false);
@@ -2882,7 +3286,8 @@ function initBook() {
   function entrarAlLector(id, f) {
     ponerFirma();
     const esPrivado = privado.has(id);
-    lectorLang = idiomaDelLector(f.v.cual === 'all' || esPrivado ? null : f.v.lang, lang);
+    /* El privado trae su idioma de la edicion (vista.js); si no lo trae, f.v.lang es el de la pagina */
+    lectorLang = idiomaDelLector(f.v.cual === 'all' ? null : f.v.lang, lang);
     const hechos = !esPrivado && Object.prototype.hasOwnProperty.call(BOOKS, id) ? BOOKS[id] : null;
     otroIdioma = f.libro ? otraEdicion(f.v.cual, hechos, f.libro.glosario ? null : f.libro.idiomas) : null;
     s.panel.setAttribute('data-lector', '');
@@ -2898,12 +3303,22 @@ function initBook() {
     pintarTema();
     campo.value = '';
     asaFolio.textContent = '';
+    /* El indice empieza de cero con cada libro (sus palabras, su busqueda) */
+    libroN++;
+    indiceBtn.hidden = false;
+    pestana = 'palabras';
+    campoBusca.value = '';
+    hojasLibro = [];
+    datosIndice = null;
     /* El muelle ya ocupa su sitio (carga.css lo deja sin verse mientras el libro llega): asi se puede medir */
     ruta.hidden = false;
   }
   function salirDelLector() {
     if (!s.panel.hasAttribute('data-lector')) return;
+    libroN++;
     cerrarHoja(true);
+    cerrarIndice(true);
+    if (hojaNota) hojaNota.cerrar(true);
     listaIdioma(false);
     clearTimeout(fbResize);
     medidaPendiente = false;
@@ -2913,7 +3328,7 @@ function initBook() {
     cerrarBtn.setAttribute('aria-label', t('a11y.termClose'));
     cerrarBtn.removeAttribute('title');
     /* El idioma del libro se va con el: el libro escrito que se abra despues habla el de la pagina, como antes */
-    [banda, ruta, hojaMas, ...lados].forEach((x) => x.removeAttribute('lang'));
+    [banda, ruta, hojaMas, hojaIndice, ...lados].forEach((x) => x.removeAttribute('lang'));
     otroIdioma = null;
   }
 
@@ -2935,8 +3350,13 @@ function initBook() {
     if (f.v.lang !== lang) flipBox.setAttribute('lang', f.v.lang); else flipBox.removeAttribute('lang');
     el('book').hidden = true;
     flipBox.hidden = false;
+    /* Los marcadores de ESTE libro: de Recursos, por su id y la edicion que se lee; el privado trae su clave (una huella del
+       enlace, hecha en vista.js). Sin almacen o sin clave, no hay «Marcar». */
+    const claveMarcas = privado.has(id) ? pdf.marcas : claveRecursos(id, f.v.cual);
+    marcas = claveValida(claveMarcas) && almacen() ? crearMarcadores(almacen(), claveMarcas, pdf.pages) : null;
     /* La banda y el muelle se ponen ANTES de medir: el libro ocupa lo que le dejan */
     entrarAlLector(id, f);
+    pintarMarcar();
     const fit = flipSize(pdf.ratio);
     flipBox.style.width = fit.pw * 2 + 'px';
     flipBox.style.height = fit.ph + 'px';
@@ -3103,7 +3523,15 @@ function initBook() {
     if (openSheets[openSheets.length - 1] !== s.panel || booting) return;
     /* Quien escribe (el campo «Pág.») no pasa hojas: ni las flechas ni la B son del libro mientras tanto. Y con «Más» abierta, tampoco. */
     if (e.target && e.target.matches && e.target.matches('input[type="text"], input[type="search"], textarea')) return;
-    if (hojaMas.classList.contains('is-abierta')) return;
+    if (hojaMas.classList.contains('is-abierta') || indiceAbierto() || notaAbierta()) return;
+    /* M: marcar (o desmarcar) la pagina que se ve. Es una tecla de letra en un lector sin otra M; con la lupa, tambien vale. */
+    if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && hayMarcas()) {
+      e.preventDefault();
+      /* Dejar la tecla apretada no marca y desmarca sin parar */
+      if (e.repeat) return;
+      alternarMarca();
+      return;
+    }
     /* Con la lupa abierta el libro de fondo no se mueve: ni B ni RePag ni AvPag */
     if (zoom && fb && /^(b|B|PageUp|PageDown)$/.test(e.key)) return;
     /* La barra de recorrer tiene sus propias teclas (flechas, Inicio, Fin, RePag, AvPag): se mueve sola y, al soltar, el libro viaja */
@@ -3212,8 +3640,13 @@ function initBook() {
   d.addEventListener('lector:abrir', (e) => {
     const x = e.detail || {};
     if (!(x.paginas >= 1) || typeof x.src !== 'function') return;
-    const pdf = { pages: x.paginas, ratio: x.ratio > 0 ? x.ratio : 5 / 7, v: 'privado', board: x.board || null, textos: Array.isArray(x.textos) ? x.textos : [], src: x.src };
-    privado.set('privado', { libro: null, v: { lang, pdf, cual: 'privado', texto: false, marca: null }, blando: !!x.blando, titulo: String(x.titulo || ''), glosa: '' });
+    /* `folios`: un numero impreso (o null) por imagen; numeracion() los vuelve a revisar. Sin ellos se cuentan las imagenes.
+       `marcas`: la clave de sus marcadores (una huella del enlace, nunca el enlace). `idioma`: el del libro, si es uno del sitio. */
+    const folios = Array.isArray(x.folios) && x.folios.length === x.paginas ? x.folios : null;
+    const idioma = typeof x.idioma === 'string' && Object.prototype.hasOwnProperty.call(META, x.idioma) ? x.idioma : lang;
+    const pdf = { pages: x.paginas, ratio: x.ratio > 0 ? x.ratio : 5 / 7, v: 'privado', board: x.board || null, textos: Array.isArray(x.textos) ? x.textos : [], src: x.src,
+                  folios, marcas: claveValida(x.marcas) && x.marcas.startsWith('v:') ? x.marcas : null };
+    privado.set('privado', { libro: null, v: { lang: idioma, pdf, cual: 'privado', texto: false, marca: null }, blando: !!x.blando, titulo: String(x.titulo || ''), glosa: '' });
     alCerrar = typeof x.alCerrar === 'function' ? x.alCerrar : null;
     open('privado');
   });

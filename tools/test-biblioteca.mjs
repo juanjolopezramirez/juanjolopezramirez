@@ -401,7 +401,9 @@ const { UI, LANGS } = await cargar('src/i18n/ui.js');
 
 console.log('enlace corto: nombres reservados');
 ok('la lista incluye la de la raiz del sitio y los cinco idiomas', () => {
-  for (const id of ['es', 'en', 'pt', 'fr', 'it', 'portal', 'vista', 'actividad', 'taller-hoja', 'api', 'robots', 'sitemap', 'favicon', 'assets', 'books', 'sounds', '_astro', 'admin', 'login', 'www', 'index', '404', 'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public']) {
+  /* copiar y nota: las paginas a las que llevan el boton de copiar y las notas de un PDF
+     (pages/copiar.astro, pages/nota.astro) */
+  for (const id of ['es', 'en', 'pt', 'fr', 'it', 'portal', 'vista', 'actividad', 'taller-hoja', 'api', 'robots', 'sitemap', 'favicon', 'assets', 'books', 'sounds', '_astro', 'admin', 'login', 'www', 'index', '404', 'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public', 'copiar', 'nota']) {
     assert.ok(RUTAS_RESERVADAS.includes(id), id);
     assert.ok(RESERVADOS.has(id), id);
   }

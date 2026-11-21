@@ -13,8 +13,9 @@
    Lo que llega de la funcion es dato ajeno: se revisa antes de dar nada al lector (medidas, direcciones, enlaces). */
 import { leerConfig } from '../portal/config.js';
 import { leerToken } from '../contenido/taller/Enlaces.js';
-import { hojasSeguras, PAGINAS_MAX } from '../contenido/taller/PaginasEdicion.js';
+import { hojasSeguras, foliosDeHojas, PAGINAS_MAX } from '../contenido/taller/PaginasEdicion.js';
 import { preguntar } from './preguntar.js';
+import { claveDeEnlace } from './marcadores.js';
 
 const RENOVAR_MS = 7 * 60 * 1000;
 
@@ -47,7 +48,9 @@ async function pedir(cfg, token, renovar) {
   return preguntar({ url: cfg.url, clave: cfg.clave }, token, renovar);
 }
 
-/* Lo que llega se comprueba entero. Devuelve { titulo, n, ratio, blando, hojas, w900, w1600 } o null. */
+/* Lo que llega se comprueba entero. Devuelve { titulo, idioma, n, ratio, blando, hojas, folios, w900, w1600 } o null.
+   `folios`: los numeros impresos de cada pagina (las ediciones nuevas los traen en sus hojas), o null: el lector cuenta las
+   imagenes como antes. `idioma`: el del libro, si tiene la forma de un idioma; si no, null (el lector usa el de la pagina). */
 function revisar(d, cfg) {
   if (!d || typeof d !== 'object') return null;
   const n = d.paginas;
@@ -61,7 +64,9 @@ function revisar(d, cfg) {
   const lista = (a) => (Array.isArray(a) && a.length === n && a.every(buena) ? a : null);
   const w900 = lista(urls.w900), w1600 = lista(urls.w1600);
   if (!w900 || !w1600) return null;
-  return { titulo: String(d.titulo || '').slice(0, 200), n, ratio, blando: d.blando === true, hojas: hojasSeguras(d.hojas, n), w900, w1600 };
+  const hojas = hojasSeguras(d.hojas, n);
+  const idioma = typeof d.idioma === 'string' && /^[a-z]{2}$/.test(d.idioma) ? d.idioma : null;
+  return { titulo: String(d.titulo || '').slice(0, 200), idioma, n, ratio, blando: d.blando === true, hojas, folios: foliosDeHojas(hojas), w900, w1600 };
 }
 
 function cuandoListo(fn) {
@@ -102,12 +107,15 @@ async function iniciar() {
   estado.textContent = '';
   estado.hidden = true;
   const boton = q('[data-vista-abrir]');
+  /* Los marcadores de este libro (lector/marcadores.js) se guardan con una HUELLA del secreto, nunca con el: el secreto no
+     sale de este archivo. Sin la cuenta (un navegador viejo), el libro se abre igual, sin «Marcar». */
+  const marcas = await claveDeEnlace(token);
   const abrir = () => {
     boton.hidden = true;
     document.dispatchEvent(new CustomEvent('lector:abrir', {
       detail: {
-        titulo: libro.titulo, paginas: libro.n, ratio: libro.ratio, blando: libro.blando,
-        board: libro.blando ? null : ['#263B28', '#263B28'], textos: libro.hojas, src,
+        titulo: libro.titulo, idioma: libro.idioma, paginas: libro.n, ratio: libro.ratio, blando: libro.blando,
+        board: libro.blando ? null : ['#263B28', '#263B28'], textos: libro.hojas, folios: libro.folios, marcas, src,
         alCerrar: () => { boton.hidden = false; boton.focus(); }
       }
     }));

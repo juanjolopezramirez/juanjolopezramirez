@@ -582,7 +582,8 @@ await ok('las palabras del lector (lector.*) estan en español e ingles, enteras
   for (const l of ['es', 'en']) for (const k of claves(l)) assert.ok(typeof UI[l][k] === 'string' && UI[l][k].trim().length > 0, `${l} · ${k}`);
   for (const l of LANGS.filter((x) => x !== 'es' && x !== 'en')) assert.deepEqual(claves(l), [], `${l} no lleva lector.*: el lector habla el idioma del libro`);
   /* las que llevan un hueco, lo llevan en los dos idiomas */
-  for (const [k, hueco] of [['lector.volver', '{n}'], ['lector.de', '{t}'], ['lector.paginaDe', '{n}'], ['lector.paginaDe', '{t}'], ['lector.llega', '{n}'], ['lector.empieza', '{n}'], ['lector.numero', '{a}'], ['lector.numero', '{n}']]) {
+  for (const [k, hueco] of [['lector.volver', '{n}'], ['lector.de', '{t}'], ['lector.paginaDe', '{n}'], ['lector.paginaDe', '{t}'], ['lector.llega', '{n}'], ['lector.empieza', '{n}'], ['lector.numero', '{a}'], ['lector.numero', '{n}'],
+    ['lector.marcada', '{n}'], ['lector.quitarMarca', '{n}'], ['lector.pagN', '{n}'], ['lector.hojaN', '{n}']]) {
     for (const l of ['es', 'en']) assert.ok(UI[l][k].includes(hueco), `${l} · ${k} · ${hueco}`);
   }
   assert.equal(UI.es['lector.volver'], 'Volver a la pág. {n}');
@@ -593,6 +594,8 @@ await ok('las palabras del lector (lector.*) estan en español e ingles, enteras
   const pedidas = new Set([...site.matchAll(/\btl\('([A-Za-z]+)'\)/g)].map((m) => m[1]));
   assert.ok(pedidas.size >= 20);
   for (const k of pedidas) assert.ok(UI.es['lector.' + k] && UI.en['lector.' + k], `falta lector.${k}`);
+  /* las que se piden con un «? :» (no las ve la busqueda de arriba) */
+  for (const k of ['marcarPagina', 'desmarcar', 'marcaNo', 'marcaQuitada']) assert.ok(UI.es['lector.' + k] && UI.en['lector.' + k], `falta lector.${k}`);
 });
 
 console.log('el marcado');
@@ -632,8 +635,16 @@ await ok('el lector: la banda, el campo de pagina, el asa y «Más» estan en el
   assert.match(a, /data-lector-idioma-btn aria-expanded="false"/);
   assert.match(a, /data-lector-copiar hidden/);
   assert.ok(!/\son[a-z]+=["{]/.test(a.slice(a.indexOf('id="book-panel"'), a.indexOf('id="book-mark"'))), 'sin manejadores en linea (la politica de contenido no los deja)');
-  /* «Marcar» e «Índice» son de etapas que vienen: aun no estan */
-  assert.ok(!/data-lector-(marcar|indice)/.test(a));
+  /* «Marcar» nace escondido (solo sale si el navegador deja guardar), con su tecla; «Índice» ocupa el sitio de «Marcadores»
+     (que ahora es una de sus pestañas) */
+  assert.match(a, /data-lector-marcar aria-pressed="false" aria-keyshortcuts="M" hidden/);
+  assert.match(a, /data-lector-indice aria-haspopup="dialog" aria-expanded="false" aria-controls="lector-indice" hidden/);
+  assert.match(a, /id="lector-indice" role="dialog" aria-modal="true" aria-labelledby="lector-indice-t"/);
+  assert.ok(!/data-lector-marcas\b/.test(a), 'la hoja vieja de marcadores se fue');
+  assert.match(a, /role="tablist" data-lector-pestanas/);
+  for (const p of ['palabras', 'citas', 'marcadores', 'buscar']) assert.match(a, new RegExp(`role="tab" id="lector-tab-${p}" aria-controls="lector-tabpanel"[^>]*data-pestana="${p}"`));
+  assert.match(a, /id="lector-tabpanel" role="tabpanel"/);
+  assert.match(a, /<input type="search"[^>]*data-lector-busca \/>/);
 });
 await ok('el lector: sus estilos piden toque de 44 px, foco visible, tema claro por el mecanismo del sitio y menos movimiento', () => {
   const css = leer('src/styles/base.css');
@@ -666,7 +677,9 @@ await ok('la carga sobre el papel: sus botones pasan por encima con oficios, no 
 await ok('el lector se va sin dejar rastro, y empieza cada libro igual', () => {
   const site = leer('src/scripts/site.js');
   const salir = site.slice(site.indexOf('function salirDelLector()'), site.indexOf('/* Abre el libro en PDF con su carga'));
-  assert.match(salir, /\[banda, ruta, hojaMas, \.\.\.lados\]\.forEach\(\(x\) => x\.removeAttribute\('lang'\)\)/, 'el idioma del libro no se queda en el libro escrito');
+  assert.match(salir, /\[banda, ruta, hojaMas, hojaIndice, \.\.\.lados\]\.forEach\(\(x\) => x\.removeAttribute\('lang'\)\)/, 'el idioma del libro no se queda en el libro escrito');
+  assert.match(salir, /cerrarIndice\(true\);/, 'el indice no se queda abierto');
+  assert.match(salir, /if \(hojaNota\) hojaNota\.cerrar\(true\);/, 'ni la nota');
   const entrar = site.slice(site.indexOf('function entrarAlLector('), site.indexOf('function salirDelLector()'));
   assert.match(entrar, /solo = false;/, 'el asa no se arrastra al libro siguiente');
   assert.match(entrar, /sitioLink\.rel = 'noopener noreferrer'/);
@@ -704,6 +717,316 @@ await ok('el lector en site.js: mide la banda y el muelle, no reencuaderna con e
   assert.match(lector, /sitioLink\.target = '_blank'; sitioLink\.rel = 'noopener noreferrer'/);
   assert.match(site, /import \{[^}]*idiomaDelLector[^}]*leerPagina[^}]*numeracion[^}]*\} from '\.\/lector\/pliegos\.js'/);
 });
+
+console.log('los folios del enlace privado (el numero impreso de cada pagina)');
+const PE = await import('../src/scripts/contenido/taller/PaginasEdicion.js');
+const ALTO = 800;
+/* Un texto de la pagina: `donde` = 'pie' | 'cabeza' | 'medio' */
+const txt = (str, donde = 'pie') => ({ str, y0: donde === 'pie' ? 760 : donde === 'cabeza' ? 30 : 400, y1: donde === 'pie' ? 772 : donde === 'cabeza' ? 42 : 412 });
+/* Un libro de `n` paginas: `num(i)` dice que lleva impreso la pagina i (o null) */
+const leerLibro = (n, num, donde = 'pie') => Array.from({ length: n }, (_, i) => {
+  const items = [txt('Un parrafo de la pagina', 'medio')];
+  const f = num(i);
+  if (f != null) items.push(txt(String(f), donde));
+  return PE.folioDeTextos(items, ALTO);
+});
+await ok('folioDeTextos: un numero solo en el pie; si no, en la cabeza; con duda, ninguno', () => {
+  assert.equal(PE.folioDeTextos([txt('12')], ALTO), 12);
+  assert.equal(PE.folioDeTextos([txt(' 7 ')], ALTO), 7);
+  assert.equal(PE.folioDeTextos([txt('12', 'cabeza')], ALTO), 12);
+  assert.equal(PE.folioDeTextos([txt('3', 'cabeza'), txt('12')], ALTO), 12, 'el pie manda');
+  assert.equal(PE.folioDeTextos([txt('12', 'medio')], ALTO), null, 'en medio de la pagina no es un folio');
+  assert.equal(PE.folioDeTextos([txt('12'), txt('13')], ALTO), null, 'dos numeros distintos en el pie: duda');
+  assert.equal(PE.folioDeTextos([txt('12'), txt('12')], ALTO), 12, 'el mismo dos veces es uno');
+  for (const malo of ['12345', '0', '1a', '-3', '2.5', 'xii', '']) assert.equal(PE.folioDeTextos([txt(malo)], ALTO), null, malo);
+  for (const roto of [null, 'x', 5, {}, { str: 5, y0: 760 }, { str: '4', y0: 'abajo' }]) assert.equal(PE.folioDeTextos([roto], ALTO), null);
+  assert.equal(PE.folioDeTextos('no', ALTO), null);
+  assert.equal(PE.folioDeTextos([txt('4')], 0), null);
+});
+await ok('un año en el pie junto al folio no lo tapa; un año solo pierde la votacion', () => {
+  assert.equal(PE.folioDeTextos([txt('2026'), txt('12')], ALTO), 12);
+  assert.equal(PE.folioDeTextos([txt('12'), txt('1999')], ALTO), 12);
+  assert.equal(PE.folioDeTextos([txt('2026'), txt('1999')], ALTO), null, 'dos años: duda');
+  assert.equal(PE.folioDeTextos([txt('2026'), txt('12'), txt('13')], ALTO), null, 'dos numeros de verdad: duda');
+  assert.equal(PE.folioDeTextos([txt('2026', 'cabeza'), txt('7', 'cabeza')], ALTO), 7);
+  assert.equal(PE.folioDeTextos([txt('2026')], ALTO), 2026, 'solo, cuenta aqui…');
+  /* …pero el libro vota otra cosa: la pagina 5 (con el año solo en el pie) lleva su numero de verdad */
+  const n = 10;
+  const f = PE.foliosDeEdicion(leerLibro(n, (i) => (i === 5 ? 2026 : i >= 1 && i <= 8 ? i : null)), n);
+  assert.equal(f[5], 5);
+  assert.deepEqual(f.slice(1, 9), [1, 2, 3, 4, 5, 6, 7, 8]);
+});
+await ok('numeroDeTexto (LeerEdicion): la caja de una cifra en la pagina vista, derecha y girada', async () => {
+  const { numeroDeTexto } = await import('../src/scripts/portal/panel/dev/taller/LeerEdicion.js');
+  /* pdf.js, escala 1: una pagina de 600 x 800 puntos sin girar → origen arriba */
+  const recta = { transform: [1, 0, 0, -1, 0, 800] };
+  const it = (str, x = 294, y = 30) => ({ str, transform: [10, 0, 0, 10, x, y], width: 12, height: 10 });
+  assert.deepEqual(numeroDeTexto(recta, it('12')), { str: '12', y0: 760, y1: 770 });
+  assert.equal(PE.folioDeTextos([numeroDeTexto(recta, it('12'))], 800), 12, 'cae en el pie');
+  assert.equal(PE.folioDeTextos([numeroDeTexto(recta, it('3', 294, 780))], 800), 3, 'y arriba, en la cabeza');
+  /* girada 90°: la matriz de pdf.js es [0, 1, 1, 0, 0, 0] (la pagina vista mide 800 x 600) */
+  const girada = { transform: [0, 1, 1, 0, 0, 0] };
+  const g = numeroDeTexto(girada, it('12', 294, 30));
+  assert.deepEqual(g, { str: '12', y0: 294, y1: 306 });
+  /* lo que no es una cifra suelta, o viene roto, no es candidato */
+  for (const malo of [it('12a'), it('12345'), it(''), { str: '4' }, { str: '4', transform: [1, 0, 0, 1, 'x', 5] }, null, { str: 4, transform: [1, 0, 0, 1, 0, 0] }]) {
+    assert.equal(numeroDeTexto(recta, malo), null);
+  }
+  const fuente = leer('src/scripts/portal/panel/dev/taller/LeerEdicion.js');
+  assert.ok(!/localStorage|innerHTML/.test(fuente));
+});
+await ok('foliosDeEdicion: tapa sin numero y 4 hojas de principio, luego 1, 2, 3…', () => {
+  /* tapa (0), 4 hojas sin numero (1-4), el texto numerado desde la 5 (folio 1), un comienzo de capitulo sin numero (la 9), contratapa */
+  const n = 20;
+  const cand = leerLibro(n, (i) => (i >= 5 && i <= 18 && i !== 9 ? i - 4 : null));
+  const f = PE.foliosDeEdicion(cand, n);
+  assert.equal(f.length, n);
+  assert.deepEqual(f.slice(0, 5), [null, null, null, null, null], 'la tapa y el principio no llevan numero');
+  assert.equal(f[5], 1);
+  assert.equal(f[9], 5, 'el comienzo del capitulo lleva su numero aunque no lo tenga impreso');
+  assert.equal(f[18], 14);
+  assert.equal(f[19], null, 'la contratapa no');
+  /* y el lector lo usa tal cual: la pagina 1 es la imagen 5 */
+  const num = P.numeracion(n, { folios: f });
+  assert.equal(num.primero, 1);
+  assert.equal(num.indiceDe(1), 5);
+  assert.equal(P.leerPagina('5', num).indice, 9);
+});
+await ok('foliosDeEdicion: un «139» suelto al pie de 2 paginas no inventa numeros', () => {
+  const n = 12;
+  const f = PE.foliosDeEdicion(leerLibro(n, (i) => (i === 3 || i === 8 ? 139 : null)), n);
+  assert.deepEqual(f, new Array(n).fill(null));
+  /* y en un libro numerado, el 139 suelto pierde la votacion y su pagina lleva el numero de verdad */
+  const g = PE.foliosDeEdicion(leerLibro(n, (i) => (i === 4 ? 139 : i >= 1 && i <= 10 ? i : null)), n);
+  assert.equal(g[4], 4);
+  assert.equal(g[1], 1);
+  assert.equal(g[10], 10);
+  assert.equal(g[0], null);
+});
+await ok('foliosDeEdicion: sin numeros, todo null; foliosDeHojas da null y el lector cuenta las imagenes', () => {
+  const n = 8;
+  const f = PE.foliosDeEdicion(leerLibro(n, () => null), n);
+  assert.deepEqual(f, new Array(n).fill(null));
+  const r = PE.hojasDeEdicion(Array.from({ length: n }, () => ({ texto: 'x' })), 100, 200, f);
+  assert.ok(r.hojas.every((h) => !('folio' in h)));
+  assert.equal(PE.foliosDeHojas(PE.hojasSeguras(r.hojas, n)), null);
+  const num = P.numeracion(n, { folios: PE.foliosDeHojas(r.hojas) });
+  assert.equal(num.folioDe(0), 1, 'como antes: la tapa es la 1');
+  assert.equal(num.total, n);
+});
+await ok('foliosDeEdicion: numeros en la cabeza, y un voto flojo (menos de la mitad) no vale', () => {
+  const n = 10;
+  const f = PE.foliosDeEdicion(leerLibro(n, (i) => (i >= 2 && i <= 8 ? i + 10 : null), 'cabeza'), n);
+  assert.deepEqual(f, [null, null, 12, 13, 14, 15, 16, 17, 18, null]);
+  /* dos de acuerdo y tres sueltos: no son mas de la mitad */
+  const g = PE.foliosDeEdicion([null, 50, 2, 3, 70, 90, null], 7);
+  assert.deepEqual(g, new Array(7).fill(null));
+  assert.deepEqual(PE.foliosDeEdicion(null, 3), [null, null, null]);
+  assert.deepEqual(PE.foliosDeEdicion([1, 2, 3], 0), []);
+});
+await ok('los folios viajan en las hojas y lo hostil se tira: «3», -1, 2.5, 1e9', () => {
+  const r = PE.hojasDeEdicion([{ texto: 'a' }, { texto: 'b' }, { texto: 'c' }], 100, 200, [null, 1, 2]);
+  assert.deepEqual(r.hojas, [{ text: 'a' }, { text: 'b', folio: 1 }, { text: 'c', folio: 2 }]);
+  assert.deepEqual(PE.foliosDeHojas(r.hojas), [null, 1, 2]);
+  assert.deepEqual(PE.hojaDe({ texto: 'x' }, 100, 200, 1, '3'), { text: 'x' });
+  const sucias = [{ text: 'a', folio: '3' }, { text: 'b', folio: -1 }, { text: 'c', folio: 2.5 }, { text: 'd', folio: 1e9 }, { text: 'e', folio: 0 }, { text: 'f', folio: true }, { text: 'g', folio: 7 }];
+  const s = PE.hojasSeguras(sucias, 7);
+  assert.deepEqual(s.map((h) => h.folio), [undefined, undefined, undefined, undefined, undefined, undefined, 7]);
+  assert.deepEqual(PE.foliosDeHojas(s), [null, null, null, null, null, null, 7]);
+  /* y numeracion() tampoco se fia */
+  const num = P.numeracion(3, { folios: ['3', -1, 1e9] });
+  assert.equal(num.primero, null);
+});
+
+console.log('los marcadores (solo en este navegador)');
+const M = await import('../src/scripts/lector/marcadores.js');
+const almacenDe = () => {
+  const m = new Map();
+  return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, removeItem: (k) => { m.delete(k); } };
+};
+const TOKEN = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8';
+await ok('la clave de un enlace privado: siempre la misma, 32 hex, y nunca lleva el secreto', async () => {
+  const a = await M.claveDeEnlace(TOKEN), b = await M.claveDeEnlace(TOKEN);
+  assert.equal(a, b);
+  assert.match(a, /^v:[0-9a-f]{32}$/);
+  assert.ok(!a.includes(TOKEN) && !a.includes(TOKEN.slice(0, 8)));
+  assert.notEqual(await M.claveDeEnlace(TOKEN.slice(0, 42) + 'B'), a);
+  /* es SHA-256 de 'jlr-marcas-v1|' + secreto, cortado a 16 bytes */
+  const { createHash } = await import('node:crypto');
+  assert.equal(a, 'v:' + createHash('sha256').update('jlr-marcas-v1|' + TOKEN).digest('hex').slice(0, 32));
+  assert.equal(await M.claveDeEnlace(''), null);
+  assert.equal(await M.claveDeEnlace(TOKEN, null), null);
+  /* lo guardado tampoco lo lleva */
+  const al = almacenDe();
+  M.crearMarcadores(al, a, 10).poner(3, 4);
+  assert.ok(![...al.m].join('|').includes(TOKEN));
+});
+await ok('la clave de Recursos: id e idioma con su forma, o nada', () => {
+  assert.equal(M.claveRecursos('ahava', 'es'), 'r:ahava:es');
+  assert.equal(M.claveRecursos('libro-2', 'all'), 'r:libro-2:all');
+  for (const [id, l] of [['', 'es'], ['../x', 'es'], ['Ahava', 'es'], ['a b', 'es'], ['ahava', 'ES'], ['ahava', 'e'], ['x'.repeat(65), 'es'], [5, 'es'], ['ahava', null], ['-a', 'es']]) assert.equal(M.claveRecursos(id, l), null, `${id}/${l}`);
+  assert.ok(M.claveValida('r:ahava:es') && M.claveValida('v:' + '0'.repeat(32)));
+  assert.ok(!M.claveValida('v:' + TOKEN) && !M.claveValida('r:ahava') && !M.claveValida(null));
+});
+await ok('marcar y desmarcar: se guarda en su sitio, por orden, sin texto de la pagina', () => {
+  const al = almacenDe();
+  const mk = M.crearMarcadores(al, 'r:ahava:es', 12, { ahora: () => 1700000000 });
+  assert.equal(mk.poner(7, 6), 'ok');
+  assert.equal(mk.poner(2, 1), 'ok');
+  assert.equal(mk.poner(7, 6), 'ya');
+  assert.equal(mk.tiene(7), true);
+  assert.deepEqual(JSON.parse(al.m.get('jlr:marcas:v1:r:ahava:es')), { n: 12, m: [{ p: 2, f: 1, t: 1700000000 }, { p: 7, f: 6, t: 1700000000 }] });
+  assert.deepEqual(JSON.parse(al.m.get('jlr:marcas:v1')), ['r:ahava:es']);
+  /* vuelve a leerse igual al abrir otra vez (una recarga) */
+  assert.deepEqual(M.crearMarcadores(al, 'r:ahava:es', 12).lista().map((x) => x.p), [2, 7]);
+  assert.equal(mk.quitar(2), 'ok');
+  assert.equal(mk.quitar(2), 'no');
+  assert.equal(mk.quitar(7), 'ok');
+  assert.equal(al.m.has('jlr:marcas:v1:r:ahava:es'), false, 'sin marcas no queda nada');
+  assert.equal(al.m.has('jlr:marcas:v1'), false);
+  /* fuera del libro, no */
+  for (const p of [-1, 12, 1.5, '3', null]) assert.equal(mk.poner(p, 1), 'fuera');
+  assert.equal(mk.poner(4, '9'), 'ok');
+  assert.equal(mk.lista()[0].f, null, 'un folio que no es numero no se guarda');
+});
+await ok('topes: 100 marcas por libro y 60 libros; se olvida el libro tocado hace mas tiempo', () => {
+  const al = almacenDe();
+  const mk = M.crearMarcadores(al, 'r:ahava:es', 500);
+  for (let p = 0; p < M.MARCAS_MAX; p++) assert.equal(mk.poner(p, p + 1), 'ok');
+  assert.equal(mk.poner(300, 301), 'lleno');
+  assert.equal(mk.lista().length, 100);
+  for (let i = 0; i < M.LIBROS_MAX; i++) M.crearMarcadores(al, `r:libro-${i}:es`, 10).poner(1, 1);
+  assert.equal(al.m.has('jlr:marcas:v1:r:ahava:es'), false, 'el mas viejo (ahava) se olvido');
+  assert.ok(al.m.has('jlr:marcas:v1:r:libro-0:es'));
+  const indice = JSON.parse(al.m.get('jlr:marcas:v1'));
+  assert.equal(indice.length, 60);
+  /* tocar uno lo hace el mas nuevo: el siguiente en irse es otro */
+  M.crearMarcadores(al, 'r:libro-0:es', 10).poner(2, 2);
+  M.crearMarcadores(al, 'r:nuevo:es', 10).poner(1, 1);
+  assert.ok(al.m.has('jlr:marcas:v1:r:libro-0:es'));
+  assert.equal(al.m.has('jlr:marcas:v1:r:libro-1:es'), false);
+});
+await ok('lo guardado se revisa: paginas fuera, repetidas, un libro con otro numero de paginas, JSON roto', () => {
+  const al = almacenDe();
+  al.setItem('jlr:marcas:v1:r:ahava:es', JSON.stringify({ n: 20, m: [{ p: 3, f: 2, t: 5 }, { p: 3, f: 2, t: 5 }, { p: 15, f: 14, t: 5 }, { p: -1 }, { p: 2.5 }, { p: '4' }, null, 7, { p: 5, f: 'x', t: -3 }] }));
+  const mk = M.crearMarcadores(al, 'r:ahava:es', 10);
+  assert.deepEqual(mk.lista(), [{ p: 3, f: 2, t: 5 }, { p: 5, f: null, t: 0 }], 'el libro ahora tiene 10 paginas: la 15 se cae');
+  mk.poner(9, 8);
+  assert.equal(JSON.parse(al.getItem('jlr:marcas:v1:r:ahava:es')).n, 10);
+  for (const roto of ['{', 'null', '[]', '"x"', '{"m":"no"}', '{"m":[{"p":1e400}]}', 'x'.repeat(300000)]) {
+    al.setItem('jlr:marcas:v1:r:emet:es', roto);
+    assert.deepEqual(M.crearMarcadores(al, 'r:emet:es', 10).lista(), [], roto.slice(0, 20));
+  }
+  al.setItem('jlr:marcas:v1', '{roto');
+  assert.equal(M.crearMarcadores(al, 'r:emet:es', 10).poner(1, 1), 'ok');
+  assert.deepEqual(JSON.parse(al.getItem('jlr:marcas:v1')), ['r:emet:es']);
+  assert.equal(M.crearMarcadores(al, 'no-vale', 10), null);
+  assert.equal(M.crearMarcadores(null, 'r:emet:es', 10), null);
+});
+await ok('un almacen que falla no rompe nada: se dice, y no se marca', () => {
+  const tira = { getItem() { throw new Error('x'); }, setItem() { throw new Error('lleno'); }, removeItem() { throw new Error('x'); } };
+  assert.equal(M.almacenDisponible(tira), false);
+  assert.equal(M.almacenDisponible(null), false);
+  assert.equal(M.almacenDisponible({}), false);
+  assert.equal(M.almacenDisponible(almacenDe()), true);
+  const mk = M.crearMarcadores(tira, 'r:ahava:es', 10);
+  assert.deepEqual(mk.lista(), []);
+  assert.equal(mk.poner(1, 1), 'falla');
+  assert.equal(mk.tiene(1), false, 'lo que no se guardo no se muestra como marcado');
+  /* lleno a medias: guarda la marca pero no el indice */
+  const al = almacenDe();
+  const medio = { getItem: al.getItem, removeItem: al.removeItem, setItem: (k, v) => { if (k === 'jlr:marcas:v1') throw new Error('lleno'); al.setItem(k, v); } };
+  const m2 = M.crearMarcadores(medio, 'r:ahava:es', 10);
+  assert.equal(m2.poner(1, 1), 'ok');
+  assert.equal(m2.tiene(1), true);
+});
+await ok('dos pestañas con el mismo libro: una no pisa las marcas de la otra (ni el indice)', () => {
+  const al = almacenDe();
+  const a = M.crearMarcadores(al, 'r:ahava:es', 12);
+  const b = M.crearMarcadores(al, 'r:ahava:es', 12);
+  assert.equal(a.poner(2, 2), 'ok');
+  assert.equal(b.poner(5, 5), 'ok');
+  assert.deepEqual(JSON.parse(al.getItem('jlr:marcas:v1:r:ahava:es')).m.map((x) => x.p), [2, 5], 'la segunda vio la marca de la primera');
+  assert.deepEqual(b.lista().map((x) => x.p), [2, 5]);
+  assert.equal(a.quitar(5), 'ok', 'la primera puede quitar la que puso la otra');
+  assert.deepEqual(JSON.parse(al.getItem('jlr:marcas:v1:r:ahava:es')).m.map((x) => x.p), [2]);
+  assert.equal(b.quitar(5), 'no', 'ya no estaba');
+  assert.deepEqual(b.lista().map((x) => x.p), [2], 'y la otra se pone al dia');
+  assert.equal(b.poner(2, 2), 'ya');
+  /* el indice tambien se vuelve a leer: otro libro en otra pestaña no se pierde */
+  M.crearMarcadores(al, 'r:emet:es', 12).poner(1, 1);
+  a.poner(7, 7);
+  assert.deepEqual(JSON.parse(al.getItem('jlr:marcas:v1')).sort(), ['r:ahava:es', 'r:emet:es']);
+  /* un almacen que no deja LEER no hace que se pisen las marcas guardadas */
+  const datos = al.getItem('jlr:marcas:v1:r:ahava:es');
+  const ciego = { getItem: () => { throw new Error('x'); }, setItem: al.setItem, removeItem: al.removeItem };
+  const c = M.crearMarcadores(ciego, 'r:ahava:es', 12);
+  assert.equal(c.poner(9, 9), 'falla');
+  assert.equal(c.quitar(2), 'falla');
+  assert.equal(al.getItem('jlr:marcas:v1:r:ahava:es'), datos, 'lo guardado sigue igual');
+});
+await ok('un libro privado se olvida a los 90 dias de su ultima marca; uno de Recursos no', () => {
+  const al = almacenDe();
+  const DIA = 86400, HOY = 1800000000;
+  const v1 = 'v:' + 'a'.repeat(32), v2 = 'v:' + 'b'.repeat(32);
+  M.crearMarcadores(al, v1, 10, { ahora: () => HOY - 91 * DIA }).poner(1, 1);
+  M.crearMarcadores(al, v2, 10, { ahora: () => HOY - 10 * DIA }).poner(1, 1);
+  M.crearMarcadores(al, 'r:ahava:es', 10, { ahora: () => HOY - 400 * DIA }).poner(1, 1);
+  /* al abrir el viejo, ya no tiene nada */
+  const viejo = M.crearMarcadores(al, v1, 10, { ahora: () => HOY });
+  assert.deepEqual(viejo.lista(), []);
+  assert.equal(al.m.has('jlr:marcas:v1:' + v1), false);
+  assert.ok(!JSON.parse(al.getItem('jlr:marcas:v1')).includes(v1));
+  /* al tocar el indice (marcar otro libro), los privados vencidos se van; el reciente y el de Recursos se quedan */
+  M.crearMarcadores(al, v1, 10, { ahora: () => HOY - 100 * DIA }).poner(2, 2);
+  M.crearMarcadores(al, 'r:emet:es', 10, { ahora: () => HOY }).poner(3, 3);
+  const indice = JSON.parse(al.getItem('jlr:marcas:v1'));
+  assert.ok(!indice.includes(v1) && !al.m.has('jlr:marcas:v1:' + v1), 'el privado vencido se olvido');
+  assert.ok(indice.includes(v2) && al.m.has('jlr:marcas:v1:' + v2));
+  assert.ok(indice.includes('r:ahava:es') && al.m.has('jlr:marcas:v1:r:ahava:es'));
+  /* una marca reciente en el viejo lo mantiene vivo */
+  const reabierto = M.crearMarcadores(al, v2, 10, { ahora: () => HOY + 70 * DIA });
+  assert.equal(reabierto.lista().length, 1);
+  assert.equal(reabierto.poner(4, 4), 'ok');
+  assert.equal(M.crearMarcadores(al, v2, 10, { ahora: () => HOY + 150 * DIA }).lista().length, 2, 'la marca mas nueva manda');
+  assert.equal(M.crearMarcadores(al, v2, 10, { ahora: () => HOY + 161 * DIA }).lista().length, 0);
+});
+await ok('un indice enorme y ajeno: se recorta a 60 y el trabajo tiene tope', () => {
+  const al = almacenDe();
+  const ajenos = Array.from({ length: 2000 }, (_, i) => `r:x${i}:es`);
+  al.setItem('jlr:marcas:v1', JSON.stringify(ajenos));
+  let borrados = 0;
+  const cuenta = { getItem: al.getItem, setItem: al.setItem, removeItem: (k) => { borrados++; al.removeItem(k); } };
+  M.crearMarcadores(cuenta, 'r:ahava:es', 10).poner(1, 1);
+  const indice = JSON.parse(al.getItem('jlr:marcas:v1'));
+  assert.equal(indice.length, 60);
+  assert.equal(indice.at(-1), 'r:ahava:es');
+  assert.ok(borrados <= 60, `borro ${borrados}`);
+});
+await ok('el lector y sus marcas: el secreto no sale de vista.js, solo la huella llega a site.js; pliegos y recorrido sin almacen', () => {
+  const vista = leer('src/scripts/lector/vista.js');
+  assert.match(vista, /const marcas = await claveDeEnlace\(token\);/);
+  assert.match(vista, /folios: libro\.folios, marcas, src/);
+  assert.ok(!/token[^\n]*localStorage|localStorage/.test(vista), 'vista.js no guarda nada');
+  const site = leer('src/scripts/site.js');
+  assert.match(site, /claveValida\(x\.marcas\) && x\.marcas\.startsWith\('v:'\) \? x\.marcas : null/);
+  assert.match(site, /almacenDisponible\(window\.localStorage\)/);
+  const mod = leer('src/scripts/lector/marcadores.js');
+  const codigo = mod.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/localStorage|sessionStorage|indexedDB|innerHTML|document\./.test(codigo), 'marcadores.js recibe su almacen; no toca la pagina');
+  for (const f of ['src/scripts/lector/pliegos.js', 'src/scripts/lector/recorrido.js']) assert.ok(!/localStorage|sessionStorage|marcadores/.test(leer(f)), f);
+  /* la tecla M no choca con otra del lector, y dejarla apretada no marca y desmarca sin parar */
+  assert.equal((site.match(/e\.key === 'm' \|\| e\.key === 'M'/g) || []).length, 1);
+  assert.match(site, /if \(e\.repeat\) return;\s*alternarMarca\(\);/);
+  /* al quitar las dos marcas de un pliego, si una falla se dice cual quedo (no «no se pudo» si algo se quito) */
+  const alternar = site.slice(site.indexOf('function alternarMarca()'), site.indexOf('function pintarListaMarcas('));
+  assert.match(alternar, /else if \(quedan\.length < puestas\.length\) decir\(tl\('marcaQueda'\)/);
+  assert.ok(UI.es['lector.marcaQueda'].includes('{n}') && UI.en['lector.marcaQueda'].includes('{n}'));
+});
+
+/* Las notas y el indice (etapa 5a): tools/test-notas.mjs, con el mismo contador */
+const { probarNotas } = await import('./test-notas.mjs');
+await probarNotas(ok);
 
 console.log(`\n${bien} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);
