@@ -9,10 +9,13 @@
    EL LIBRO DE MUESTRA (etapa 5a del lector): sin copia del Taller y con el token de muestra (43 «A»), contesta un libro
    pequeño dibujado aqui mismo, con una palabra definida («Ahavá», con su fuente APA y dos letras), dos citas («Jeremías
    1:4-5» con su version recomendada, «Salmo 139» sin ella), un boton de copiar y una nota falsa (que el lector no pinta).
+   Etapa 5b: dos botones «Duolingo» con su aspecto (el escalon de abajo): uno copia (y dice «Copiado») y otro abre una
+   direccion por /ir/. Sus enlaces se escriben con los mismos codificadores del Taller (botonEnPdf.js).
    Abrir: /es/vista/?demo#k=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA (o /en/vista/… : el mismo libro en ingles). */
 import { estadoDe, huella, leerToken } from '../contenido/taller/Enlaces.js';
 import { enlaceDeNota } from './notaEnPdf.js';
 import { enlaceDeCopia } from './copiaEnPdf.js';
+import { enlaceDeCopiaConAspecto, enlaceDeIr } from './botonEnPdf.js';
 
 export const TOKEN_MUESTRA = 'A'.repeat(43);
 
@@ -33,6 +36,12 @@ export async function pedirDemo(token, renovar) {
 
 /* ---- El libro de muestra ---- */
 const W = 900, H = 1260, M = 96;
+const LEDGE = 8;                 // el escalon de los botones «Duolingo», en px de la hoja
+const DUO = {
+  copia: { f: '#58cc02', s: '#46a302', fu: 'Lora' },
+  ir: { f: '#1cb0f6', s: '#1899d6', fu: 'Bricolage Grotesque' },
+  base: { f: '#263b28', fu: 'Estonia' },
+};
 const TEXTOS = {
   es: {
     titulo: 'Muestra: notas del lector',
@@ -40,14 +49,15 @@ const TEXTOS = {
       [['t', 'Muestra'], ['p', 'Notas del lector']],
       [['h', 'Una palabra'], ['p', 'La palabra '], ['d', 'Ahavá'], ['p', ' se suele traducir como amor. Tócala para leer qué significa y de dónde viene.'], ['p', 'Debajo de la palabra hay un punteado de oro: así se sabe que se puede tocar.']],
       [['h', 'Dos citas'], ['p', 'Antes de nacer ya eras conocido, dice '], ['c1', 'Jeremías 1:4-5'], ['p', ', y lo mismo canta el '], ['c2', 'Salmo 139'], ['p', '. Toca cada cita para leer el texto.']],
-      [['h', 'Otra vez'], ['p', 'Una palabra puede salir en varias páginas: '], ['d', 'Ahavá'], ['p', ' sale aquí y en la página 1. En el índice sale una sola vez, con sus dos páginas.'], ['k', 'Copiar']],
-      [['h', 'Para buscar'], ['p', 'El índice también busca en el texto del libro, sin mirar tildes: prueba con «corazon» o con «AMOR».'], ['f', 'Una nota falsa']],
+      [['h', 'Otra vez'], ['p', 'Una palabra puede salir en varias páginas: '], ['d', 'Ahavá'], ['p', ' sale aquí y en la página 1. En el índice sale una sola vez, con sus dos páginas.'], ['k', 'Copiar'], ['kd', 'Copiar la frase'], ['id', 'Ver el ejemplo']],
+      [['h', 'Para buscar'], ['p', 'El índice también busca en el texto del libro, sin mirar tildes: prueba con «corazon» o con «AMOR».'], ['f', 'Una nota falsa'], ['kb', 'Copiar (sin escalón)'], ['kl', 'Junto al lomo']],
       [['t', 'Fin'], ['p', 'Contratapa']],
     ],
     def: { v: 1, k: 'd', t: 'Ahavá', d: 'Amor. No nombra un sentimiento que ocurre, sino una decisión que se toma: querer el bien del otro antes de sentirlo.', r: { a: 'Brown, F., Driver, S. R., & Briggs, C. A.', y: '1906', ti: 'A Hebrew and English lexicon of the Old Testament', f: 'Clarendon Press', u: 'https://archive.org/details/hebrewenglishlex00browuoft' }, ft: 'estonia', fd: 'lora', l: 'es' },
     c1: { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremías 1:4-5', rv: 'NVI', l: 'es' },
     c2: { v: 1, k: 'c', r: 'PSA.139', x: 'Salmo 139', l: 'es' },
     copia: 'Antes de nacer ya eras conocido.',
+    copiado: 'Copiado',
   },
   en: {
     titulo: 'Sample: reader notes',
@@ -55,14 +65,15 @@ const TEXTOS = {
       [['t', 'Sample'], ['p', 'Reader notes']],
       [['h', 'A word'], ['p', 'The word '], ['d', 'Ahavah'], ['p', ' is usually translated as love. Tap it to read what it means and where it comes from.'], ['p', 'A dotted gold line under the word says you can tap it.']],
       [['h', 'Two verses'], ['p', 'You were known before you were born, says '], ['c1', 'Jeremiah 1:4-5'], ['p', ', and '], ['c2', 'Psalm 139'], ['p', ' sings the same. Tap each verse to read it.']],
-      [['h', 'Again'], ['p', 'A word can show up on several pages: '], ['d', 'Ahavah'], ['p', ' is here and on page 1. The index lists it once, with both pages.'], ['k', 'Copy']],
-      [['h', 'To search'], ['p', 'The index also searches the text of the book: try “heart” or “LOVE”.'], ['f', 'A fake note']],
+      [['h', 'Again'], ['p', 'A word can show up on several pages: '], ['d', 'Ahavah'], ['p', ' is here and on page 1. The index lists it once, with both pages.'], ['k', 'Copy'], ['kd', 'Copy the line'], ['id', 'See the example']],
+      [['h', 'To search'], ['p', 'The index also searches the text of the book: try “heart” or “LOVE”.'], ['f', 'A fake note'], ['kb', 'Copy (no ledge)'], ['kl', 'By the spine']],
       [['t', 'The end'], ['p', 'Back cover']],
     ],
     def: { v: 1, k: 'd', t: 'Ahavah', d: 'Love. It names not a feeling that happens but a decision that is made: willing the good of the other before feeling it.', r: { a: 'Brown, F., Driver, S. R., & Briggs, C. A.', y: '1906', ti: 'A Hebrew and English lexicon of the Old Testament', f: 'Clarendon Press', u: 'https://archive.org/details/hebrewenglishlex00browuoft' }, ft: 'estonia', fd: 'lora', l: 'en' },
     c1: { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremiah 1:4-5', rv: 'NIV', l: 'en' },
     c2: { v: 1, k: 'c', r: 'PSA.139', x: 'Psalm 139', l: 'en' },
     copia: 'You were known before you were born.',
+    copiado: 'Copied',
   },
 };
 
@@ -84,6 +95,29 @@ function pagina(partes, i, n, X) {
   for (const [k, s] of partes) {
     if (k === 't') { g.font = '400 92px Georgia, serif'; g.fillText(s, M, y); y += 120; x = M; texto.push(s); continue; }
     if (k === 'h') { g.font = '400 54px Georgia, serif'; g.fillText(s, M, y); y += 90; x = M; texto.push(s); continue; }
+    if (k === 'kd' || k === 'id' || k === 'kb' || k === 'kl') {
+      /* un boton «Duolingo»: la cara y su escalon de abajo, mas oscuro. El enlace cubre solo la cara (como el de Chrome).
+         `kb`: un boton de copiar de siempre con su aspecto (`e: 'base'`, sin escalon). `kl`: uno «Duolingo» pegado al lomo
+         (para ver que la sombra del lomo le pasa por encima). */
+      const D = k === 'id' ? DUO.ir : k === 'kb' ? DUO.base : DUO.copia;
+      const x0 = k === 'kl' ? 6 : M, escalon = k === 'kb' ? 0 : LEDGE;
+      y += 56; x = M;
+      g.font = '700 32px Georgia, serif';
+      const w = g.measureText(s).width + 72, alto = 68, r = k === 'kb' ? 34 : 18;
+      if (escalon) { g.fillStyle = D.s; g.beginPath(); g.roundRect(x0, y - 46 + escalon, w, alto, r); g.fill(); }
+      g.fillStyle = D.f;
+      g.beginPath(); g.roundRect(x0, y - 46, w, alto, r); g.fill();
+      g.fillStyle = '#FFFFFF';
+      g.fillText(s, x0 + 36, y);
+      const aspecto = k === 'kb'
+        ? { e: 'base', f: D.f, c: '#f1efe9', rr: r / H, x: s, fu: D.fu, fs: 32 / H, pf: '#f6f3ea', k: X.copiado }
+        : { e: 'duolingo', f: D.f, c: '#ffffff', s: D.s, lh: LEDGE / H, rr: r / H, n: 1, x: s, fu: D.fu, fs: 32 / H, pf: '#f6f3ea', ...(k !== 'id' ? { k: X.copiado } : {}) };
+      const href = k === 'id' ? enlaceDeIr('https://example.com/', aspecto) : enlaceDeCopiaConAspecto(X.copia, aspecto);
+      links.push({ ...caja(x0, y - 46, w, alto), href });
+      g.fillStyle = '#23302A';
+      y += linea; texto.push(s);
+      continue;
+    }
     if (k === 'k' || k === 'f') {
       /* un boton (copiar) o la nota falsa: una pastilla en su propia linea */
       y += 40; x = M;

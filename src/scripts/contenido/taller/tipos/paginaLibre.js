@@ -4,6 +4,7 @@
 import { objeto, rutaAlmacen, texto } from '../../comun.js';
 import { el } from './ayuda.js';
 import { limpiarObjetos, OBJETOS } from './objetos.js';
+import { conContextoBoton } from './boton.js';
 import { colorValido } from '../marcas.js';
 import { PAPEL_BASE } from '../colores.js';
 import { esAncla, RE_ANCLA_PAGINA, textoIndice, TITULO_INDICE_MAX } from '../IndiceLibro.js';
@@ -47,9 +48,10 @@ export function pdf(n, _, o = {}) {
   const a = n.attrs, hijos = [];
   const src = (o.imagenes || {})[a.fondo];
   if (src) hijos.push(el('img', `pag-libre__fondo pag-libre__fondo--${a.ajuste}`, [], { src, alt: a.alt || a.texto.slice(0, 1000) }));
-  for (const obj of a.objetos) { const e = OBJETOS[obj.tipo].pdf(obj, o); if (e) hijos.push(e); }
   /* Un PDF traido conserva su dibujo, que va encima: lo que no cubre es el papel de su capitulo o del libro */
   const papel = (!a.fondo && a.papel) || o.papelCapitulo || PAPEL_BASE;
+  /* Un boton de esta hoja dice al lector sobre que papel esta (su aspecto, tipos/boton.js) */
+  conContextoBoton({ papel }, () => { for (const obj of a.objetos) { const e = OBJETOS[obj.tipo].pdf(obj, o); if (e) hijos.push(e); } });
   if (o.papelesLibres) o.papelesLibres.add(papel);
   return el('div', `pag-libre papel-${papel.slice(1)}${a.fondo ? ' pag-libre--pdf' : ''}`, [el('div', 'pag-libre__caja', hijos)], a.titulo && a.ancla ? { id: a.ancla } : {});
 }

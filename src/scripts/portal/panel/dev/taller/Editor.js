@@ -20,6 +20,7 @@ import { Formula } from './nodos/formula.js';
 import { Boton } from './nodos/boton.js';
 import { Pasaje } from './nodos/pasaje.js';
 import { Subetapa } from './nodos/subetapa.js';
+import { CitaBiblica, Definicion } from './nodos/notas.js';
 import { META_PAGINA } from './Varias.js';
 import { POR_NODO } from '../../../../contenido/taller/tipos/indice.js';
 import { anclaNueva, esAncla, RE_ANCLA_PAGINA, RE_ANCLA_TITULO } from '../../../../contenido/taller/IndiceLibro.js';
@@ -158,6 +159,8 @@ export function crearEditor(elemento, o) {
       Boton.configure({ mesa: o.mesa }),
       Pasaje.configure({ mesa: o.mesa }),
       Subetapa.configure({ mesa: o.mesa }),
+      /* Definicion y cita biblica sobre cualquier trozo de texto (nodos/notas.js, la ventana en NotaEditor.js) */
+      Definicion, CitaBiblica,
       GuardaPaginas(o), Anclas
     ],
     editorProps: {

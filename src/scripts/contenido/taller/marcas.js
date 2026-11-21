@@ -3,6 +3,7 @@
    en un atributo o en una regla de estilo: un valor raro nunca llega a la pagina. */
 import { enlaceSeguro, objeto } from '../comun.js';
 import { nombreDeFuente } from './fuentes.js';
+import { enlaceDeMarca, esMarcaNota, marcaLimpia } from './notasLibro.js';
 
 const SIMPLES = new Set(['bold', 'italic', 'underline', 'strike', 'superscript', 'subscript']);
 
@@ -30,7 +31,7 @@ export function limpiarMarcas(lista) {
     if (SIMPLES.has(o.type)) salida.push({ type: o.type });
     else if (o.type === 'link') {
       const href = objeto(o.attrs).href;
-      if (enlaceSeguro(href)) salida.push({ type: 'link', attrs: { href } });
+      if (enlaceSeguro(href) && !salida.some((x) => esMarcaNota(x.type))) salida.push({ type: 'link', attrs: { href } });
     } else if (o.type === 'textStyle') {
       const a = objeto(o.attrs), attrs = {};
       const color = colorValido(a.color), tam = tamanoValido(a.fontSize);
@@ -38,6 +39,13 @@ export function limpiarMarcas(lista) {
       if (tam) attrs.fontSize = tam;
       if (nombreDeFuente(a.fontFamily)) attrs.fontFamily = a.fontFamily;
       if (Object.keys(attrs).length) salida.push({ type: 'textStyle', attrs });
+    } else if (esMarcaNota(o.type)) {
+      /* Una definicion o una cita (notasLibro.js): la misma regla que el lector (limpiarNota). Una sola por trozo, y nunca
+         junto a un enlace: el PDF no puede llevar un enlace dentro de otro. */
+      /* Y que quepa en un enlace del PDF (8000 letras): si no, se queda la palabra sin nota, y quien guarda lo cuenta
+         (TextoLibro → descartados) en vez de perderla en silencio al sacar el PDF */
+      const m = marcaLimpia(o);
+      if (m && enlaceDeMarca(m, 'es') && !salida.some((x) => x.type === 'link' || esMarcaNota(x.type))) salida.push(m);
     }
   }
   return salida;

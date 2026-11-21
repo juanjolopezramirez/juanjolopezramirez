@@ -165,13 +165,28 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     </div>
     <button class="book-panel__close" type="button" data-close-book aria-label={t('a11y.termClose')}>&times;</button>
   </header>
-  <!-- «Copiar enlace»: copia el enlace CORTO del libro (juanjolopezramirez.com/<id>). Nace escondido: site.js lo muestra solo en los
+  <!-- «Compartir» (el libro escrito, en el idioma de la pagina): el enlace CORTO del libro (juanjolopezramirez.com/<id>) por la
+       hoja de compartir del aparato o, donde no la hay, por el menu de abajo. Nace escondido: site.js lo muestra solo en los
        libros de la biblioteca; el libro privado (/vista/) no lo trae. «Enlace copiado» se dice en el propio boton y por el estado. -->
-  <button class="book-panel__enlace" type="button" data-book-copiar title={t('a11y.bookCopy')} hidden>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" /><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" /></svg>
-    <span data-book-copiar-texto>{t('book.copy')}</span>
+  <button class="book-panel__enlace" type="button" data-book-copiar title={t('book.shareHelp')} hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.5V3.5M8 7.5l4-4 4 4" /><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5" /></svg>
+    <span data-book-copiar-texto>{t('book.share')}</span>
   </button>
   <p class="sr-only" role="status" data-book-copiar-estado></p>
+  <!-- EL MENU DE COMPARTIR, de repuesto: solo donde el aparato no tiene hoja de compartir (Firefox en el ordenador, por
+       ejemplo) o no la pudo abrir. WhatsApp, Correo, Telegram y «Copiar enlace». Solo viaja el enlace corto y el titulo; nunca
+       el PDF. Las direcciones y los rotulos los pone site.js (lector/compartir.js). De 820 px para arriba es una pastilla junto
+       al boton que lo abrio; en el telefono sube desde abajo, como «Más». -->
+  <div class="compartir__fondo" data-compartir-fondo hidden></div>
+  <section class="compartir" id="compartir-menu" role="dialog" aria-labelledby="compartir-t" data-compartir hidden>
+    <h3 class="compartir__t" id="compartir-t" data-compartir-titulo></h3>
+    <ul class="compartir__lista">
+      <li><a class="compartir__op" data-compartir-op="whatsapp" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><Icon id="whatsapp" /><span>WhatsApp</span></a></li>
+      <li><a class="compartir__op" data-compartir-op="correo"><Icon id="mail" /><span data-compartir-correo></span></a></li>
+      <li><a class="compartir__op" data-compartir-op="telegram" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21.2 3.6 2.9 10.7c-.8.3-.8 1.5 0 1.8l4.6 1.6 1.8 5.5c.2.7 1.1.9 1.6.4l2.6-2.5 4.8 3.5c.6.4 1.4.1 1.6-.6l3.2-15.3c.2-.9-.7-1.6-1.5-1.3Z" /><path d="m7.5 14.1 9.8-7-7 8.3" /></svg><span>Telegram</span></a></li>
+      <li><button class="compartir__op" type="button" data-compartir-op="copiar"><Icon id="link" /><span data-compartir-copiar></span></button></li>
+    </ul>
+  </section>
   <div class="book-panel__frame">
     <div class="book" id="book">
       <div class="book__block" id="book-block"></div>
@@ -234,8 +249,8 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
   <!-- EL MUELLE (solo los libros en PDF; site.js lo muestra al abrir). Dos grupos:
        · IR LEJOS: «Volver a la pág. N» (tecla B; solo sale si hay a donde volver), «Contenido» (solo si el libro tiene hoja de
          contenido), la barra de la primera a la ultima pagina y el campo «Pág. … de N» (Enter salta, Escape lo deja como estaba).
-       · HERRAMIENTAS: «Marcar» (tecla M) y la lista «Marcadores» (solo si el navegador deja guardar), la lupa, el sonido y
-         «Copiar enlace» (este, solo en los libros de la biblioteca). Mas adelante, «Índice».
+       · HERRAMIENTAS: «Marcar» (tecla M; con dos paginas a la vista, deja elegir cual), «Índice», la lupa, el sonido y
+         «Compartir» (este, solo en los libros de la biblioteca).
        En el telefono: la barra arriba; debajo Contenido, ‹, el campo, › y «Más», que abre las herramientas en una hoja.
        EL ASA esconde la banda y el muelle para ver solo el libro, y los devuelve: va siempre en el mismo sitio. -->
   <footer class="book__ruta" data-book-ruta hidden>
@@ -272,7 +287,8 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
       </button>
     </div>
     <div class="lector__grupo lector__herr" role="group" data-lector-herr>
-      <!-- «Marcar»: la cinta se llena de oro si el pliego que se ve tiene marca (aria-pressed). «Índice»: Palabras, Citas,
+      <!-- «Marcar»: la cinta se llena de oro si lo que se ve tiene marca. Con una pagina es un interruptor (aria-pressed); con
+           dos abre «¿Cuál marcar?» (aria-expanded; site.js cambia uno por otro). «Índice»: Palabras, Citas,
            Marcadores y Buscar, en una hoja con pestañas (lleva su nombre escrito: es la puerta a todo lo que el libro trae). -->
       <button class="book__ruta-btn lector__icono lector__marcar" type="button" data-lector-marcar aria-pressed="false" aria-keyshortcuts="M" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h10v15l-5-3.6-5 3.6z" /></svg>
@@ -292,12 +308,17 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
           <path class="book__sound-off" d="M16 9.5l5 5M21 9.5l-5 5" />
         </svg>
       </button>
-      <!-- «Copiar enlace»: al copiar, el propio boton dice «Copiado» un momento (y el estado de arriba lo anuncia). -->
-      <button class="book__ruta-btn lector__icono lector__copiar" type="button" data-lector-copiar hidden>
-        <svg class="lector__copiar-sin" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" /><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" /></svg>
-        <span class="lector__copiar-hecho"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg><span data-lector-copiar-hecho></span></span>
+      <!-- «Compartir»: abre la hoja de compartir del aparato (el telefono) con el enlace corto del libro; donde no la hay, copia
+           el enlace y el propio boton dice «Enlace copiado» un momento (el estado de arriba lo anuncia). El dibujo: la flecha que
+           sale de la caja, el de compartir de siempre. -->
+      <button class="book__ruta-btn lector__icono lector__compartir" type="button" data-lector-compartir hidden>
+        <svg class="lector__compartir-sin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.5V3.5M8 7.5l4-4 4 4" /><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5" /></svg>
+        <span class="lector__compartir-hecho"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg><span data-lector-compartir-hecho></span></span>
       </button>
     </div>
+    <!-- «¿Cuál marcar?» (pantalla ancha, un pliego abierto): las dos paginas que se ven, la de la izquierda primero, cada una
+         con su cinta llena si ya esta marcada (aria-pressed). Sale encima de «Marcar»; los botones los pone site.js. -->
+    <div class="lector__elige" id="lector-elige" role="group" data-lector-elige hidden></div>
   </footer>
   <!-- «MÁS» (telefono): las herramientas, con su nombre, en una hoja que sube dentro del lector. Las filas las pone site.js. -->
   <div class="lector__fondo" data-lector-fondo></div>

@@ -236,6 +236,16 @@ const { tx } = Astro.props;
             </div>
           </details>
         </div>
+        <span class="tal-sep"></span>
+        <!-- Una nota sobre las letras elegidas (taller/NotaEditor.js): sale en el PDF como el enlace /nota/ que abre el lector.
+             Va en Inicio, junto a lo que se hace sobre lo elegido: en Insertar ya no cabe en una fila a 1280 px. -->
+        <details class="tal-b-mas" name="tal-cinta"><summary class="tal-btn">{tx.notaMenu}<svg class="tal-svg" viewBox="0 0 16 16" aria-hidden="true"><path d={TRAZOS.flecha} /></svg></summary>
+          <div class="tal-b-panel tal-b-panel--menu tal-b-panel--der">
+            <button class="tal-btn" type="button" data-b-nota="definicion" aria-keyshortcuts="Control+Shift+D" title={tx.notaDefAyuda}>{tx.notaDef}</button>
+            <button class="tal-btn" type="button" data-b-nota="citaBiblica" aria-keyshortcuts="Control+Shift+E" title={tx.notaCitaAyuda}>{tx.notaCita}</button>
+            <p class="tal-ayuda">{tx.notaMenuAyuda}</p>
+          </div>
+        </details>
       </div>
 
       <div class="tal-grupo" data-grupo="insertar" role="tabpanel" id="tal-grupo-insertar" aria-labelledby="tal-tab-insertar" hidden>

@@ -1,10 +1,13 @@
 /* La pagina /copiar/ (src/pages/copiar.astro): lee el texto de `#t=…`, lo muestra como TEXTO (nunca como HTML) y lo copia.
    El texto sale del mismo lugar que usa el lector (lector/copiaEnPdf.js), con los mismos topes. */
-import { BASE_COPIA, textoDeCopia } from './lector/copiaEnPdf.js';
+import { BASE_COPIA } from './lector/copiaEnPdf.js';
+import { copiaDeEnlace } from './lector/botonEnPdf.js';
 
 const d = document;
 const pre = d.querySelector('[data-texto]'), boton = d.querySelector('[data-copiar]'), vacio = d.querySelector('[data-vacio]'), estado = d.querySelector('[data-estado]');
-const texto = textoDeCopia(BASE_COPIA.replace(/#t=$/, '') + location.hash) || null;
+/* El enlace de siempre (`#t=…`) o el que trae ademas el aspecto del boton (`#t=…&b=…`, lector/botonEnPdf.js) */
+const leida = copiaDeEnlace(BASE_COPIA.replace(/#t=$/, '') + location.hash);
+const texto = leida ? leida.texto : null;
 
 if (!texto) {
   vacio.hidden = false;

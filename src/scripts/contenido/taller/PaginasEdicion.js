@@ -16,6 +16,7 @@
 
 import { esEnlaceCopia } from '../../lector/copiaEnPdf.js';
 import { esEnlaceNota, pareceEnlaceNota } from '../../lector/notaEnPdf.js';
+import { esEnlaceBoton, pareceEnlaceBoton } from '../../lector/botonEnPdf.js';
 import { FOLIO_MAX } from '../../lector/pliegos.js';
 
 export const ENLACES_MAX = 200;
@@ -32,6 +33,8 @@ const HREF_MALO = /[\u0000-\u0020\u007f-\u009f<>"\\`]/;
    se deja leer como una (falsa, rota, demasiado larga) se tira: no queda como un enlace cualquiera a /nota/. */
 const hrefBueno = (href) => {
   if (pareceEnlaceNota(href)) return esEnlaceNota(href);
+  /* Un boton con su aspecto (lector/botonEnPdf.js): copiar con `&b=`, o un enlace por /ir/. El de copiar de siempre sigue valiendo. */
+  if (pareceEnlaceBoton(href)) return esEnlaceCopia(href) || esEnlaceBoton(href);
   return esEnlaceCopia(href) || (href.length <= HREF_MAX && HREF_BUENO.test(href) && !HREF_MALO.test(href));
 };
 const r4 = (x) => Math.round(x * 10000) / 10000;

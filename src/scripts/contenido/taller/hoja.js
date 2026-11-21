@@ -204,6 +204,7 @@ const cssBaseDe = (letra, b, capital, conCapital, cita, hilo) => `.libro, .libro
 .libro .boton--duo { font-weight: 700; }
 .libro .boton-suelto { position: relative; height: 0; margin: 0; padding: 0; break-inside: avoid; }
 .libro .boton-suelto > .boton--suelta { position: absolute; left: 0; top: 0; margin: 0; width: max-content; max-width: 100%; }
+.libro .nota { color: inherit; text-decoration: underline dotted 1px; text-underline-offset: .2em; text-decoration-skip-ink: none; }
 .libro .obj--figura > svg { display: block; width: 100%; height: 100%; overflow: visible; }`;
 
 /* Para imprenta: el papel crece 9 pt (3,2 mm) por lado, y la caja del texto se queda donde estaba */
@@ -340,7 +341,7 @@ export function aHoja(obra, capitulos, o = {}) {
     if (i === antes) nodos.push(...indice);
     const propio = colorValido(objeto(c.contenido).papel);
     if (propio) usados.capitulos.add(propio);
-    const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres, paginaMm: { anchoMm: config.anchoMm, altoMm: config.altoMm } });
+    const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres, paginaMm: { anchoMm: config.anchoMm, altoMm: config.altoMm }, idioma: obra.idioma, cuerpo: config.cuerpo });
     const esPortada = portada && i === 0;
     if (esPortada) usados.portada = propio || '';
     /* La contraportada: sin numero ni encabezado, como la portada (la mesa hace lo mismo) */

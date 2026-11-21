@@ -18,8 +18,9 @@ import { LIBROS, TIPOS } from '../data/biblioteca.js';
 /* Las ayudas para recorrer un libro largo (Volver, la barra, Contenido, RePag/AvPag): una sola cuenta, en scripts/lector/ */
 import { barraDePliego, hojaDelContenido, idiomaDelLector, leerPagina, numeracion, otraEdicion, paginasDe, pliegoALaVuelta, pliegoDe, rotuloDeVuelta } from './lector/pliegos.js';
 import { crearRecorrido } from './lector/recorrido.js';
-import { textoDeCopia } from './lector/copiaEnPdf.js';
-import { almacenDisponible, claveRecursos, claveValida, crearMarcadores } from './lector/marcadores.js';
+import { armarGemelo, botonDeEnlace, caraDibujable, crearPulsador, fuenteDeBoton, GEMELOS_MAX, pareceBoton, rotuloCopiado } from './lector/gemeloBoton.js';
+import { almacenDisponible, claveRecursos, claveValida, crearMarcadores, decirHoja, nombreDeHoja, opcionesDeMarca, rotuloDeCinta } from './lector/marcadores.js';
+import { datosParaCompartir, enlacesParaCompartir } from './lector/compartir.js';
 /* Las notas (lector/notaEnPdf.js), el indice (lector/indiceLector.js) y la hoja de la nota (lector/hojaNota.js) NO van aqui:
    traen la tabla de la Biblia y solo hacen falta en un libro que las use. Se piden con import() la primera vez. */
 /* El salto al hiperespacio va DENTRO (1.3 KB): traerlo al pulsar lo hacia arrancar tarde
@@ -910,9 +911,11 @@ function initBook() {
   const hojaMas = lz('[data-lector-hoja]');
   const hojaFondo = lz('[data-lector-fondo]');
   const masLista = lz('[data-lector-mas-lista]');
-  const copiarMuelle = lz('[data-lector-copiar]');
-  /* LOS MARCADORES (lector/marcadores.js): «Marcar», y su pestaña en el «Índice». Viven solo en este navegador. */
+  const copiarMuelle = lz('[data-lector-compartir]');
+  /* LOS MARCADORES (lector/marcadores.js): «Marcar», «¿Cuál marcar?», la cinta de cada pagina y su pestaña en el «Índice».
+     Viven solo en este navegador. */
   const marcarBtn = lz('[data-lector-marcar]');
+  const elige = lz('[data-lector-elige]');
   let marcas = null;          // los del libro abierto, o null (sin almacen, o un libro sin clave)
   /* EL ÍNDICE (lector/indiceLector.js): Palabras, Citas, Marcadores y Buscar en una hoja con pestañas */
   const indiceBtn = lz('[data-lector-indice]');
@@ -951,7 +954,8 @@ function initBook() {
   let otroIdioma = null;      // la otra edicion del libro abierto ('es' | 'en'), o null
   let solo = false;           // el asa: la banda y el muelle estan escondidos (dura lo que dura la pagina; no se guarda)
   let hojaVuelve = null;      // a donde vuelve el foco al cerrar «Más»
-  /* «Copiar enlace»: el enlace CORTO del libro (juanjolopezramirez.com/ahava), el que se manda por WhatsApp. Solo en los
+  /* «Compartir» (arriba en el libro escrito, en el muelle y en «Más» del lector): el enlace CORTO del libro
+     (juanjolopezramirez.com/ahava), el que se manda por WhatsApp. Solo en los
      libros de la biblioteca: el privado de /vista/ (`privado`) no se copia ni se acorta, y ahi el boton no sale. El dominio
      es el de `site` (astro.config.mjs), tambien en una copia de prueba. */
   const copiarBtn = s.panel.querySelector('[data-book-copiar]');
@@ -962,7 +966,7 @@ function initBook() {
   const copiarReponer = () => {
     clearTimeout(copiarTimer);
     copiado = false;
-    if (copiarRotulo) copiarRotulo.textContent = t('book.copy');
+    if (copiarRotulo) copiarRotulo.textContent = t('book.share');
     if (copiarEstado) copiarEstado.textContent = '';
     if (copiarBtn) copiarBtn.removeAttribute('data-hecho');
     if (copiarMuelle) copiarMuelle.removeAttribute('data-hecho');
@@ -989,19 +993,22 @@ function initBook() {
   /* `enLector`: lo pide el muelle o la hoja de «Más» (libro en PDF); si no, el boton de arriba del libro escrito */
   const copiarEnlace = async (desde, enLector) => {
     const id = abiertoId;
-    if (!id || privado.has(id)) return;
+    /* Solo un libro de la biblioteca (lista positiva), y nunca el privado */
+    if (!id || privado.has(id) || !LIBRO.has(id)) return;
     const largo = enlaceCorto(import.meta.env.SITE, id);
     if (!largo) return;
     const bien = await copiarAlPortapapeles(largo, desde);
     clearTimeout(copiarTimer);
     if (enLector) {
-      /* El propio boton pasa de «Copiar» a «Copiado»; un lector de pantalla lo oye por el estado */
+      /* El propio boton pasa de «Compartir» a «Enlace copiado»; un lector de pantalla lo oye por el estado */
       if (bien) {
         copiado = true;
-        lz('[data-lector-copiar-hecho]').textContent = tl('copiado');
+        lz('[data-lector-compartir-hecho]').textContent = tl('enlaceCopiado');
         copiarMuelle.setAttribute('data-hecho', '');
         copiarEstado.textContent = tl('enlaceCopiado');
         if (hojaMas.classList.contains('is-abierta')) pintarMas();
+        /* En el telefono el boton del muelle no se ve (vive en «Más»): lo dice el aviso breve */
+        else if (!seVe(copiarMuelle)) decir(tl('enlaceCopiado'));
       } else {
         /* No se pudo copiar: se ve la direccion para escribirla a mano */
         decir(tl('enlaceNo') + enlaceVisible(import.meta.env.SITE, id), 7000);
@@ -1022,12 +1029,150 @@ function initBook() {
     }
     copiarTimer = setTimeout(copiarReponer, bien ? 2600 : 7000);
   };
+  /* «COMPARTIR»: la hoja de compartir del aparato (WhatsApp, correo, Drive… lo que el aparato ofrezca) con el titulo del
+     libro y su enlace corto. Se pide en el mismo toque (el navegador solo la abre en respuesta a uno, antes de cualquier
+     espera). La hay en los telefonos y en muchos ordenadores (Chrome y Edge en Windows, Safari en Mac): ahi se abre la del
+     sistema, tambien en el ordenador (decision del dueño). Solo viaja { title, url } (lector/compartir.js): nunca el PDF ni
+     un archivo. Donde no la hay (Firefox, por ejemplo), o si falla, sale el MENU DE REPUESTO: WhatsApp, Correo, Telegram y
+     «Copiar enlace». Cerrarla sin elegir (AbortError) es decir que no: no se dice nada. Nada de esto pide un origen en la
+     politica de contenido: los enlaces del menu son navegaciones, no peticiones de la pagina. */
+  let compartiendo = false;   // la hoja del aparato esta abierta: otro toque no abre otra
+  const puedeCompartir = (datos) => {
+    if (typeof navigator.share !== 'function') return false;
+    if (typeof navigator.canShare !== 'function') return true;
+    try { return navigator.canShare(datos) !== false; } catch (err) { return false; }
+  };
+  /* `enLector`: lo pide el lector de PDF (rotulos del libro, es/en); si no, el boton de arriba del libro escrito (rotulos de
+     la pagina, en sus cinco idiomas) */
+  const compartir = (desde, enLector) => {
+    const id = abiertoId;
+    if (!id || privado.has(id) || !LIBRO.has(id) || compartiendo) return;
+    const f = cur && cur.id === id && cur.f ? cur.f : ficha(id);
+    const datos = datosParaCompartir(f && f.titulo, enlaceCorto(import.meta.env.SITE, id));
+    /* Un enlace que no es https (una copia de prueba con otro `site`): no se ofrece a nadie, pero el boton no se queda mudo:
+       se copia (y si tampoco, se ve la direccion) */
+    if (!datos) { copiarEnlace(desde, enLector); return; }
+    const repuesto = () => abrirMenuCompartir(desde, enLector, datos);
+    if (!puedeCompartir(datos)) { repuesto(); return; }
+    let pedido;
+    try { pedido = navigator.share(datos); } catch (err) { repuesto(); return; }
+    compartiendo = true;
+    /* Si la hoja falla cuando ya se cerro este libro (o se abrio otro), no sale nada: seria el enlace de otro libro */
+    Promise.resolve(pedido)
+      .catch((err) => { if ((!err || err.name !== 'AbortError') && abiertoId === id) repuesto(); })
+      .finally(() => { compartiendo = false; });
+  };
+
+  /* EL MENU DE REPUESTO (components/Panels.astro, base.css «.compartir»). De 820 px para arriba, una pastilla junto al boton
+     que lo abrio (encima si el boton esta abajo, debajo si esta arriba); en el telefono sube desde abajo con un velo. Flechas,
+     Inicio y Fin van de una opcion a otra; Escape, el velo o salir con Tab lo cierran, y el foco vuelve a quien lo abrio.
+     WhatsApp y Telegram abren en otra pestaña (noopener noreferrer); el correo, en la misma (mailto no deja la pagina). */
+  const menuCompartir = s.panel.querySelector('[data-compartir]');
+  const menuFondo = s.panel.querySelector('[data-compartir-fondo]');
+  let menuVuelve = null;
+  let menuEnLector = false;
+  const menuAbierto = () => !!menuCompartir && !menuCompartir.hidden;
+  const opcionesMenu = () => (menuCompartir ? [...menuCompartir.querySelectorAll('[data-compartir-op]')] : []);
+  function colocarMenu() {
+    const m = menuCompartir;
+    m.style.left = ''; m.style.top = ''; m.style.bottom = '';
+    const a = menuVuelve;
+    /* El telefono: hoja de abajo (lo pone base.css) */
+    if (innerWidth < 820 || !a || !a.isConnected || !seVe(a)) return;
+    const r = a.getBoundingClientRect(), w = m.offsetWidth;
+    m.style.left = Math.round(Math.max(16, Math.min(innerWidth - w - 16, r.left + r.width / 2 - w / 2))) + 'px';
+    if (r.top + r.height / 2 > innerHeight / 2) m.style.bottom = Math.round(innerHeight - r.top + 8) + 'px';
+    else m.style.top = Math.round(r.bottom + 8) + 'px';
+  }
+  function abrirMenuCompartir(desde, enLector, datos) {
+    /* Un titulo raro nunca deja el boton sin hacer nada: si las direcciones no se pueden armar, se copia */
+    let ligas = null;
+    try { ligas = enlacesParaCompartir(datos.title, datos.url); } catch (err) { ligas = null; }
+    if (!menuCompartir || !ligas) { copiarEnlace(desde, enLector); return; }
+    /* Desde «Más» (telefono): «Más» se cierra y el menu ocupa su sitio; el foco volvera a «Más» */
+    let vuelve = desde;
+    if (enLector && hojaMas.classList.contains('is-abierta')) { vuelve = hojaVuelve && hojaVuelve !== d.body ? hojaVuelve : masBtn; cerrarHoja(true); }
+    menuVuelve = vuelve;
+    menuEnLector = !!enLector;
+    const p = enLector
+      ? { titulo: tl('compartir'), correo: tl('correo'), copiar: tl('copiarEnlace'), nueva: tl('otraPestana'), idioma: lectorLang }
+      : { titulo: t('book.share'), correo: t('book.shareMail'), copiar: t('book.copy'), nueva: t('book.shareNewTab'), idioma: lang };
+    if (p.idioma !== lang) menuCompartir.setAttribute('lang', p.idioma); else menuCompartir.removeAttribute('lang');
+    menuCompartir.querySelector('[data-compartir-titulo]').textContent = p.titulo;
+    menuCompartir.querySelector('[data-compartir-correo]').textContent = p.correo;
+    menuCompartir.querySelector('[data-compartir-copiar]').textContent = p.copiar;
+    opcionesMenu().forEach((op) => {
+      const k = op.dataset.compartirOp;
+      if (k === 'copiar') return;
+      op.href = ligas[k];
+      /* Las que abren otra pestaña lo dicen en su nombre */
+      if (op.target === '_blank') op.setAttribute('aria-label', p.nueva.replace('{n}', () => op.textContent.trim()));
+    });
+    menuFondo.hidden = false;
+    menuCompartir.hidden = false;
+    colocarMenu();
+    opcionesMenu()[0].focus({ preventScroll: true });
+  }
+  function cerrarMenuCompartir(foco) {
+    if (!menuAbierto()) return;
+    menuCompartir.hidden = true;
+    menuFondo.hidden = true;
+    const a = menuVuelve;
+    menuVuelve = null;
+    if (!foco) return;
+    const donde = [a, masBtn, copiarMuelle, copiarBtn, cerrarBtn].find((b) => b && b.isConnected && seVe(b) && !b.disabled);
+    if (donde) donde.focus({ preventScroll: true });
+  }
+  if (menuCompartir) {
+    menuCompartir.addEventListener('click', (e) => {
+      const op = e.target.closest('[data-compartir-op]');
+      if (!op) return;
+      const a = menuVuelve, enLector = menuEnLector;
+      /* Un enlace sigue su camino (otra pestaña o el correo); el menu se cierra igual */
+      cerrarMenuCompartir(true);
+      if (op.dataset.compartirOp === 'copiar') copiarEnlace(a && a.isConnected && seVe(a) ? a : null, enLector);
+    });
+    menuCompartir.addEventListener('keydown', (e) => {
+      if (!/^(ArrowDown|ArrowUp|Home|End)$/.test(e.key)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const ops = opcionesMenu();
+      const i = ops.indexOf(d.activeElement);
+      const j = e.key === 'Home' ? 0 : e.key === 'End' ? ops.length - 1 : (i + (e.key === 'ArrowUp' ? -1 : 1) + ops.length) % ops.length;
+      ops[j].focus({ preventScroll: true });
+    });
+    /* Las flechas de lado no pasan las hojas del libro mientras el menu esta abierto */
+    menuCompartir.addEventListener('keydown', (e) => { if (/^(ArrowLeft|ArrowRight|PageUp|PageDown|b|B|m|M)$/.test(e.key)) e.stopPropagation(); });
+    /* El foco sale del menu (Tab, o se fue a ninguna parte): se cierra. Mientras el dedo o el raton estan APRETANDO dentro del
+       menu no: Safari no da el foco a un enlace al tocarlo, y cerrarlo ahi se tragaria el toque. */
+    let pulsandoMenu = false;
+    menuCompartir.addEventListener('pointerdown', () => { pulsandoMenu = true; });
+    ['pointerup', 'pointercancel'].forEach((ev) => addEventListener(ev, () => { setTimeout(() => { pulsandoMenu = false; }, 0); }, true));
+    menuCompartir.addEventListener('focusout', (e) => {
+      const a = e.relatedTarget;
+      if (!menuAbierto() || (a && menuCompartir.contains(a))) return;
+      if (!a && pulsandoMenu) return;
+      cerrarMenuCompartir(false);
+    });
+    menuFondo.addEventListener('click', () => cerrarMenuCompartir(true));
+    /* Escape cierra el menu y nada mas (ni el libro): va en la captura de la ventana, antes que nadie */
+    addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !menuAbierto()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      cerrarMenuCompartir(true);
+    }, true);
+    addEventListener('resize', () => { if (menuAbierto()) colocarMenu(); });
+  }
+  /* Una hoja del aparato que nunca contesto (el navegador la dejo colgada) no deja «Compartir» muerto para siempre: al volver a
+     la pagina, o al abrir otro libro (open), se puede pedir otra vez */
+  d.addEventListener('visibilitychange', () => { if (d.visibilityState === 'visible') compartiendo = false; });
   if (copiarBtn) {
     /* El nombre del boton no cambia con el rotulo: «Enlace copiado» lo anuncia solo el estado (role=status), no dos veces */
-    copiarBtn.setAttribute('aria-label', t('book.copy'));
-    copiarBtn.addEventListener('click', () => copiarEnlace(copiarBtn, false));
+    copiarBtn.setAttribute('aria-label', t('book.share'));
+    copiarBtn.addEventListener('click', () => compartir(copiarBtn, false));
   }
-  if (copiarMuelle) copiarMuelle.addEventListener('click', () => copiarEnlace(copiarMuelle, true));
+  if (copiarMuelle) copiarMuelle.addEventListener('click', () => compartir(copiarMuelle, true));
   const wide = matchMedia('(min-width: 900px)');
   const dedo = matchMedia('(pointer: coarse)');   // se lee con el dedo: soltar el campo «Pág.» cierra el teclado
   const quiet = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1531,6 +1676,33 @@ function initBook() {
 
   const flipBox = el('flip');
   const copias = new WeakMap();   // boton de copiar de una hoja → el texto que copia (lector/copiaEnPdf.js)
+  const gemelos = new WeakMap();  // gemelo de una hoja → su boton ({ tipo, texto | url, aspecto })
+  /* LOS GEMELOS DE LOS BOTONES (lector/gemeloBoton.js). Su nombre para quien no ve: el de copiar dice lo que dice el boton
+     (o «Copiar mensaje»); el de ir, ademas, a que dominio lleva y que se abre en otra pestaña. Los huecos se llenan con una
+     funcion, y primero el del dominio: un «{u}» o un «$&» escrito en el boton se queda como texto. */
+  const etiquetaDeBoton = (b) => {
+    const x = b.aspecto && b.aspecto.x ? b.aspecto.x : '';
+    if (b.tipo === 'copia') return x || tl('copiarMsg');
+    let host = '';
+    try { host = new URL(b.url).hostname; } catch (err) { host = ''; }
+    const plantilla = (x ? tl('irBoton') : tl('irBotonSolo')).replace('{u}', () => host);
+    return x ? plantilla.replace('{t}', () => x) : plantilla;
+  };
+  /* El gemelo de un boton con aspecto, con la cara recortada de la MISMA imagen de su pagina. null si su caja no sirve:
+     entonces queda el boton de siempre. La letra de «Copiado» se apunta en `letras` solo si el gemelo salio: sale de la
+     lista fija de las notas (FUENTES_NOTA) y la pide hojaNota.ponerFuente, la misma que usan las notas (una hoja por letra). */
+  const gemeloDe = (boton, L, img, leerNota, letras) => {
+    const g = armarGemelo(d, { tipo: boton.tipo, url: boton.url, aspecto: boton.aspecto, L, etiqueta: etiquetaDeBoton(boton) });
+    if (!g) return null;
+    const foto = g.querySelector('.flip__boton-foto');
+    const igualar = () => { const src = img.currentSrc || img.src; if (src && foto.src !== src) foto.src = src; };
+    if (!img.complete || !img.currentSrc) img.addEventListener('load', igualar, { once: true });
+    igualar();
+    gemelos.set(g, boton);
+    const id = leerNota && boton.aspecto.fu ? fuenteDeBoton(boton.aspecto.fu, leerNota.FUENTES_NOTA) : null;
+    if (id) letras.push([g.querySelector('.flip__boton-rotulo'), id]);
+    return g;
+  };
   let fb = null;
   let fbInfo = null;
   let fbGen = 0;
@@ -2047,7 +2219,9 @@ function initBook() {
     const [lib, texts] = await Promise.all([getLib(), getTexts(info)]);
     /* Si alguna pagina trae una nota (/nota/#n=…), se pide su lector antes de armar las hojas: un libro sin notas no lo baja */
     const conNotas = Array.isArray(texts) && texts.some((x) => x && Array.isArray(x.links) && x.links.some((L) => L && typeof L.href === 'string' && L.href.includes('/nota/')));
-    const leerNota = conNotas ? await import('./lector/notaEnPdf.js').catch(() => null) : null;
+    /* Un boton con su aspecto (`&b=`) dice «Copiado» con la letra del libro si esta en la lista de las notas: tambien la pide */
+    const conAspecto = Array.isArray(texts) && texts.some((x) => x && Array.isArray(x.links) && x.links.some((L) => L && typeof L.href === 'string' && L.href.includes('&b=') && pareceBoton(L.href, { origenes: ORIGENES_NOTA })));
+    const leerNota = conNotas || conAspecto ? await import('./lector/notaEnPdf.js').catch(() => null) : null;
     if (gen !== fbGen) return;
     if (boot) { hojasLibro = Array.isArray(texts) ? texts : []; datosIndice = null; }
     if (gen !== fbGen) return;          // se cerro o se abrio otra mientras cargaba
@@ -2069,6 +2243,7 @@ function initBook() {
     const hardAt = blando ? [] : [0, n - 1];
     const imgs = [];
     const els = [];
+    const letras = [];                  // [rotulo de un gemelo, id de su letra]: se piden al final, sin esperar
     for (let i = 0; i < n; i++) {
       const pg = h('div', 'flip__page');
       if (hardAt.includes(i)) pg.dataset.density = 'hard';
@@ -2078,9 +2253,13 @@ function initBook() {
       img.draggable = false;
       img.decoding = 'async';
       pg.appendChild(img);
-      /* La cinta de un marcador: cuelga del borde de arriba y solo se ve si la pagina esta marcada (base.css, .flip__cinta) */
-      const cinta = h('span', 'flip__cinta');
-      cinta.setAttribute('aria-hidden', 'true');
+      /* La cinta de un marcador: un boton que cuelga del borde de arriba, junto al lomo, y marca o desmarca ESTA pagina
+         (base.css, .flip__cinta). Sin nada dentro: la libreria deja pasar el toque solo si cae en el boton mismo (un hijo
+         empezaria a doblar la hoja). Su nombre y si se ve los pone pintarCintas. */
+      const cinta = h('button', 'flip__cinta');
+      cinta.type = 'button';
+      cinta.dataset.flipMarca = String(i);
+      cinta.hidden = true;
       pg.appendChild(cinta);
 
       /* Lo que el PDF tiene escrito, para quien no ve la imagen */
@@ -2089,14 +2268,37 @@ function initBook() {
 
       /* Los enlaces del PDF siguen siendo enlaces: los del indice pasan a
          su pagina, los de fuera abren en otra pestaña. */
+      let gemelosAqui = 0;              // tope por pagina (GEMELOS_MAX): los demas quedan como los de siempre
       ((texts[i] && texts[i].links) || []).forEach((L) => {
         /* Una NOTA (lector/notaEnPdf.js): una palabra con su definicion o una cita. Abre su hoja encima del libro. Lo que dice
            ser una nota y no se deja leer como una no se pinta (ni como enlace). */
         const pareceNota = !!L.href && L.href.includes('/nota/') && (!leerNota || leerNota.pareceEnlaceNota(L.href, { origenes: ORIGENES_NOTA }));
         const nota = pareceNota && leerNota ? leerNota.notaDeEnlace(L.href, { origenes: ORIGENES_NOTA }) : null;
         if (pareceNota && !nota) return;
-        /* Un boton de COPIAR exportado en el PDF (lector/copiaEnPdf.js): copia su texto, no abre nada */
-        const copia = L.href && !nota ? textoDeCopia(L.href) : null;
+        /* Un BOTON del PDF (lector/gemeloBoton.js): copiar (con su aspecto `&b=` o el de siempre) o ir a una direccion por
+           /ir/. Lo que dice ser un boton y no lo es no se pinta (ni como enlace): queda la imagen, quieta. */
+        const dice = !!L.href && !nota && pareceBoton(L.href, { origenes: ORIGENES_NOTA });
+        const boton = dice ? botonDeEnlace(L.href, { origenes: ORIGENES_NOTA }) : null;
+        if (dice && !boton) return;
+        /* Con aspecto, un GEMELO encima del boton impreso: se hunde al pulsarlo y, el de copiar, dice «Copiado». Un /ir/ sin
+           aspecto es un enlace directo a su direccion (la pagina /ir/ es para los otros visores de PDF). */
+        const gemelo = boton && boton.aspecto && gemelosAqui < GEMELOS_MAX ? gemeloDe(boton, L, img, leerNota, letras) : null;
+        if (gemelo) {
+          gemelosAqui++;
+          if (boton.tipo === 'copia') { gemelo.dataset.flipCopia = '1'; copias.set(gemelo, boton.texto); }
+          pg.appendChild(gemelo);
+          return;
+        }
+        if (boton && boton.tipo === 'ir') {
+          const a = h('a', 'flip__link');
+          a.href = boton.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.referrerPolicy = 'no-referrer';
+          a.setAttribute('aria-label', etiquetaDeBoton(boton));
+          Object.assign(a.style, { left: L.x * 100 + '%', top: L.y * 100 + '%', width: L.w * 100 + '%', height: L.h * 100 + '%' });
+          pg.appendChild(a);
+          return;
+        }
+        /* Un boton de COPIAR de siempre (lector/copiaEnPdf.js): copia su texto, no abre nada */
+        const copia = boton ? boton.texto : null;
         /* Lo demas es un enlace de fuera: se vuelve a mirar aqui, al pintarlo (solo https y mailto, sin espacios ni comillas),
            aunque pages.json y el enlace privado ya lo hayan filtrado */
         if (L.href && !nota && !copia && !enlaceDeFueraBueno(L.href)) return;
@@ -2113,6 +2315,9 @@ function initBook() {
       imgs.push(img);
       els.push(pg);
     }
+    /* La letra de «Copiado» de los gemelos: la pide la misma pieza que pide las de las notas (hojaNota.ponerFuente: una hoja
+       por letra, de la lista fija). No se espera: hasta que llega, «Copiado» sale con la letra del sitio. */
+    if (letras.length) import('./lector/hojaNota.js').then((m) => { if (gen === fbGen) letras.forEach(([r, id]) => m.ponerFuente(r, id)); }).catch(() => {});
 
     if (boot) {
       ldStep('pages');
@@ -2340,8 +2545,20 @@ function initBook() {
      anuncia a quien no ve). Si no se pudo, el aviso de abajo lo dice. Un boton con su propio dibujo de «Copiado» es de la
      etapa 5b: este es el de siempre. */
   let copiadoTimer = 0;
+  /* El pulsador de los gemelos (lector/gemeloBoton.js): se hunden, dicen «Copiado» y vuelven. Con «menos movimiento» no bajan. */
+  const pulsador = crearPulsador({ quieto: () => quiet.matches });
   const avisarCopia = (bien, boton) => {
     if (!bien || !boton || !boton.isConnected) { decir(tl(bien ? 'msgCopiado' : 'msgNo'), bien ? 1900 : 4200); return; }
+    /* Un gemelo con sitio para la palabra: su propia cara dice «Copiado» (o lo que escribio el autor) y vuelve sola */
+    const gb = gemelos.get(boton);
+    if (gb && caraDibujable(gb.aspecto)) {
+      flipBox.querySelectorAll('.flip__copiado').forEach((x) => x.remove());
+      clearTimeout(copiadoTimer);
+      copiarEstado.textContent = tl('msgCopiado');
+      pulsador.copiado(boton, rotuloCopiado(gb.aspecto, lectorLang), gb.aspecto.x, () => { copiarEstado.textContent = ''; });
+      return;
+    }
+    pulsador.reponer();
     flipBox.querySelectorAll('.flip__copiado').forEach((x) => x.remove());
     const sello = h('span', 'flip__copiado', tl('copiado'));
     sello.setAttribute('aria-hidden', 'true');
@@ -2378,49 +2595,153 @@ function initBook() {
     avisarCopia(bien, boton);
   };
   /* ---- LOS MARCADORES ----
-     «Marcar» marca la pagina que se ve (en un pliego, la de la izquierda que lleva numero; si ninguna lo lleva, la primera
-     que se ve) y, si alguna de las que se ven ya esta marcada, la desmarca: el boton dice si ESTE pliego tiene marca. La
-     pagina marcada lleva una cinta. La lista «Marcadores» salta por el recorrido (asi «Volver» sabe de donde se vino). */
+     Cada pagina se marca SOLA (lector/marcadores.js, opcionesDeMarca). Con una pagina a la vista (el telefono, la tapa, la
+     contratapa) «Marcar» y la tecla M la marcan o la desmarcan de un toque. Con un pliego abierto (dos paginas) abren
+     «¿Cuál marcar?»: las dos, la de la izquierda primero, cada una diciendo si esta marcada (flechas y Enter). Y cada pagina
+     lleva su cinta arriba, junto al lomo: un boton que la marca o la desmarca. Marcada se ve siempre; sin marca asoma al
+     pasar el raton por la pagina. Va junto al lomo y no en la esquina de fuera: las esquinas de fuera son de la libreria
+     (acercarse dobla la hoja). La lista «Marcadores» salta por el recorrido (asi «Volver» sabe de donde se vino). */
   const hayMarcas = () => !!(marcas && fb);
+  const opcionesAhora = () => opcionesDeMarca(lastVis, { n: fb ? count() : 0, folioDe: folioNum, tiene: (p) => !!(marcas && marcas.tiene(p)) });
   /* Como se nombra una pagina en la lista y en el aviso: «Pág. 12», «Portada», «Contratapa», o «Hoja 3» si no lleva numero */
-  function nombreDePagina(p) {
-    const f = folioNum(p);
-    if (f != null) return tl('pagN').replace('{n}', f);
-    if (p === 0) return tl('portada');
-    if (p === count() - 1) return tl('contratapa');
-    return tl('hojaN').replace('{n}', p + 1);
-  }
+  const nombreDePagina = (p) => decirHoja(nombreDeHoja(p, folioNum(p), count()), tl);
+  /* Las cintas de las paginas: llenas si la pagina esta marcada; su nombre dice lo que hara. Se llama tambien al reencuadernar
+     (antes de que exista el libro nuevo: por eso cuenta las paginas, no le pregunta a la libreria). */
   function pintarCintas() {
-    flipBox.querySelectorAll('.flip__page').forEach((pg, x) => pg.toggleAttribute('data-marca', !!(marcas && marcas.tiene(x))));
+    const paginas = flipBox.querySelectorAll('.flip__page');
+    paginas.forEach((pg, x) => {
+      const puesta = !!(marcas && marcas.tiene(x));
+      pg.toggleAttribute('data-marca', puesta);
+      const cinta = pg.querySelector(':scope > .flip__cinta');
+      if (!cinta) return;
+      cinta.hidden = !marcas;
+      if (!marcas) return;
+      const r = rotuloDeCinta({ marcada: puesta, nombre: nombreDeHoja(x, folioNum(x), paginas.length) }, tl);
+      cinta.setAttribute('aria-label', r);
+      cinta.title = r;
+    });
   }
   function pintarMarcar() {
     const hay = !!marcas;
     marcarBtn.hidden = !hay;
     /* Sin donde guardar no hay marcadores: su pestaña del indice tampoco sale */
     pestanas.forEach((b) => { if (b.dataset.pestana === 'marcadores') b.hidden = !hay; });
-    if (!hay) return;
-    marcarBtn.setAttribute('aria-pressed', String(lastVis.some((x) => marcas.tiene(x))));
-  }
-  function alternarMarca() {
-    if (!hayMarcas() || booting || !lastVis.length) return;
-    const puestas = lastVis.filter((x) => marcas.tiene(x));
-    if (puestas.length) {
-      /* Dos paginas marcadas en el pliego: se quitan las dos. Si una no se pudo quitar, se dice cual quedo. */
-      const quedan = puestas.filter((x) => marcas.quitar(x) === 'falla');
-      if (!quedan.length) decir(tl('marcaQuitada'));
-      else if (quedan.length < puestas.length) decir(tl('marcaQueda').replace('{n}', nombreDePagina(quedan[0])), 4200);
-      else decir(tl('marcaNoQuita'), 4200);
+    if (!hay) { cerrarElige(); return; }
+    const o = opcionesAhora();
+    const dos = o.modo === 'elegir';
+    /* La cinta del boton se llena si algo de lo que se ve esta marcado. Con una pagina, el boton es un interruptor; con dos,
+       abre el selector (y deja de ser interruptor: las dos cosas a la vez no se entienden). */
+    marcarBtn.toggleAttribute('data-lleno', o.ops.some((x) => x.marcada));
+    if (dos) {
+      marcarBtn.removeAttribute('aria-pressed');
+      marcarBtn.setAttribute('aria-expanded', String(eligeAbierto()));
+      marcarBtn.setAttribute('aria-controls', 'lector-elige');
     } else {
-      const p = lastVis.find((x) => folioNum(x) != null) ?? lastVis[0];
+      marcarBtn.setAttribute('aria-pressed', String(o.ops.some((x) => x.marcada)));
+      marcarBtn.removeAttribute('aria-expanded');
+      marcarBtn.removeAttribute('aria-controls');
+    }
+    marcarBtn.setAttribute('aria-label', tl(dos ? 'marcarCual' : 'marcarPagina'));
+    marcarBtn.title = tl(dos ? 'marcarCualAyuda' : 'marcarAyuda');
+    /* Abierto mientras cambia lo que se ve: se rehace con las paginas de ahora, o se cierra si ya no hay dos */
+    if (eligeAbierto()) { if (dos) pintarElige(); else cerrarElige(); }
+  }
+  /* Marca o desmarca UNA pagina, y lo dice. Si el almacen falla, se dice que no se pudo (y la pagina queda como estaba). */
+  function alternarPagina(p) {
+    if (!hayMarcas() || booting || !Number.isInteger(p) || p < 0 || p >= count()) return;
+    if (marcas.tiene(p)) {
+      const r = marcas.quitar(p);
+      if (r === 'falla') decir(tl('marcaNoQuita'), 4200);
+      else decir(tl('marcaQuitada'));
+    } else {
       const r = marcas.poner(p, folioNum(p));
-      if (r === 'ok') decir(tl('marcada').replace('{n}', nombreDePagina(p)));
+      if (r === 'ok' || r === 'ya') decir(tl('marcada').replace('{n}', nombreDePagina(p)));
       else if (r === 'lleno') decir(tl('marcasLlenas'), 4200);
-      else if (r === 'falla') decir(tl('marcaNo'), 4200);
+      else decir(tl('marcaNo'), 4200);
     }
     pintarCintas();
     pintarMarcar();
     if (indiceAbierto() && pestana === 'marcadores') pintarIndice();
   }
+  /* «Marcar» y la tecla M: una pagina, de un toque; dos, el selector (y si ya estaba abierto, se cierra) */
+  function alternarMarca() {
+    if (!hayMarcas() || booting) return;
+    if (eligeAbierto()) { cerrarElige(true); return; }
+    const o = opcionesAhora();
+    if (o.modo === 'una') alternarPagina(o.ops[0].p);
+    else if (o.modo === 'elegir') {
+      /* Con los botones escondidos (el asa) el selector no tiene donde salir: vuelven, como con el asa, y se abre */
+      if (solo) ponerSolo(false);
+      abrirElige();
+    }
+  }
+
+  /* «¿CUÁL MARCAR?»: dos botones, uno por pagina, en el orden del libro. Cada uno es un interruptor (aria-pressed) con la
+     cinta llena si esa pagina esta marcada. Elegir uno lo cambia y cierra; Escape, tocar fuera o salir con Tab cierran. */
+  const eligeAbierto = () => !!elige && !elige.hidden;
+  function pintarElige() {
+    const o = opcionesAhora();
+    const cinta = marcarBtn.querySelector('svg');
+    const enFoco = [...elige.querySelectorAll('button')].indexOf(d.activeElement);
+    const botones = o.ops.map((op) => {
+      const b = h('button', 'lector__elige-op');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(op.marcada));
+      if (cinta) { const c = cinta.cloneNode(true); c.removeAttribute('class'); b.appendChild(c); }
+      b.appendChild(h('span', '', decirHoja(op.nombre, tl)));
+      b.addEventListener('click', () => { cerrarElige(true); alternarPagina(op.p); });
+      return b;
+    });
+    elige.replaceChildren(...botones);
+    if (enFoco >= 0 && botones[enFoco]) botones[enFoco].focus({ preventScroll: true });
+  }
+  /* Sale encima de «Marcar», centrado en el, sin salirse del muelle */
+  function ponerElige() {
+    const r = ruta.getBoundingClientRect(), b = marcarBtn.getBoundingClientRect();
+    const w = elige.offsetWidth;
+    const x = Math.max(8, Math.min(r.width - w - 8, b.left + b.width / 2 - r.left - w / 2));
+    elige.style.left = Math.round(x) + 'px';
+  }
+  function abrirElige() {
+    if (!elige || eligeAbierto() || !seVe(marcarBtn)) return;
+    listaIdioma(false);
+    elige.hidden = false;
+    pintarElige();
+    ponerElige();
+    marcarBtn.setAttribute('aria-expanded', 'true');
+    const primero = elige.querySelector('button');
+    if (primero) primero.focus({ preventScroll: true });
+  }
+  function cerrarElige(foco) {
+    if (!eligeAbierto()) return;
+    /* Primero se esconde: al irse el boton con el foco, el «focusout» de abajo ya lo encuentra cerrado */
+    elige.hidden = true;
+    elige.replaceChildren();
+    if (marcarBtn.hasAttribute('aria-expanded')) marcarBtn.setAttribute('aria-expanded', 'false');
+    if (foco && seVe(marcarBtn)) marcarBtn.focus({ preventScroll: true });
+  }
+  /* Las flechas (y Inicio, Fin) van de una pagina a la otra sin pasar las hojas del libro; M lo cierra */
+  elige.addEventListener('keydown', (e) => {
+    const k = e.key;
+    const cierra = (k === 'm' || k === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (!cierra && !/^(ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Home|End)$/.test(k)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (cierra) { if (!e.repeat) cerrarElige(true); return; }
+    const bs = [...elige.querySelectorAll('button')];
+    const i = Math.max(0, bs.indexOf(d.activeElement));
+    const j = k === 'Home' ? 0 : k === 'End' ? bs.length - 1 : (i + (k === 'ArrowLeft' || k === 'ArrowUp' ? -1 : 1) + bs.length) % bs.length;
+    if (bs[j]) bs[j].focus({ preventScroll: true });
+  });
+  /* Con Tab hacia otro control se cierra. Sin a donde (un toque en algo que no toma el foco, o Safari, que no da el foco a un
+     boton al tocarlo) no: de eso se encarga el toque de abajo, y asi tocar «Marcar» otra vez lo cierra en vez de reabrirlo. */
+  elige.addEventListener('focusout', (e) => {
+    const a = e.relatedTarget;
+    if (eligeAbierto() && a && !elige.contains(a) && a !== marcarBtn) cerrarElige();
+  });
+  d.addEventListener('click', (e) => {
+    if (eligeAbierto() && !elige.contains(e.target) && !marcarBtn.contains(e.target)) cerrarElige();
+  });
   const volverFoco = (a) => {
     const donde = [a, indiceBtn, masBtn, asa, cerrarBtn].find((b) => b && b.isConnected && seVe(b) && !b.disabled);
     if (donde) donde.focus({ preventScroll: true });
@@ -2662,7 +2983,31 @@ function initBook() {
     if (nt && notas.has(nt)) abrirNota(notas.get(nt), nt);
     const cp = e.target.closest('[data-flip-copia]');
     if (cp && copias.has(cp)) copiarMensaje(copias.get(cp), cp);
+    const cm = e.target.closest('[data-flip-marca]');
+    if (cm && !toqueACiegas(e, cm)) alternarPagina(Number(cm.dataset.flipMarca));
   });
+  /* Un DEDO sobre la cinta de una pagina sin marca no marca: esa cinta no se ve (solo asoma al pasar el raton), y un toque a
+     ciegas no debe guardar nada. Vale tambien en un portatil tactil, donde el raton si la ve (base.css solo lo cubre en
+     pantallas sin raton). El teclado (detail 0) y el raton siguen marcando; la cinta marcada, que se ve, se quita con el dedo. */
+  let tipoDeToque = '';
+  flipBox.addEventListener('pointerdown', (e) => { tipoDeToque = e.pointerType || ''; }, true);
+
+  /* EL GEMELO SE HUNDE (lector/gemeloBoton.js): al bajar el dedo o el raton, o con Enter o Espacio, la cara baja lo que mide
+     su escalon (el papel tapa el escalon impreso); al soltar, vuelve. Con «menos movimiento» no baja: solo cambia lo que dice.
+     El toque cae en el gemelo mismo (sus hijos no reciben toques): la libreria de las hojas no empieza a doblar. */
+  const gemeloDeEvento = (e) => (e.target && e.target.closest ? e.target.closest('.flip__boton') : null);
+  flipBox.addEventListener('pointerdown', (e) => { const g = gemeloDeEvento(e); if (g && e.button === 0) pulsador.hundir(g); });
+  addEventListener('pointerup', pulsador.soltar);
+  addEventListener('pointercancel', pulsador.soltar);
+  /* Un pulsado no se queda abajo: si la ventana pierde el foco o el dedo suelta su captura, vuelve */
+  addEventListener('blur', pulsador.soltar);
+  flipBox.addEventListener('lostpointercapture', (e) => { if (e.target === pulsador.abajo()) pulsador.soltar(); });
+  flipBox.addEventListener('pointerout', (e) => { if (e.target === pulsador.abajo()) pulsador.soltar(); });
+  flipBox.addEventListener('focusout', (e) => { if (e.target === pulsador.abajo()) pulsador.soltar(); });
+  /* Espacio sobre un enlace no baja la pagina: lo abre al soltar, como un boton (solo si el Espacio empezo en el) */
+  flipBox.addEventListener('keydown', (e) => { if (pulsador.teclaAbajo(gemeloDeEvento(e), e)) e.preventDefault(); });
+  flipBox.addEventListener('keyup', (e) => pulsador.teclaArriba(gemeloDeEvento(e), e));
+  const toqueACiegas = (e, cinta) => e.detail > 0 && (e.pointerType || tipoDeToque) === 'touch' && !cinta.parentElement.hasAttribute('data-marca');
 
   backBtn.addEventListener('click', goBack);
   contBtn.addEventListener('click', goContents);
@@ -2792,13 +3137,15 @@ function initBook() {
     if (!s.panel.hasAttribute('data-lector')) return;
     /* «Más» es del telefono: si la ventana crece, las herramientas ya estan a la vista (el foco va a una que se vea) */
     if (innerWidth >= 820) cerrarHoja();
+    /* «¿Cuál marcar?» va pegado a «Marcar», que pudo moverse o esconderse: se cierra (el foco vuelve a «Marcar» si estaba dentro) */
+    cerrarElige(elige.contains(d.activeElement));
     /* Lo que tenia el foco pudo quedar escondido por el cambio de ancho (la flecha del muelle del telefono): pasa a su gemelo */
     focoVisible();
     reajustar();
   });
 
   /* Cerrar el panel suelta el libro: sin eso seguiria escuchando el raton */
-  new MutationObserver(() => { if (s.panel.hidden && (fb || booting)) closeFlip(); })
+  new MutationObserver(() => { if (s.panel.hidden) cerrarMenuCompartir(); if (s.panel.hidden && (fb || booting)) closeFlip(); })
     .observe(s.panel, { attributes: true, attributeFilter: ['hidden'] });
 
   /* ---- La lupa -----------------------------------------------
@@ -2998,10 +3345,11 @@ function initBook() {
     pon(lz('[data-lector-hoja-cierra]'), tl('cerrarHoja'));
     pon(zoomBtn, tl('lupa'));
     soundBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => pon(b, tl('sonido')));
-    pon(copiarMuelle, tl('enlace'));
+    copiarMuelle.setAttribute('aria-label', tl('compartir'));
+    copiarMuelle.title = tl('compartirAyuda');
     pon(asa, tl(solo ? 'mostrar' : 'esconder'));
-    marcarBtn.setAttribute('aria-label', tl('marcarPagina'));
-    marcarBtn.title = tl('marcarAyuda');
+    /* «Marcar» se rotula en pintarMarcar: su nombre depende de cuantas paginas se ven */
+    pon(elige, tl('elegirMarca'), false);
     /* «Índice» lleva su nombre escrito; el titulo dice lo que trae */
     lz('[data-lector-indice-texto]').textContent = tl('indice');
     indiceBtn.setAttribute('aria-label', tl('indice'));
@@ -3086,6 +3434,7 @@ function initBook() {
     solo = !!si;
     const dentro = d.activeElement;
     s.panel.toggleAttribute('data-solo', solo);
+    cerrarElige();
     const r = tl(solo ? 'mostrar' : 'esconder');
     asa.setAttribute('aria-label', r);
     asa.title = r;
@@ -3202,9 +3551,9 @@ function initBook() {
       fila(son && son.querySelector('svg'), tl('sonido'), () => { cambiarSonido(); pintarMas(); }, soundOn),
     );
     if (!copiarMuelle.hidden) {
-      const dibujo = copiarMuelle.querySelector(copiado ? '.lector__copiar-hecho svg' : '.lector__copiar-sin');
+      const dibujo = copiarMuelle.querySelector(copiado ? '.lector__compartir-hecho svg' : '.lector__compartir-sin');
       /* `desde`: la fila, para que el metodo viejo de copiar (una caja de texto) le devuelva el foco a ella */
-      filas.push(fila(dibujo, tl(copiado ? 'copiado' : 'enlace'), (e) => copiarEnlace(e.currentTarget, true)));
+      filas.push(fila(dibujo, tl(copiado ? 'enlaceCopiado' : 'compartir'), (e) => compartir(e.currentTarget, true)));
     }
     masLista.replaceChildren(...filas);
   }
@@ -3242,6 +3591,7 @@ function initBook() {
   d.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !s.panel.hasAttribute('data-lector') || openSheets[openSheets.length - 1] !== s.panel) return;
     if (!idiomaLista.hidden) listaIdioma(false, true);
+    else if (eligeAbierto()) cerrarElige(true);
     else if (notaAbierta()) hojaNota.cerrar();
     else if (indiceAbierto()) {
       /* En el campo de buscar, el primer Escape borra lo escrito; el siguiente cierra el indice */
@@ -3320,11 +3670,16 @@ function initBook() {
     cerrarIndice(true);
     if (hojaNota) hojaNota.cerrar(true);
     listaIdioma(false);
+    cerrarElige();
     clearTimeout(fbResize);
     medidaPendiente = false;
     s.panel.removeAttribute('data-lector');
     s.panel.removeAttribute('data-solo');
     if (aviso) { clearTimeout(avisoTimer); aviso.removeAttribute('data-visible'); aviso.textContent = ''; }
+    /* «Copiado» (el del gemelo y la pastilla) no se queda contando con el lector cerrado */
+    pulsador.limpiar();
+    clearTimeout(copiadoTimer);
+    copiarEstado.textContent = '';
     cerrarBtn.setAttribute('aria-label', t('a11y.termClose'));
     cerrarBtn.removeAttribute('title');
     /* El idioma del libro se va con el: el libro escrito que se abra despues habla el de la pagina, como antes */
@@ -3609,6 +3964,8 @@ function initBook() {
     /* Ya esta a la vista (recargar en #libro tras «Intentar otra vez» lo
        abre dos veces): no se vuelve a armar. */
     if (abiertoId === id && openSheets.includes(s.panel)) return;
+    cerrarMenuCompartir();
+    compartiendo = false;
     /* «Copiar enlace»: solo los libros de la biblioteca; el privado (/vista/) no lo trae */
     if (copiarBtn) {
       copiarReponer();

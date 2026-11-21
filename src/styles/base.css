@@ -4677,6 +4677,50 @@ main:has(> .camino:last-child) + .site-footer .site-footer__meta { color: rgb(24
 }
 .book__toast[data-visible] { opacity: 1; translate: -50% 0; }
 @media (prefers-reduced-motion: reduce) { .book__toast { transition: none; } }
+/* EL MENU DE COMPARTIR (de repuesto, cuando el aparato no tiene hoja de compartir): de la familia de la lista del idioma y
+   de «¿Cuál marcar?». Pastilla de noche con su hilo, opciones de un dedo de alto con su dibujo en la tinta (las marcas sin
+   su color: aqui todo es de la casa). Sirve al lector (sus oficios --l-*, los dos temas) y al libro escrito (noche y hueso:
+   los valores de respaldo). De 820 px para arriba se pone junto al boton que lo abrio (site.js da left y top o bottom); en el
+   telefono es una hoja que sube desde abajo, como «Más», con su velo. */
+.compartir__fondo { position: fixed; inset: 0; z-index: 29; background: rgb(5 10 6 / .5); animation: compartir-velo .25s var(--ease) both; }
+.compartir__fondo[hidden], .compartir[hidden] { display: none; }
+@keyframes compartir-velo { from { opacity: 0; } }
+.compartir {
+  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
+  margin: 0; padding: .6rem .6rem calc(.75rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--l-noche, var(--night)); color: var(--l-tinta, var(--bone));
+  box-shadow: 0 -1px 0 var(--l-hilo, rgb(241 239 233 / .14));
+  animation: compartir-sube .42s var(--l-sale, cubic-bezier(.16, 1, .3, 1)) both;
+}
+@keyframes compartir-sube { from { translate: 0 105%; } }
+.compartir__t { margin: .35rem .75rem .5rem; font-family: var(--serif); font-size: 1.15rem; font-weight: 400; line-height: 1.2; color: inherit; }
+.compartir__lista { list-style: none; margin: 0; padding: 0; }
+.compartir__op {
+  display: flex; align-items: center; gap: .9rem;
+  width: 100%; min-height: 3.25rem; padding: 0 .75rem;
+  border-radius: .85rem;
+  color: inherit; font: inherit; font-size: 1rem; font-weight: 500; text-align: left; text-decoration: none;
+  transition: background-color .2s var(--ease);
+}
+.compartir__op:hover { background: var(--l-velo, rgb(241 239 233 / .1)); }
+.compartir__op svg { width: 1.25rem; height: 1.25rem; flex: none; }
+.compartir .compartir__op:focus-visible { outline: 2px solid var(--l-tinta, var(--bone)); outline-offset: -2px; }
+@media (min-width: 820px) {
+  .compartir__fondo { background: transparent; animation: none; }
+  .compartir {
+    right: auto; bottom: auto;
+    min-width: 13.5rem; padding: .55rem;
+    border-radius: 1rem;
+    box-shadow: inset 0 0 0 1px var(--l-hilo, rgb(241 239 233 / .14)), 0 22px 46px -20px rgb(11 20 13 / .8);
+    animation: compartir-sale .3s var(--l-sale, cubic-bezier(.16, 1, .3, 1)) both;
+  }
+  @keyframes compartir-sale { from { opacity: 0; translate: 0 .4rem; } }
+  .compartir__t { margin: .2rem .55rem .4rem; font-family: inherit; font-size: .78rem; font-weight: 500; color: var(--l-tenue, #B9C2B6); }
+  .compartir__op { min-height: var(--l-toque, 2.75rem); padding: 0 .65rem; border-radius: .7rem; gap: .75rem; font-size: .92rem; }
+  .compartir__op svg { width: 1.15rem; height: 1.15rem; }
+}
+@media (prefers-reduced-motion: reduce) { .compartir, .compartir__fondo { animation: none; } }
 /* Si la copia falla, el rotulo es la direccion entera: nunca pasa de la × (la completa va por el estado, sr-only) */
 .book-panel__enlace span { max-width: calc(100vw - 9rem); overflow: hidden; text-overflow: ellipsis; }
 .book-panel__enlace:hover, .book-panel__enlace[data-hecho] { background: var(--pine); }
@@ -5282,7 +5326,7 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
   transition: background-color .2s var(--ease);
 }
 .lector__tema:hover { background: var(--l-velo); }
-.lector__tema svg, .lector__redondo svg, .lector__asa svg, .lector__hoja li svg, .lector__copiar-hecho svg {
+.lector__tema svg, .lector__redondo svg, .lector__asa svg, .lector__hoja li svg, .lector__compartir-hecho svg {
   width: 1.2rem; height: 1.2rem; flex: none;
   fill: none; stroke: currentColor; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
@@ -5378,17 +5422,18 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 }
 @keyframes lector-sube { from { opacity: 0; translate: -50% .5rem; } }
 @keyframes lector-llega { from { opacity: 0; scale: .92; } }
-/* «Copiar» pasa a «Copiado» en el propio boton. El boton CRECE (no salta): su ancho tiene tope y el tope se anima, asi lo que
-   tiene al lado (la barra) se corre despacio. El rotulo se descubre mientras crece. */
-.lector__copiar {
+/* «Compartir»: donde el aparato no tiene hoja de compartir, copia el enlace y pasa a «Enlace copiado» en el propio boton. El
+   boton CRECE (no salta): su ancho tiene tope y el tope se anima, asi lo que tiene al lado (la barra) se corre despacio. El
+   rotulo se descubre mientras crece. */
+.lector__compartir {
   interpolate-size: allow-keywords;
-  width: var(--l-toque); max-width: 11rem; overflow: hidden;
+  width: var(--l-toque); max-width: 12rem; overflow: hidden;
   transition: width .4s cubic-bezier(.45, 0, .2, 1), padding .4s cubic-bezier(.45, 0, .2, 1),
     background-color .2s var(--ease), color .2s var(--ease), scale .12s var(--ease);
 }
-.lector__copiar-hecho, .lector__copiar[data-hecho] .lector__copiar-sin { display: none; }
-.lector__copiar[data-hecho] { width: auto; justify-content: flex-start; padding: 0 .95rem; background: var(--l-tinta); color: var(--l-sobre); }
-.lector__copiar[data-hecho] .lector__copiar-hecho { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
+.lector__compartir-hecho, .lector__compartir[data-hecho] .lector__compartir-sin { display: none; }
+.lector__compartir[data-hecho] { width: auto; justify-content: flex-start; padding: 0 .95rem; background: var(--l-tinta); color: var(--l-sobre); }
+.lector__compartir[data-hecho] .lector__compartir-hecho { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
 
 /* EL ASA: esconde la banda y el muelle para ver solo el libro, y los devuelve. Va siempre en el mismo sitio. */
 .lector__asa {
@@ -5490,9 +5535,37 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
    La cinta es la misma en el muelle, en «Más», en la lista y colgando de la pagina: hueca si el pliego no tiene marca,
    llena de oro si la tiene. El oro es --l-oro (fino sobre el pinar, hondo sobre el papel). */
 .lector__marcar svg { transition: fill .2s var(--ease); }
-.lector__marcar[aria-pressed="true"] { color: var(--l-oro); }
-.lector__marcar[aria-pressed="true"] svg,
+.lector__marcar[data-lleno] { color: var(--l-oro); }
+.lector__marcar[aria-expanded="true"] { background: var(--l-velo-2); }
+.lector__marcar[data-lleno] svg,
 .lector__hoja li button[data-marcada] svg { fill: currentColor; }
+/* «¿Cuál marcar?»: una pastilla encima de «Marcar» con las dos paginas, en el orden del libro. Cada una lleva la cinta: hueca
+   sin marca, llena de oro con ella. Mismo papel que la lista del idioma. */
+.lector__elige {
+  position: absolute; z-index: 7; bottom: calc(100% + .1rem);
+  display: flex; gap: .25rem;
+  padding: .3rem;
+  border-radius: 1rem; background: var(--l-noche); color: var(--l-tinta);
+  box-shadow: inset 0 0 0 1px var(--l-hilo), 0 22px 46px -20px rgb(11 20 13 / .8);
+  animation: lector-elige .3s var(--l-sale) both;
+}
+@keyframes lector-elige { from { opacity: 0; translate: 0 .4rem; } }
+.lector__elige-op {
+  display: inline-flex; align-items: center; gap: .5rem;
+  min-height: var(--l-toque); padding: 0 1rem 0 .8rem;
+  border-radius: .75rem; color: inherit;
+  font-size: .85rem; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; white-space: nowrap;
+  transition: background-color .2s var(--ease), scale .12s var(--ease);
+}
+.lector__elige-op:hover { background: var(--l-velo); }
+.lector__elige-op:active { scale: .97; }
+.lector__elige-op svg {
+  width: 1.1rem; height: 1.1rem; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  transition: fill .2s var(--ease);
+}
+.lector__elige-op[aria-pressed="true"] svg { color: var(--l-oro); fill: currentColor; }
+.book-panel[data-lector] .lector__elige-op:focus-visible { outline-offset: -2px; }
 .lector__hoja li button[data-marcada] { color: var(--l-oro); }
 .lector__hoja li button[data-marcada] span { color: var(--l-tinta); }
 .lector__filas > li.lector__marca { display: flex; align-items: center; gap: .25rem; }
@@ -5657,22 +5730,116 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 .flip__copiado[data-abajo] { translate: -50% 6px; animation-name: flip-copiado-abajo; }
 @keyframes flip-copiado-abajo { from { opacity: 0; translate: -50% 2px; } }
 
-/* La cinta en la pagina marcada: cuelga del borde de arriba, cerca del canto de fuera (a la derecha en la pagina derecha, a la
-   izquierda en la izquierda: la libreria les pone --right / --left), dentro del margen para no tapar el texto. Baja al marcar;
-   no recibe toques (los enlaces de debajo siguen sirviendo). */
+/* EL GEMELO DE UN BOTON DEL PDF (lector/gemeloBoton.js): una caja del tamaño del boton impreso Y su escalon. Quieto no se
+   ve: se ve el boton del PDF. Al pulsarlo, el papel (`--gb-pf`) tapa el boton impreso y la cara, que es la misma imagen
+   recortada, baja lo que mide el escalon (`--gb-lh`): el escalon desaparece, como en Duolingo. Al soltar vuelve en .14 s
+   y solo entonces se apagan el papel y la cara. Al copiar, la cara se dibuja (relleno, borde, escalon) y dice «Copiado».
+   Todas las medidas van en partes del alto del gemelo (`cqh`): valen a cualquier tamaño de pagina y con la lupa.
+   Los hijos no reciben toques: la libreria de las hojas solo deja pasar el toque que cae en el boton mismo. */
+.flip__link.flip__boton {
+  container-type: size;
+  margin: 0; padding: 0; border: 0;
+  color: inherit; font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Solo el que se hunde deja de oscurecerse al pasar y al apretar: su respuesta es bajar. Uno sin escalon (el de siempre,
+   contorno, texto) se queda con la de todos los enlaces de la hoja (hojeo.css): el tinte al pasar y el hundido al apretar. */
+.flip__link.flip__boton[data-hunde] { border-radius: 0; background: none; transition: none; }
+.flip__link.flip__boton[data-hunde]:hover, .flip__link.flip__boton[data-hunde]:focus-visible, .flip__link.flip__boton[data-hunde]:active { background: none; box-shadow: none; }
+/* La sombra del lomo pasa por encima de los gemelos (los dos en la capa 1, ella despues): un boton junto al lomo sigue
+   hundido en la hoja. La cinta (capa 2) y «Copiado» (3) siguen encima. */
+.flip__page:has(> .flip__boton)::after { z-index: 1; }
+.flip__boton:focus-visible { outline: none; }
+.flip__boton > span, .flip__boton-cara > * { position: absolute; pointer-events: none; }
+.flip__boton-papel {
+  inset: -1px; background: var(--gb-pf, transparent);
+  opacity: 0; transition: opacity 0s linear .14s;
+}
+.flip__boton-cara {
+  box-sizing: border-box; left: 0; top: 0; width: 100%; height: calc(var(--gb-cara) * 100%);
+  overflow: hidden;
+  border-radius: calc(var(--gb-rr, 0) * 100cqh);
+  transition: translate .14s cubic-bezier(.16, 1, .3, 1);
+}
+.flip__boton[data-pildora] .flip__boton-cara { border-radius: 999px; }
+.flip__boton-foto {
+  display: block; max-width: none;
+  left: calc(var(--gb-fx) * 100%); top: calc(var(--gb-fy) * 100%);
+  width: calc(var(--gb-fw) * 100%); height: calc(var(--gb-fh) * 100%);
+  object-fit: cover;
+  opacity: 0; transition: opacity 0s linear .14s;
+}
+.flip__boton-rotulo {
+  inset: 0; display: flex; align-items: center; justify-content: center;
+  padding-inline: .45em; overflow: hidden;
+  font-family: var(--gb-letra, var(--serif)); font-size: calc(var(--gb-fs) * 100cqh); font-weight: 400;
+  line-height: 1; white-space: nowrap; text-overflow: ellipsis;
+  color: var(--gb-c, #16231A);
+  opacity: 0;
+}
+.flip__boton[data-negrita] .flip__boton-rotulo { font-weight: 700; }
+/* El anillo del teclado rodea la cara y el escalon; oscuro con un filo claro: se ve en el papel y en una tapa oscura */
+.flip__boton::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  border-radius: calc(var(--gb-rr, 0) * 100cqh);
+}
+.flip__boton[data-pildora]::after { border-radius: 999px; }
+.flip__boton:focus-visible::after { outline: 2px solid #16231A; outline-offset: 2px; box-shadow: 0 0 0 4px #F1EFE9; }
+/* «Copiado»: la cara se dibuja con los colores del boton, sobre el papel que tapa el impreso */
+.flip__boton[data-copiado] .flip__boton-papel { opacity: 1; transition-delay: 0s; }
+.flip__boton[data-copiado] .flip__boton-cara {
+  background: var(--gb-f, var(--gb-pf, transparent));
+  border: calc(var(--gb-bw, 0) * 100cqh) var(--gb-bl, solid) var(--gb-bc, currentColor);
+  color: var(--gb-c, #16231A);
+  box-shadow: 0 calc(var(--gb-lh) * 100cqh) 0 var(--gb-s, transparent);
+  opacity: var(--gb-o, 1);
+}
+.flip__boton[data-copiado] .flip__boton-foto { opacity: 0; transition: none; }
+.flip__boton[data-copiado] .flip__boton-rotulo { opacity: 1; animation: flip-boton-rotulo .18s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes flip-boton-rotulo { from { opacity: 0; translate: 0 .12em; } }
+/* Pulsado: baja al instante; el escalon se va */
+.flip__boton[data-pulsado] .flip__boton-papel { opacity: 1; transition-delay: 0s; }
+.flip__boton[data-pulsado] .flip__boton-cara { translate: 0 calc(var(--gb-lh) * 100cqh); box-shadow: none; transition-duration: 0s; }
+.flip__boton[data-pulsado]:not([data-copiado]) .flip__boton-foto { opacity: 1; transition-delay: 0s; }
+
+/* La cinta de cada pagina: un boton que cuelga del borde de arriba JUNTO AL LOMO, como la cinta cosida de un libro (a la
+   izquierda en la pagina derecha, a la derecha en la izquierda: la libreria les pone --right / --left), dentro del margen
+   para no tapar el texto. No va en la esquina de fuera: alli la libreria dobla la hoja al acercarse el raton.
+   Marcada, la cinta esta abajo, de oro. Sin marca esta guardada arriba (la pagina recorta lo que se sale) y asoma, palida,
+   al pasar el raton por la pagina; sobre ella asoma mas, y al tocarla baja. Sobre una marcada, se levanta un poco: tocarla
+   la quita. El boton no lleva nada dentro (la libreria solo deja pasar el toque que cae en el boton mismo): la cinta es
+   ::before y el sitio del dedo, ::after (2.75rem aunque la cinta sea estrecha). En una pantalla tactil, la cinta guardada
+   no recibe toques: un toque sin ver nada no debe marcar (se marca con «Marcar»); la marcada si, para quitarla. */
 .flip__cinta {
-  display: none;
-  position: absolute; z-index: 2; top: 0; right: 3.5%;
+  position: absolute; z-index: 2; top: 0; left: 6%;
   width: 3.6%; min-width: 9px; max-width: 20px; aspect-ratio: 1 / 3.4;
+  margin: 0; padding: 0; border: 0; border-radius: 0;
+  background: none; color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.flip__cinta[hidden] { display: none; }
+.flip__page.--left > .flip__cinta { left: auto; right: 6%; }
+.flip__cinta::after { content: ""; position: absolute; top: 0; left: 50%; translate: -50% 0; width: max(100%, 2.75rem); height: max(100%, 2.75rem); }
+.flip__cinta::before {
+  content: ""; position: absolute; inset: 0;
   background: var(--ring);
   box-shadow: inset 2px 0 0 rgb(0 0 0 / .14), inset -1px 0 0 rgb(255 255 255 / .18);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
-  pointer-events: none;
-  transition: translate .5s cubic-bezier(.16, 1, .3, 1);
+  translate: 0 -100%; opacity: 0;
+  transition: translate .5s cubic-bezier(.16, 1, .3, 1), opacity .25s var(--ease);
 }
-.flip__page.--left > .flip__cinta { right: auto; left: 3.5%; }
-.flip__page[data-marca] > .flip__cinta { display: block; }
-@starting-style { .flip__page[data-marca] > .flip__cinta { translate: 0 -100%; } }
+.flip__page[data-marca] > .flip__cinta::before { translate: 0 0; opacity: 1; }
+@media (hover: hover) {
+  .flip__page:hover > .flip__cinta::before { translate: 0 -66%; opacity: .5; }
+  .flip__page > .flip__cinta:hover::before { translate: 0 -34%; opacity: .85; }
+  .flip__page[data-marca]:hover > .flip__cinta::before { translate: 0 0; opacity: 1; }
+  .flip__page[data-marca] > .flip__cinta:hover::before { translate: 0 -12%; }
+}
+@media (hover: none) { .flip__page:not([data-marca]) > .flip__cinta { pointer-events: none; } }
+.flip__cinta:focus-visible { outline: 2px solid #16231A; outline-offset: 2px; }
+.flip__page:not([data-marca]) > .flip__cinta:focus-visible::before { translate: 0 -34%; opacity: .85; }
 
 /* Mientras el libro llega (carga.css esconde el muelle), las flechas de los lados tampoco estan */
 .book-panel[data-carga] .lector__lado { visibility: hidden; }
@@ -5769,12 +5936,14 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 }
 @media (prefers-reduced-motion: reduce) {
   .book-panel.is-open .book__ruta { animation: none; }
-  .book__ruta-btn, .lector__redondo, .lector__asa, .lector__asa svg, .lector__pastilla, .lector__campo, .lector__volver, .lector__copiar { transition: none; }
-  .lector__volver, .lector__idioma-lista, .lector__campo.is-mal, .lector__copiar[data-hecho] .lector__copiar-hecho { animation: none; }
+  .book__ruta-btn, .lector__redondo, .lector__asa, .lector__asa svg, .lector__pastilla, .lector__campo, .lector__volver, .lector__compartir { transition: none; }
+  .lector__volver, .lector__idioma-lista, .lector__campo.is-mal, .lector__compartir[data-hecho] .lector__compartir-hecho, .lector__elige { animation: none; }
   .book-panel[data-lector] .lector__hoja, .book-panel[data-lector] .lector__fondo,
   .book-panel[data-lector] .lector__hoja.lector__hoja--indice, .lector__nota { transition-duration: .01ms; }
-  .flip__cinta, .lector__marcar svg, .lector__pestanas button::after, .lector__buscar { transition: none; }
+  .flip__cinta::before, .lector__marcar svg, .lector__elige-op svg, .lector__pestanas button::after, .lector__buscar { transition: none; }
   .lector__nota-cargando, .flip__copiado { animation: none; }
+  .flip__boton-cara, .flip__boton-papel, .flip__boton-foto { transition: none; }
+  .flip__boton[data-copiado] .flip__boton-rotulo { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

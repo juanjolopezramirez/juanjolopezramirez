@@ -18,6 +18,8 @@ import { aVersion2, necesitaMigrar } from '../../../contenido/taller/Migrar.js';
 import { aHoja } from '../../../contenido/taller/hoja.js';
 import { IDIOMAS } from '../../../contenido/comun.js';
 import { Cinta } from './taller/Cinta.js';
+import { NotaEditor } from './taller/NotaEditor.js';
+import { Burbuja } from './taller/Burbuja.js';
 import { Mesa } from './taller/Mesa.js';
 import { VistaLibro } from './taller/VistaLibro.js';
 import { Imagenes } from './taller/Imagenes.js';
@@ -288,6 +290,9 @@ export class Taller extends Seccion {
       alFormula: () => this.mesa.nuevaFormula()
     });
     this.cinta.ponerFuentes(this.obra.fuentes);
+    /* Definicion y cita biblica sobre lo elegido (una sola ventana, como la cinta) */
+    this.notas = this.notas || new NotaEditor(this.m('[data-tal-cinta]'), { tx: this.tx, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null), idioma: () => (this.obra && this.obra.idioma === 'en' ? 'en' : 'es'), fuenteLibro: () => (this.obra ? this.obra.pagina.cuerpo.fuente : ''), contenidos: () => (this.mesa ? this.mesa.vivos.map((v) => v.editor.getJSON()) : []), alDecir: (t) => this.decir(t) });
+    this.burbuja = this.burbuja || new Burbuja(this.nodoMesa, { tx: this.tx, notas: this.notas, editor: () => (this.mesa && this.mesa.editable && this.mesa.activo ? this.mesa.activo.editor : null), idioma: () => (this.obra && this.obra.idioma === 'en' ? 'en' : 'es'), alDecir: (t) => this.decir(t) });
     this.mesa.editable = !enTelefono();
     this.mesa.cinta = this.cinta;
     this.mesa.formulas = this.formulas;
@@ -1138,7 +1143,8 @@ export class Taller extends Seccion {
     const p = this.obra.pagina;
     return {
       obraId: this.obra.id, titulo: this.obra.titulo, idioma: this.obra.idioma, ratioLibro: ratioDeHoja(p),
-      numeros: indice ? indice.numeros : {}, paginasMesa: this.mesa.paginas.length
+      numeros: indice ? indice.numeros : {}, paginasMesa: this.mesa.paginas.length,
+      notas: this.notas ? this.notas.cuantas() : undefined
     };
   }
 

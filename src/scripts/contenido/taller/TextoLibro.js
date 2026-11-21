@@ -13,6 +13,8 @@ import { colorValido, limpiarMarcas } from './marcas.js';
 import { el, txt } from './tipos/ayuda.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
 import { palabraLimpia, rolLimpio } from './IndiceLibro.js';
+import { enlaceDeMarca, esMarcaNota } from './notasLibro.js';
+import { conContextoBoton } from './tipos/boton.js';
 
 export const TOPE_BYTES = 3 * 1000 * 1000;
 export const TOPE_NODOS = 50000;
@@ -80,6 +82,8 @@ function enLinea(lista, cuenta) {
     const marcas = o.type === 'text' ? limpiarMarcas(o.marks) : [];
     /* Un enlace que no pasa las reglas pierde el enlace, no el texto: se cuenta para avisar */
     if (Array.isArray(o.marks) && o.marks.some((m) => objeto(m).type === 'link') && !marcas.some((m) => m.type === 'link')) cuenta.descartados++;
+    /* Lo mismo una definicion o una cita que no pasa (notasLibro.js): se queda la palabra, sin su nota */
+    if (Array.isArray(o.marks) && o.marks.some((m) => esMarcaNota(objeto(m).type)) && !marcas.some((m) => esMarcaNota(m.type))) cuenta.descartados++;
     salida.push({ type: 'text', text: t, ...(marcas.length ? { marks: marcas } : {}) });
   }
   return salida;
@@ -131,9 +135,18 @@ export function llavesDe(contenido) {
 }
 
 /* ---- Del JSON al arbol neutro -------------------------------------------------- */
-function marcado(n) {
+/* Una palabra con nota es un ENLACE a /nota/#n=… (lector/notaEnPdf.js) con el idioma del libro: el lector abre la nota encima
+   del libro, un visor cualquiera abre la pagina /nota/. Una nota que no cabe en un enlace ya no llega aqui: limpiarMarcas la
+   quita al limpiar y enLinea la cuenta en `descartados`. Si aun asi faltara el enlace, queda la palabra sola. */
+function conNota(nodo, m, o) {
+  const href = enlaceDeMarca(m, o.idioma);
+  return href ? el('a', `nota ${m.type === 'definicion' ? 'nota--def' : 'nota--cita'}`, [nodo], { href }) : nodo;
+}
+
+function marcado(n, o = {}) {
   let nodo = txt(n.text);
   for (const m of n.marks || []) {
+    if (esMarcaNota(m.type)) { nodo = conNota(nodo, m, o); continue; }
     if (m.type === 'bold') nodo = el('strong', '', [nodo]);
     else if (m.type === 'italic') nodo = el('em', '', [nodo]);
     else if (m.type === 'underline') nodo = el('u', '', [nodo]);
@@ -153,7 +166,7 @@ function marcado(n) {
 }
 
 function aArbol(n, salida, o) {
-  if (n.type === 'text') return marcado(n);
+  if (n.type === 'text') return marcado(n, o);
   if (n.type === 'hardBreak') return el('br');
   const tipo = POR_NODO.get(n.type);
   if (!tipo) return null;
@@ -161,7 +174,10 @@ function aArbol(n, salida, o) {
   return tipo[salida]({ ...n, attrs: n.attrs || {} }, hijos, o);
 }
 
-/* `salida` es 'pdf' o 'web'. Se vuelve a limpiar: esto no depende de que alguien haya limpiado antes */
+/* `salida` es 'pdf' o 'web'. Se vuelve a limpiar: esto no depende de que alguien haya limpiado antes.
+   `o.idioma` (el del libro) va en cada nota; `o.paginaMm`, `o.cuerpo` y `o.papelCapitulo` dicen a los botones como se ven
+   (tipos/boton.js: su aspecto viaja en su enlace). */
 export function aNodos(contenido, salida, o = {}) {
-  return limpiarContenido(contenido).contenido.doc.content.map((n) => aArbol(n, salida, o)).filter(Boolean);
+  const ctx = o.paginaMm ? { paginaMm: o.paginaMm, cuerpo: o.cuerpo, papel: o.papelCapitulo, idioma: o.idioma } : null;
+  return conContextoBoton(ctx, () => limpiarContenido(contenido).contenido.doc.content.map((n) => aArbol(n, salida, o)).filter(Boolean));
 }

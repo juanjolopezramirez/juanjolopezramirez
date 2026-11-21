@@ -313,7 +313,8 @@ export const RUTAS_RESERVADAS = [
   'writing', 'work', 'projects', 'about', 'contact', 'meet', 'direct',  // las secciones de cada idioma
   'ads', 'humans', 'security', 'manifest', 'feed', 'rss', 'sw', 'static', 'public',  // archivos que los buscadores y los navegadores piden en la raiz
   'copiar',                                                         // la pagina del boton de copiar de un PDF (pages/copiar.astro)
-  'nota'                                                            // la pagina de una nota de un PDF: definicion o cita (pages/nota.astro)
+  'nota',                                                           // la pagina de una nota de un PDF: definicion o cita (pages/nota.astro)
+  'ir'                                                              // la pagina que dice a donde lleva un boton de un PDF antes de ir (pages/ir.astro)
 ];
 export const RESERVADOS = new Set([...ANCLAS_RESERVADAS, ...RUTAS_RESERVADAS]);
 /* Lo que makePages (site.js) necesita para armar un libro de una palabra: si

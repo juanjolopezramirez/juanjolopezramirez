@@ -583,7 +583,8 @@ await ok('las palabras del lector (lector.*) estan en español e ingles, enteras
   for (const l of LANGS.filter((x) => x !== 'es' && x !== 'en')) assert.deepEqual(claves(l), [], `${l} no lleva lector.*: el lector habla el idioma del libro`);
   /* las que llevan un hueco, lo llevan en los dos idiomas */
   for (const [k, hueco] of [['lector.volver', '{n}'], ['lector.de', '{t}'], ['lector.paginaDe', '{n}'], ['lector.paginaDe', '{t}'], ['lector.llega', '{n}'], ['lector.empieza', '{n}'], ['lector.numero', '{a}'], ['lector.numero', '{n}'],
-    ['lector.marcada', '{n}'], ['lector.quitarMarca', '{n}'], ['lector.pagN', '{n}'], ['lector.hojaN', '{n}']]) {
+    ['lector.marcada', '{n}'], ['lector.quitarMarca', '{n}'], ['lector.pagN', '{n}'], ['lector.hojaN', '{n}'],
+    ['lector.marcarLa', '{n}'], ['lector.quitarLa', '{n}'], ['lector.laPag', '{n}'], ['lector.laHoja', '{n}']]) {
     for (const l of ['es', 'en']) assert.ok(UI[l][k].includes(hueco), `${l} · ${k} · ${hueco}`);
   }
   assert.equal(UI.es['lector.volver'], 'Volver a la pág. {n}');
@@ -595,7 +596,13 @@ await ok('las palabras del lector (lector.*) estan en español e ingles, enteras
   assert.ok(pedidas.size >= 20);
   for (const k of pedidas) assert.ok(UI.es['lector.' + k] && UI.en['lector.' + k], `falta lector.${k}`);
   /* las que se piden con un «? :» (no las ve la busqueda de arriba) */
-  for (const k of ['marcarPagina', 'desmarcar', 'marcaNo', 'marcaQuitada']) assert.ok(UI.es['lector.' + k] && UI.en['lector.' + k], `falta lector.${k}`);
+  for (const k of ['marcarPagina', 'desmarcar', 'marcaNo', 'marcaQuitada', 'marcarCual', 'marcarCualAyuda', 'marcarAyuda', 'compartir', 'enlaceCopiado', 'marcarLa', 'quitarLa']) assert.ok(UI.es['lector.' + k] && UI.en['lector.' + k], `falta lector.${k}`);
+  /* «Compartir», no «Copiar enlace» (sonaba raro); al copiar, «Enlace copiado». La clave vieja y el «se quitaron las dos» se fueron */
+  assert.equal(UI.es['lector.compartir'], 'Compartir');
+  assert.equal(UI.en['lector.compartir'], 'Share');
+  assert.equal(UI.es['lector.enlaceCopiado'], 'Enlace copiado');
+  assert.equal(UI.en['lector.enlaceCopiado'], 'Link copied');
+  for (const k of ['lector.enlace', 'lector.marcaQueda']) assert.ok(!(k in UI.es) && !(k in UI.en), `${k} ya no se usa`);
 });
 
 console.log('el marcado');
@@ -633,7 +640,10 @@ await ok('el lector: la banda, el campo de pagina, el asa y «Más» estan en el
   assert.match(a, /data-lector-mas aria-haspopup="dialog" aria-expanded="false"/);
   assert.match(a, /data-lector-tema aria-pressed="false"/);
   assert.match(a, /data-lector-idioma-btn aria-expanded="false"/);
-  assert.match(a, /data-lector-copiar hidden/);
+  assert.match(a, /lector__compartir" type="button" data-lector-compartir hidden>/);
+  assert.ok(!/data-lector-copiar\b/.test(a), 'el boton viejo «Copiar enlace» del muelle se fue');
+  /* «¿Cuál marcar?» nace escondido, con el id al que apunta «Marcar» (aria-controls) */
+  assert.match(a, /<div class="lector__elige" id="lector-elige" role="group" data-lector-elige hidden><\/div>/);
   assert.ok(!/\son[a-z]+=["{]/.test(a.slice(a.indexOf('id="book-panel"'), a.indexOf('id="book-mark"'))), 'sin manejadores en linea (la politica de contenido no los deja)');
   /* «Marcar» nace escondido (solo sale si el navegador deja guardar), con su tecla; «Índice» ocupa el sitio de «Marcadores»
      (que ahora es una de sus pestañas) */
@@ -1018,11 +1028,519 @@ await ok('el lector y sus marcas: el secreto no sale de vista.js, solo la huella
   /* la tecla M no choca con otra del lector, y dejarla apretada no marca y desmarca sin parar */
   assert.equal((site.match(/e\.key === 'm' \|\| e\.key === 'M'/g) || []).length, 1);
   assert.match(site, /if \(e\.repeat\) return;\s*alternarMarca\(\);/);
-  /* al quitar las dos marcas de un pliego, si una falla se dice cual quedo (no «no se pudo» si algo se quito) */
-  const alternar = site.slice(site.indexOf('function alternarMarca()'), site.indexOf('function pintarListaMarcas('));
-  assert.match(alternar, /else if \(quedan\.length < puestas\.length\) decir\(tl\('marcaQueda'\)/);
-  assert.ok(UI.es['lector.marcaQueda'].includes('{n}') && UI.en['lector.marcaQueda'].includes('{n}'));
 });
+
+console.log('cada pagina se marca sola (el pliego de pantalla ancha)');
+const tiene = (...ps) => (p) => ps.includes(p);
+const folios = (p) => (p >= 2 && p <= 17 ? p - 1 : null);     // tapa, guarda, 1…16, guarda, contratapa (20 imagenes)
+const palabras = (l) => (k) => UI[l]['lector.' + k];
+await ok('opcionesDeMarca: una pagina a la vista es un toque; dos, elegir; la de la izquierda primero', () => {
+  /* el telefono (una pagina), la tapa y la contratapa: un toque */
+  assert.deepEqual(M.opcionesDeMarca([6], { n: 20, folioDe: folios }), { modo: 'una', ops: [{ p: 6, lado: 'sola', nombre: { k: 'pag', n: 5 }, marcada: false }] });
+  assert.equal(M.opcionesDeMarca([0], { n: 20, folioDe: folios }).ops[0].nombre.k, 'portada');
+  assert.equal(M.opcionesDeMarca([19], { n: 20, folioDe: folios }).ops[0].nombre.k, 'contratapa');
+  /* un pliego: las dos, por orden, cada una con su estado (no «el pliego»: marcar la derecha no marca la izquierda) */
+  const o = M.opcionesDeMarca([7, 6], { n: 20, folioDe: folios, tiene: tiene(7) });
+  assert.equal(o.modo, 'elegir');
+  assert.deepEqual(o.ops.map((x) => [x.p, x.lado, x.marcada]), [[6, 'izq', false], [7, 'der', true]]);
+  assert.deepEqual(o.ops.map((x) => x.nombre), [{ k: 'pag', n: 5 }, { k: 'pag', n: 6 }]);
+  /* una guarda sin numero se llama «Hoja N» (contada desde 1) */
+  assert.deepEqual(M.opcionesDeMarca([1, 2], { n: 20, folioDe: folios }).ops.map((x) => x.nombre), [{ k: 'hoja', n: 2 }, { k: 'pag', n: 1 }]);
+  /* lo que no es una pagina del libro no cuenta, ni se repite, ni pasa de dos */
+  assert.deepEqual(M.opcionesDeMarca([], { n: 20 }), { modo: 'nada', ops: [] });
+  assert.deepEqual(M.opcionesDeMarca(null, { n: 20 }), { modo: 'nada', ops: [] });
+  assert.equal(M.opcionesDeMarca([4, 4], { n: 20 }).modo, 'una');
+  assert.deepEqual(M.opcionesDeMarca([-1, 2.5, '3', 20, 5], { n: 20 }).ops.map((x) => x.p), [5]);
+  assert.equal(M.opcionesDeMarca([3, 4, 5], { n: 20 }).ops.length, 2);
+  assert.equal(M.opcionesDeMarca([3, 4], { n: 0 }).modo, 'nada');
+  assert.equal(M.opcionesDeMarca([3, 4]).modo, 'nada');
+});
+await ok('las palabras de una hoja: «Pág. 12» en el selector, y la cinta dice lo que hara', () => {
+  const es = palabras('es'), en = palabras('en');
+  assert.equal(M.decirHoja({ k: 'pag', n: 12 }, es), 'Pág. 12');
+  assert.equal(M.decirHoja({ k: 'hoja', n: 3 }, es), 'Hoja 3');
+  assert.equal(M.decirHoja({ k: 'portada', n: null }, en), 'Front cover');
+  assert.equal(M.rotuloDeCinta({ marcada: false, nombre: { k: 'pag', n: 12 } }, es), 'Marcar la pág. 12');
+  assert.equal(M.rotuloDeCinta({ marcada: true, nombre: { k: 'pag', n: 12 } }, es), 'Quitar la marca de la pág. 12');
+  assert.equal(M.rotuloDeCinta({ marcada: false, nombre: { k: 'hoja', n: 2 } }, es), 'Marcar la hoja 2');
+  assert.equal(M.rotuloDeCinta({ marcada: true, nombre: { k: 'contratapa', n: null } }, es), 'Quitar la marca de la contratapa');
+  assert.equal(M.rotuloDeCinta({ marcada: false, nombre: { k: 'pag', n: 12 } }, en), 'Bookmark page 12');
+  assert.equal(M.rotuloDeCinta({ marcada: true, nombre: { k: 'portada', n: null } }, en), 'Remove the bookmark from the front cover');
+  /* un «$&» en lo que llega no se vuelve otra cosa al reemplazar */
+  assert.equal(M.decirHoja({ k: 'pag', n: '$&' }, es), 'Pág. $&');
+  for (const k of M.CLAVES_HOJA) assert.ok(UI.es['lector.' + k] && UI.en['lector.' + k], `falta lector.${k}`);
+});
+await ok('marcar una pagina del pliego no toca la otra; quitar una deja la otra', () => {
+  const mk = M.crearMarcadores(almacenDe(), 'r:ahava:es', 20, { ahora: () => 1700000000 });
+  /* solo la derecha */
+  assert.equal(mk.poner(7, 6), 'ok');
+  let o = M.opcionesDeMarca([6, 7], { n: 20, folioDe: folios, tiene: mk.tiene });
+  assert.deepEqual(o.ops.map((x) => x.marcada), [false, true]);
+  /* y la izquierda: las dos */
+  assert.equal(mk.poner(6, 5), 'ok');
+  o = M.opcionesDeMarca([6, 7], { n: 20, folioDe: folios, tiene: mk.tiene });
+  assert.deepEqual(o.ops.map((x) => x.marcada), [true, true]);
+  /* quitar una (la derecha) deja la izquierda */
+  assert.equal(mk.quitar(7), 'ok');
+  o = M.opcionesDeMarca([6, 7], { n: 20, folioDe: folios, tiene: mk.tiene });
+  assert.deepEqual(o.ops.map((x) => x.marcada), [true, false]);
+  assert.deepEqual(mk.lista().map((x) => x.p), [6]);
+});
+await ok('site.js: «Marcar» y M eligen con dos paginas, alternan con una; la cinta de cada pagina es un boton', () => {
+  const site = leer('src/scripts/site.js');
+  const alternar = site.slice(site.indexOf('function alternarMarca()'), site.indexOf('/* «¿CUÁL MARCAR?»'));
+  assert.ok(alternar.length > 100);
+  assert.match(alternar, /if \(eligeAbierto\(\)\) \{ cerrarElige\(true\); return; \}/);
+  assert.match(alternar, /if \(o\.modo === 'una'\) alternarPagina\(o\.ops\[0\]\.p\);\s*else if \(o\.modo === 'elegir'\) \{/);
+  /* M con los botones escondidos (el asa): vuelven y el selector se abre (antes no pasaba nada) */
+  assert.match(alternar, /if \(solo\) ponerSolo\(false\);\s*abrirElige\(\);/);
+  /* un dedo a ciegas sobre una cinta sin marca no marca; el teclado (detail 0) y el raton si */
+  assert.match(site, /if \(cm && !toqueACiegas\(e, cm\)\) alternarPagina\(/);
+  assert.match(site, /const toqueACiegas = \(e, cinta\) => e\.detail > 0 && \(e\.pointerType \|\| tipoDeToque\) === 'touch' && !cinta\.parentElement\.hasAttribute\('data-marca'\);/);
+  /* el «una pulsada quita las dos» se fue */
+  const bloque = site.slice(site.indexOf('/* ---- LOS MARCADORES ----'), site.indexOf('/* ---- EL ÍNDICE ----'));
+  assert.ok(bloque.length > 2000 && !/puestas|quedan|marcaQueda/.test(bloque), 'ya no se quitan dos marcas de una vez');
+  assert.ok(!/marcaQueda/.test(site));
+  /* una pagina: se quita o se pone, y si el almacen falla se dice (y no se dice «quitada») */
+  const una = site.slice(site.indexOf('function alternarPagina(p)'), site.indexOf('function alternarMarca()'));
+  assert.match(una, /if \(r === 'falla'\) decir\(tl\('marcaNoQuita'\), 4200\);\s*else decir\(tl\('marcaQuitada'\)\);/);
+  assert.match(una, /else if \(r === 'lleno'\) decir\(tl\('marcasLlenas'\), 4200\);\s*else decir\(tl\('marcaNo'\), 4200\);/);
+  /* «Marcar» es interruptor con una pagina y abre el selector con dos (nunca las dos cosas a la vez) */
+  const pintar = site.slice(site.indexOf('function pintarMarcar()'), site.indexOf('function alternarPagina(p)'));
+  assert.match(pintar, /marcarBtn\.removeAttribute\('aria-pressed'\);\s*marcarBtn\.setAttribute\('aria-expanded'/);
+  assert.match(pintar, /marcarBtn\.setAttribute\('aria-pressed'[^;]*;\s*marcarBtn\.removeAttribute\('aria-expanded'\);/);
+  /* el selector: flechas sin pasar hojas, Escape (por orden) y M lo cierran; cada opcion es un interruptor */
+  assert.match(site, /elige\.addEventListener\('keydown'[\s\S]{0,400}e\.stopPropagation\(\);/);
+  assert.match(site, /else if \(eligeAbierto\(\)\) cerrarElige\(true\);/);
+  assert.match(site, /b\.setAttribute\('aria-pressed', String\(op\.marcada\)\);/);
+  /* la cinta: un boton sin hijos (la libreria solo deja pasar el toque que cae en el boton mismo), que el libro escucha */
+  const cinta = site.slice(site.indexOf("const cinta = h('button', 'flip__cinta');"), site.indexOf("const txt = texts[i] && texts[i].text;"));
+  assert.match(cinta, /cinta\.type = 'button';\s*cinta\.dataset\.flipMarca = String\(i\);\s*cinta\.hidden = true;\s*pg\.appendChild\(cinta\);/);
+  assert.ok(!/cinta\.append|cinta\.textContent|cinta\.innerHTML/.test(site));
+  assert.match(site, /const cm = e\.target\.closest\('\[data-flip-marca\]'\);\s*if \(cm && !toqueACiegas\(e, cm\)\) alternarPagina\(Number\(cm\.dataset\.flipMarca\)\);/);
+  /* y el dedo del telefono y el raton no empiezan a pasar la hoja sobre un boton */
+  assert.match(site, /if \(!fb \|\| e\.button > 0 \|\| e\.target\.closest\('a, button'\)\) return;/);
+  /* se cierra con todo lo que mueve el muelle: el asa, salir del lector, cambiar de tamaño */
+  assert.ok((site.match(/cerrarElige\(/g) || []).length >= 8);
+});
+await ok('la cinta en la pagina: junto al lomo (las esquinas de fuera doblan la hoja), con sitio para el dedo y foco visible', () => {
+  const css = leer('src/styles/base.css');
+  const c = css.slice(css.indexOf('.flip__cinta {'), css.indexOf('/* Mientras el libro llega'));
+  assert.match(c, /\.flip__cinta \{[^}]*left: 6%/);
+  assert.match(c, /\.flip__page\.--left > \.flip__cinta \{ left: auto; right: 6%; \}/);
+  assert.match(c, /\.flip__cinta::after \{[^}]*width: max\(100%, 2\.75rem\); height: max\(100%, 2\.75rem\)/);
+  assert.match(c, /\.flip__cinta:focus-visible \{ outline: 2px solid #16231A/);
+  assert.match(c, /@media \(hover: none\) \{ \.flip__page:not\(\[data-marca\]\) > \.flip__cinta \{ pointer-events: none; \} \}/);
+  assert.ok(!/pointer-events/.test(c.slice(0, c.indexOf('}'))), 'la cinta recibe toques');
+  assert.match(css, /\.lector__elige-op \{[^}]*min-height: var\(--l-toque\)/);
+  assert.match(css, /\.lector__elige-op\[aria-pressed="true"\] svg \{ color: var\(--l-oro\); fill: currentColor; \}/);
+});
+
+console.log('«Compartir»');
+const C = await import('../src/scripts/lector/compartir.js');
+await ok('compartir.js: solo { title, url } del enlace corto, y las tres direcciones bien codificadas', () => {
+  const url = 'https://juanjolopezramirez.com/ahava';
+  assert.deepEqual(C.datosParaCompartir('Ahavá', url), { title: 'Ahavá', url });
+  assert.deepEqual(C.datosParaCompartir('', url), { url });
+  assert.deepEqual(C.datosParaCompartir('  Uno\n\tdos  ', url), { title: 'Uno dos', url });
+  /* nunca un archivo, y solo un enlace https limpio */
+  assert.ok(!('files' in C.datosParaCompartir('x', url)));
+  for (const malo of ['http://a.co/x', 'javascript:alert(1)', 'https://a.co/ x', 'https://a.co/"x', '', null, 'https://a.co/' + 'x'.repeat(400)]) {
+    assert.equal(C.datosParaCompartir('x', malo), null, String(malo));
+    assert.equal(C.enlacesParaCompartir('x', malo), null, String(malo));
+  }
+  /* tildes, «&», «#» y «?» del titulo no rompen la direccion */
+  const t = 'Fe & Ágape #1? Sí';
+  const e = C.enlacesParaCompartir(t, url);
+  assert.equal(e.whatsapp, 'https://wa.me/?text=' + encodeURIComponent(t + '\n' + url));
+  assert.equal(e.whatsapp, 'https://wa.me/?text=Fe%20%26%20%C3%81gape%20%231%3F%20S%C3%AD%0Ahttps%3A%2F%2Fjuanjolopezramirez.com%2Fahava');
+  assert.equal(e.correo, 'mailto:?subject=Fe%20%26%20%C3%81gape%20%231%3F%20S%C3%AD&body=https%3A%2F%2Fjuanjolopezramirez.com%2Fahava');
+  assert.equal(e.telegram, 'https://t.me/share/url?url=https%3A%2F%2Fjuanjolopezramirez.com%2Fahava&text=Fe%20%26%20%C3%81gape%20%231%3F%20S%C3%AD');
+  /* cada valor, leido de vuelta, es exactamente lo que se queria mandar */
+  assert.equal(new URL(e.whatsapp).searchParams.get('text'), t + '\n' + url);
+  assert.equal(new URL(e.telegram).searchParams.get('text'), t);
+  assert.equal(new URL(e.telegram).searchParams.get('url'), url);
+  for (const v of Object.values(e)) assert.ok(!/\.pdf/i.test(v) && !/#/.test(v), v);
+  /* sin titulo: solo el enlace */
+  const s0 = C.enlacesParaCompartir('', url);
+  assert.equal(s0.correo, 'mailto:?body=https%3A%2F%2Fjuanjolopezramirez.com%2Fahava');
+  assert.equal(s0.telegram, 'https://t.me/share/url?url=https%3A%2F%2Fjuanjolopezramirez.com%2Fahava');
+  assert.equal(s0.whatsapp, 'https://wa.me/?text=https%3A%2F%2Fjuanjolopezramirez.com%2Fahava');
+  /* un emoji justo en el tope (200 caracteres) no queda partido, y una mitad suelta no rompe nada */
+  const largo = 'a'.repeat(199) + '\u{1F54A}' + 'b';
+  const cortado = C.datosParaCompartir(largo, url).title;
+  assert.equal(Array.from(cortado).length, 200);
+  assert.ok(cortado.endsWith('\u{1F54A}'), 'el emoji entero');
+  assert.ok(cortado.isWellFormed ? cortado.isWellFormed() : true);
+  assert.equal(C.datosParaCompartir('a'.repeat(200) + '\u{1F54A}', url).title, 'a'.repeat(200));
+  const suelta = C.datosParaCompartir('Fe \uD83D y \uDC4D', url).title;
+  assert.equal(suelta, 'Fe � y �');
+  assert.doesNotThrow(() => C.enlacesParaCompartir('x\uD800', url));
+  assert.equal(new URL(C.enlacesParaCompartir('x\uD800', url).telegram).searchParams.get('text'), 'x�');
+  assert.equal(C.enlacesParaCompartir('\u{1F54A} Paz', url).correo, 'mailto:?subject=' + encodeURIComponent('\u{1F54A} Paz') + '&body=' + encodeURIComponent(url));
+  /* el modulo no toca la pagina, ni archivos */
+  const mod = leer('src/scripts/lector/compartir.js').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/document\.|window\.|navigator\.|files|Blob|File\(|\.pdf|fetch\(/.test(mod));
+});
+await ok('compartir en site.js: la hoja del aparato (tambien en el ordenador) con { title, url } y nada mas; sin ella, el menu', () => {
+  const site = leer('src/scripts/site.js');
+  const c = site.slice(site.indexOf('const puedeCompartir = '), site.indexOf('/* EL MENU DE REPUESTO'));
+  assert.ok(c.length > 200);
+  assert.match(c, /typeof navigator\.share !== 'function'\) return false;/);
+  assert.match(c, /navigator\.canShare\(datos\) !== false/);
+  /* el libro privado no se comparte */
+  assert.match(c, /if \(!id \|\| privado\.has\(id\) \|\| !LIBRO\.has\(id\) \|\| compartiendo\) return;/);
+  assert.match(site, /if \(!id \|\| privado\.has\(id\) \|\| !LIBRO\.has\(id\)\) return;\s*const largo = enlaceCorto/, 'copiarEnlace: solo libros de la biblioteca');
+  assert.match(c, /const datos = datosParaCompartir\(f && f\.titulo, enlaceCorto\(import\.meta\.env\.SITE, id\)\);/);
+  /* un enlace que no es https no deja el boton mudo: se copia */
+  assert.match(c, /if \(!datos\) \{ copiarEnlace\(desde, enLector\); return; \}/);
+  /* una hoja que nunca contesto no deja «Compartir» muerto: al volver a la pagina o al abrir otro libro */
+  assert.match(site, /if \(d\.visibilityState === 'visible'\) compartiendo = false;/);
+  assert.match(site, /cerrarMenuCompartir\(\);\s*compartiendo = false;/);
+  /* desde «Más», el foco vuelve a quien abrio «Más» (nunca al body) */
+  assert.match(site, /vuelve = hojaVuelve && hojaVuelve !== d\.body \? hojaVuelve : masBtn;/);
+  /* un titulo raro no rompe el menu: si las direcciones no se arman, se copia */
+  assert.match(site, /try \{ ligas = enlacesParaCompartir\(datos\.title, datos\.url\); \} catch \(err\) \{ ligas = null; \}/);
+  /* lo unico que se le da a la hoja es ese { title, url }: nunca files, un Blob ni el PDF; y en todo site.js no hay otra llamada */
+  assert.equal((site.match(/navigator\.share\(/g) || []).length, 1);
+  assert.match(c, /pedido = navigator\.share\(datos\);/);
+  assert.equal((site.match(/navigator\.canShare\(/g) || []).length, 1);
+  const todo = c + site.slice(site.indexOf('/* EL MENU DE REPUESTO'), site.indexOf("if (copiarMuelle) copiarMuelle.addEventListener('click'"));
+  assert.ok(!/files\s*:|new Blob|new File|\.pdf|pageSrc/.test(todo), 'ni archivos ni el PDF');
+  /* se pide en el mismo toque: nada se espera antes de navigator.share */
+  const antes = c.slice(c.indexOf('const compartir = '), c.indexOf('navigator.share(datos)'));
+  assert.ok(!/await|\.then\(/.test(antes), 'navigator.share va antes de cualquier espera');
+  /* sin hoja, o si falla (no AbortError) con el mismo libro abierto: el menu de repuesto */
+  assert.match(c, /if \(!puedeCompartir\(datos\)\) \{ repuesto\(\); return; \}/);
+  assert.match(c, /if \(\(!err \|\| err\.name !== 'AbortError'\) && abiertoId === id\) repuesto\(\);/);
+  /* la decision vive en un solo sitio; el ordenador tambien abre la hoja del sistema (decidido: sin la pista de «pointer: coarse») */
+  assert.equal((site.match(/puedeCompartir\(/g) || []).length, 1);
+  assert.ok(!/bastaria con añadir/.test(site) && !/casi todo ordenador/.test(site));
+  /* los tres que comparten: el muelle, la fila de «Más» (lector) y el boton de arriba del libro escrito */
+  assert.match(site, /copiarMuelle\.addEventListener\('click', \(\) => compartir\(copiarMuelle, true\)\)/);
+  assert.match(site, /tl\(copiado \? 'enlaceCopiado' : 'compartir'\), \(e\) => compartir\(e\.currentTarget, true\)/);
+  assert.match(site, /copiarBtn\.addEventListener\('click', \(\) => compartir\(copiarBtn, false\)\)/);
+  assert.match(site, /copiarBtn\.setAttribute\('aria-label', t\('book\.share'\)\);/);
+  assert.match(site, /lz\('\[data-lector-compartir-hecho\]'\)\.textContent = tl\('enlaceCopiado'\);/);
+  /* sigue escondido en el libro privado */
+  assert.match(site, /copiarMuelle\.hidden = copiarBtn\.hidden;/);
+  /* no hace falta ningun origen nuevo en la politica de contenido: compartir no llama a nadie */
+  assert.ok(!/share|wa\.me|t\.me/i.test(leer('tools/politica-contenido.mjs')));
+});
+await ok('el menu de repuesto: WhatsApp, Correo, Telegram y «Copiar enlace»; los de fuera en otra pestaña sin referer, el correo en la misma', () => {
+  const a = leer('src/components/Panels.astro');
+  const m = a.slice(a.indexOf('<section class="compartir"'), a.indexOf('</section>', a.indexOf('<section class="compartir"')));
+  assert.ok(m.length > 200);
+  assert.match(a, /<section class="compartir" id="compartir-menu" role="dialog" aria-labelledby="compartir-t" data-compartir hidden>/);
+  assert.match(a, /<div class="compartir__fondo" data-compartir-fondo hidden><\/div>/);
+  const ops = [...m.matchAll(/data-compartir-op="([a-z]+)"/g)].map((x) => x[1]);
+  assert.deepEqual(ops, ['whatsapp', 'correo', 'telegram', 'copiar']);
+  for (const k of ['whatsapp', 'telegram']) assert.match(m, new RegExp('<a class="compartir__op" data-compartir-op="' + k + '" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">'));
+  assert.match(m, /<a class="compartir__op" data-compartir-op="correo">/);
+  assert.match(m, /<button class="compartir__op" type="button" data-compartir-op="copiar">/);
+  assert.ok(!/drive/i.test(m), 'Drive no tiene direccion para compartir: no se finge');
+  assert.ok(!/href=/.test(m), 'las direcciones las pone site.js con lector/compartir.js');
+  /* el boton de arriba del libro escrito: «Compartir» */
+  assert.match(a, /<span data-book-copiar-texto>\{t\('book\.share'\)\}<\/span>/);
+  const site = leer('src/scripts/site.js');
+  const menu = site.slice(site.indexOf('/* EL MENU DE REPUESTO'), site.indexOf("if (copiarMuelle) copiarMuelle.addEventListener('click'"));
+  assert.match(menu, /ligas = enlacesParaCompartir\(datos\.title, datos\.url\);/);
+  assert.match(menu, /op\.href = ligas\[k\];/);
+  /* Escape cierra solo el menu (captura de la ventana) y el foco vuelve; el velo y Tab hacia fuera tambien cierran */
+  assert.match(menu, /if \(e\.key !== 'Escape' \|\| !menuAbierto\(\)\) return;\s*e\.preventDefault\(\);\s*e\.stopImmediatePropagation\(\);\s*cerrarMenuCompartir\(true\);/);
+  assert.match(menu, /menuFondo\.addEventListener\('click', \(\) => cerrarMenuCompartir\(true\)\);/);
+  /* focusout: hacia fuera, o a ninguna parte, cierra (salvo con el dedo apretando dentro: Safari no da el foco al tocar) */
+  assert.match(menu, /if \(!menuAbierto\(\) \|\| \(a && menuCompartir\.contains\(a\)\)\) return;\s*if \(!a && pulsandoMenu\) return;\s*cerrarMenuCompartir\(false\);/);
+  /* los rotulos: el lector en es/en (lector.*); el libro escrito en los cinco idiomas (book.*) */
+  assert.match(menu, /titulo: tl\('compartir'\), correo: tl\('correo'\), copiar: tl\('copiarEnlace'\), nueva: tl\('otraPestana'\)/);
+  assert.match(menu, /titulo: t\('book\.share'\), correo: t\('book\.shareMail'\), copiar: t\('book\.copy'\), nueva: t\('book\.shareNewTab'\)/);
+  for (const l of LANGS) for (const k of ['book.share', 'book.shareHelp', 'book.shareMail', 'book.shareNewTab', 'book.copy', 'book.copied']) assert.ok(typeof UI[l][k] === 'string' && UI[l][k].trim(), l + ' ' + k);
+  const esperado = { es: 'Compartir', en: 'Share', pt: 'Compartilhar', fr: 'Partager', it: 'Condividi' };
+  for (const l of LANGS) assert.equal(UI[l]['book.share'], esperado[l], l);
+  for (const l of LANGS) assert.ok(UI[l]['book.shareNewTab'].includes('{n}'), l);
+  for (const l of ['es', 'en']) for (const k of ['correo', 'copiarEnlace', 'otraPestana']) assert.ok(UI[l]['lector.' + k], l + ' ' + k);
+  /* el telefono: hoja de abajo; de 820 px, junto al boton; un dedo de alto */
+  const css = leer('src/styles/base.css');
+  assert.match(css, /\.compartir__op \{[^}]*min-height: 3\.25rem/);
+  assert.match(css, /@media \(min-width: 820px\) \{\s*\.compartir__fondo \{ background: transparent; animation: none; \}/);
+});
+
+/* ---- Etapa 5b: los botones del PDF de verdad (lector/gemeloBoton.js) ---- */
+console.log('los botones «Duolingo» del PDF: el gemelo que se hunde y dice «Copiado»');
+{
+  const G = await import('../src/scripts/lector/gemeloBoton.js');
+  const B = await import('../src/scripts/lector/botonEnPdf.js');
+  const { enlaceDeCopia } = await import('../src/scripts/lector/copiaEnPdf.js');
+  const { FUENTES_NOTA } = await import('../src/scripts/lector/notaEnPdf.js');
+  const DUO = { e: 'duolingo', f: '#58cc02', c: '#ffffff', s: '#46a302', lh: 0.008, rr: 0.014, n: 1, x: 'Copiar', fu: 'Lora', fs: 0.025, pf: '#f6f3ea', k: 'Copiado' };
+  const L = { x: 0.1, y: 0.5, w: 0.3, h: 0.05 };
+
+  /* Un document de mentira: guarda lo que se escribe; innerHTML no existe (si alguien lo usa, revienta) */
+  class Nodo {
+    constructor(tag) {
+      this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.dataset = {}; this._t = ''; this.className = '';
+      const props = {}; this.style = { props, setProperty: (k, v) => { props[k] = String(v); } };
+    }
+    set innerHTML(_) { throw new Error('innerHTML'); }
+    set textContent(v) { this._t = String(v); this.children = []; }
+    get textContent() { return this._t + this.children.map((c) => c.textContent).join(''); }
+    setAttribute(k, v) { this.attrs[k] = String(v); }
+    hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this.attrs, k) || (k.startsWith('data-') && k.slice(5) in this.dataset); }
+    removeAttribute(k) { delete this.attrs[k]; if (k.startsWith('data-')) delete this.dataset[k.slice(5)]; }
+    click() { this.clics = (this.clics || 0) + 1; }
+    append(...xs) { this.children.push(...xs); }
+    querySelector(sel) {
+      const cls = sel.replace(/^\./, '');
+      for (const c of this.children) { if (c.className.split(' ').includes(cls)) return c; const r = c.querySelector(sel); if (r) return r; }
+      return null;
+    }
+  }
+  const doc = { createElement: (t) => new Nodo(t) };
+
+  await ok('copiar: el de siempre (#t=) sigue copiando, sin gemelo', () => {
+    const r = G.botonDeEnlace(enlaceDeCopia('hola'));
+    assert.deepEqual({ ...r }, { tipo: 'copia', texto: 'hola', aspecto: null });
+  });
+  await ok('copiar con aspecto: el texto y el aspecto limpio', () => {
+    const r = G.botonDeEnlace(B.enlaceDeCopiaConAspecto('hola mundo', DUO));
+    assert.equal(r.tipo, 'copia');
+    assert.equal(r.texto, 'hola mundo');
+    assert.equal(r.aspecto.e, 'duolingo');
+    assert.equal(r.aspecto.k, 'Copiado');
+  });
+  await ok('un `&b=` falso no rompe el boton: copia como el de siempre, sin gemelo', () => {
+    for (const b of ['zz', '!!!', 'eyJlIjoiZHVvbGluZ28ifQ&x=1', '']) {
+      const r = G.botonDeEnlace(enlaceDeCopia('hola') + '&b=' + b);
+      assert.ok(r && r.tipo === 'copia' && r.texto === 'hola' && r.aspecto === null, b);
+    }
+    /* y un copiar sin texto bueno no es nada */
+    assert.equal(G.botonDeEnlace(B.BASE_COPIA + '&b=zz'), null);
+    assert.equal(G.botonDeEnlace(B.BASE_COPIA + '%E0%A4%A'), null);
+  });
+  await ok('/ir/: solo https y en la forma exacta del Taller; lo demas no es nada (la zona queda quieta)', () => {
+    const bueno = B.enlaceDeIr('https://example.com/a?b=1', DUO);
+    const r = G.botonDeEnlace(bueno);
+    assert.equal(r.tipo, 'ir');
+    assert.equal(r.url, 'https://example.com/a?b=1');
+    for (const u of ['http://example.com/', 'javascript:alert(1)', 'https://user:pw@example.com/', 'data:text/html,hi']) {
+      assert.equal(G.botonDeEnlace(B.BASE_IR + encodeURIComponent(u)), null, u);
+    }
+    assert.equal(G.botonDeEnlace(B.BASE_IR + 'https://example.com/'), null, 'sin codificar');
+    assert.equal(G.botonDeEnlace(bueno.replace('&b=', '&b=x')), null, 'aspecto falso en /ir/');
+    assert.ok(G.pareceBoton(B.BASE_IR + 'loquesea'));
+    assert.ok(!G.pareceBoton('https://example.com/'));
+    /* la copia local (npm run dev) vale solo si se pide */
+    const local = B.enlaceDeIr('https://example.com/', DUO, { origen: 'http://localhost:4321' });
+    assert.equal(G.botonDeEnlace(local), null);
+    assert.equal(G.botonDeEnlace(local, { origenes: ['http://localhost:4321/'] }).tipo, 'ir');
+  });
+  await ok('la caja del gemelo: la cara y su escalon; baja lo que mide el escalon', () => {
+    const g = G.geometriaGemelo(L, DUO);
+    assert.deepEqual(g.caja, { x: 0.1, y: 0.5, w: 0.3, h: 0.058 });
+    assert.ok(Math.abs(g.cara - 0.05 / 0.058) < 1e-4);
+    assert.ok(Math.abs(g.lh - 0.008 / 0.058) < 1e-4);
+    assert.ok(Math.abs(g.cara + g.lh - 1) < 1e-4, 'la cara mas el escalon llenan el gemelo');
+    assert.equal(g.hunde, true);
+    assert.ok(Math.abs(g.radio - 0.014 / 0.058) < 1e-4);
+    assert.ok(Math.abs(g.fs - 0.025 / 0.058) < 1e-4);
+    /* la imagen de la pagina dentro de la cara: de la misma escala que la pagina */
+    assert.ok(Math.abs(g.recorte.w - 1 / 0.3) < 1e-4 && Math.abs(g.recorte.h - 1 / 0.05) < 1e-4);
+    assert.ok(Math.abs(g.recorte.x + 0.1 / 0.3) < 1e-4 && Math.abs(g.recorte.y + 0.5 / 0.05) < 1e-4);
+    assert.equal(G.geometriaGemelo(L, { ...DUO, rr: 1 }).radio, 'pildora');
+  });
+  await ok('el escalon no se sale de la hoja; sin escalon, sin su color o sin papel, no baja', () => {
+    const g = G.geometriaGemelo({ x: 0.1, y: 0.95, w: 0.3, h: 0.048 }, DUO);
+    assert.ok(g.caja.y + g.caja.h <= 1 + 1e-9);
+    for (const quita of ['lh', 's', 'pf']) { const a = { ...DUO }; delete a[quita]; assert.equal(G.geometriaGemelo(L, a).hunde, false, quita); }
+    assert.equal(G.geometriaGemelo({ x: 0.1, y: 0.1, w: 0, h: 0.05 }, DUO), null);
+    /* ni una mota (menos de LADO_MIN) ni una trampa que tapa la hoja (mas de AREA_MAX) */
+    assert.equal(G.geometriaGemelo({ x: 0.1, y: 0.1, w: 0.008, h: 0.05 }, DUO), null);
+    assert.equal(G.geometriaGemelo({ x: 0, y: 0, w: 0.9, h: 0.9 }, DUO), null);
+    assert.ok(G.geometriaGemelo({ x: 0, y: 0, w: 0.7, h: 0.8 }, DUO), '0.56 de la hoja aun vale');
+    assert.ok(G.LADO_MIN >= 0.01 && G.AREA_MAX <= 0.6 && G.GEMELOS_MAX > 0 && G.GEMELOS_MAX <= 40);
+    assert.equal(G.geometriaGemelo({ x: 'a', y: 0, w: 1, h: 1 }, DUO), null);
+    assert.equal(G.geometriaGemelo(null, DUO), null);
+  });
+  await ok('«Copiado»: el del Taller, o el del idioma del libro; dura un momento', () => {
+    assert.equal(G.rotuloCopiado(DUO, 'en'), 'Copiado');
+    assert.equal(G.rotuloCopiado({ ...DUO, k: undefined }, 'en'), 'Copied');
+    assert.equal(G.rotuloCopiado(null, 'es'), 'Copiado');
+    assert.equal(G.rotuloCopiado(null, 'pt'), 'Copiado');
+    assert.ok(G.COPIADO_MS >= 1200 && G.COPIADO_MS <= 1800);
+    /* sin sitio para la palabra (solo un icono) o sin nada que tape lo impreso, la pastilla de siempre */
+    assert.equal(G.caraDibujable(DUO), true);
+    assert.equal(G.caraDibujable({ ...DUO, l: 'solo' }), false);
+    assert.equal(G.caraDibujable({ e: 'contorno', c: '#000000' }), false);
+    assert.equal(G.caraDibujable({ e: 'relleno', f: '#000000', o: 50 }), false, 'medio transparente sin papel');
+    assert.equal(G.caraDibujable({ e: 'relleno', f: '#000000' }), true);
+  });
+  await ok('la letra solo sale de la lista fija de las notas; otra cualquiera = la del sitio', () => {
+    assert.equal(G.fuenteDeBoton('Lora', FUENTES_NOTA), 'lora');
+    assert.equal(G.fuenteDeBoton('bricolage grotesque', FUENTES_NOTA), 'bricolage-grotesque');
+    for (const f of ['Comic Sans', 'Lora;}body{display:none', '', null, 'constructor', '__proto__']) assert.equal(G.fuenteDeBoton(f, FUENTES_NOTA), null, String(f));
+  });
+  await ok('el gemelo se arma con textContent y setProperty: un «<img onerror>» en `x` o `k` es solo texto', () => {
+    const malo = '<img src=x onerror=alert(1)>';
+    const aspecto = B.aspectoDeCodigo(B.codigoDeAspecto({ ...DUO, x: malo, k: malo + '!' }));
+    assert.equal(aspecto.x, malo, 'el aspecto lo deja como texto');
+    const el = G.armarGemelo(doc, { tipo: 'copia', aspecto, L, etiqueta: aspecto.x });
+    assert.equal(el.tagName, 'BUTTON');
+    assert.equal(el.attrs['aria-label'], malo);
+    const rotulo = el.querySelector('.flip__boton-rotulo');
+    assert.equal(rotulo.textContent, malo);
+    assert.equal(rotulo.children.length, 0, 'no se volvio un elemento');
+    assert.ok(G.ponerCopiado(el, G.rotuloCopiado(aspecto, 'es')));
+    assert.equal(rotulo.textContent, malo + '!');
+    assert.equal(el.dataset.copiado, '');
+    G.quitarCopiado(el, aspecto.x);
+    assert.equal(rotulo.textContent, malo);
+    assert.ok(!('copiado' in el.dataset));
+    /* solo numeros y colores #rrggbb en las variables */
+    for (const [k, v] of Object.entries(el.style.props)) assert.match(v, /^(-?\d+(\.\d+)?(e-?\d+)?|#[0-9a-f]{6})$/, k);
+    assert.equal(el.style.props['--gb-f'], '#58cc02');
+    assert.equal(el.dataset.hunde, '');
+  });
+  await ok('un color o un numero que no es del aspecto no llega al estilo', () => {
+    const v = G.variablesGemelo(G.geometriaGemelo(L, DUO), { ...DUO, f: 'red;background:url(x)', c: '#FFF', bl: 'x' });
+    assert.ok(!('--gb-f' in v) && !('--gb-c' in v) && !('--gb-bl' in v));
+    assert.equal(G.variablesGemelo(G.geometriaGemelo(L, DUO), { ...DUO, bl: 'punteado' })['--gb-bl'], 'dotted');
+    for (const bl of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) assert.ok(!('--gb-bl' in G.variablesGemelo(G.geometriaGemelo(L, DUO), { ...DUO, bl })), bl);
+  });
+  await ok('el gemelo de /ir/ es un enlace a la direccion, en otra pestaña, sin decir de donde viene', () => {
+    const el = G.armarGemelo(doc, { tipo: 'ir', url: 'https://example.com/', aspecto: DUO, L, etiqueta: 'x' });
+    assert.equal(el.tagName, 'A');
+    assert.equal(el.href, 'https://example.com/');
+    assert.equal(el.target, '_blank');
+    assert.equal(el.rel, 'noopener noreferrer');
+    assert.equal(el.referrerPolicy, 'no-referrer');
+    assert.equal(G.armarGemelo(doc, { tipo: 'otro', aspecto: DUO, L }), null);
+  });
+  await ok('reglas del archivo: sin HTML a mano, sin las notas en el paquete, letras solo por la lista', () => {
+    const s = leer('src/scripts/lector/gemeloBoton.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/innerHTML|insertAdjacentHTML|outerHTML|eval\(|document\.write|fonts\.googleapis/.test(s));
+    assert.ok(!/notaEnPdf/.test(s), 'no importa las notas (llegan con import() en site.js)');
+    const site = leer('src/scripts/site.js');
+    const g = site.slice(site.indexOf('/* LOS GEMELOS DE LOS BOTONES'), site.indexOf('let fb = null;'));
+    /* la letra: solo por la lista fija, y la pide la MISMA pieza que la de las notas (hojaNota.ponerFuente), despues de que el
+       gemelo salio (sin caja buena no se pide nada) */
+    assert.match(g, /if \(!g\) return null;[\s\S]*fuenteDeBoton\(boton\.aspecto\.fu, leerNota\.FUENTES_NOTA\)/);
+    assert.match(site, /import\('\.\/lector\/hojaNota\.js'\)\.then\(\(m\) => \{ if \(gen === fbGen\) letras\.forEach\(\(\[r, id\]\) => m\.ponerFuente\(r, id\)\); \}\)/);
+    assert.ok(!/createElement\('link'\)/.test(g), 'ninguna hoja de letras escrita aqui');
+    assert.ok(!/aspecto\.fu[^,)]*\+|`[^`]*\$\{[^}]*\.fu/.test(g), 'el nombre de la letra nunca se escribe en una direccion ni en un CSS');
+    /* la imagen de la pagina se escucha una sola vez */
+    assert.match(g, /img\.addEventListener\('load', igualar, \{ once: true \}\)/);
+    /* el nombre del /ir/: primero el dominio, con funciones */
+    assert.match(g, /\.replace\('\{u\}', \(\) => host\);\s*return x \? plantilla\.replace\('\{t\}', \(\) => x\) : plantilla;/);
+    /* las notas llegan solo si hay un boton de verdad con aspecto, no cualquier enlace con «&b=» */
+    assert.match(site, /L\.href\.includes\('&b='\) && pareceBoton\(L\.href, \{ origenes: ORIGENES_NOTA \}\)/);
+    /* tope de gemelos por pagina */
+    assert.match(site, /gemelosAqui < GEMELOS_MAX \? gemeloDe\(/);
+    assert.ok(!/innerHTML/.test(g));
+    /* el /ir/ sin aspecto tambien va directo, sin decir de donde viene */
+    assert.match(site, /a\.href = boton\.url; a\.target = '_blank'; a\.rel = 'noopener noreferrer'; a\.referrerPolicy = 'no-referrer';/);
+    /* lo que dice ser un boton y no lo es no se pinta */
+    assert.match(site, /if \(dice && !boton\) return;/);
+    /* el pulsador sabe si se pidio menos movimiento; un pulsado no se queda abajo; al salir del lector todo vuelve */
+    assert.match(site, /crearPulsador\(\{ quieto: \(\) => quiet\.matches \}\)/);
+    assert.match(site, /addEventListener\('blur', pulsador\.soltar\);/);
+    assert.match(site, /flipBox\.addEventListener\('lostpointercapture'/);
+    const salir = site.slice(site.indexOf('function salirDelLector() {'), site.indexOf('function salirDelLector() {') + 1500);
+    assert.match(salir, /pulsador\.limpiar\(\);\s*clearTimeout\(copiadoTimer\);/);
+    const css = leer('src/styles/base.css');
+    assert.match(css, /\.flip__boton > span, \.flip__boton-cara > \* \{ position: absolute; pointer-events: none; \}/, 'los hijos no reciben toques');
+    assert.match(css, /\.flip__boton:focus-visible::after \{ outline: 2px solid/);
+    assert.match(css, /prefers-reduced-motion: reduce\)[\s\S]*\.flip__boton-cara, \.flip__boton-papel, \.flip__boton-foto \{ transition: none; \}/);
+    /* solo el que se hunde deja el tinte de los enlaces; la sombra del lomo pasa por encima */
+    assert.match(css, /\.flip__link\.flip__boton\[data-hunde\]:hover, \.flip__link\.flip__boton\[data-hunde\]:focus-visible, \.flip__link\.flip__boton\[data-hunde\]:active \{ background: none; box-shadow: none; \}/);
+    assert.ok(!/\.flip__link\.flip__boton:hover/.test(css));
+    assert.match(css, /\.flip__page:has\(> \.flip__boton\)::after \{ z-index: 1; \}/);
+  });
+  /* EL PULSADOR, con un reloj de mentira */
+  const reloj = () => {
+    let n = 0; const pend = new Map();
+    return { poner: (f, ms) => { n++; pend.set(n, { f, ms }); return n; }, quitar: (id) => pend.delete(id), correr: () => { const xs = [...pend.values()]; pend.clear(); xs.forEach((x) => x.f()); }, pend };
+  };
+  const gemelo = (tipo, aspecto = DUO) => G.armarGemelo(doc, { tipo, url: 'https://example.com/', aspecto, L, etiqueta: 'e' });
+  await ok('pulsador: baja con escalon y vuelve; sin escalon o con «menos movimiento», no baja', () => {
+    const r = reloj();
+    let quieto = false;
+    const P = G.crearPulsador({ quieto: () => quieto, poner: r.poner, quitar: r.quitar });
+    const a = gemelo('copia'), b = gemelo('copia');
+    assert.equal(P.hundir(a), true);
+    assert.ok(a.hasAttribute('data-pulsado'));
+    assert.equal(P.hundir(b), true);
+    assert.ok(!a.hasAttribute('data-pulsado') && b.hasAttribute('data-pulsado'), 'solo uno abajo');
+    P.soltar();
+    assert.ok(!b.hasAttribute('data-pulsado'));
+    assert.equal(P.abajo(), null);
+    const plano = gemelo('copia', { ...DUO, lh: undefined });
+    assert.equal(P.hundir(plano), false);
+    quieto = true;
+    assert.equal(P.hundir(a), false);
+    assert.ok(!a.hasAttribute('data-pulsado'));
+  });
+  await ok('pulsador: Espacio en un enlace abre al soltar, solo si empezo en el mismo; Enter no lo abre dos veces', () => {
+    const P = G.crearPulsador();
+    const ir = gemelo('ir'), otro = gemelo('ir');
+    const ev = (key, extra = {}) => ({ key, ...extra });
+    assert.equal(P.teclaAbajo(ir, ev(' ')), true, 'Espacio en un enlace: se impide bajar la pagina');
+    assert.ok(ir.hasAttribute('data-pulsado'));
+    P.teclaArriba(ir, ev(' '));
+    assert.equal(ir.clics, 1);
+    assert.ok(!ir.hasAttribute('data-pulsado'));
+    /* empezo en otro: no abre */
+    P.teclaAbajo(otro, ev(' '));
+    P.teclaArriba(ir, ev(' '));
+    assert.equal(ir.clics, 1);
+    assert.equal(otro.clics || 0, 0);
+    /* soltar sin haber bajado aqui: nada */
+    P.teclaArriba(ir, ev(' '));
+    assert.equal(ir.clics, 1);
+    /* Enter: el navegador ya hace clic al bajar; al soltar no se repite */
+    assert.equal(P.teclaAbajo(ir, ev('Enter')), false);
+    P.teclaArriba(ir, ev('Enter'));
+    assert.equal(ir.clics, 1);
+    /* con Ctrl, o la tecla repetida, no baja otra vez */
+    assert.equal(P.teclaAbajo(ir, ev(' ', { ctrlKey: true })), false);
+    P.soltar();
+    P.teclaAbajo(ir, ev(' ', { repeat: true }));
+    assert.ok(!ir.hasAttribute('data-pulsado'));
+    /* un boton de copiar: Espacio no se impide (el navegador hace el clic) */
+    assert.equal(P.teclaAbajo(gemelo('copia'), ev(' ')), false);
+    assert.equal(P.teclaAbajo(null, ev(' ')), false);
+  });
+  await ok('pulsador: «Copiado» dura COPIADO_MS y vuelve; otro lo cambia; limpiar lo quita todo', () => {
+    const r = reloj();
+    const P = G.crearPulsador({ poner: r.poner, quitar: r.quitar });
+    const a = gemelo('copia'), b = gemelo('copia');
+    let fin = 0;
+    assert.ok(P.copiado(a, 'Copiado', 'Copiar', () => fin++));
+    assert.equal(a.querySelector('.flip__boton-rotulo').textContent, 'Copiado');
+    assert.equal([...r.pend.values()][0].ms, G.COPIADO_MS);
+    P.copiado(b, 'Copied', 'Copy');
+    assert.equal(a.querySelector('.flip__boton-rotulo').textContent, 'Copiar', 'el primero vuelve al copiar otro');
+    assert.ok(!('copiado' in a.dataset));
+    assert.equal(r.pend.size, 1, 'un solo reloj');
+    r.correr();
+    assert.equal(b.querySelector('.flip__boton-rotulo').textContent, 'Copy');
+    assert.equal(P.diciendo(), null);
+    assert.equal(fin, 0, 'el aviso del primero no corre: lo corto el segundo');
+    P.copiado(a, 'Copiado', 'Copiar', () => fin++);
+    r.correr();
+    assert.equal(fin, 1);
+    P.copiado(a, 'Copiado', 'Copiar');
+    P.hundir(a);
+    P.limpiar();
+    assert.equal(r.pend.size, 0);
+    assert.ok(!a.hasAttribute('data-pulsado') && !('copiado' in a.dataset));
+    assert.equal(a.querySelector('.flip__boton-rotulo').textContent, 'Copiar');
+    assert.equal(P.copiado({}, 'x', 'y'), false, 'sin rotulo no hay «Copiado»');
+  });
+  await ok('los textos nuevos, en es y en', () => {
+    for (const k of ['irBoton', 'irBotonSolo']) for (const l of ['es', 'en']) assert.ok(UI[l]['lector.' + k].includes('{u}'), `${l} ${k}`);
+    assert.equal(UI.es['lector.irA'], 'Ir a la página', 'la clave vieja sigue igual');
+  });
+}
 
 /* Las notas y el indice (etapa 5a): tools/test-notas.mjs, con el mismo contador */
 const { probarNotas } = await import('./test-notas.mjs');

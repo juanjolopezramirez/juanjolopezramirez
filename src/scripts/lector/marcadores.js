@@ -167,3 +167,47 @@ export function crearMarcadores(almacen, clave, n, { ahora = () => Math.floor(Da
     }
   };
 }
+
+/* COMO SE NOMBRA UNA HOJA: por su numero impreso; sin el, la portada, la contratapa, o la hoja contada desde 1.
+     nombreDeHoja(p, folio, n) → { k: 'pag' | 'portada' | 'contratapa' | 'hoja', n: <numero> | null } */
+export function nombreDeHoja(p, folio, n) {
+  if (Number.isInteger(folio)) return { k: 'pag', n: folio };
+  if (p === 0) return { k: 'portada', n: null };
+  if (p === n - 1) return { k: 'contratapa', n: null };
+  return { k: 'hoja', n: p + 1 };
+}
+
+/* QUE SE PUEDE MARCAR AHORA. Cada pagina se marca SOLA. `vis`: las imagenes que se ven. Con una (el telefono, la tapa, la
+   contratapa) «Marcar» la marca o la desmarca de un toque ('una'); con un pliego abierto (dos), «Marcar» deja elegir cual
+   ('elegir'), la de la izquierda primero, como estan en el libro.
+     opcionesDeMarca(vis, { n, folioDe, tiene }) → { modo: 'nada' | 'una' | 'elegir', ops: [{ p, lado, nombre, marcada }] }
+   `lado`: 'sola' | 'izq' | 'der'. Lo que no es una pagina del libro no cuenta; nunca mas de dos. */
+export function opcionesDeMarca(vis, { n, folioDe = () => null, tiene = () => false } = {}) {
+  const total = Number.isInteger(n) && n > 0 && n <= PAGINAS_MAX ? n : 0;
+  const ps = [...new Set(Array.isArray(vis) ? vis : [])]
+    .filter((p) => Number.isInteger(p) && p >= 0 && p < total)
+    .sort((a, b) => a - b)
+    .slice(0, 2);
+  const ops = ps.map((p, i) => ({
+    p,
+    lado: ps.length === 1 ? 'sola' : i === 0 ? 'izq' : 'der',
+    nombre: nombreDeHoja(p, folioDe(p), total),
+    marcada: !!tiene(p),
+  }));
+  return { modo: ops.length === 0 ? 'nada' : ops.length === 1 ? 'una' : 'elegir', ops };
+}
+
+/* Las palabras de una hoja, con las del lector (`tl`: ui.js, «lector.*»). 'titulo': «Pág. 12», «Portada», «Hoja 3».
+   'frase', para dentro de otra: «la pág. 12», «the front cover». */
+const PALABRAS = {
+  titulo: { pag: 'pagN', portada: 'portada', contratapa: 'contratapa', hoja: 'hojaN' },
+  frase: { pag: 'laPag', portada: 'laPortada', contratapa: 'laContratapa', hoja: 'laHoja' },
+};
+export const CLAVES_HOJA = [...new Set(Object.values(PALABRAS).flatMap((x) => Object.values(x)))];
+export function decirHoja(nombre, tl, forma = 'titulo') {
+  const k = (PALABRAS[forma] || PALABRAS.titulo)[nombre && nombre.k] || 'hojaN';
+  const num = nombre && nombre.n != null ? String(nombre.n) : '';
+  return tl(k).replace('{n}', () => num);
+}
+/* El nombre del boton de la cinta de una pagina: dice lo que hara («Marcar la pág. 12», «Quitar la marca de la pág. 12») */
+export const rotuloDeCinta = (op, tl) => tl(op && op.marcada ? 'quitarLa' : 'marcarLa').replace('{n}', () => decirHoja(op && op.nombre, tl, 'frase'));

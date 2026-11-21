@@ -8,9 +8,20 @@
                   marcada «Encabezados y pies de pagina»
      contenido    cada salto del contenido cae en la hoja que el Taller dice (las mismas cuentas de la mesa)
      largo        si el libro tiene otro numero de hojas que la mesa: se avisa, no se frena
+     notas        si el PDF trae menos notas (enlaces /nota/ distintos) que el libro: se avisa, no se frena
 
    Devuelve { errores: [{ clave, ...datos }], avisos: [...] }; no hay `ok`: sin errores, se puede subir. */
 import { PAGINAS_MAX } from './PaginasEdicion.js';
+import { esEnlaceNota } from '../../lector/notaEnPdf.js';
+
+/* Cuantas notas distintas trae el PDF leido (`datos`: [{ enlaces: [{ href }] }], lo que da LeerEdicion.mirar) */
+export function notasDelPdf(datos) {
+  const vistas = new Set();
+  for (const p of Array.isArray(datos) ? datos : []) {
+    for (const a of p && Array.isArray(p.enlaces) ? p.enlaces : []) if (a && typeof a.href === 'string' && esEnlaceNota(a.href)) vistas.add(a.href);
+  }
+  return vistas.size;
+}
 
 export const DIFERENCIA_PROPORCION = 0.01;
 /* «PDF para imprenta»: la hoja crece 9 pt (3,175 mm) por lado, es decir 6,35 mm en cada medida (hoja.js: SANGRE_PT) */
@@ -24,7 +35,7 @@ export function ratioDeHoja(pagina) {
 const normal = (t) => String(t == null ? '' : t).normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
 
 /* entrada: { paginas, ratioPdf, ratioLibro, titulo, tituloPdf, textos: [string], saltos: [{ ancla, pagina }],
-              numeros: { ancla: pagina }, paginasMesa } */
+              numeros: { ancla: pagina }, paginasMesa, notasLibro, notasPdf } */
 export function revisarPdf(e) {
   const errores = [], avisos = [];
   const n = Number(e.paginas);
@@ -57,6 +68,10 @@ export function revisarPdf(e) {
   if (mal) errores.push({ clave: 'edContenido', n: mal });
 
   if (Number.isInteger(e.paginasMesa) && e.paginasMesa > 0 && n >= 1 && n !== e.paginasMesa) avisos.push({ clave: 'edDistintas', pdf: n, mesa: e.paginasMesa });
+  /* Las notas (definiciones y citas): cada una es un enlace distinto en el PDF. Si el PDF trae menos de las que tiene el libro,
+     es un PDF viejo o uno que no salio del Taller: se avisa, no se frena. */
+  const notasLibro = Number(e.notasLibro), notasPdf = Number(e.notasPdf);
+  if (Number.isInteger(notasLibro) && Number.isInteger(notasPdf) && notasPdf >= 0 && notasPdf < notasLibro) avisos.push({ clave: 'edNotas', pdf: notasPdf, libro: notasLibro });
   if (avisoTitulo) avisos.push(avisoTitulo);
   if (!tPdf) avisos.push({ clave: 'edSinTitulo' });
   return { errores, avisos };

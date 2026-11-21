@@ -13,7 +13,7 @@
    Todo texto de la pagina se escribe con textContent. Lo que sube y baja pasa por be.taller (real.js / demo.js). */
 import { crearToken, direccion, diasValidos, estadoDe, huella, nombreLimpio, vencimiento, DIAS, DIAS_POR_DEFECTO, EDICIONES_MAX } from '../../../../contenido/taller/Enlaces.js';
 import { hojasDeEdicion, foliosDeEdicion } from '../../../../contenido/taller/PaginasEdicion.js';
-import { revisarPdf } from '../../../../contenido/taller/RevisarPdf.js';
+import { notasDelPdf, revisarPdf } from '../../../../contenido/taller/RevisarPdf.js';
 import { revisarArchivo } from '../../../archivos.js';
 import { mirar, pintar } from './LeerEdicion.js';
 import { PublicarRecursos } from './PublicarRecursos.js';
@@ -32,7 +32,7 @@ export const rutasDeEdicion = (obraId, id, paginas) => {
 };
 
 export class Publicar {
-  /* `contexto()` → { obraId, titulo, idioma, ratioLibro, numeros, paginasMesa } (guardado y medido al momento);
+  /* `contexto()` → { obraId, titulo, idioma, ratioLibro, numeros, paginasMesa, notas? } (guardado y medido al momento);
      `obraId()` el id del libro abierto (barato: para repintar la lista sin guardar ni medir); `be()` el backend de ahora; `lang` el idioma de la pagina para la direccion */
   constructor(dialogo, { tx, be, contexto, obraId, textoDe, fecha, lang }) {
     Object.assign(this, { dialogo, tx, be, contexto, obraId, textoDe, fecha, lang });
@@ -314,7 +314,9 @@ export class Publicar {
       if (!vigente()) { id = ''; this.estado.textContent = vida === this.vida ? this.tx.cpParado : ''; return; }
       const rev = revisarPdf({
         paginas: leido.paginas, ratioPdf: leido.ratio, ratioLibro: c.ratioLibro, titulo: c.titulo, tituloPdf: leido.titulo,
-        textos: leido.textos, saltos: leido.saltos, numeros: c.numeros, paginasMesa: c.paginasMesa
+        textos: leido.textos, saltos: leido.saltos, numeros: c.numeros, paginasMesa: c.paginasMesa,
+        /* Las definiciones y citas del libro contra las que trae el PDF (si el Taller sabe contarlas) */
+        ...(Number.isInteger(c.notas) ? { notasLibro: c.notas, notasPdf: notasDelPdf(leido.datos) } : {})
       });
       if (rev.errores.length) {
         id = '';
