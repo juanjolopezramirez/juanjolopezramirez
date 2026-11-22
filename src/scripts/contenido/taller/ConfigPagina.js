@@ -174,13 +174,17 @@ export class ConfigPagina {
     };
     /* Las notas del libro: la letra del texto de los versiculos de TODAS sus citas (solo las de FUENTES_NOTA; vacia: no se
        eligio, y el PDF lleva la de los libros nuevos, notasLibro.letraDeVersos), los colores de cada clase de nota en cada
-       tema y los dos efectos (solo los de la lista del lector; '' = ninguno). Todo va en cada nota al sacar el PDF. */
+       tema, los dos efectos (solo los de la lista del lector; '' = ninguno) y la letra del titulo de las referencias y la de
+       las definiciones que no eligieron una propia (solo las de FUENTES_NOTA; '' = la de siempre). Todo va en cada nota al
+       sacar el PDF. */
     const nt = objeto(o.notas);
     this.notas = {
       letraVersos: fuenteValida(nt.letraVersos) ? nt.letraVersos : '',
       colores: coloresDeNotas(nt.colores),
       entrada: entradaValida(nt.entrada) ? nt.entrada : '',
-      bucle: bucleValido(nt.bucle) ? nt.bucle : ''
+      bucle: bucleValido(nt.bucle) ? nt.bucle : '',
+      tituloRef: fuenteValida(nt.tituloRef) ? nt.tituloRef : '',
+      tituloDef: fuenteValida(nt.tituloDef) ? nt.tituloDef : ''
     };
   }
 

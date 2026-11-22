@@ -265,6 +265,7 @@ export function crearHojaNota(ctx) {
     const nombre = rotuloDeCita(nota, idioma);
     const t = nodo('h3', 'lector__nota-t', nombre);
     t.id = 'lector-nota-t';
+    ponerFuente(t, nota.ft);
     const caja = nodo('div', 'lector__nota-caja');
     const estado = nodo('p', 'lector__nota-estado');
     estado.setAttribute('role', 'status');

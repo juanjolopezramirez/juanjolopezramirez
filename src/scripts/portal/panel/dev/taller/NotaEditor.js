@@ -72,9 +72,13 @@ export class NotaEditor {
         tx, menu: raiz.querySelector('[data-b-nota="citaBiblica"]'), padre: this.dialogo.parentNode,
         leer: () => this.notasLibro(), alGuardar: (p) => this.alNotasLibro(p), alDecir: (t) => this.alDecir(t),
         /* Si se cambio la letra de los versiculos con la ventana de una referencia abierta, esta la muestra */
-        alCerrar: () => { if (this.dialogo.open && this.objetivo && this.objetivo.tipo === 'citaBiblica') { this.fv.value = this.letraDelLibro(); this.pintarLetraVersos(); } }
+        alCerrar: () => {
+          if (!this.dialogo.open || !this.objetivo) return;
+          if (this.objetivo.tipo === 'citaBiblica') { this.fv.value = this.letraDelLibro(); this.pintarLetraVersos(); } else this.pintarLetras();
+        }
       });
       this.bEstilo.hidden = false;
+      this.ayudaLetras.hidden = false;
       this.quitar.style.marginRight = '0';
     }
     raiz.querySelectorAll('[data-b-nota]').forEach((b) => b.addEventListener('click', () => this.desdeBoton(b.dataset.bNota)));
@@ -128,8 +132,11 @@ export class NotaEditor {
     };
     this.ft = opcionesFuente(tx.ndLetraPalabra);
     this.fd = opcionesFuente(tx.ndLetraTexto);
+    /* La letra de la palabra sin elegir es la que el libro puso para todas sus definiciones («Estilo de las notas») */
+    if (this.ft.options[0]) this.ft.options[0].textContent = tx.ndLetraTodas;
     const letras = h('div', { clase: 'tal-nota__letras' }, [campo(tx.ndLetraPalabra, this.ft), campo(tx.ndLetraTexto, this.fd)]);
-    this.parteD = h('div', { clase: 'tal-nota__parte' }, [campo(tx.ndPalabra, this.palabra), campo(tx.ndTexto, this.texto), ref, letras]);
+    this.ayudaLetras = h('p', { clase: 'tal-ayuda', texto: tx.ndLetraLibroAyuda, hidden: true });
+    this.parteD = h('div', { clase: 'tal-nota__parte' }, [campo(tx.ndPalabra, this.palabra), campo(tx.ndTexto, this.texto), ref, h('div', {}, [letras, this.ayudaLetras])]);
 
     /* Cita */
     this.cita = h('input', { clase: 'tal-nota__entrada', maxlength: 120, autocomplete: 'off', spellcheck: 'false', 'aria-describedby': id('cita-ayuda') });
@@ -159,7 +166,7 @@ export class NotaEditor {
     (this.raiz.closest('[data-tal-mesa]') || document.body).append(d);
 
     /* Los selectores del Taller, cada letra vista en su letra */
-    this.selFt = new Selector(this.ft, { fuenteDe: (v) => this.cssDe(v) });
+    this.selFt = new Selector(this.ft, { fuenteDe: (v) => this.cssDe(v, { titulo: true }) });
     this.selFd = new Selector(this.fd, { fuenteDe: (v) => this.cssDe(v) });
     this.selFv = new Selector(this.fv, { fuenteDe: (v) => this.cssDe(v) });
     this.selVersion = null;
@@ -177,8 +184,15 @@ export class NotaEditor {
     this.cita.addEventListener('input', () => { this.citaEditada = true; this.cita.removeAttribute('aria-invalid'); this.leerCita(); });
   }
 
-  cssDe(v) {
+  cssDe(v, { titulo = false } = {}) {
     if (v && FUENTES_NOTA[v]) return FUENTES_NOTA[v].css;
+    /* La palabra sin letra propia: la de todas las definiciones del libro, o la de siempre */
+    if (titulo) {
+      let n = null;
+      try { n = this.notasLibro ? this.notasLibro() : null; } catch { n = null; }
+      const t = n && n.tituloDef;
+      return t && FUENTES_NOTA[t] ? FUENTES_NOTA[t].css : '"Young Serif", Georgia, serif';
+    }
     const l = this.fuenteLibro && this.fuenteLibro();
     return l ? familiaCss(l) : '';
   }
@@ -197,7 +211,7 @@ export class NotaEditor {
     for (const v of Object.values(FUENTES_NOTA)) if (!v.sitio) cargarFuente(v.familia);
   }
   pintarLetras() {
-    this.palabra.style.fontFamily = this.cssDe(this.ft.value);
+    this.palabra.style.fontFamily = this.cssDe(this.ft.value, { titulo: true });
     this.texto.style.fontFamily = this.cssDe(this.fd.value);
   }
 

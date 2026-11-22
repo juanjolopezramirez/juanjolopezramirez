@@ -4,7 +4,7 @@
    libro; un visor de PDF cualquiera lo abre en /nota/, que muestra lo mismo.
 
      definicion  { v:1, k:'d', t, d, r:{ a, y, ti, f, u } | rf, ft, fd, l? }
-     cita        { v:1, k:'c', r:'JER.1.4-5', x:'Jeremías 1:4-5', rv:'NVI', fv?, l? }
+     cita        { v:1, k:'c', r:'JER.1.4-5', x:'Jeremías 1:4-5', rv:'NVI', ft?, fv?, l? }
      las dos     ... cl?, cd?, ee?, el?
 
    t titulo (80) · d descripcion (1200) · r referencia APA por partes (200 cada una; u solo https, 300) · rf referencia
@@ -15,7 +15,7 @@
    ella, la de siempre: Young Serif) · l el idioma del libro ('es' | 'en'), opcional: la pagina /nota/ lo usa para elegir la version.
    cl / cd los colores del libro para el tema CLARO / OSCURO del lector: [titulo, texto] ('#rrggbb' o '' = el de siempre) ·
    ee / el el efecto de entrada y el de movimiento suave (solo los de ENTRADAS_NOTA / BUCLES_NOTA). Una nota sin ellos se
-   ve como siempre.
+   ve como siempre. En una cita, ft es la letra de su titulo (la del libro para todas sus referencias; sin ella, Young Serif).
 
    Puro: sin pagina, sin red. Lo usaran el lector, la pagina /nota/ y el Taller. Todo lo que llega se trata como hostil. */
 import { deCanonica, rotulo, VERSION_GATEWAY } from '../biblia/referencias.js';
@@ -125,6 +125,7 @@ export function limpiarNota(x) {
     if (etiqueta) n.x = etiqueta;
     const rv = version(x.rv);
     if (rv) n.rv = rv;
+    if (fuenteValida(x.ft)) n.ft = x.ft;
     if (fuenteValida(x.fv)) n.fv = x.fv;
   }
   for (const k of ['cl', 'cd']) { const par = propia(x, k) ? parDeColores(x[k]) : null; if (par) n[k] = par; }
@@ -198,7 +199,7 @@ export function enlaceDeNota(nota, { origen = ORIGEN_NOTA } = {}) {
   const ruta = rutaDeNota(origen);
   if (!n || !ruta) return null;
   /* Siempre en el mismo orden: la misma nota da el mismo enlace */
-  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'cl', 'cd', 'ee', 'el', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'fv', 'cl', 'cd', 'ee', 'el', 'l'];
+  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'cl', 'cd', 'ee', 'el', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'ft', 'fv', 'cl', 'cd', 'ee', 'el', 'l'];
   const plano = {};
   for (const k of orden) if (n[k] !== undefined) plano[k] = n.k === 'd' && k === 'r' ? { ...n.r } : Array.isArray(n[k]) ? [...n[k]] : n[k];
   const href = ruta + '#n=' + aBase64Url(new TextEncoder().encode(JSON.stringify(plano)));

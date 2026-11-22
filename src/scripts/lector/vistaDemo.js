@@ -53,7 +53,7 @@ const DUO = {
 };
 /* Los colores de muestra (ronda 3): por tema, [titulo, texto]. Tinta sepia y oro de dia; oro claro y salvia de noche. */
 const ESTILO_DEF = { cl: ['#7a3b1f', '#3b2f26'], cd: ['#e8c58a', '#d9d4c7'], ee: 'letra', el: 'brillo' };
-const ESTILO_CITA = { cl: ['#2f5d50', ''], cd: ['#9fd3c0', '#e4e0d4'] };
+const ESTILO_CITA = { cl: ['#2f5d50', ''], cd: ['#9fd3c0', '#e4e0d4'], ft: 'frank-ruhl-libre' };   // ronda 4: la letra del titulo de las referencias
 const TEXTOS = {
   es: {
     titulo: 'Muestra: notas del lector',

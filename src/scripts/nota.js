@@ -80,6 +80,7 @@ function pintar() {
   const extra = nodo('div', 'lector__nota-extra');
   const rec = lineaRecomendada(nota, idioma, tl);
   const titulo = nodo('h1', 'lector__nota-t', nombre);
+  ponerFuente(titulo, nota.ft);
   titulo.tabIndex = -1;
   hoja.append(titulo, versos, estado, pie, ...(rec ? [rec] : []), extra);
   document.title = nombre;

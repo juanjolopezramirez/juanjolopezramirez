@@ -175,6 +175,60 @@ await ok('una nota justo en el tope de 8000 sale sin estilo antes que perder su 
   assert.equal(N.notaDeEnlace(h).t, largo(80));
 });
 
+console.log('\nla letra del titulo (ronda 4)');
+await ok('una cita lleva `ft` (ida y vuelta, en su lugar); una letra que no es de la lista se tira; sin ella, el enlace de siempre', () => {
+  for (const ft of Object.keys(N.FUENTES_NOTA)) {
+    const h = N.enlaceDeNota({ v: 1, k: 'c', r: 'JHN.3.16', ft, fv: 'lora', l: 'es' });
+    assert.equal(N.notaDeEnlace(h).ft, ft, ft);
+    assert.deepEqual(Object.keys(plano(h)), ['v', 'k', 'r', 'ft', 'fv', 'l']);
+  }
+  for (const ft of ['Comic Sans', 'libro', '', '__proto__', 'lora;color:red', 3, null, ['lora']]) assert.equal(N.limpiarNota({ v: 1, k: 'c', r: 'JHN.3.16', ft }).ft, undefined, String(ft));
+  const vieja = { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremías 1:4-5', rv: 'NVI', fv: 'bricolage-grotesque', l: 'es' };
+  assert.equal(N.enlaceDeNota(vieja), 'https://juanjolopezramirez.com/nota/#n=' + Buffer.from(JSON.stringify(vieja)).toString('base64url'));
+});
+await ok('ConfigPagina guarda tituloRef y tituloDef (solo de la lista)', () => {
+  const c = new ConfigPagina({ notas: { tituloRef: 'estonia', tituloDef: 'lora' } });
+  assert.equal(c.notas.tituloRef, 'estonia');
+  assert.equal(c.notas.tituloDef, 'lora');
+  for (const v of ['Lora', 'libro', 'x', '__proto__', 3, null]) {
+    const m = new ConfigPagina({ notas: { tituloRef: v, tituloDef: v } }).notas;
+    assert.equal(m.tituloRef, '', String(v));
+    assert.equal(m.tituloDef, '', String(v));
+  }
+  assert.equal(new ConfigPagina(c.aDatos()).notas.tituloRef, 'estonia');
+});
+await ok('al sacar el PDF: la cita lleva la letra del libro; la definicion, la suya si la eligio y si no la del libro', () => {
+  const cap = { contenido: doc(parrafo(
+    texto('Juan 3:16', [{ type: 'citaBiblica', attrs: { r: 'JHN.3.16', x: 'Juan 3:16' } }]), texto(' y '),
+    texto('Ahavá', [{ type: 'definicion', attrs: { t: 'Ahavá', d: 'Amor', ft: 'petemoss', fd: 'lora' } }]), texto(' y '),
+    texto('Emet', [{ type: 'definicion', attrs: { t: 'Emet', d: 'Verdad' } }]))) };
+  const notasDe = (pagina) => todos(aHoja({ titulo: 'L', idioma: 'es', pagina, fuentes: [] }, [cap]).nodos, (x) => x.tag === 'a' && /^nota/.test(x.clase)).map((a) => N.notaDeEnlace(a.attrs.href));
+  const [c, propia, sinPropia] = notasDe({ notas: { tituloRef: 'estonia', tituloDef: 'frank-ruhl-libre' } });
+  assert.equal(c.ft, 'estonia');
+  assert.equal(propia.ft, 'petemoss', 'la de la nota gana');
+  assert.equal(propia.fd, 'lora');
+  assert.equal(sinPropia.ft, 'frank-ruhl-libre', 'sin la suya, la del libro');
+  assert.equal(sinPropia.fd, undefined, 'la descripcion no cambia');
+  /* sin elegir en el libro: como antes de esta ronda */
+  const [c0, p0, s0] = notasDe({});
+  assert.equal(c0.ft, undefined);
+  assert.equal(p0.ft, 'petemoss');
+  assert.equal(s0.ft, undefined);
+  /* estiloDeNotas: la letra va en su clase */
+  assert.deepEqual(NL.estiloDeNotas({ tituloRef: 'lora', tituloDef: 'x' }), { c: { ft: 'lora' }, d: {} });
+});
+await ok('la hoja, /nota/ y el indice ponen la letra del titulo con ponerFuente; la letra a mano sale mas grande', () => {
+  const hoja = leer('src/scripts/lector/hojaNota.js'), pag = leer('src/scripts/nota.js'), site = leer('src/scripts/site.js'), css = leer('src/styles/base.css');
+  assert.match(hoja, /t\.id = 'lector-nota-t';\s*ponerFuente\(t, nota\.ft\);/);
+  assert.match(pag, /ponerFuente\(titulo, nota\.ft\);/);
+  assert.match(site, /import\('\.\/lector\/hojaNota\.js'\)\.then\(\(m\) => conLetra\.forEach/);
+  assert.match(css, /\.lector__fila strong\[data-fuente="estonia"\], \.lector__fila strong\[data-fuente="petemoss"\] \{ font-size: 1\.55rem;/);
+  assert.match(css, /\.lector__nota-t\[data-fuente="petemoss"\], \.lector__nota-t\[data-fuente="estonia"\]/);
+  const tx = PORTAL_TEXTOS.es.panel.taller;
+  assert.equal(tx.enLetraTitulo, 'Letra del título');
+  assert.match(tx.ndLetraLibroAyuda, /Estilo de las notas/);
+});
+
 console.log('\nel contraste');
 await ok('colorNota: contraste WCAG, papeles medidos y el par del tema que toca', () => {
   assert.equal(Math.round(C.contraste('#000000', '#ffffff')), 21);

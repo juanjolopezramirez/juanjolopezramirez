@@ -23,28 +23,32 @@ const idiomaLibro = (l) => (l === 'en' ? 'en' : 'es');
 export const LETRA_VERSOS = 'bricolage-grotesque';
 export const letraDeVersos = (v) => (fuenteValida(v) ? v : LETRA_VERSOS);
 
-/* EL ESTILO DE LAS NOTAS DE UN LIBRO, listo para cada nota: de ConfigPagina.notas -> { c: { cl?, cd? }, d: { cl?, cd? }, ee?, el? }
-   (c las citas, d las definiciones). Lo que falta no va: una nota sin estilo se ve como siempre. */
+/* EL ESTILO DE LAS NOTAS DE UN LIBRO, listo para cada nota: de ConfigPagina.notas -> { c: { cl?, cd?, ft? }, d: { cl?, cd?, ft? },
+   ee?, el? } (c las citas, d las definiciones; ft la letra del titulo para todo el libro). Lo que falta no va: una nota sin
+   estilo se ve como siempre. */
 export function estiloDeNotas(notas) {
   const o = objeto(notas), col = objeto(o.colores);
-  const porTipo = (k) => {
+  const porTipo = (k, letra) => {
     const t = objeto(col[k]), salida = {};
     const cl = parDeColores(t.claro), cd = parDeColores(t.oscuro);
     if (cl) salida.cl = cl;
     if (cd) salida.cd = cd;
+    if (fuenteValida(letra)) salida.ft = letra;
     return salida;
   };
-  return { c: porTipo('cita'), d: porTipo('definicion'), ...(entradaValida(o.entrada) ? { ee: o.entrada } : {}), ...(bucleValido(o.bucle) ? { el: o.bucle } : {}) };
+  return { c: porTipo('cita', o.tituloRef), d: porTipo('definicion', o.tituloDef), ...(entradaValida(o.entrada) ? { ee: o.entrada } : {}), ...(bucleValido(o.bucle) ? { el: o.bucle } : {}) };
 }
 
 /* La nota (limpia) que dice una marca, o null. `idioma`: el del libro (va como `l`). `fv`: la letra de los versiculos del
-   libro (solo en una cita; una que no es de la lista se tira). `estilo`: el de estiloDeNotas (colores de su clase y efectos). */
+   libro (solo en una cita; una que no es de la lista se tira). `estilo`: el de estiloDeNotas (colores de su clase, efectos y
+   la letra del titulo del libro: en una cita es la suya; en una definicion solo si ella no eligio una propia). */
 export function notaDeMarca(m, idioma, { fv, estilo } = {}) {
   const o = objeto(m), k = typeof o.type === 'string' && Object.hasOwn(TIPO_DE_MARCA, o.type) ? TIPO_DE_MARCA[o.type] : null;
   if (!k) return null;
   const a = objeto(o.attrs), e = objeto(estilo), deTipo = objeto(e[k]);
   const extra = { cl: deTipo.cl, cd: deTipo.cd, ee: e.ee, el: e.el };
-  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft: a.ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, fv }), ...extra, v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
+  const ft = k === 'd' ? (fuenteValida(a.ft) ? a.ft : deTipo.ft) : deTipo.ft;
+  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, ft, fv }), ...extra, v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
   return n;
 }
 

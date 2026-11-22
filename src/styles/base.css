@@ -5628,6 +5628,9 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
   border-radius: .75rem;
 }
 .lector__fila strong { min-width: 0; font-family: var(--serif); font-size: 1.05rem; font-weight: 400; line-height: 1.3; overflow-wrap: anywhere; }
+/* El nombre en la letra de su titulo (site.js, pintarIndice): la letra a mano, de ojo chico, con mas cuerpo */
+.lector__fila strong[data-fuente="estonia"], .lector__fila strong[data-fuente="petemoss"] { font-size: 1.55rem; line-height: 1.1; }
+.lector__fila strong[data-fuente="bricolage-grotesque"] { font-weight: 600; letter-spacing: -.01em; }
 .lector__hoja .lector__fila em { margin-left: 0; font-size: .78rem; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lector__fila > span {
   grid-column: 1 / -1;

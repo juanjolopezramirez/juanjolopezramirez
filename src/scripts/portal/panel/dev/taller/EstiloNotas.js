@@ -1,5 +1,6 @@
 /* «ESTILO DE LAS NOTAS»: como se ven TODAS las notas del libro en el lector. Una sola ventana, para todo el libro:
      - la letra de los versiculos (la misma de la ventana de la referencia biblica: ConfigPagina.notas.letraVersos);
+     - la letra del TITULO: de las referencias (tituloRef) y de las definiciones que no eligieron una propia (tituloDef);
      - los colores: de las referencias biblicas (titulo y versiculos) y de las definiciones (palabra y descripcion), cada uno
        para el tema claro y para el oscuro del lector ('' = el de siempre);
      - el efecto al abrir y el movimiento suave mientras esta abierta (la lista fija del lector: notaEnPdf.js).
@@ -12,7 +13,7 @@
 import { Selector } from './Selector.js';
 import { SelectorColor } from './SelectorColor.js';
 import { cargarFuente } from './Fuentes.js';
-import { FUENTES_NOTA, ENTRADAS_NOTA, BUCLES_NOTA, colorNota, entradaValida, bucleValido } from '../../../../lector/notaEnPdf.js';
+import { FUENTES_NOTA, ENTRADAS_NOTA, BUCLES_NOTA, colorNota, entradaValida, bucleValido, fuenteValida } from '../../../../lector/notaEnPdf.js';
 import { PAPEL_NOTA, TINTA_NOTA, ORO_NOTA, CONTRASTE_AVISO, CONTRASTE_LECTOR, contraste } from '../../../../lector/colorNota.js';
 import { animarNota, reducido } from '../../../../lector/efectosNota.js';
 import { letraDeVersos } from '../../../../contenido/taller/notasLibro.js';
@@ -33,6 +34,7 @@ let cuenta = 0;
 const TEMAS = ['claro', 'oscuro'];
 const TIPOS = ['cita', 'definicion'];
 const LETRAS_GRANDES = new Set(['estonia', 'petemoss']);
+const TITULO_SIEMPRE = '"Young Serif", Georgia, serif';
 /* La muestra: lo mismo que se ve en el lector (una referencia corta y una palabra de la casa) */
 const MUESTRA = {
   cita: { t: 'Juan 3:16', x: 'Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito…' },
@@ -113,6 +115,22 @@ export class EstiloNotas {
     this.fv = h('select', { clase: 'tal-ctl', 'aria-label': tx.ncLetraVersos });
     this.fv.append(...Object.entries(FUENTES_NOTA).map(([k, v]) => h('option', { value: k, texto: v.familia })));
     this.campoFv = campo(tx.ncLetraVersos, this.fv);
+    /* La letra del titulo, una por clase de nota: '' es la de siempre (Young Serif) */
+    const letraTitulo = () => {
+      const s = h('select', { clase: 'tal-ctl', 'aria-label': tx.enLetraTitulo });
+      s.append(h('option', { value: '', texto: tx.enLetraSiempre }), ...Object.entries(FUENTES_NOTA).map(([k, v]) => h('option', { value: k, texto: v.familia })));
+      return s;
+    };
+    this.ftCita = letraTitulo();
+    this.ftDef = letraTitulo();
+    this.campoFtCita = campo(tx.enLetraTitulo, this.ftCita);
+    this.campoFtDef = campo(tx.enLetraTitulo, this.ftDef);
+    this.ayudaFtDef = h('p', { clase: 'tal-ayuda', texto: tx.enLetraDefAyuda });
+    const letras = h('fieldset', { clase: 'tal-nota__grupo' }, [
+      h('legend', { texto: tx.enLetras }),
+      h('div', { clase: 'tal-nota__letras' }, [this.campoFtCita, this.campoFtDef, this.campoFv]),
+      this.ayudaFtDef
+    ]);
 
     /* Los efectos: para todas las notas del libro */
     this.ee = h('select', { clase: 'tal-ctl', 'aria-label': tx.enEntrada });
@@ -130,13 +148,18 @@ export class EstiloNotas {
     const guardar = this.botonGuardar = h('button', { clase: 'tal-btn tal-btn--fuerte', type: 'submit', texto: tx.enGuardar });
     f.append(
       h('div', { clase: 'tal-nota__cabeza' }, [h('h2', { clase: 'tal-ajustes__titulo', id: this.id('t'), texto: tx.enVentana }), h('p', { clase: 'tal-nota__sobre', id: this.id('sobre'), texto: tx.enSobre })]),
-      tipos, muestra, colores, this.campoFv, efectos, this.error,
+      tipos, muestra, colores, letras, efectos, this.error,
       h('div', { clase: 'tal-nota__botones' }, [cancelar, guardar])
     );
     d.append(f);
     padre.append(d);
 
-    this.selFv = new Selector(this.fv, { fuenteDe: (v) => (FUENTES_NOTA[v] ? FUENTES_NOTA[v].css : '') });
+    const cssDe = (v) => (FUENTES_NOTA[v] ? FUENTES_NOTA[v].css : TITULO_SIEMPRE);
+    this.selFv = new Selector(this.fv, { fuenteDe: cssDe });
+    this.selFtCita = new Selector(this.ftCita, { fuenteDe: cssDe });
+    this.selFtDef = new Selector(this.ftDef, { fuenteDe: cssDe });
+    this.ftCita.addEventListener('change', () => this.pintarMuestra());
+    this.ftDef.addEventListener('change', () => this.pintarMuestra());
     this.selEe = new Selector(this.ee);
     this.selEl = new Selector(this.el);
     this.fv.addEventListener('change', () => this.pintarMuestra());
@@ -160,6 +183,8 @@ export class EstiloNotas {
     }
     for (const v of Object.values(FUENTES_NOTA)) if (!v.sitio) cargarFuente(v.familia);
     this.fv.value = letraDeVersos(n.letraVersos);
+    this.ftCita.value = fuenteValida(n.tituloRef) ? n.tituloRef : '';
+    this.ftDef.value = fuenteValida(n.tituloDef) ? n.tituloDef : '';
     this.ee.value = entradaValida(n.entrada) ? n.entrada : '';
     this.el.value = bucleValido(n.bucle) ? n.bucle : '';
     this.error.textContent = '';
@@ -175,6 +200,9 @@ export class EstiloNotas {
     this.bCita.setAttribute('aria-pressed', String(cita));
     this.bDef.setAttribute('aria-pressed', String(!cita));
     this.campoFv.hidden = !cita;
+    this.campoFtCita.hidden = !cita;
+    this.campoFtDef.hidden = cita;
+    this.ayudaFtDef.hidden = cita;
     const nombres = cita ? [tx.enTituloCita, tx.enTextoCita] : [tx.enTituloDef, tx.enTextoDef];
     this.nombresFila.forEach((s, i) => { s.textContent = nombres[i]; });
     for (const tema of TEMAS) for (const i of [0, 1]) {
@@ -201,6 +229,12 @@ export class EstiloNotas {
       const { t, x } = this.papeles[tema];
       const par = this.colores[this.tipo][tema];
       t.textContent = m.t;
+      /* El titulo en su letra: la elegida para esta clase de nota, o la de siempre; la letra a mano, mas grande */
+      const ft = cita ? this.ftCita.value : this.ftDef.value, grandeT = LETRAS_GRANDES.has(ft);
+      t.style.fontFamily = FUENTES_NOTA[ft] ? FUENTES_NOTA[ft].css : TITULO_SIEMPRE;
+      t.style.fontSize = grandeT ? '34px' : '22px';
+      t.style.lineHeight = grandeT ? '1.05' : '1.15';
+      t.style.fontWeight = ft === 'bricolage-grotesque' ? '600' : '400';
       x.textContent = m.x;
       x.style.fontFamily = cita ? FUENTES_NOTA[fv].css : 'Georgia, serif';
       x.style.fontSize = cita && LETRAS_GRANDES.has(fv) ? '20px' : '14px';
@@ -233,7 +267,9 @@ export class EstiloNotas {
       letraVersos: letraDeVersos(this.fv.value),
       colores: Object.fromEntries(TIPOS.map((k) => [k, { claro: [...this.colores[k].claro], oscuro: [...this.colores[k].oscuro] }])),
       entrada: entradaValida(this.ee.value) ? this.ee.value : '',
-      bucle: bucleValido(this.el.value) ? this.el.value : ''
+      bucle: bucleValido(this.el.value) ? this.el.value : '',
+      tituloRef: fuenteValida(this.ftCita.value) ? this.ftCita.value : '',
+      tituloDef: fuenteValida(this.ftDef.value) ? this.ftDef.value : ''
     };
     let bien = false;
     this.guardando = true;
