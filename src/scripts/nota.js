@@ -8,7 +8,8 @@
      - si la nota no dice de que libro es (sin `l`), la direccion de la fuente queda como texto, sin enlace. */
 import { notaDeEnlace } from './lector/notaEnPdf.js';
 import { idiomaDeNota, rotuloDeCita } from './lector/notaTexto.js';
-import { ponerFuente, pintarReferencia, lineaRecomendada, llenarCita } from './lector/hojaNota.js';
+import { ponerFuente, pintarReferencia, lineaRecomendada, llenarCita, ponerColores, oroDe, mirarTema } from './lector/hojaNota.js';
+import { animarNota } from './lector/efectosNota.js';
 import { UI } from '../i18n/ui.js';
 
 const caja = document.querySelector('[data-nota]');
@@ -16,6 +17,8 @@ const hoja = caja && caja.querySelector('[data-hoja]');
 const vacio = caja && caja.querySelector('[data-vacio]');
 const origen = caja && caja.querySelector('[data-origen]');
 let vuelta = 0;            // otra nota (cambio el «#») deja sin efecto lo que aun estaba cargando
+let efectos = null;        // los de la nota pintada (efectosNota.js)
+let notaVista = null;      // la nota pintada: sus colores se vuelven a medir si el aparato cambia de claro a oscuro
 
 function nodo(tag, clase, texto) {
   const n = document.createElement(tag);
@@ -27,6 +30,9 @@ function nodo(tag, clase, texto) {
 function pintar() {
   if (!caja || !hoja) return;
   const mia = ++vuelta;
+  if (efectos) efectos.parar();
+  efectos = null;
+  notaVista = null;
   hoja.replaceChildren();
   hoja.hidden = true;
   vacio.hidden = true;
@@ -41,6 +47,9 @@ function pintar() {
   document.documentElement.lang = idioma;
   origen.textContent = tl('notaOrigen');
   origen.hidden = false;
+  notaVista = nota;
+  ponerColores(hoja, nota);
+  const animar = (titulo, textos) => { efectos = animarNota({ titulo, textos, entrada: nota.ee, bucle: nota.el, oro: oroDe(document.documentElement, '--oro') }); };
 
   if (nota.k === 'd') {
     const t = nodo('h1', 'lector__nota-t', nota.t);
@@ -59,6 +68,7 @@ function pintar() {
     }
     document.title = nota.t;
     hoja.hidden = false;
+    animar(t, [...hoja.querySelectorAll('.lector__nota-texto')]);
     return;
   }
 
@@ -74,9 +84,18 @@ function pintar() {
   hoja.append(titulo, versos, estado, pie, ...(rec ? [rec] : []), extra);
   document.title = nombre;
   hoja.hidden = false;
-  llenarCita({ nota, idioma, tl, base, caja: versos, estado, pie, extra, vigente: () => mia === vuelta, foco: titulo });
+  animar(titulo, []);
+  const fx = efectos;
+  llenarCita({ nota, idioma, tl, base, caja: versos, estado, pie, extra, vigente: () => mia === vuelta, foco: titulo, alPasaje: (p) => { if (fx === efectos && fx) fx.texto(p); } });
 }
 
 pintar();
 /* Otro enlace de nota abierto en la misma pestaña solo cambia el «#»: la pagina no se recarga, se vuelve a pintar */
 addEventListener('hashchange', pintar);
+/* El aparato paso de claro a oscuro (o al reves): el papel cambio, y con el el par de colores que toca. Sin volver a pedir el
+   pasaje: los colores se miden otra vez y el brillo (que lleva el color del titulo en su degradado) se rearma. */
+mirarTema(() => requestAnimationFrame(() => {
+  if (!notaVista || !hoja) return;
+  ponerColores(hoja, notaVista);
+  if (efectos) efectos.recolorear();
+}));

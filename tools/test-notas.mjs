@@ -316,7 +316,11 @@ export async function probarNotas(ok) {
     const s = leer('src/scripts/lector/hojaNota.js');
     assert.match(s, /a\.target = '_blank';\s*a\.rel = 'noopener noreferrer';\s*a\.referrerPolicy = 'no-referrer';/);
     assert.match(s, /el\.style\.fontFamily = FUENTES_NOTA\[id\]\.css;/);
-    assert.equal((s.match(/\.style\./g) || []).length, 1, 'ningun otro estilo sale de la nota');
+    /* Lo unico mas: los dos colores del libro como variables, y solo despues de pasar por coloresSobre (#rrggbb que se lee) */
+    const usos = s.match(/\.style\.[^\n;]*/g) || [];
+    assert.equal(usos.length, 5, 'ningun otro estilo sale de la nota');
+    assert.ok(usos.filter((u) => !u.startsWith('.style.fontFamily')).every((u) => /^\.style\.(setProperty|removeProperty)\('--nota-[tx]'/.test(u)), usos.join(' | '));
+    assert.match(s, /const \{ titulo, texto \} = coloresSobre\(nota, fondo\);/);
     assert.match(s, /l\.href = hojaDeFuente\(id\);/);
   });
   await ok('site.js: las notas y el indice llegan con import(), no van en el paquete de todas las paginas', () => {

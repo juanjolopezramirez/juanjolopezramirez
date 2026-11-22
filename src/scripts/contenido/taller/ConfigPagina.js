@@ -10,7 +10,7 @@ import { textoIndice, TITULO_INDICE_MAX, PALABRA_MAX, PLANTILLAS } from './Indic
 import { limpiarLomo } from './LomoLibro.js';
 import { limpiarAviso } from './AvisoLibro.js';
 import { AUTOR_MAX, limpiarLados, textoCabezaPropio } from './CabezaLibro.js';
-import { fuenteValida } from '../../lector/notaEnPdf.js';
+import { fuenteValida, colorNota, entradaValida, bucleValido } from '../../lector/notaEnPdf.js';
 
 /* La base guarda `pagina` con un tope de 8000 bytes (supabase/012_taller.sql): lo que se agregue aqui debe caber
    (tools/test-marcas-notas.mjs mide el peor caso) */
@@ -76,6 +76,22 @@ function imagenDeIndice(v) {
 }
 
 const copiaLados = (p) => Object.fromEntries(Object.entries(p).map(([l, s]) => [l, { ...s }]));
+
+/* LOS COLORES DE LAS NOTAS: por clase de nota (cita, definicion) y por tema del lector (claro, oscuro), un par
+   [titulo, texto] de '#rrggbb' ('' = el de siempre). Lo que no es un color se tira. */
+export const TIPOS_NOTA_COLOR = ['cita', 'definicion'];
+export const TEMAS_NOTA = ['claro', 'oscuro'];
+function coloresDeNotas(v) {
+  const o = objeto(v);
+  return Object.fromEntries(TIPOS_NOTA_COLOR.map((k) => {
+    const t = objeto(o[k]);
+    return [k, Object.fromEntries(TEMAS_NOTA.map((tema) => {
+      const par = Array.isArray(t[tema]) ? t[tema] : [];
+      return [tema, [colorNota(par[0]), colorNota(par[1])]];
+    }))];
+  }));
+}
+const copiaColores = (c) => Object.fromEntries(Object.entries(c).map(([k, t]) => [k, { claro: [...t.claro], oscuro: [...t.oscuro] }]));
 
 export class ConfigPagina {
   constructor(d = {}) {
@@ -156,10 +172,16 @@ export class ConfigPagina {
       sangriaMm: entre(ci.sangriaMm, 0, 40, 4.7),
       cursiva: ci.cursiva !== false
     };
-    /* Las notas del libro: la letra del texto de los versiculos de TODAS sus citas (solo las de FUENTES_NOTA). Vacia: no se
-       eligio, y el PDF lleva la de los libros nuevos (notasLibro.letraDeVersos). */
+    /* Las notas del libro: la letra del texto de los versiculos de TODAS sus citas (solo las de FUENTES_NOTA; vacia: no se
+       eligio, y el PDF lleva la de los libros nuevos, notasLibro.letraDeVersos), los colores de cada clase de nota en cada
+       tema y los dos efectos (solo los de la lista del lector; '' = ninguno). Todo va en cada nota al sacar el PDF. */
     const nt = objeto(o.notas);
-    this.notas = { letraVersos: fuenteValida(nt.letraVersos) ? nt.letraVersos : '' };
+    this.notas = {
+      letraVersos: fuenteValida(nt.letraVersos) ? nt.letraVersos : '',
+      colores: coloresDeNotas(nt.colores),
+      entrada: entradaValida(nt.entrada) ? nt.entrada : '',
+      bucle: bucleValido(nt.bucle) ? nt.bucle : ''
+    };
   }
 
   /* La caja donde va el texto, en mm. Sin espacio para escribir, la pagina no sirve. */
@@ -213,7 +235,7 @@ export class ConfigPagina {
     return {
       anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen }, negrita: { ...this.indice.negrita } }, cuerpo: { ...this.cuerpo },
       rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes }, lados: { izquierda: copiaLados(this.cabeza.lados.izquierda), derecha: copiaLados(this.cabeza.lados.derecha) } }, autor: this.autor, portada: this.portada, imprenta: this.imprenta, lomo: { ...this.lomo, tapas: { ...this.lomo.tapas }, ...(this.lomo.imagen ? { imagen: { ...this.lomo.imagen } } : {}) }, aviso: { ...this.aviso }, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
-      capital: { ...this.capital }, cita: { ...this.cita }, notas: { ...this.notas }
+      capital: { ...this.capital }, cita: { ...this.cita }, notas: { ...this.notas, colores: copiaColores(this.notas.colores) }
     };
   }
 }

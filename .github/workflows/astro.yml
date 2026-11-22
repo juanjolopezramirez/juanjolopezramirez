@@ -80,6 +80,7 @@ jobs:
           node tools/test-biblia.mjs
           node tools/test-lector.mjs
           node tools/test-marcas-notas.mjs
+          node tools/test-estilo-notas.mjs
           node tools/test-ficha.mjs
           node tools/test-vista.mjs
           node tools/test-lomo.mjs

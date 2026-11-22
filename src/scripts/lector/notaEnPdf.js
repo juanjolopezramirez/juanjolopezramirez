@@ -5,12 +5,17 @@
 
      definicion  { v:1, k:'d', t, d, r:{ a, y, ti, f, u } | rf, ft, fd, l? }
      cita        { v:1, k:'c', r:'JER.1.4-5', x:'Jeremías 1:4-5', rv:'NVI', fv?, l? }
+     las dos     ... cl?, cd?, ee?, el?
 
    t titulo (80) · d descripcion (1200) · r referencia APA por partes (200 cada una; u solo https, 300) · rf referencia
    escrita a mano (400) · ft/fd la letra del titulo y de la descripcion (solo las de FUENTES_NOTA; otra cualquiera = la del
-   libro) · r de la cita en forma canonica (biblia/referencias.js) · x como se lee (120) · rv la version que recomienda el
+   libro) · r de la cita en forma canonica (biblia/referencias.js) · x como se lee (120; el titulo NO sale de aqui: puede ser
+   solo «4:3» en «Mateo 3:17 y 4:3») · rv la version que recomienda el
    autor en Bible Gateway · fv la letra del texto de los versiculos (una para todo el libro; solo las de FUENTES_NOTA; sin
    ella, la de siempre: Young Serif) · l el idioma del libro ('es' | 'en'), opcional: la pagina /nota/ lo usa para elegir la version.
+   cl / cd los colores del libro para el tema CLARO / OSCURO del lector: [titulo, texto] ('#rrggbb' o '' = el de siempre) ·
+   ee / el el efecto de entrada y el de movimiento suave (solo los de ENTRADAS_NOTA / BUCLES_NOTA). Una nota sin ellos se
+   ve como siempre.
 
    Puro: sin pagina, sin red. Lo usaran el lector, la pagina /nota/ y el Taller. Todo lo que llega se trata como hostil. */
 import { deCanonica, rotulo, VERSION_GATEWAY } from '../biblia/referencias.js';
@@ -32,6 +37,21 @@ export const FUENTES_NOTA = Object.freeze({
   lora: Object.freeze({ familia: 'Lora', css: '"Lora", Georgia, serif', google: 'Lora:ital,wght@0,400;0,600;1,400', sitio: false }),
 });
 export const FUENTE_LIBRO = 'libro';
+
+/* Los efectos que puede pedir una nota, de una lista FIJA (lector/efectosNota.js los anima). '' o uno que no esta = ninguno. */
+export const ENTRADAS_NOTA = Object.freeze(['aparece', 'sube', 'letra', 'tinta']);
+export const BUCLES_NOTA = Object.freeze(['brillo', 'respira', 'subraya']);
+export const entradaValida = (id) => typeof id === 'string' && ENTRADAS_NOTA.includes(id);
+export const bucleValido = (id) => typeof id === 'string' && BUCLES_NOTA.includes(id);
+
+/* Un color de nota: '#rrggbb' en minusculas, o '' si no es uno */
+export const colorNota = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim()) ? v.trim().toLowerCase() : '');
+/* Un par [titulo, texto] de un tema; null si no trae ningun color valido */
+export function parDeColores(v) {
+  if (!Array.isArray(v) || v.length !== 2) return null;
+  const par = [colorNota(v[0]), colorNota(v[1])];
+  return par[0] || par[1] ? par : null;
+}
 export const fuenteValida = (id) => typeof id === 'string' && Object.prototype.hasOwnProperty.call(FUENTES_NOTA, id);
 export const hojaDeFuente = (id) => (fuenteValida(id) ? `https://fonts.googleapis.com/css2?family=${FUENTES_NOTA[id].google}&display=swap` : null);
 
@@ -107,6 +127,9 @@ export function limpiarNota(x) {
     if (rv) n.rv = rv;
     if (fuenteValida(x.fv)) n.fv = x.fv;
   }
+  for (const k of ['cl', 'cd']) { const par = propia(x, k) ? parDeColores(x[k]) : null; if (par) n[k] = par; }
+  if (entradaValida(x.ee)) n.ee = x.ee;
+  if (bucleValido(x.el)) n.el = x.el;
   if (x.l === 'es' || x.l === 'en') n.l = x.l;
   return n;
 }
@@ -161,11 +184,12 @@ export function notaDeEnlace(href, { origenes = [] } = {}) {
 
 export const esEnlaceNota = (href, opciones) => notaDeEnlace(href, opciones) !== null;
 
-/* Como se nombra una nota: la palabra, o lo que escribio el autor de la cita (si no, el pasaje en el idioma del libro) */
+/* Como se nombra una nota: la palabra, o la referencia COMPLETA en el idioma del libro, sacada de su forma canonica
+   («Mateo 4:3», «Salmo 24:1-3»). Nunca `x`: en una cita partida («Mateo 3:17 y 4:3») la segunda solo dice «4:3». */
 export function tituloDeNota(nota, idioma = 'es') {
   if (!nota) return '';
   if (nota.k === 'd') return nota.t;
-  return nota.x || rotulo(deCanonica(nota.r), idioma === 'en' ? 'en' : 'es') || nota.r;
+  return rotulo(deCanonica(nota.r), idioma === 'en' ? 'en' : 'es') || nota.x || nota.r;
 }
 
 /* El enlace de una nota (ya limpia aqui), o null si no es una nota o no cabe. `origen`: el sitio (por omision, el de verdad). */
@@ -174,9 +198,9 @@ export function enlaceDeNota(nota, { origen = ORIGEN_NOTA } = {}) {
   const ruta = rutaDeNota(origen);
   if (!n || !ruta) return null;
   /* Siempre en el mismo orden: la misma nota da el mismo enlace */
-  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'fv', 'l'];
+  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'cl', 'cd', 'ee', 'el', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'fv', 'cl', 'cd', 'ee', 'el', 'l'];
   const plano = {};
-  for (const k of orden) if (n[k] !== undefined) plano[k] = n.k === 'd' && k === 'r' ? { ...n.r } : n[k];
+  for (const k of orden) if (n[k] !== undefined) plano[k] = n.k === 'd' && k === 'r' ? { ...n.r } : Array.isArray(n[k]) ? [...n[k]] : n[k];
   const href = ruta + '#n=' + aBase64Url(new TextEncoder().encode(JSON.stringify(plano)));
   return href.length <= HREF_NOTA_MAX ? href : null;
 }

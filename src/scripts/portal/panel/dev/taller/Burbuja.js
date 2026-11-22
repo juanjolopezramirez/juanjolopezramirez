@@ -1,5 +1,5 @@
 /* LA BURBUJA DE LO ELEGIDO: al elegir letras en el texto de un capitulo aparece, junto a ellas (nunca encima), una tira con
-   «Definición», «Cita bíblica» y el rodillo de «Copiar estilo». Si lo elegido parece una cita, «Cita bíblica» va primero y
+   «Definición», «Referencia bíblica» y el rodillo de «Copiar estilo». Si lo elegido parece una referencia, «Referencia bíblica» va primero y
    resaltada (estiloCopiado.js → ordenDeNotas). Las notas las abre NotaEditor.js; la cinta no se toca.
 
    - Teclado: Alt+B lleva el foco a la burbuja; flechas para moverse; Escape la esconde y vuelve al texto.

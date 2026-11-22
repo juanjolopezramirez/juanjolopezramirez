@@ -50,7 +50,7 @@ export function bloquePintado(bloque, estilo) {
 /* ¿Toma la seleccion el bloque entero? (desde su primera letra hasta la ultima) */
 export const bloqueEntero = (inicioBloque, finBloque, desde, hasta) => desde <= inicioBloque && hasta >= finBloque && finBloque > inicioBloque;
 
-/* EL ORDEN DE LA BURBUJA: si lo elegido parece una cita biblica, «Cita bíblica» va primero (y se resalta) */
+/* EL ORDEN DE LA BURBUJA: si lo elegido parece una referencia biblica, «Referencia bíblica» va primero (y se resalta) */
 export function pareceCita(texto, idioma) {
   const t = String(texto || '').slice(0, 400);
   return !!t.trim() && leerReferencias(t, { idioma: idioma === 'en' ? 'en' : 'es' }).length > 0;

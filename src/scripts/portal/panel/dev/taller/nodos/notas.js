@@ -11,8 +11,14 @@ import { Mark, getMarkRange } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { AddMarkStep } from '@tiptap/pm/transform';
 import { marcaLimpia, notaDeMarca } from '../../../../../contenido/taller/notasLibro.js';
+import { tituloDeNota } from '../../../../../lector/notaEnPdf.js';
 
 export const EVENTO_NOTA = 'tal-nota';
+/* El idioma del libro, tal como el editor lo dice en su `lang` (Editor.js); sin el, español */
+function idiomaDelEditor(editor) {
+  const a = editor && editor.options && editor.options.editorProps ? editor.options.editorProps.attributes : null;
+  return a && typeof a === 'object' && a.lang === 'en' ? 'en' : 'es';
+}
 export const EVENTO_AVISO = 'tal-nota-aviso';
 const ESPERA_CLIC_MS = 260;
 /* En la pista que sale al pasar sobre una nota (como el resto de la mesa, en español) */
@@ -73,7 +79,8 @@ function crearMarca(name, clase, tecla) {
     renderHTML({ mark }) {
       const m = marcaLimpia({ type: name, attrs: mark.attrs });
       const n = m ? notaDeMarca(m) : null;
-      const titulo = n ? (n.k === 'd' ? n.t : n.x || n.r) : '';
+      /* La referencia entera («Mateo 4:3»), nunca solo lo escrito («4:3»), en el idioma del libro (el `lang` del editor) */
+      const titulo = n ? tituloDeNota(n, idiomaDelEditor(this.editor)) : '';
       return ['span', { class: `nota ${clase}`, 'data-nota': m ? JSON.stringify(m) : '', title: titulo ? `${titulo} · ${AYUDA_CLIC}` : AYUDA_CLIC }, 0];
     },
     addKeyboardShortcuts() {

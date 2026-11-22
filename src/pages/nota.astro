@@ -1,6 +1,7 @@
 ---
 /* /nota/#n=<nota>: la pagina a la que lleva una NOTA de un PDF (una palabra con su definicion, o una cita biblica) cuando se
-   abre en un visor de PDF cualquiera. Muestra la nota en papel, como la hoja del lector (scripts/nota.js). El lector de
+   abre en un visor de PDF cualquiera. Muestra la nota como la hoja del lector (scripts/nota.js), clara u oscura segun el
+   aparato (prefers-color-scheme), con los mismos papeles (lector/colorNota.js: PAPEL_NOTA). El lector de
    Recursos y del enlace privado no pasa por aqui: abre la nota encima del libro (lector/hojaNota.js). Sin indexar, sin enviar
    de donde vino. Los rotulos salen en el idioma de la nota (español o ingles). */
 const FUENTES = 'https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Petemoss&display=swap';
@@ -23,27 +24,31 @@ const FUENTES = 'https://fonts.googleapis.com/css2?family=Young+Serif&family=Bri
         --sans: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
         --fondo: #E7E4DB; --papel: #F6F3EA; --tinta: #23302A; --tenue: #55625A; --oro: #9A6A1F; --hilo: rgb(35 48 42 / .16);
         --tenue-fondo: #4E5A52;   /* la letra de segundo orden sobre el fondo (no sobre el papel) */
+        --velo: rgb(35 48 42 / .07); --borde: inset 0 0 0 0 transparent;
       }
-      @media (prefers-color-scheme: dark) { :root { --fondo: #0E1711; --tenue-fondo: #B9C2B6; } }
+      /* De noche: el fondo del pinar y la hoja un paso por encima, con su hilo claro y el oro fino (como el lector) */
+      @media (prefers-color-scheme: dark) {
+        :root { --fondo: #0E1711; --tenue-fondo: #B9C2B6; --papel: #1D2E1F; --tinta: #F1EFE9; --tenue: #B9C2B6; --oro: #E0B778; --hilo: rgb(241 239 233 / .14); --velo: rgb(241 239 233 / .1); --borde: inset 0 0 0 1px rgb(241 239 233 / .12); }
+      }
       .lector__nota-otra { min-height: 2.75rem; padding: 0 .2rem; border: 0; background: none; color: var(--tinta); font: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: var(--oro); text-underline-offset: 3px; cursor: pointer; }
       .lector__nota-extra .lector__nota-enlace { display: inline-block; margin-top: .5rem; font-size: .9rem; }
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1.5rem 16px; background: var(--fondo); font: 16px/1.5 var(--sans); color: var(--tinta); }
       ::selection { background: rgb(192 138 46 / .32); }
       main { width: min(36rem, 100%); }
-      .hoja { padding: 1.6rem 1.5rem 1.7rem; border-radius: 1rem; background: var(--papel); box-shadow: 0 26px 52px -24px rgb(0 0 0 / .45), 0 2px 6px -2px rgb(0 0 0 / .18); }
+      .hoja { padding: 1.6rem 1.5rem 1.7rem; border-radius: 1rem; background: var(--papel); box-shadow: var(--borde), 0 26px 52px -24px rgb(0 0 0 / .45), 0 2px 6px -2px rgb(0 0 0 / .18); }
       .origen { margin: .9rem .25rem 0; font-size: .8rem; line-height: 1.45; color: var(--tenue-fondo); text-align: center; }
-      .lector__nota-host { display: inline-block; margin-left: .1rem; padding: 0 .45rem; border-radius: 999px; background: rgb(35 48 42 / .07); color: var(--tinta); font-size: .78rem; font-weight: 600; white-space: nowrap; }
+      .lector__nota-host { display: inline-block; margin-left: .1rem; padding: 0 .45rem; border-radius: 999px; background: var(--velo); color: var(--tinta); font-size: .78rem; font-weight: 600; white-space: nowrap; }
       .lector__nota-url { overflow-wrap: anywhere; }
       .vacio { margin: 0; padding: 1.4rem 1.5rem; border-radius: 1rem; background: var(--papel); color: var(--tenue); }
       :focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; border-radius: 3px; }
-      .lector__nota-t { margin: 0 0 .6rem; font-family: var(--serif); font-size: 1.85rem; font-weight: 400; line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
+      .lector__nota-t { margin: 0 0 .6rem; font-family: var(--serif); font-size: 1.85rem; font-weight: 400; line-height: 1.15; letter-spacing: -.01em; color: var(--nota-t, inherit); text-wrap: balance; overflow-wrap: anywhere; }
       .lector__nota-t[data-fuente="petemoss"], .lector__nota-t[data-fuente="estonia"] { font-size: 2.9rem; line-height: 1.05; letter-spacing: 0; }
       .lector__nota-texto[data-fuente="estonia"] { font-size: 1.7rem; line-height: 1.25; }
       .lector__nota-t[data-fuente="bricolage-grotesque"] { font-weight: 600; letter-spacing: -.02em; }
-      .lector__nota-texto { margin: 0; max-width: 60ch; font-size: 1.05rem; line-height: 1.6; white-space: pre-line; text-wrap: pretty; overflow-wrap: break-word; }
+      .lector__nota-texto { margin: 0; max-width: 60ch; color: var(--nota-x, inherit); font-size: 1.05rem; line-height: 1.6; white-space: pre-line; text-wrap: pretty; overflow-wrap: break-word; }
       .lector__nota-texto[data-fuente="petemoss"] { font-size: 1.7rem; line-height: 1.25; }
-      .lector__nota-pasaje { margin: 0; max-width: 60ch; font-family: var(--serif); font-size: 1.15rem; line-height: 1.6; text-wrap: pretty; }
+      .lector__nota-pasaje { margin: 0; max-width: 60ch; color: var(--nota-x, inherit); font-family: var(--serif); font-size: 1.15rem; line-height: 1.6; text-wrap: pretty; }
       .lector__nota-v { margin-right: .05em; font-family: var(--sans); font-size: .62em; font-weight: 700; line-height: 0; color: var(--oro); font-variant-numeric: tabular-nums; vertical-align: .55em; }
       .lector__nota-omitido { font-size: .82em; font-style: italic; color: var(--tenue); font-family: var(--sans); }
       /* La letra de los versiculos del libro: Estonia y Petemoss con mas cuerpo; el numero no crece con ellas */

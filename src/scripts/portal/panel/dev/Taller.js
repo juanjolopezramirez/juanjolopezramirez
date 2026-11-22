@@ -303,6 +303,14 @@ export class Taller extends Seccion {
         if (!this.obra) return;
         this.obra.pagina = new ConfigPagina({ ...this.obra.pagina.aDatos(), notas: { ...this.obra.pagina.notas, letraVersos: id } });
         this.guardarObra();
+      },
+      /* «Estilo de las notas»: colores y efectos de todas las notas, por el mismo camino (EstiloNotas.js) */
+      notasLibro: () => (this.obra ? this.obra.pagina.notas : null),
+      alNotasLibro: async (parche) => {
+        if (!this.obra) return false;
+        this.obra.pagina = new ConfigPagina({ ...this.obra.pagina.aDatos(), notas: { ...this.obra.pagina.notas, ...parche } });
+        this.obraSucia = true;
+        return (await this.guardarObra()) === true;
       } });
     this.burbuja = this.burbuja || new Burbuja(this.nodoMesa, { tx: this.tx, notas: this.notas, editor: () => (this.mesa && this.mesa.editable && this.mesa.activo ? this.mesa.activo.editor : null), idioma: () => (this.obra && this.obra.idioma === 'en' ? 'en' : 'es'), alDecir: (t) => this.decir(t) });
     this.mesa.editable = !enTelefono();

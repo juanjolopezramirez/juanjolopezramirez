@@ -293,7 +293,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     </div>
     <div class="lector__grupo lector__herr" role="group" data-lector-herr>
       <!-- «Marcar»: la cinta se llena de oro si lo que se ve tiene marca. Con una pagina es un interruptor (aria-pressed); con
-           dos abre «¿Cuál marcar?» (aria-expanded; site.js cambia uno por otro). «Índice»: Palabras, Citas,
+           dos abre «¿Cuál marcar?» (aria-expanded; site.js cambia uno por otro). «Índice»: Definiciones, Referencias bíblicas,
            Marcadores y Buscar, en una hoja con pestañas (lleva su nombre escrito: es la puerta a todo lo que el libro trae). -->
       <button class="book__ruta-btn lector__icono lector__marcar" type="button" data-lector-marcar aria-pressed="false" aria-keyshortcuts="M" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h10v15l-5-3.6-5 3.6z" /></svg>
@@ -341,7 +341,7 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
     </div>
     <ul data-lector-mas-lista></ul>
   </section>
-  <!-- «ÍNDICE»: lo que el libro trae, en cuatro pestañas. Palabras (las definiciones) y Citas (en el orden de la Biblia) abren
+  <!-- «ÍNDICE»: lo que el libro trae, en cuatro pestañas. Definiciones y Referencias bíblicas (en el orden de la Biblia) abren
        su nota y llevan a su pagina; Marcadores son las paginas marcadas (cada una con su × para quitarla); Buscar busca en el
        texto del libro sin mirar tildes. Cada salto pasa por el recorrido: «Volver» recuerda de donde se vino.
        En el telefono sube desde abajo, como «Más»; de 820 px para arriba es un cajon a la derecha. El contenido lo pone site.js. -->

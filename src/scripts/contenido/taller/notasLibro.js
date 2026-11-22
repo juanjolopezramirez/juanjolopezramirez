@@ -6,8 +6,10 @@
              { type: 'citaBiblica', attrs: { r: 'JER.1.4-5', x?, rv? } }
 
    El idioma (`l`) no se guarda en la marca: es el del libro y se pone al sacar el PDF. La letra de los versiculos (`fv`)
-   tampoco: es UNA para todo el libro (ConfigPagina.notas.letraVersos) y va en cada cita al sacar el PDF. Puro: sin pagina, sin red. */
-import { enlaceDeNota, fuenteValida, limpiarNota } from '../../lector/notaEnPdf.js';
+   tampoco: es UNA para todo el libro (ConfigPagina.notas.letraVersos) y va en cada cita al sacar el PDF. Lo mismo el ESTILO de
+   las notas (sus colores por tema y sus efectos: ConfigPagina.notas), que va en cada nota como cl/cd/ee/el (estiloDeNotas).
+   Puro: sin pagina, sin red. */
+import { enlaceDeNota, fuenteValida, limpiarNota, parDeColores, entradaValida, bucleValido } from '../../lector/notaEnPdf.js';
 import { canonica, leerReferencias, rotulo } from '../../biblia/referencias.js';
 
 export const TIPO_DE_MARCA = Object.freeze({ definicion: 'd', citaBiblica: 'c' });
@@ -21,13 +23,28 @@ const idiomaLibro = (l) => (l === 'en' ? 'en' : 'es');
 export const LETRA_VERSOS = 'bricolage-grotesque';
 export const letraDeVersos = (v) => (fuenteValida(v) ? v : LETRA_VERSOS);
 
+/* EL ESTILO DE LAS NOTAS DE UN LIBRO, listo para cada nota: de ConfigPagina.notas -> { c: { cl?, cd? }, d: { cl?, cd? }, ee?, el? }
+   (c las citas, d las definiciones). Lo que falta no va: una nota sin estilo se ve como siempre. */
+export function estiloDeNotas(notas) {
+  const o = objeto(notas), col = objeto(o.colores);
+  const porTipo = (k) => {
+    const t = objeto(col[k]), salida = {};
+    const cl = parDeColores(t.claro), cd = parDeColores(t.oscuro);
+    if (cl) salida.cl = cl;
+    if (cd) salida.cd = cd;
+    return salida;
+  };
+  return { c: porTipo('cita'), d: porTipo('definicion'), ...(entradaValida(o.entrada) ? { ee: o.entrada } : {}), ...(bucleValido(o.bucle) ? { el: o.bucle } : {}) };
+}
+
 /* La nota (limpia) que dice una marca, o null. `idioma`: el del libro (va como `l`). `fv`: la letra de los versiculos del
-   libro (solo en una cita; una que no es de la lista se tira). */
-export function notaDeMarca(m, idioma, { fv } = {}) {
+   libro (solo en una cita; una que no es de la lista se tira). `estilo`: el de estiloDeNotas (colores de su clase y efectos). */
+export function notaDeMarca(m, idioma, { fv, estilo } = {}) {
   const o = objeto(m), k = typeof o.type === 'string' && Object.hasOwn(TIPO_DE_MARCA, o.type) ? TIPO_DE_MARCA[o.type] : null;
   if (!k) return null;
-  const a = objeto(o.attrs);
-  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft: a.ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, fv }), v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
+  const a = objeto(o.attrs), e = objeto(estilo), deTipo = objeto(e[k]);
+  const extra = { cl: deTipo.cl, cd: deTipo.cd, ee: e.ee, el: e.el };
+  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft: a.ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, fv }), ...extra, v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
   return n;
 }
 
@@ -44,8 +61,16 @@ export function marcaDeNota(nota) {
 /* La marca limpia, o null si no es una nota (marcas.js la usa al guardar: una nota mala no se guarda) */
 export const marcaLimpia = (m) => { const n = notaDeMarca(m); return n ? marcaDeNota(n) : null; };
 
-/* El enlace de la nota de una marca, o null (si no es nota, o no cabe en 8000 letras). `opciones`: { fv } (notaDeMarca) */
-export const enlaceDeMarca = (m, idioma, opciones) => { const n = notaDeMarca(m, idioma, opciones); return n ? enlaceDeNota(n) : null; };
+/* El enlace de la nota de una marca, o null (si no es nota, o no cabe en 8000 letras). `opciones`: { fv, estilo } (notaDeMarca).
+   Una nota que llega justo al tope y no cabe con su estilo sale sin el: mejor la nota de siempre que la palabra sola. */
+export const enlaceDeMarca = (m, idioma, opciones) => {
+  const n = notaDeMarca(m, idioma, opciones);
+  if (!n) return null;
+  const href = enlaceDeNota(n);
+  if (href || !opciones || !opciones.estilo) return href;
+  const sin = notaDeMarca(m, idioma, { ...opciones, estilo: undefined });
+  return sin ? enlaceDeNota(sin) : null;
+};
 
 /* Recorre el texto de los capitulos (el JSON del editor, o `{ doc }`) y da cada marca de nota que encuentra, EN EL ORDEN DEL
    LIBRO (capitulo por capitulo, de arriba abajo): la pila se llena al reves para sacar primero lo primero */
@@ -62,8 +87,8 @@ function* marcasDe(contenidos) {
   }
 }
 
-/* Los enlaces de nota distintos que deberia llevar el PDF de estos capitulos. `opciones`: { fv }, la misma letra de versiculos
-   que lleva el PDF (asi la cuenta de «Compartir» sale igual que la del PDF) */
+/* Los enlaces de nota distintos que deberia llevar el PDF de estos capitulos. `opciones`: { fv, estilo }, la misma letra de
+   versiculos y el mismo estilo que lleva el PDF (asi la cuenta de «Compartir» sale igual que la del PDF) */
 export function hrefsDeNotas(contenidos, idioma, opciones) {
   const salida = new Set();
   for (const m of marcasDe(contenidos)) { const h = enlaceDeMarca(m, idioma, opciones); if (h) salida.add(h); }
@@ -103,7 +128,9 @@ export function textoConMapa(trozos) {
 }
 
 /* Las citas del texto elegido (`leerReferencias`, no el modo «auto»: el autor ya eligio). Cada una con su tramo en el
-   documento: [{ desde, hasta, r, x, texto }]. Una que cruza de un bloque a otro, o cuyas letras no van seguidas, se salta. */
+   documento: [{ desde, hasta, r, x, texto }]. Una que cruza de un bloque a otro, o cuyas letras no van seguidas, se salta.
+   `x` dice siempre la referencia entera: en «Mateo 3:17 y 4:3» la segunda es solo «4:3» en el texto, y su nota se llama
+   «Mateo 4:3» (sin el nombre del libro en lo escrito, se usa el de la cita, en el idioma del libro). */
 export const SELECCION_MAX = 50000;
 export function citasDeSeleccion(texto, mapa, idioma) {
   const salida = [];
@@ -114,7 +141,9 @@ export function citasDeSeleccion(texto, mapa, idioma) {
     if (!r || ref.hasta <= ref.desde) continue;
     const tramo = mapa.slice(ref.desde, ref.hasta);
     if (tramo.some((p, i) => p < 0 || (i > 0 && p !== tramo[i - 1] + 1))) continue;
-    salida.push({ desde: tramo[0], hasta: tramo[tramo.length - 1] + 1, r, x: ref.texto.replace(/\s+/g, ' ').trim(), texto: ref.texto });
+    const escrito = ref.texto.replace(/\s+/g, ' ').trim();
+    const x = /\p{L}/u.test(escrito) ? escrito : rotulo(ref, idiomaLibro(idioma)) || escrito;
+    salida.push({ desde: tramo[0], hasta: tramo[tramo.length - 1] + 1, r, x, texto: ref.texto });
   }
   return salida;
 }

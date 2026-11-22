@@ -13,7 +13,7 @@ import { colorValido, limpiarMarcas } from './marcas.js';
 import { el, txt } from './tipos/ayuda.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
 import { palabraLimpia, rolLimpio } from './IndiceLibro.js';
-import { enlaceDeMarca, esMarcaNota, letraDeVersos } from './notasLibro.js';
+import { enlaceDeMarca, esMarcaNota, estiloDeNotas, letraDeVersos } from './notasLibro.js';
 import { conContextoBoton } from './tipos/boton.js';
 
 export const TOPE_BYTES = 3 * 1000 * 1000;
@@ -139,10 +139,12 @@ export function llavesDe(contenido) {
    del libro, un visor cualquiera abre la pagina /nota/. Una nota que no cabe en un enlace ya no llega aqui: limpiarMarcas la
    quita al limpiar y enLinea la cuenta en `descartados`. Si aun asi faltara el enlace, queda la palabra sola.
    `o.notas` (las del libro, ConfigPagina.notas): una cita lleva la letra de los versiculos del libro, o la de los libros
-   nuevos si no se eligio (letraDeVersos). Sin `o.notas` (quien no saca el PDF de un libro), la cita va sin letra. */
+   nuevos si no se eligio (letraDeVersos), y toda nota el estilo del libro (colores por tema y efectos: estiloDeNotas). Sin
+   `o.notas` (quien no saca el PDF de un libro), la nota va sin letra ni estilo. */
 function conNota(nodo, m, o) {
-  const fv = o.notas && typeof o.notas === 'object' && m.type === 'citaBiblica' ? letraDeVersos(o.notas.letraVersos) : undefined;
-  const href = enlaceDeMarca(m, o.idioma, { fv });
+  const libro = o.notas && typeof o.notas === 'object' ? o.notas : null;
+  const fv = libro && m.type === 'citaBiblica' ? letraDeVersos(libro.letraVersos) : undefined;
+  const href = enlaceDeMarca(m, o.idioma, { fv, estilo: libro ? estiloDeNotas(libro) : undefined });
   return href ? el('a', `nota ${m.type === 'definicion' ? 'nota--def' : 'nota--cita'}`, [nodo], { href }) : nodo;
 }
 

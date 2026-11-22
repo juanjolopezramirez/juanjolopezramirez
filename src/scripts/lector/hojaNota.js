@@ -12,6 +12,8 @@ import { FUENTES_NOTA, fuenteValida, hojaDeFuente } from './notaEnPdf.js';
 import { referenciaAPA, rotuloDeCita, recomendada } from './notaTexto.js';
 import { pasajeDeNota } from './pasajeNota.js';
 import { enlaceGateway } from '../biblia/referencias.js';
+import { coloresSobre } from './colorNota.js';
+import { animarNota } from './efectosNota.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -100,6 +102,32 @@ export function pintarVersos(caja, pasaje, tl, fv) {
   caja.replaceChildren(p);
 }
 
+/* LOS COLORES DEL LIBRO sobre el papel de ahora: `caja` es el papel (la hoja del lector o la de /nota/). El par del tema de
+   ese papel (claro u oscuro, medido, no supuesto) y solo si se lee (colorNota.coloresSobre); si no, la tinta de siempre.
+   Van como --nota-t (titulo) y --nota-x (descripcion o versiculos), que base.css y nota.astro leen. */
+export function ponerColores(caja, nota) {
+  let fondo = '';
+  try { fondo = getComputedStyle(caja).backgroundColor; } catch (e) { fondo = ''; }
+  const { titulo, texto } = coloresSobre(nota, fondo);
+  if (titulo) caja.style.setProperty('--nota-t', titulo); else caja.style.removeProperty('--nota-t');
+  if (texto) caja.style.setProperty('--nota-x', texto); else caja.style.removeProperty('--nota-x');
+}
+/* Mientras una nota esta abierta el tema puede cambiar (el boton del lector, o el aparato pasa a oscuro): `alCambiar()`
+   se llama entonces. Devuelve la funcion que deja de mirar. */
+export function mirarTema(alCambiar) {
+  const html = document.documentElement;
+  const mo = new MutationObserver(() => alCambiar());
+  mo.observe(html, { attributes: true, attributeFilter: ['data-tema'] });
+  const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+  if (mq) mq.addEventListener('change', alCambiar);
+  return () => { mo.disconnect(); if (mq) mq.removeEventListener('change', alCambiar); };
+}
+
+/* El oro de ese papel (un token de la hoja de estilo), para el brillo y la raya de los efectos */
+export const oroDe = (caja, variable) => () => {
+  try { return getComputedStyle(caja).getPropertyValue(variable).trim(); } catch (e) { return ''; }
+};
+
 /* La linea de la version recomendada (o nada si el autor no puso una) */
 export function lineaRecomendada(nota, idioma, tl) {
   const rec = recomendada(nota, idioma);
@@ -113,7 +141,7 @@ export function lineaRecomendada(nota, idioma, tl) {
    version, las notas de «solo una parte» y «se ven los primeros» (o el pasaje completo en la version recomendada), «se
    numera distinto», o el error con «Intentar otra vez». `vigente()`: si ya no (se abrio otra nota), no pinta nada.
    `foco`: a donde va el foco cuando el boton de reintentar desaparece (antes de quitarlo). */
-export function llenarCita({ nota, idioma, tl, base, caja, estado, pie, extra, vigente = () => true, foco = null }) {
+export function llenarCita({ nota, idioma, tl, base, caja, estado, pie, extra, vigente = () => true, foco = null, alPasaje = null }) {
   const traer = async () => {
     caja.replaceChildren();
     caja.setAttribute('aria-busy', 'true');
@@ -127,6 +155,7 @@ export function llenarCita({ nota, idioma, tl, base, caja, estado, pie, extra, v
     if (pasaje.estado === 'ok') {
       estado.textContent = '';
       pintarVersos(caja, pasaje, tl, nota.fv);
+      if (alPasaje && caja.firstElementChild) alPasaje(caja.firstElementChild);
       pie.textContent = pasaje.nombre;
       if (pasaje.parcial) extra.appendChild(nodo('p', 'lector__nota-aviso', tl('parcial')));
       if (pasaje.recortado) {
@@ -162,7 +191,7 @@ export function crearHojaNota(ctx) {
   hoja.id = 'lector-nota';
   hoja.setAttribute('role', 'dialog');
   hoja.setAttribute('aria-modal', 'true');
-  /* Su nombre dice que es («Definición: Ahavá», «Cita: Jeremías 1:4-5»): sin una etiqueta encima del titulo */
+  /* Su nombre dice que es («Definición: Ahavá», «Referencia bíblica: Jeremías 1:4-5»): sin una etiqueta encima del titulo */
   const cerrarBtn = nodo('button', 'lector__redondo lector__nota-x');
   cerrarBtn.type = 'button';
   cerrarBtn.appendChild(icono(['M6 6l12 12M18 6L6 18']));
@@ -172,11 +201,28 @@ export function crearHojaNota(ctx) {
 
   let vuelve = null;
   let turno = 0;           // una cita que llega tarde (se abrio otra nota) no pinta nada
+  let efectos = null;      // los de la nota abierta (efectosNota.js): se paran al cerrar o al abrir otra
+  let notaActual = null;   // la nota abierta: sus colores se vuelven a medir si cambia el tema
+  let dejarDeMirar = null;
+  const otroTema = () => {
+    if (!notaActual || !abierta()) return;
+    /* El papel cambia en la misma vuelta (variables de la hoja de estilo): se mide despues de que se pinte */
+    requestAnimationFrame(() => { if (!notaActual) return; ponerColores(hoja, notaActual); if (efectos) efectos.recolorear(); });
+  };
+  const pararEfectos = () => { if (efectos) efectos.parar(); efectos = null; };
+  const animar = (nota, titulo, textos) => {
+    pararEfectos();
+    efectos = animarNota({ titulo, textos, entrada: nota.ee, bucle: nota.el, oro: oroDe(hoja, '--l-papel-oro') });
+  };
   const abierta = () => hoja.classList.contains('is-abierta');
 
   function cerrar(sinFoco) {
     if (!abierta()) return;
     turno++;
+    pararEfectos();
+    notaActual = null;
+    if (dejarDeMirar) dejarDeMirar();
+    dejarDeMirar = null;
     hoja.classList.remove('is-abierta');
     ctx.fondo.classList.remove('is-abierta', 'is-nota');
     ctx.detras().forEach((x) => { x.inert = false; });
@@ -212,6 +258,7 @@ export function crearHojaNota(ctx) {
     partes.push(verTodas('palabras', tl('verPalabras')));
     cuerpo.replaceChildren(...partes);
     hoja.setAttribute('aria-label', poner(tl('definicion'), '{t}', nota.t));
+    animar(nota, t, partes.filter((x) => x.classList.contains('lector__nota-texto')));
   }
 
   function cita(nota, idioma) {
@@ -227,7 +274,9 @@ export function crearHojaNota(ctx) {
     cuerpo.replaceChildren(t, caja, estado, pie, ...(rec ? [rec] : []), extra, verTodas('citas', tl('verCitas')));
     hoja.setAttribute('aria-label', poner(tl('cita'), '{t}', nombre));
     const mio = turno;
-    llenarCita({ nota, idioma, tl, base: ctx.base, caja, estado, pie, extra, vigente: () => mio === turno && abierta(), foco: cerrarBtn });
+    animar(nota, t, []);
+    const fx = efectos;
+    llenarCita({ nota, idioma, tl, base: ctx.base, caja, estado, pie, extra, vigente: () => mio === turno && abierta(), foco: cerrarBtn, alPasaje: (p) => { if (fx === efectos && fx) fx.texto(p); } });
   }
 
   /* Abre una nota (ya limpia: notaDeEnlace). `desde`: a donde vuelve el foco al cerrar. */
@@ -241,6 +290,10 @@ export function crearHojaNota(ctx) {
     cerrarBtn.setAttribute('aria-label', tl('cerrarHoja'));
     cerrarBtn.title = tl('cerrarHoja');
     hoja.classList.toggle('lector__nota--cita', nota.k === 'c');
+    /* Los colores se miden sobre el papel de ahora (el tema del lector): antes de pintar, para que la entrada ya los traiga */
+    ponerColores(hoja, nota);
+    notaActual = nota;
+    if (!dejarDeMirar) dejarDeMirar = mirarTema(otroTema);
     if (nota.k === 'd') definicion(nota, idioma); else cita(nota, idioma);
     cuerpo.scrollTop = 0;
     if (!yaAbierta) {

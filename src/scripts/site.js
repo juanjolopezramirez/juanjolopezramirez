@@ -923,7 +923,7 @@ function initBook() {
   const marcarBtn = lz('[data-lector-marcar]');
   const elige = lz('[data-lector-elige]');
   let marcas = null;          // los del libro abierto, o null (sin almacen, o un libro sin clave)
-  /* EL ÍNDICE (lector/indiceLector.js): Palabras, Citas, Marcadores y Buscar en una hoja con pestañas */
+  /* EL ÍNDICE (lector/indiceLector.js): Definiciones, Referencias bíblicas, Marcadores y Buscar en una hoja con pestañas */
   const indiceBtn = lz('[data-lector-indice]');
   const hojaIndice = lz('[data-lector-indice-hoja]');
   const tabpanel = lz('[data-lector-tabpanel]');
@@ -2904,6 +2904,13 @@ function initBook() {
       b.tabIndex = si ? 0 : -1;
     });
     tabpanel.setAttribute('aria-labelledby', 'lector-tab-' + pestana);
+    /* En el telefono las cuatro no caben («Referencias bíblicas» es larga): la tira se corre hasta la elegida, sin mover la pagina */
+    const b = tabActiva(), tira = b && b.parentNode;
+    if (tira && tira.scrollWidth > tira.clientWidth) {
+      const r = b.getBoundingClientRect(), t = tira.getBoundingClientRect();
+      if (r.left < t.left) tira.scrollLeft -= t.left - r.left + 12;
+      else if (r.right > t.right) tira.scrollLeft += r.right - t.right + 12;
+    }
   }
   function pintarIndice(foco) {
     pintarPestanas();

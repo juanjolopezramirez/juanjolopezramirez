@@ -414,13 +414,14 @@ await ok('al sacar el PDF, la letra se ESCRIBE: la elegida, o Bricolage Grotesqu
   assert.equal(N.notaDeEnlace(buscar(sueltos, (x) => x.tag === 'a' && /nota--cita/.test(x.clase)).attrs.href).fv, undefined);
 });
 await ok('ConfigPagina guarda la letra del libro (solo de la lista) y la devuelve en aDatos', () => {
-  assert.deepEqual(new ConfigPagina({}).notas, { letraVersos: '' });
-  assert.deepEqual(new ConfigPagina({}).aDatos().notas, { letraVersos: '' });
+  const vacias = { letraVersos: '', colores: { cita: { claro: ['', ''], oscuro: ['', ''] }, definicion: { claro: ['', ''], oscuro: ['', ''] } }, entrada: '', bucle: '' };
+  assert.deepEqual(new ConfigPagina({}).notas, vacias);
+  assert.deepEqual(new ConfigPagina({}).aDatos().notas, vacias);
   assert.equal(new ConfigPagina({ notas: { letraVersos: 'lora' } }).aDatos().notas.letraVersos, 'lora');
   for (const v of ['Lora', 'x', '__proto__', 3, null]) assert.equal(new ConfigPagina({ notas: { letraVersos: v } }).notas.letraVersos, '', String(v));
   assert.equal(new ConfigPagina({ notas: 'estonia' }).notas.letraVersos, '');
   /* lo de mas no entra */
-  assert.deepEqual(Object.keys(new ConfigPagina({ notas: { letraVersos: 'lora', otra: 1 } }).aDatos().notas), ['letraVersos']);
+  assert.deepEqual(Object.keys(new ConfigPagina({ notas: { letraVersos: 'lora', otra: 1 } }).aDatos().notas), ['letraVersos', 'colores', 'entrada', 'bucle']);
 });
 await ok('`pagina` sigue cabiendo en los 8000 bytes de la base en el peor caso (como lo cuenta jsonb::text)', () => {
   /* Postgres escribe jsonb con «, » y «: »: se mide igual */
@@ -440,16 +441,17 @@ await ok('`pagina` sigue cabiendo en los 8000 bytes de la base en el peor caso (
     papel: '#123456', letras: Object.fromEntries(Array.from({ length: 50 }, (_, i) => [fuente(i), '#123456'])), titulos: { t1: '#123456', t2: '#123456', t3: '#123456' },
     colores: Array.from({ length: 20 }, (_, i) => '#1234' + String(i % 100).padStart(2, '0')),
     cuerpo: { fuente: fuente(1), tamanoPt: 11.5, interlinea: 1.55 }, capital: { estilo: 'sencilla', fuente: fuente(2), lineas: 3, separaMm: 1.5 }, cita: { fuente: fuente(3), tamanoPt: 100, sangriaMm: 4.7, cursiva: false },
-    notas: { letraVersos: 'bricolage-grotesque' }
+    notas: { letraVersos: 'bricolage-grotesque', colores: { cita: { claro: ['#123456', '#123456'], oscuro: ['#123456', '#123456'] }, definicion: { claro: ['#123456', '#123456'], oscuro: ['#123456', '#123456'] } }, entrada: 'aparece', bucle: 'respira' }
   }).aDatos();
   assert.equal(Object.keys(peor.letras).length, 40, 'el tope de letras se cumplio');
   assert.equal(peor.lomo.imagen.ruta.length, 200, 'la imagen del lomo (ruta de 200 letras) entra en el peor caso');
   assert.equal(PAGINA_BYTES_MAX, 8000);
   const { notas, ...sin } = peor;
-  assert.deepEqual(notas, { letraVersos: 'bricolage-grotesque' });
+  assert.equal(notas.letraVersos, 'bricolage-grotesque');
+  assert.equal(notas.colores.definicion.oscuro[1], '#123456');
   const total = bytes(peor), sinNotas = bytes(sin);
   assert.ok(total <= PAGINA_BYTES_MAX, `peor caso: ${total} bytes`);
-  assert.ok(total - sinNotas <= 60, `las notas pesan ${total - sinNotas} bytes`);
+  assert.ok(total - sinNotas <= 300, `las notas pesan ${total - sinNotas} bytes`);
   assert.match(readFileSync(path.join(raiz, 'supabase/012_taller.sql'), 'utf8'), /octet_length\(pagina::text\) <= 8000/, 'el tope de la base sigue siendo 8000');
 });
 
@@ -466,7 +468,7 @@ await ok('la hoja de la nota, /nota/ y el Taller usan la letra (solo la de la li
   const ed = leer('src/scripts/portal/panel/dev/taller/NotaEditor.js');
   assert.match(ed, /campo\(tx\.ncLetraVersos, this\.fv\)/);
   assert.match(ed, /new Selector\(this\.fv, \{ fuenteDe: \(v\) => this\.cssDe\(v\) \}\)/, 'cada opcion en su letra');
-  assert.ok(ed.includes("this.idioma(), { fv: this.letraDelLibro() }).size"), 'la cuenta de «Compartir» con la misma letra');
+  assert.ok(ed.includes("this.idioma(), { fv: this.letraDelLibro(), estilo: this.notasLibro ? estiloDeNotas(this.notasLibro()) : undefined }).size"), 'la cuenta de «Compartir» con la misma letra y el mismo estilo');
   const tx = leer('src/data/portal/textos.js');
   assert.match(tx, /ncLetraVersos: 'Letra de los versículos \(todo el libro\)'/);
   assert.match(tx, /ncLetraCambiada: '[^']*\{f\}[^']*'/);

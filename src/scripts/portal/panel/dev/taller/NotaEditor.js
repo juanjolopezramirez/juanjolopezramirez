@@ -1,4 +1,4 @@
-/* LA VENTANA DE UNA NOTA: «Definición» o «Cita bíblica» sobre las letras elegidas (marcas de nodos/notas.js).
+/* LA VENTANA DE UNA NOTA: «Definición» o «Referencia bíblica» sobre las letras elegidas (marcas de nodos/notas.js).
 
    Se abre con los dos botones de «Insertar» (`data-b-nota`), con Ctrl+Mayús+D / Ctrl+Mayús+E, o tocando una nota que ya
    esta (entonces cambia o se quita). Se arma aqui, nodo por nodo: lo escrito entra siempre como texto (textContent), nunca
@@ -8,10 +8,13 @@
      escrita a mano) y la letra de la palabra y la de la explicacion (solo las de FUENTES_NOTA, cada una vista en su letra).
    - Cita: se lee de lo elegido (biblia/referencias.js); se puede corregir. Muestra el texto (RV1909 en un libro en español,
      WEB en uno en ingles) y deja elegir «Mi versión recomendada para leer», que el libro recuerda (la que mas usan sus citas).
-     Si lo elegido trae varias («Jeremías 1:4-5 y el Salmo 139»), ofrece «Marcar 2 citas»: una nota sobre cada una.
+     Si lo elegido trae varias («Jeremías 1:4-5 y el Salmo 139»), ofrece «Marcar 2 referencias»: una nota sobre cada una (cada
+     una se llama con su referencia entera: «Mateo 4:3», aunque en el texto diga «y 4:3»).
      «Letra de los versículos (todo el libro)»: UNA para todas las citas del libro (ConfigPagina.notas.letraVersos), elegida
      aqui mismo; cada opcion se ve en su letra y el texto de muestra la usa. Se guarda al cambiarla, como los otros ajustes
-     del libro; sin elegir, el PDF lleva la de los libros nuevos (notasLibro.letraDeVersos). */
+     del libro; sin elegir, el PDF lleva la de los libros nuevos (notasLibro.letraDeVersos).
+   - «Estilo de las notas…» (EstiloNotas.js): colores por tema y efectos de todas las notas del libro, con la letra de los
+     versiculos. Su boton va en «Nota ▾» y aqui abajo; necesita `notasLibro()` y `alNotasLibro(parche)`. */
 import { Selector } from './Selector.js';
 import { cargarFuente } from './Fuentes.js';
 import { EVENTO_AVISO, EVENTO_NOTA, notaEnCursor } from './nodos/notas.js';
@@ -22,6 +25,8 @@ import { deCanonica, rotulo } from '../../../../biblia/referencias.js';
 import { cargarPasaje, limitarVersos } from '../../../../biblia/cargar.js';
 import { textoParaLeer } from '../../../../biblia/mostrar.js';
 import { familiaCss } from '../../../../contenido/taller/fuentes.js';
+import { estiloDeNotas } from '../../../../contenido/taller/notasLibro.js';
+import { EstiloNotas } from './EstiloNotas.js';
 
 /* Las versiones que se ofrecen (Bible Gateway las conoce por estas siglas) */
 export const VERSIONES_RECOMENDADAS = Object.freeze({
@@ -54,12 +59,24 @@ const recortar = (s, tope) => { const l = Array.from(String(s || '').replace(/\s
 export class NotaEditor {
   /* `raiz`: la cinta (tiene los botones). `editor()`: el editor del capitulo activo. `idioma()`: el del libro. `fuenteLibro()`:
      la letra del cuerpo. `contenidos()`: el JSON de cada capitulo abierto. `alDecir(t)`: lo dice la mesa.
-     `letraVersos()`: la letra de los versiculos del libro ('' sin elegir). `alLetraVersos(id)`: la guarda en el libro. */
-  constructor(raiz, { tx, editor, idioma, fuenteLibro, contenidos, alDecir, letraVersos = null, alLetraVersos = null }) {
-    Object.assign(this, { raiz, tx, editor, idioma, fuenteLibro, contenidos, alDecir, letraVersos, alLetraVersos });
+     `letraVersos()`: la letra de los versiculos del libro ('' sin elegir). `alLetraVersos(id)`: la guarda en el libro.
+     `notasLibro()`: ConfigPagina.notas del libro (o null). `alNotasLibro(parche)`: pone el parche en `pagina.notas` y guarda. */
+  constructor(raiz, { tx, editor, idioma, fuenteLibro, contenidos, alDecir, letraVersos = null, alLetraVersos = null, notasLibro = null, alNotasLibro = null }) {
+    Object.assign(this, { raiz, tx, editor, idioma, fuenteLibro, contenidos, alDecir, letraVersos, alLetraVersos, notasLibro, alNotasLibro });
     cuenta++;
     this.turno = 0;
     this.armar();
+    /* «Estilo de las notas…»: solo si el Taller sabe leer y guardar `pagina.notas` */
+    if (notasLibro && alNotasLibro) {
+      this.estilo = new EstiloNotas({
+        tx, menu: raiz.querySelector('[data-b-nota="citaBiblica"]'), padre: this.dialogo.parentNode,
+        leer: () => this.notasLibro(), alGuardar: (p) => this.alNotasLibro(p), alDecir: (t) => this.alDecir(t),
+        /* Si se cambio la letra de los versiculos con la ventana de una referencia abierta, esta la muestra */
+        alCerrar: () => { if (this.dialogo.open && this.objetivo && this.objetivo.tipo === 'citaBiblica') { this.fv.value = this.letraDelLibro(); this.pintarLetraVersos(); } }
+      });
+      this.bEstilo.hidden = false;
+      this.quitar.style.marginRight = '0';
+    }
     raiz.querySelectorAll('[data-b-nota]').forEach((b) => b.addEventListener('click', () => this.desdeBoton(b.dataset.bNota)));
     /* La marca avisa (clic o teclas) desde el texto del capitulo */
     document.addEventListener(EVENTO_NOTA, (e) => { if (e.detail && e.detail.editor) this.abrir(e.detail.editor, e.detail.tipo, e.detail); });
@@ -131,9 +148,13 @@ export class NotaEditor {
     /* Abajo */
     this.error = h('p', { clase: 'tal-nota__error', role: 'alert' });
     this.quitar = h('button', { clase: 'tal-btn tal-nota__quitar', type: 'button', texto: tx.notaQuitar });
+    this.bEstilo = h('button', { clase: 'tal-btn', type: 'button', texto: tx.enAbrir, title: tx.enAyuda, hidden: true });
+    /* A la izquierda, despues de «Quitar la nota» (que deja de empujar): lo destructivo y lo del libro, lejos de «Poner» */
+    this.bEstilo.style.marginRight = 'auto';
+    this.bEstilo.addEventListener('click', () => { if (this.estilo) this.estilo.abrir(); });
     this.cancelar = h('button', { clase: 'tal-btn', type: 'button', texto: tx.cancelar });
     this.listo = h('button', { clase: 'tal-btn tal-btn--fuerte', type: 'submit' });
-    f.append(h('div', { clase: 'tal-nota__cabeza' }, [this.titulo, this.sobre]), this.parteD, this.parteC, this.error, h('div', { clase: 'tal-nota__botones' }, [this.quitar, this.cancelar, this.listo]));
+    f.append(h('div', { clase: 'tal-nota__cabeza' }, [this.titulo, this.sobre]), this.parteD, this.parteC, this.error, h('div', { clase: 'tal-nota__botones' }, [this.quitar, this.bEstilo, this.cancelar, this.listo]));
     d.append(f);
     (this.raiz.closest('[data-tal-mesa]') || document.body).append(d);
 
@@ -441,6 +462,6 @@ export class NotaEditor {
 
   /* Cuantas notas distintas lleva el libro (para «Compartir»: el PDF que vuelve debe traerlas todas) */
   cuantas() {
-    try { return hrefsDeNotas(this.contenidos ? this.contenidos() : [], this.idioma(), { fv: this.letraDelLibro() }).size; } catch { return undefined; }
+    try { return hrefsDeNotas(this.contenidos ? this.contenidos() : [], this.idioma(), { fv: this.letraDelLibro(), estilo: this.notasLibro ? estiloDeNotas(this.notasLibro()) : undefined }).size; } catch { return undefined; }
   }
 }
