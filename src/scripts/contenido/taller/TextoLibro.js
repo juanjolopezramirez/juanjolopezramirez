@@ -13,7 +13,7 @@ import { colorValido, limpiarMarcas } from './marcas.js';
 import { el, txt } from './tipos/ayuda.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
 import { palabraLimpia, rolLimpio } from './IndiceLibro.js';
-import { enlaceDeMarca, esMarcaNota } from './notasLibro.js';
+import { enlaceDeMarca, esMarcaNota, letraDeVersos } from './notasLibro.js';
 import { conContextoBoton } from './tipos/boton.js';
 
 export const TOPE_BYTES = 3 * 1000 * 1000;
@@ -137,9 +137,12 @@ export function llavesDe(contenido) {
 /* ---- Del JSON al arbol neutro -------------------------------------------------- */
 /* Una palabra con nota es un ENLACE a /nota/#n=… (lector/notaEnPdf.js) con el idioma del libro: el lector abre la nota encima
    del libro, un visor cualquiera abre la pagina /nota/. Una nota que no cabe en un enlace ya no llega aqui: limpiarMarcas la
-   quita al limpiar y enLinea la cuenta en `descartados`. Si aun asi faltara el enlace, queda la palabra sola. */
+   quita al limpiar y enLinea la cuenta en `descartados`. Si aun asi faltara el enlace, queda la palabra sola.
+   `o.notas` (las del libro, ConfigPagina.notas): una cita lleva la letra de los versiculos del libro, o la de los libros
+   nuevos si no se eligio (letraDeVersos). Sin `o.notas` (quien no saca el PDF de un libro), la cita va sin letra. */
 function conNota(nodo, m, o) {
-  const href = enlaceDeMarca(m, o.idioma);
+  const fv = o.notas && typeof o.notas === 'object' && m.type === 'citaBiblica' ? letraDeVersos(o.notas.letraVersos) : undefined;
+  const href = enlaceDeMarca(m, o.idioma, { fv });
   return href ? el('a', `nota ${m.type === 'definicion' ? 'nota--def' : 'nota--cita'}`, [nodo], { href }) : nodo;
 }
 
@@ -175,7 +178,7 @@ function aArbol(n, salida, o) {
 }
 
 /* `salida` es 'pdf' o 'web'. Se vuelve a limpiar: esto no depende de que alguien haya limpiado antes.
-   `o.idioma` (el del libro) va en cada nota; `o.paginaMm`, `o.cuerpo` y `o.papelCapitulo` dicen a los botones como se ven
+   `o.idioma` (el del libro) va en cada nota, y `o.notas.letraVersos` en cada cita; `o.paginaMm`, `o.cuerpo` y `o.papelCapitulo` dicen a los botones como se ven
    (tipos/boton.js: su aspecto viaja en su enlace). */
 export function aNodos(contenido, salida, o = {}) {
   const ctx = o.paginaMm ? { paginaMm: o.paginaMm, cuerpo: o.cuerpo, papel: o.papelCapitulo, idioma: o.idioma } : null;

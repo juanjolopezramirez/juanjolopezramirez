@@ -58,6 +58,9 @@ export class EditorLibro extends EditorContenido {
       /* Lo ya subido se queda (solo los idiomas que siguen); lo nuevo lo pone preparar() */
       pdf: a ? Object.fromEntries(Object.entries(a.pdf).filter(([l]) => titulo[l])) : {},
       lomo: a ? { ...a.lomo } : {},
+      /* La ficha del «ⓘ» (016) no se edita aqui (la escribe el Taller): se queda la que hay. Sin esto, guardar o publicar
+         desde aqui la borraria de Recursos */
+      ficha: a && a.ficha ? JSON.parse(JSON.stringify(a.ficha)) : {},
       orden: a ? a.orden : 0
     };
   }

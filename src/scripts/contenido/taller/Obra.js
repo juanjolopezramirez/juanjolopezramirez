@@ -4,6 +4,7 @@ import { objeto } from '../comun.js';
 import { textoLibro } from './TextoLibro.js';
 import { ConfigPagina } from './ConfigPagina.js';
 import { listaDeFuentes } from './fuentes.js';
+import { limpiarFicha } from '../../lector/ficha.js';
 
 export const CAPITULOS_MAX = 200;
 
@@ -20,10 +21,13 @@ export class Obra {
        el autoguardado no lo pisa; se pone con `vincularLibro`. */
     const libro = o.libroId !== undefined ? o.libroId : o.libro_id;
     this.libroId = typeof libro === 'string' && /^[a-z][a-z0-9]{0,39}$/.test(libro) ? libro : '';
+    /* La ficha del libro (supabase/016): resumen, tema, «Lo que encontrarás» y «Para quién», en el idioma de la obra.
+       Se guarda con el libro (autoguardado) y se copia a cada edicion al compartir (lector/ficha.js la limpia). */
+    this.ficha = limpiarFicha(o.ficha);
   }
 
   errores() { return [...(this.titulo ? [] : ['titulo']), ...this.pagina.errores()]; }
-  aDatos() { return { id: this.id, titulo: this.titulo, idioma: this.idioma, pagina: this.pagina.aDatos(), fuentes: this.fuentes, rev: this.rev }; }
+  aDatos() { return { id: this.id, titulo: this.titulo, idioma: this.idioma, pagina: this.pagina.aDatos(), fuentes: this.fuentes, ficha: { ...this.ficha }, rev: this.rev }; }
 }
 
 export class Capitulo {

@@ -13,8 +13,9 @@ import { DEEP } from '../i18n/term-book.js';
 import { BOOKS } from '../data/books.js';
 import { VIDEOS } from '../data/videos.js';
 import { UI, META } from '../i18n/ui.js';
-import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar, enlaceCorto, enlaceVisible } from './biblioteca.js';
-import { LIBROS, TIPOS } from '../data/biblioteca.js';
+import { idDeHash, leerUltimo, guardarUltimo, variante, ola, coincide, normalizar, enlaceCorto, enlaceVisible, colorLomo, TONOS } from './biblioteca.js';
+import { estiloLomoLector, limpiarLomoEdicion } from './lector/lomo.js';
+import { LIBROS, TIPOS, SECCIONES } from '../data/biblioteca.js';
 /* Las ayudas para recorrer un libro largo (Volver, la barra, Contenido, RePag/AvPag): una sola cuenta, en scripts/lector/ */
 import { barraDePliego, hojaDelContenido, idiomaDelLector, leerPagina, numeracion, otraEdicion, paginasDe, pliegoALaVuelta, pliegoDe, rotuloDeVuelta } from './lector/pliegos.js';
 import { crearRecorrido } from './lector/recorrido.js';
@@ -912,6 +913,11 @@ function initBook() {
   const hojaFondo = lz('[data-lector-fondo]');
   const masLista = lz('[data-lector-mas-lista]');
   const copiarMuelle = lz('[data-lector-compartir]');
+  /* «VER EL LOMO» (solo tapa dura): el libro se ladea en 3D y se ve su lomo (hojeo.css, `.book-panel[data-lomo="si"]`).
+     Ladeado no se arrastra ni se toca (la libreria mide el dedo en un plano plano): las flechas y las teclas siguen pasando
+     las hojas, y Escape o el mismo boton lo enderezan. No se guarda: cada libro se abre de frente. */
+  const lomoBtn = lz('[data-lector-lomo]');
+  let verLomo = false;
   /* LOS MARCADORES (lector/marcadores.js): «Marcar», «¿Cuál marcar?», la cinta de cada pagina y su pestaña en el «Índice».
      Viven solo en este navegador. */
   const marcarBtn = lz('[data-lector-marcar]');
@@ -938,6 +944,9 @@ function initBook() {
   const notas = new WeakMap();   // boton de una nota en la hoja → la nota (ya limpia)
   let hojaNota = null;           // lector/hojaNota.js armada, la primera vez que se abre una nota
   const notaAbierta = () => !!(hojaNota && hojaNota.abierta());
+  /* «SOBRE ESTE LIBRO» (el «ⓘ» de la banda): lector/hojaFicha.js, tambien con import() la primera vez */
+  let hojaInfo = null;
+  const infoAbierta = () => !!(hojaInfo && hojaInfo.abierta());
   let libroN = 0;                // sube con cada libro que se abre: lo que llega tarde (el indice, la nota) mira si sigue siendo el suyo
   /* Un enlace de fuera, al pintarlo: solo https y mailto, sin espacios, comillas ni controles, y de un largo razonable */
   // eslint-disable-next-line no-control-regex
@@ -1997,6 +2006,8 @@ function initBook() {
     const abajo = seVe(ruta) ? innerHeight - ruta.getBoundingClientRect().top : 0;
     /* El aviso breve se posa encima del muelle (base.css, .book__toast): sabe cuanto mide por aqui */
     s.panel.style.setProperty('--l-suelo', Math.max(0, Math.round(abajo)) + 'px');
+    /* Y la hoja «Sobre este libro» cae justo debajo de la banda (de 820 px para arriba) */
+    s.panel.style.setProperty('--l-techo', Math.max(0, Math.round(arriba)) + 'px');
     const hueco = parseFloat(getComputedStyle(marco).marginBottom) || 0;
     const aLosLados = lados.reduce((a, l) => a + (seVe(l) ? l.getBoundingClientRect().width : 0), 0);
     /* El aire del libro: los cartones asoman por arriba y por abajo, y la sombra pide un poco mas */
@@ -2179,6 +2190,9 @@ function initBook() {
     s.panel.removeAttribute('data-llego');
     dropZoom();
     zoomBtn.hidden = true;
+    /* Cada libro se abre de frente */
+    ponerLomo(false);
+    lomoBtn.hidden = true;
     flipBox.textContent = '';
     flipBox.removeAttribute('style');
     flipBox.removeAttribute('lang');
@@ -2201,7 +2215,8 @@ function initBook() {
   }
 
   function thud() {
-    if (!heavy || quiet.matches) return;
+    /* Ladeado («Ver el lomo») el golpe moveria el libro a su sitio de frente un instante: no se da */
+    if (!heavy || quiet.matches || verLomo) return;
     heavy = false;
     flipBox.classList.remove('is-thud');
     void flipBox.offsetWidth;
@@ -2368,11 +2383,37 @@ function initBook() {
       b.appendChild(h('span', 'flip__edges'));
       shelf.appendChild(b);
     });
+    /* Sin color propio, el de la hoja de estilo: nunca el del libro que se abrio antes */
     const [front, back] = info.board || [];
-    if (front) flipBox.style.setProperty('--board-front', front);
-    if (back) flipBox.style.setProperty('--board-back', back);
+    if (front) flipBox.style.setProperty('--board-front', front); else flipBox.style.removeProperty('--board-front');
+    if (back) flipBox.style.setProperty('--board-back', back); else flipBox.style.removeProperty('--board-back');
     flipBox.style.setProperty('--over', Math.max(5, Math.round(pw * 0.018)) + 'px');
-    if (blando) flipBox.append(stage); else flipBox.append(shelf, stage);
+    /* EL LOMO (hojeo.css, .flip__lomo): la cara de lado del libro, que solo se ve con «Ver el lomo». Su ancho sale de las hojas
+       (o del grueso que eligio el autor), su color del libro (lector/lomo.js) y lleva el titulo o, si la trae, su imagen. Una
+       revista no tiene lomo. */
+    for (const k of ['--lomo', '--lomo-color', '--lomo-tinta']) flipBox.style.removeProperty(k);
+    let lomoEl = null;
+    if (!blando) {
+      const e = estiloLomoLector(info.lomo, { titulo: info.titulo, n, pw, color: info.lomoColor, tinta: info.lomoTinta });
+      flipBox.style.setProperty('--lomo', e.px + 'px');
+      if (e.color) flipBox.style.setProperty('--lomo-color', e.color);
+      if (e.tinta) flipBox.style.setProperty('--lomo-tinta', e.tinta);
+      lomoEl = h('div', 'flip__lomo');
+      lomoEl.setAttribute('aria-hidden', 'true');
+      if (e.img) {
+        const im = h('img', 'flip__lomo-img');
+        im.alt = '';
+        im.draggable = false;
+        im.decoding = 'async';
+        im.src = e.img;
+        lomoEl.classList.add('flip__lomo--imagen');
+        lomoEl.appendChild(im);
+      } else lomoEl.appendChild(h('span', 'flip__lomo-titulo', e.texto));
+    }
+    if (blando) flipBox.append(stage); else flipBox.append(shelf, stage, lomoEl);
+    /* Sin lomo no hay nada que ver: el boton se va (y si estaba ladeado, el libro se endereza) */
+    lomoBtn.hidden = blando;
+    if (blando && verLomo) ponerLomo(false);
     flipBox.dataset.tipo = blando ? 'blando' : 'duro';
     els.forEach((pg) => stage.appendChild(pg));
     pintarCintas();
@@ -2389,7 +2430,7 @@ function initBook() {
       drawShadow: true,
       maxShadowOpacity: 0.55,
       flippingTime: LIGHT,
-      showPageCorners: !cam && !quiet.matches,
+      showPageCorners: !cam && !quiet.matches && !verLomo,
       mobileScrollSupport: false,
       swipeDistance: 24,
       startZIndex: 1,
@@ -2976,6 +3017,53 @@ function initBook() {
     hojaNota.abrir(nota, desde);
   }
 
+  /* ---- «SOBRE ESTE LIBRO»: lo que se sabe del libro abierto (su ficha, si la tiene, y sus datos) ---- */
+  const infoBtn = lz('[data-lector-info]');
+  function datosDelLibro() {
+    if (!cur || !cur.f || !cur.f.v || !cur.f.v.pdf) return null;
+    const f = cur.f, libro = f.libro, edicion = f.v.lang;
+    const nombreIdioma = (l) => (UI[lectorLang] && UI[lectorLang]['lector.idioma_' + l]) || (META[l] ? META[l].name : String(l || '').toUpperCase());
+    const estante = libro ? SECCIONES.find((x) => x.id === libro.seccion) : null;
+    const blando = libro ? !!(TIPOS[libro.tipo] && TIPOS[libro.tipo].blando) : !!f.blando;
+    const autor = libro && libro.autor ? (typeof libro.autor === 'string' ? libro.autor : libro.autor[edicion] || libro.autor.es || '') : '';
+    const otro = !privado.has(cur.id) && otroIdioma && META[otroIdioma] ? otroIdioma : null;
+    return {
+      lang: lectorLang, titulo: f.titulo, subtitulo: f.glosa || '', autor: String(autor || '').slice(0, 120),
+      tema: estante ? (estante.nombre[lectorLang] || estante.nombre.es) : '',
+      /* El privado trae su ficha (vista.js); los de Recursos, una por idioma: la de la edicion que se lee, la de la pagina, la
+         del idioma original, la española o la que haya */
+      ficha: libro ? null : f.ficha, fichas: libro ? libro.ficha || null : null,
+      orden: [edicion, lang, libro && libro.idiomaOriginal, 'es'].filter(Boolean),
+      paginas: f.v.pdf.pages, idioma: nombreIdioma(edicion),
+      tipo: tl(blando ? (libro && libro.tipo === 'comic' ? 'infoComic' : 'infoRevista') : 'infoDura'),
+      tambien: otro ? { nombre: META[otro].name, lang: otro, abrir: () => { if (!idiomaBtn.hidden) idiomaOp.click(); } } : null
+    };
+  }
+  async function abrirInfo() {
+    const mio = libroN;
+    if (!hojaInfo) {
+      try {
+        const m = await import('./lector/hojaFicha.js');
+        hojaInfo = hojaInfo || m.crearHojaFicha({
+          panel: s.panel, tl, fondo: hojaFondo, detras: () => detras(),
+          alCerrar: (a, sinFoco) => { infoBtn.setAttribute('aria-expanded', 'false'); if (!sinFoco) volverFoco(a); },
+        });
+      } catch (err) {
+        if (libroN === mio) decir(tl('infoNo'), 4200);
+        return;
+      }
+    }
+    if (libroN !== mio) return;
+    const datos = datosDelLibro();
+    if (!datos) return;
+    cerrarHoja(true);
+    cerrarIndice(true);
+    if (hojaNota) hojaNota.cerrar(true);
+    hojaInfo.abrir(datos, infoBtn);
+    infoBtn.setAttribute('aria-expanded', 'true');
+  }
+  if (infoBtn) infoBtn.addEventListener('click', abrirInfo);
+
   flipBox.addEventListener('click', (e) => {
     const go = e.target.closest('[data-flip-to]');
     if (go) goTo(Number(go.dataset.flipTo));
@@ -3185,6 +3273,8 @@ function initBook() {
   function zoomIn() {
     if (!fb || zoom || fb.getState() !== 'read') return;
     clearTimeout(autoOpen);
+    /* Ladeado, las paginas no se miden de frente: la lupa endereza el libro y mira enseguida (sin esperar la vuelta) */
+    if (verLomo) { ponerLomo(false); s.panel.setAttribute('data-lomo-sin-giro', ''); void flipBox.offsetWidth; s.panel.removeAttribute('data-lomo-sin-giro'); }
     const all = flipBox.querySelectorAll('.flip__page');
     const pages = lastVis.map((i) => all[i]).filter(Boolean);
     if (!pages.length) return;
@@ -3327,6 +3417,7 @@ function initBook() {
     pon(sitioLink, tl(enVista ? 'sitioNueva' : 'sitio'));
     pon(lz('[data-lector-ajustes]'), tl('ajustes'), false);
     pon(temaBtn, tl('tema'));
+    if (infoBtn) pon(infoBtn, tl('info'));
     pon(cerrarBtn, tl('cerrar'));
     prevBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => { b.setAttribute('aria-label', tl('atras')); b.title = tl('atrasAyuda'); });
     nextBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => { b.setAttribute('aria-label', tl('adel')); b.title = tl('adelAyuda'); });
@@ -3344,6 +3435,7 @@ function initBook() {
     lz('#lector-mas-t').textContent = tl('mas');
     pon(lz('[data-lector-hoja-cierra]'), tl('cerrarHoja'));
     pon(zoomBtn, tl('lupa'));
+    pon(lomoBtn, tl('lomo'));
     soundBtns.filter((b) => !b.classList.contains('book__arrow')).forEach((b) => pon(b, tl('sonido')));
     copiarMuelle.setAttribute('aria-label', tl('compartir'));
     copiarMuelle.title = tl('compartirAyuda');
@@ -3445,6 +3537,16 @@ function initBook() {
   }
   asa.addEventListener('click', () => ponerSolo(!solo));
 
+  /* «VER EL LOMO»: ladea el libro (o lo endereza). Ladeado, la esquina no se levanta y el libro no se toca; la lupa lo endereza
+     antes de mirar (mide las paginas de frente). */
+  function ponerLomo(si) {
+    verLomo = !!si && !!fb && !lomoBtn.hidden;
+    if (verLomo) s.panel.dataset.lomo = 'si'; else s.panel.removeAttribute('data-lomo');
+    lomoBtn.setAttribute('aria-pressed', String(verLomo));
+    if (fb) { try { fb.getSettings().showPageCorners = !verLomo && !cam && !quiet.matches; } catch (err) { /* sin ajuste */ } }
+  }
+  lomoBtn.addEventListener('click', () => ponerLomo(!verLomo));
+
   /* Un cambio de ancho puede esconder lo que tiene el foco (la flecha del muelle del telefono, «Más»): el foco pasa a su gemelo
      que si se ve (la flecha del lado, la primera herramienta) o, si no hay, al asa o a la ×. Nunca se queda en el vacio. */
   function focoVisible() {
@@ -3453,7 +3555,7 @@ function initBook() {
     const libre = (b) => b && b !== a && seVe(b) && !b.disabled;
     const gemelo = prevBtns.includes(a) ? prevBtns.find(libre)
       : nextBtns.includes(a) ? nextBtns.find(libre)
-      : a === masBtn ? [marcarBtn, zoomBtn, ...soundBtns, copiarMuelle].find(libre)
+      : a === masBtn ? [marcarBtn, zoomBtn, lomoBtn, ...soundBtns, copiarMuelle].find(libre)
       : a === marcarBtn || a === indiceBtn ? masBtn : null;
     const donde = gemelo || [asa, cerrarBtn].find(libre);
     if (donde) donde.focus({ preventScroll: true });
@@ -3546,10 +3648,10 @@ function initBook() {
       fl.firstChild.setAttribute('aria-haspopup', 'dialog');
       filas.push(fl);
     }
-    filas.push(
-      fila(zoomBtn.querySelector('svg'), tl('lupa'), () => { cerrarHoja(true); zoomIn(); }),
-      fila(son && son.querySelector('svg'), tl('sonido'), () => { cambiarSonido(); pintarMas(); }, soundOn),
-    );
+    filas.push(fila(zoomBtn.querySelector('svg'), tl('lupa'), () => { cerrarHoja(true); zoomIn(); }));
+    /* «Ver el lomo» (solo tapa dura): la hoja se cierra para que se vea el libro ladearse; el foco vuelve a «Más» */
+    if (!lomoBtn.hidden) filas.push(fila(lomoBtn.querySelector('svg'), tl('lomo'), () => { cerrarHoja(); ponerLomo(!verLomo); }, verLomo));
+    filas.push(fila(son && son.querySelector('svg'), tl('sonido'), () => { cambiarSonido(); pintarMas(); }, soundOn));
     if (!copiarMuelle.hidden) {
       const dibujo = copiarMuelle.querySelector(copiado ? '.lector__compartir-hecho svg' : '.lector__compartir-sin');
       /* `desde`: la fila, para que el metodo viejo de copiar (una caja de texto) le devuelva el foco a ella */
@@ -3582,7 +3684,7 @@ function initBook() {
     if (donde) donde.focus({ preventScroll: true });
   }
   masBtn.addEventListener('click', abrirHoja);
-  hojaFondo.addEventListener('click', () => { cerrarHoja(); cerrarIndice(); if (hojaNota) hojaNota.cerrar(); });
+  hojaFondo.addEventListener('click', () => { cerrarHoja(); cerrarIndice(); if (hojaNota) hojaNota.cerrar(); if (hojaInfo) hojaInfo.cerrar(); });
   lz('[data-lector-hoja-cierra]').addEventListener('click', () => cerrarHoja());
 
   /* ESCAPE, POR ORDEN: primero lo que este abierto encima (la lista del idioma, «Más»); luego, si los botones estan
@@ -3593,6 +3695,7 @@ function initBook() {
     if (!idiomaLista.hidden) listaIdioma(false, true);
     else if (eligeAbierto()) cerrarElige(true);
     else if (notaAbierta()) hojaNota.cerrar();
+    else if (infoAbierta()) hojaInfo.cerrar();
     else if (indiceAbierto()) {
       /* En el campo de buscar, el primer Escape borra lo escrito; el siguiente cierra el indice */
       if (d.activeElement === campoBusca && campoBusca.value) { campoBusca.value = ''; pintarBusqueda(); }
@@ -3600,6 +3703,7 @@ function initBook() {
     }
     else if (hojaMas.classList.contains('is-abierta')) cerrarHoja();
     else if (zoom) return;
+    else if (verLomo) ponerLomo(false);
     else if (solo) ponerSolo(false);
     else return;
     e.preventDefault();
@@ -3669,6 +3773,7 @@ function initBook() {
     cerrarHoja(true);
     cerrarIndice(true);
     if (hojaNota) hojaNota.cerrar(true);
+    if (hojaInfo) hojaInfo.cerrar(true);
     listaIdioma(false);
     cerrarElige();
     clearTimeout(fbResize);
@@ -3687,6 +3792,19 @@ function initBook() {
     otroIdioma = null;
   }
 
+  /* EL LOMO de un libro: el privado trae el suyo (vista.js, ya limpio: color, letra, texto, grueso, imagen); uno de Recursos se
+     pinta como en su estante (scripts/biblioteca.js): el color de su tono o el del carton de su PDF, con su letra legible. Sin
+     imagen en Recursos: eso pide la base (SQL 017). */
+  function colorDelLomo(id, pdf) {
+    if (privado.has(id)) return { lomo: pdf.lomo || null, lomoColor: '', lomoTinta: '' };
+    const libro = LIBRO.get(id);
+    const tono = libro && libro.tono && Object.prototype.hasOwnProperty.call(TONOS, libro.tono) ? TONOS[libro.tono] : '';
+    const carton = Array.isArray(pdf.board) ? pdf.board[0] : '';
+    if (!tono && !carton) return { lomo: null, lomoColor: '', lomoTinta: '' };
+    const c = colorLomo(tono || carton);
+    return { lomo: null, lomoColor: c.fondo, lomoTinta: c.tinta };
+  }
+
   /* Abre el libro en PDF con su carga: el libro se arma en su sitio pero
      no se ve hasta estar entero (ver «La carga», arriba). La caja ya tiene
      el tamaño que tendra, para que la carga quede centrada justo encima y,
@@ -3701,7 +3819,7 @@ function initBook() {
        (`lang`), para que un lector de pantalla no lea un libro en ingles con
        la voz del español. */
     fbInfo = { id, ...pdf, base: import.meta.env.BASE_URL + 'books/' + id + '/' + f.v.cual + '/',
-               titulo: f.titulo, blando: f.blando };
+               titulo: f.titulo, blando: f.blando, ...colorDelLomo(id, pdf) };
     if (f.v.lang !== lang) flipBox.setAttribute('lang', f.v.lang); else flipBox.removeAttribute('lang');
     el('book').hidden = true;
     flipBox.hidden = false;
@@ -3878,7 +3996,7 @@ function initBook() {
     if (openSheets[openSheets.length - 1] !== s.panel || booting) return;
     /* Quien escribe (el campo «Pág.») no pasa hojas: ni las flechas ni la B son del libro mientras tanto. Y con «Más» abierta, tampoco. */
     if (e.target && e.target.matches && e.target.matches('input[type="text"], input[type="search"], textarea')) return;
-    if (hojaMas.classList.contains('is-abierta') || indiceAbierto() || notaAbierta()) return;
+    if (hojaMas.classList.contains('is-abierta') || indiceAbierto() || notaAbierta() || infoAbierta()) return;
     /* M: marcar (o desmarcar) la pagina que se ve. Es una tecla de letra en un lector sin otra M; con la lupa, tambien vale. */
     if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && hayMarcas()) {
       e.preventDefault();
@@ -3993,7 +4111,7 @@ function initBook() {
   open.alCerrar = (fn) => { alCerrar = fn; };
   /* EL LIBRO PRIVADO. /vista/ trae el suyo ya armado (titulo, paginas, textos, direccion de cada imagen) y lo
      entrega por aqui: se abre con el mismo lector, y lo que sigue (carga, giro, enlaces, sonido, lupa) es lo mismo.
-     detail = { titulo, paginas, ratio, blando, board, textos, src(i, w, retry), alCerrar }. */
+     detail = { titulo, paginas, ratio, blando, board, lomo, textos, src(i, w, retry), alCerrar }. */
   d.addEventListener('lector:abrir', (e) => {
     const x = e.detail || {};
     if (!(x.paginas >= 1) || typeof x.src !== 'function') return;
@@ -4001,9 +4119,12 @@ function initBook() {
        `marcas`: la clave de sus marcadores (una huella del enlace, nunca el enlace). `idioma`: el del libro, si es uno del sitio. */
     const folios = Array.isArray(x.folios) && x.folios.length === x.paginas ? x.folios : null;
     const idioma = typeof x.idioma === 'string' && Object.prototype.hasOwnProperty.call(META, x.idioma) ? x.idioma : lang;
+    /* `lomo`: el de «Ver el lomo» (lector/lomo.js), solo en tapa dura; se vuelve a limpiar aqui */
     const pdf = { pages: x.paginas, ratio: x.ratio > 0 ? x.ratio : 5 / 7, v: 'privado', board: x.board || null, textos: Array.isArray(x.textos) ? x.textos : [], src: x.src,
-                  folios, marcas: claveValida(x.marcas) && x.marcas.startsWith('v:') ? x.marcas : null };
-    privado.set('privado', { libro: null, v: { lang: idioma, pdf, cual: 'privado', texto: false, marca: null }, blando: !!x.blando, titulo: String(x.titulo || ''), glosa: '' });
+                  folios, marcas: claveValida(x.marcas) && x.marcas.startsWith('v:') ? x.marcas : null, lomo: x.blando ? null : limpiarLomoEdicion(x.lomo) };
+    /* `ficha`: la del «ⓘ» (016), ya limpia en vista.js; la hoja la vuelve a limpiar */
+    privado.set('privado', { libro: null, v: { lang: idioma, pdf, cual: 'privado', texto: false, marca: null }, blando: !!x.blando, titulo: String(x.titulo || ''), glosa: '',
+                             ficha: x.ficha && typeof x.ficha === 'object' ? x.ficha : null });
     alCerrar = typeof x.alCerrar === 'function' ? x.alCerrar : null;
     open('privado');
   });

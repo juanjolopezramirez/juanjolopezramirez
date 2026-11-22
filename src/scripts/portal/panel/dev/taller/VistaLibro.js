@@ -26,7 +26,7 @@ import { apilarVuelta, barraDePliego, cantoDe, lomoDe, ladoDe, paginaDelContenid
 import { SelectorColor } from './SelectorColor.js';
 import { enlaceDeBoton } from '../../../../contenido/taller/tipos/boton.js';
 import { sombraDe } from '../../../../contenido/taller/aspectoBoton.js';
-import { estiloDeLomo } from '../../../../contenido/taller/LomoLibro.js';
+import { esRutaDelLomo, estiloDeLomo } from '../../../../contenido/taller/LomoLibro.js';
 import { AVISO_CASOS, colorDeAviso, limpiarAviso, textoDeAviso } from '../../../../contenido/taller/AvisoLibro.js';
 
 const crear = (tag, clase, texto) => { const e = document.createElement(tag); if (clase) e.className = clase; if (texto !== undefined) e.textContent = texto; return e; };
@@ -54,7 +54,8 @@ const leerPref = () => ({ ...gustos });
 const guardarPref = (p) => Object.assign(gustos, { dura: p.dura !== false, lomo: p.lomo === true, sonido: p.sonido === true });
 
 export class VistaLibro {
-  /* `libro`: { config() → ConfigPagina | null, puedeCambiar(), cambiar(parche) } lo que el visor lee y guarda del libro */
+  /* `libro`: { config() → ConfigPagina | null, puedeCambiar(), cambiar(parche), obraId?() → id, imagenLomo?(ruta) → Promise<«data:»> } lo que el
+     visor lee y guarda del libro (la imagen del lomo la trae del cajon, como las demas imagenes del libro) */
   constructor(caja, { mesa, tx, titulo, libro, recientes, alColor }) {
     Object.assign(this, { caja, mesa, tx, titulo: titulo || (() => ''), libroDe: libro || { config: () => null, puedeCambiar: () => false, cambiar: () => false } });
     this.recientes = recientes || (() => []);
@@ -300,6 +301,21 @@ export class VistaLibro {
     const lomo = crear('div', 'flip__lomo');
     lomo.setAttribute('aria-hidden', 'true');
     lomo.append(crear('span', 'flip__lomo-titulo', lomoE.texto));
+    /* La imagen del lomo (taller/LomoSubido.js), si el autor subio una: llega del cajon como las demas imagenes del libro
+       (una direccion «data:») y, mientras llega, se ve el titulo. Lo que llega tarde, para un libro que ya no esta, se tira. */
+    /* Solo una imagen de la carpeta de este libro (`obraId`) */
+    const rutaLomo = cfg && cfg.lomo && cfg.lomo.imagen && typeof this.libroDe.obraId === 'function' && esRutaDelLomo(cfg.lomo.imagen.ruta, this.libroDe.obraId()) ? cfg.lomo.imagen.ruta : '';
+    if (rutaLomo && typeof this.libroDe.imagenLomo === 'function') {
+      Promise.resolve(this.libroDe.imagenLomo(rutaLomo)).then((dir) => {
+        if (gen !== this.gen || this.libro !== libro || typeof dir !== 'string' || !dir.startsWith('data:image/')) return;
+        const img = crear('img', 'flip__lomo-img');
+        img.alt = '';
+        img.draggable = false;
+        img.src = dir;
+        lomo.classList.add('flip__lomo--imagen');
+        lomo.replaceChildren(img);
+      }).catch(() => { /* se queda el titulo */ });
+    }
     const escenario = crear('div', 'flip__stage');
 
     for (let i = 0; i < n; i++) {

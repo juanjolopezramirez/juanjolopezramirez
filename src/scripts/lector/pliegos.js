@@ -257,3 +257,10 @@ export function otraEdicion(actual, hechos, idiomas = null) {
   if (Array.isArray(idiomas) && !idiomas.includes(otro)) return null;
   return otro;
 }
+
+/* EL GRUESO DEL LOMO de un libro de `n` paginas, en px, si cada pagina mide `ancho` px: el mismo en el lector de la web
+   («Ver el lomo») y en el «Ver como libro» del Taller (que lo re-exporta). Siempre un numero finito y pequeño. */
+export function lomoDe(n, ancho) {
+  if (!(n > 0) || !(ancho > 0)) return 0;
+  return Math.round(Math.min(ancho * 0.16, Math.max(8, 4 + n * ancho * 0.0045)));
+}

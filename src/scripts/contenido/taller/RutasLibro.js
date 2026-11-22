@@ -1,5 +1,5 @@
-/* LAS IMAGENES QUE USA UN LIBRO: las de cada capitulo (imagenes, fondos y objetos de las paginas libres) y la de
-   arriba de la hoja del contenido, que vive en el libro y no en un capitulo. El PDF las necesita todas, y la copia
+/* LAS IMAGENES QUE USA UN LIBRO: las de cada capitulo (imagenes, fondos y objetos de las paginas libres), la de
+   arriba de la hoja del contenido y la del lomo, que viven en el libro y no en un capitulo. El PDF las necesita todas, y la copia
    completa del libro tambien: si una faltara aqui, saldria una caja vacia o una copia sin ella. */
 import { objeto } from '../comun.js';
 import { ConfigPagina } from './ConfigPagina.js';
@@ -28,7 +28,9 @@ export function rutasDe(doc, salida = new Set()) {
 export function rutasDelLibro(obra, capitulos, { impreso = false } = {}) {
   const salida = new Set();
   (Array.isArray(capitulos) ? capitulos : []).forEach((c) => rutasDe(objeto(objeto(c).contenido).doc || {}, salida));
-  const ind = new ConfigPagina(objeto(obra).pagina).indice;
+  const c = new ConfigPagina(objeto(obra).pagina), ind = c.indice;
   if (ind.imagen.ruta && (ind.ver || !impreso)) salida.add(ind.imagen.ruta);
+  /* La imagen del lomo no sale en el PDF (no tiene lomo), pero la copia del libro la guarda */
+  if (!impreso && c.lomo.imagen) salida.add(c.lomo.imagen.ruta);
   return salida;
 }

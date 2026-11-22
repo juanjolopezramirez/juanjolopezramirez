@@ -2,7 +2,7 @@
 
    Todo sale de aqui: la vista previa, el PDF, la zona segura sobre un diseño traido de Figma y
    la resolucion con la que se guardan sus paginas. */
-import { objeto, rutaAlmacen, tiene } from '../comun.js';
+import { esRutaImagenLibro, objeto, tiene } from '../comun.js';
 import { nombreDeFuente, FUENTES_MAX } from './fuentes.js';
 import { colorValido } from './marcas.js';
 import { RECIENTES_MAX } from './colores.js';
@@ -10,6 +10,11 @@ import { textoIndice, TITULO_INDICE_MAX, PALABRA_MAX, PLANTILLAS } from './Indic
 import { limpiarLomo } from './LomoLibro.js';
 import { limpiarAviso } from './AvisoLibro.js';
 import { AUTOR_MAX, limpiarLados, textoCabezaPropio } from './CabezaLibro.js';
+import { fuenteValida } from '../../lector/notaEnPdf.js';
+
+/* La base guarda `pagina` con un tope de 8000 bytes (supabase/012_taller.sql): lo que se agregue aqui debe caber
+   (tools/test-marcas-notas.mjs mide el peor caso) */
+export const PAGINA_BYTES_MAX = 8000;
 
 export const LADO_MIN = 50;
 export const LADO_MAX = 420;
@@ -65,9 +70,8 @@ export const CABEZA_INTERLINEA = 1.2;
 
 /* La imagen de arriba del contenido. El alto es un porcentaje de la caja del texto. */
 export const IMAGEN_INDICE_ALTOS = [20, 30, 40, 50];
-const RE_IMAGEN_LIBRO = /^taller\/[a-z0-9]+(?:[.-][a-z0-9]+)*\/img\/[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 function imagenDeIndice(v) {
-  const o = objeto(v), ruta = typeof o.ruta === 'string' && rutaAlmacen(o.ruta, ['webp', 'png', 'jpg']) && RE_IMAGEN_LIBRO.test(o.ruta) ? o.ruta : '';
+  const o = objeto(v), ruta = esRutaImagenLibro(o.ruta) ? o.ruta : '';
   return { ruta, altoPct: entre(o.altoPct, 15, 60, 30, 1), ajuste: o.ajuste === 'contener' ? 'contener' : 'cubrir' };
 }
 
@@ -152,6 +156,10 @@ export class ConfigPagina {
       sangriaMm: entre(ci.sangriaMm, 0, 40, 4.7),
       cursiva: ci.cursiva !== false
     };
+    /* Las notas del libro: la letra del texto de los versiculos de TODAS sus citas (solo las de FUENTES_NOTA). Vacia: no se
+       eligio, y el PDF lleva la de los libros nuevos (notasLibro.letraDeVersos). */
+    const nt = objeto(o.notas);
+    this.notas = { letraVersos: fuenteValida(nt.letraVersos) ? nt.letraVersos : '' };
   }
 
   /* La caja donde va el texto, en mm. Sin espacio para escribir, la pagina no sirve. */
@@ -204,8 +212,8 @@ export class ConfigPagina {
   aDatos() {
     return {
       anchoMm: this.anchoMm, altoMm: this.altoMm, margenes: { ...this.margenes }, numeros: { ...this.numeros }, indice: { ...this.indice, imagen: { ...this.indice.imagen }, negrita: { ...this.indice.negrita } }, cuerpo: { ...this.cuerpo },
-      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes }, lados: { izquierda: copiaLados(this.cabeza.lados.izquierda), derecha: copiaLados(this.cabeza.lados.derecha) } }, autor: this.autor, portada: this.portada, imprenta: this.imprenta, lomo: { ...this.lomo, tapas: { ...this.lomo.tapas } }, aviso: { ...this.aviso }, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
-      capital: { ...this.capital }, cita: { ...this.cita }
+      rotulo: { ...this.rotulo }, cabeza: { ...this.cabeza, partes: { ...this.cabeza.partes }, lados: { izquierda: copiaLados(this.cabeza.lados.izquierda), derecha: copiaLados(this.cabeza.lados.derecha) } }, autor: this.autor, portada: this.portada, imprenta: this.imprenta, lomo: { ...this.lomo, tapas: { ...this.lomo.tapas }, ...(this.lomo.imagen ? { imagen: { ...this.lomo.imagen } } : {}) }, aviso: { ...this.aviso }, papel: this.papel, letras: { ...this.letras }, titulos: { ...this.titulos }, colores: [...this.colores],
+      capital: { ...this.capital }, cita: { ...this.cita }, notas: { ...this.notas }
     };
   }
 }

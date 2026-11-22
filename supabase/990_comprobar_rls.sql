@@ -37,7 +37,7 @@
 --  24. «Compartir»                 dos filas (ediciones y enlaces): rls true, anon_lee false, una regla
 --                                  *_todo_el_admin:ALL cada una.
 --  24. tambien anon_escribe false.
---  25. «Lo que el admin cambia»    true SOLO en taller_enlaces · revocado.
+--  25. «Lo que el admin cambia»    true SOLO en taller_enlaces · revocado y, tras 016, en taller_ediciones · ficha.
 --  26. «Disparadores y funciones»  2 disparadores; las tres funciones: security_definer false, anon y authenticated
 --                                  false, service_role true solo en taller_contar_vista.
 --  27. «vista y actividad»         UNA regla sobre casas.id (reglas_sobre_casas_id = 1), true, y la columna libro_id.
@@ -45,6 +45,12 @@
 --  28. «Índice de libro_id»        UNA fila con es_unico_parcial = true; y ninguna llave foránea de taller_obras (sale vacía).
 --  29. «Disparadores y funciones»  3 disparadores en taller_obras (tgenabled O); las dos funciones: false, false, false; y true.
 --  30. «rev e libro_id»            true y true (si no, pega 014 después de 012).
+--  Tras 016 (la ficha del libro):
+--  31. «Ficha»                     tres filas (taller_obras, taller_ediciones, biblioteca): jsonb, not null, '{}'::jsonb.
+--  32. «Sus reglas»                tres filas: *_ficha_check con ficha_valida (obras, ediciones) y fichas_validas (biblioteca).
+--  33. «Quién escribe la ficha»    anon_cambia_ficha false en las tres; el admin true en las tres.
+--  34. «Funciones de la ficha»     las dos: security_definer false, anon false, authenticated true.
+--  35. «ficha_valida»              true, true, false, false, false, false, false (en ese orden); y fichas_validas true, false.
 --  Los Advisors de Supabase (Security) avisarán, y está bien, de las 4 funciones
 --  «security definer» que un usuario con sesión puede ejecutar (es_admin,
 --  esta_aprobado, decidir_acceso, reclamar_invitacion): es a propósito y cada una
@@ -200,7 +206,8 @@ select c.relname as tabla, c.relrowsecurity as rls, has_table_privilege('anon', 
  order by 1;
 
 -- 25. De un enlace, el admin solo puede cambiar «revocado» (DEBE salir true SOLO en la fila de revocado), y de una
---     edicion, nada (la tabla entera se mira: has_column_privilege cuenta tambien un permiso de tabla)
+--     edicion, solo la ficha (016: DEBE salir true SOLO en taller_ediciones · ficha; antes de 016, en ninguna). La tabla
+--     entera se mira: has_column_privilege cuenta tambien un permiso de tabla
 select t.tabla, a.attname as columna, has_column_privilege('authenticated', t.tabla::regclass, a.attname, 'UPDATE') as el_admin_puede_cambiarla
   from (values ('public.taller_ediciones'), ('public.taller_enlaces')) t(tabla)
   join pg_attribute a on a.attrelid = t.tabla::regclass and a.attnum > 0 and not a.attisdropped
@@ -245,3 +252,42 @@ select has_column_privilege('authenticated', 'public.taller_obras', 'libro_id', 
 --     NO es la de 012). Si dice false, pegaste 012 DESPUÉS de 014: pega 014 otra vez.
 select pg_get_functiondef('public.taller_subir_rev()'::regprocedure) like '%taller_obras%libro_id%' as rev_ignora_libro_id,
        pg_get_functiondef('public.taller_subir_rev()'::regprocedure) like '%to_jsonb(new)%' as compara_toda_la_fila;
+
+-- 31. La ficha del libro (016): la columna en las tres tablas (DEBEN salir 3 filas: jsonb, NO, '{}'::jsonb)
+select table_name, data_type, is_nullable, column_default
+  from information_schema.columns
+ where table_schema = 'public' and column_name = 'ficha' and table_name in ('taller_obras', 'taller_ediciones', 'biblioteca')
+ order by 1;
+
+-- 32. Sus reglas (DEBEN salir 3 filas, cada una con su funcion: ficha_valida o fichas_validas)
+select conrelid::regclass as tabla, conname, pg_get_constraintdef(oid) as regla
+  from pg_constraint
+ where conname in ('taller_obras_ficha_check', 'taller_ediciones_ficha_check', 'biblioteca_ficha_check')
+ order by 1;
+
+-- 33. Quien puede cambiar la ficha: anon en NINGUNA (anon_cambia_ficha false en las tres, tambien en biblioteca, que anon si
+--     lee); el admin en las tres (taller_ediciones: solo esta columna, ver 25)
+select t.tabla, has_column_privilege('anon', t.tabla::regclass, 'ficha', 'UPDATE') as anon_cambia_ficha,
+       has_column_privilege('anon', t.tabla::regclass, 'ficha', 'INSERT') as anon_la_pone,
+       has_column_privilege('authenticated', t.tabla::regclass, 'ficha', 'UPDATE') as el_admin_la_cambia
+  from (values ('public.taller_obras'), ('public.taller_ediciones'), ('public.biblioteca')) t(tabla)
+ order by 1;
+
+-- 34. Las dos funciones: ni security definer ni de anon (DEBE salir false, false, true en las dos)
+select p.proname, p.prosecdef as security_definer, has_function_privilege('anon', p.oid, 'execute') as anon_ejecuta,
+       has_function_privilege('authenticated', p.oid, 'execute') as authenticated_ejecuta
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.proname in ('ficha_valida', 'fichas_validas')
+ order by 1;
+
+-- 35. Lo que deja pasar y lo que no. DEBE salir: true, true, false, false, false, false, false; y true, false.
+--     (vacia; buena; una clave de mas; un tema de 61 letras; un salto de linea en el tema; 6 claves; una clave vacia)
+select public.ficha_valida('{}'::jsonb) as vacia,
+       public.ficha_valida(jsonb_build_object('resumen', E'Uno.\nDos.', 'tema', 'Amor', 'claves', jsonb_build_array('a', 'b'), 'para_quien', 'Todos')) as buena,
+       public.ficha_valida('{"otra": "x"}'::jsonb) as clave_de_mas,
+       public.ficha_valida(jsonb_build_object('tema', repeat('x', 61))) as tema_largo,
+       public.ficha_valida(jsonb_build_object('tema', E'a\nb')) as salto_en_el_tema,
+       public.ficha_valida(jsonb_build_object('claves', jsonb_build_array('1', '2', '3', '4', '5', '6'))) as seis_claves,
+       public.ficha_valida(jsonb_build_object('claves', jsonb_build_array(''))) as clave_vacia;
+select public.fichas_validas(jsonb_build_object('es', jsonb_build_object('tema', 'Amor'), 'en', '{}'::jsonb)) as por_idioma,
+       public.fichas_validas(jsonb_build_object('español', jsonb_build_object('tema', 'Amor'))) as idioma_raro;

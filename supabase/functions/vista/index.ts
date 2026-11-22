@@ -4,7 +4,8 @@
 // que es lo único que lee `taller_enlaces` y `taller_ediciones` sin ser el admin (supabase/013_publicar.sql: nada
 // de eso se le da a `anon`).
 //
-//   POST { k }                 → 200 { titulo, idioma, paginas, ratio, blando, hojas, urls: { w900, w1600 }, segundos }
+//   POST { k }                 → 200 { titulo, idioma, paginas, ratio, blando, hojas, urls: { w900, w1600 }, segundos, ficha? }
+//                                 (`ficha`, de 016: solo si la edición tiene una; limpia, ver nucleo.js → fichaLimpia)
 //   POST { k, renovar: true }  → lo mismo, SIN contar otra visita (el lector pide direcciones nuevas antes de que
 //                                 venzan las de diez minutos)
 //   cualquier otra cosa        → 404 { error: "Este enlace ya no abre" }
@@ -84,7 +85,7 @@ Deno.serve(async (req: Request) => {
 
     const { data, error } = await sb
       .from('taller_enlaces')
-      .select('id, revocado, vence, taller_ediciones(titulo, idioma, paginas, ratio, blando, carpeta, hojas)')
+      .select('id, revocado, vence, taller_ediciones(titulo, idioma, paginas, ratio, blando, carpeta, hojas, ficha)')
       .eq('hash', huella)
       .maybeSingle();
     const edicion = data && (Array.isArray(data.taller_ediciones) ? data.taller_ediciones[0] : data.taller_ediciones);

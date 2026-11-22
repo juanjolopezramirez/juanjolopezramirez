@@ -8,11 +8,14 @@
      escrita a mano) y la letra de la palabra y la de la explicacion (solo las de FUENTES_NOTA, cada una vista en su letra).
    - Cita: se lee de lo elegido (biblia/referencias.js); se puede corregir. Muestra el texto (RV1909 en un libro en español,
      WEB en uno en ingles) y deja elegir «Mi versión recomendada para leer», que el libro recuerda (la que mas usan sus citas).
-     Si lo elegido trae varias («Jeremías 1:4-5 y el Salmo 139»), ofrece «Marcar 2 citas»: una nota sobre cada una. */
+     Si lo elegido trae varias («Jeremías 1:4-5 y el Salmo 139»), ofrece «Marcar 2 citas»: una nota sobre cada una.
+     «Letra de los versículos (todo el libro)»: UNA para todas las citas del libro (ConfigPagina.notas.letraVersos), elegida
+     aqui mismo; cada opcion se ve en su letra y el texto de muestra la usa. Se guarda al cambiarla, como los otros ajustes
+     del libro; sin elegir, el PDF lleva la de los libros nuevos (notasLibro.letraDeVersos). */
 import { Selector } from './Selector.js';
 import { cargarFuente } from './Fuentes.js';
 import { EVENTO_AVISO, EVENTO_NOTA, notaEnCursor } from './nodos/notas.js';
-import { citaEscrita, citasDeSeleccion, hrefsDeNotas, marcaDeNota, notaDeMarca, SELECCION_MAX, textoConMapa, versionDelLibro } from '../../../../contenido/taller/notasLibro.js';
+import { citaEscrita, citasDeSeleccion, hrefsDeNotas, letraDeVersos, marcaDeNota, notaDeMarca, SELECCION_MAX, textoConMapa, versionDelLibro } from '../../../../contenido/taller/notasLibro.js';
 import { enlaceDeNota, FUENTES_NOTA, limpiarNota, TOPES } from '../../../../lector/notaEnPdf.js';
 import { referenciaAPA, NOMBRE_VERSION, versionDeIdioma } from '../../../../lector/notaTexto.js';
 import { deCanonica, rotulo } from '../../../../biblia/referencias.js';
@@ -28,6 +31,8 @@ export const VERSIONES_RECOMENDADAS = Object.freeze({
     ['NASB', 'New American Standard Bible'], ['CSB', 'Christian Standard Bible'], ['NKJV', 'New King James Version']]
 });
 const VERSOS_VISTA = 8;
+/* Letras de ojo chico: en la muestra, mas cuerpo (como en la hoja del lector, base.css) */
+const LETRAS_GRANDES = new Set(['estonia', 'petemoss']);
 const ESPERA_MS = 220;
 
 const poner = (t, datos) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (datos && datos[k] !== undefined ? String(datos[k]) : m));
@@ -48,9 +53,10 @@ const recortar = (s, tope) => { const l = Array.from(String(s || '').replace(/\s
 
 export class NotaEditor {
   /* `raiz`: la cinta (tiene los botones). `editor()`: el editor del capitulo activo. `idioma()`: el del libro. `fuenteLibro()`:
-     la letra del cuerpo. `contenidos()`: el JSON de cada capitulo abierto. `alDecir(t)`: lo dice la mesa. */
-  constructor(raiz, { tx, editor, idioma, fuenteLibro, contenidos, alDecir }) {
-    Object.assign(this, { raiz, tx, editor, idioma, fuenteLibro, contenidos, alDecir });
+     la letra del cuerpo. `contenidos()`: el JSON de cada capitulo abierto. `alDecir(t)`: lo dice la mesa.
+     `letraVersos()`: la letra de los versiculos del libro ('' sin elegir). `alLetraVersos(id)`: la guarda en el libro. */
+  constructor(raiz, { tx, editor, idioma, fuenteLibro, contenidos, alDecir, letraVersos = null, alLetraVersos = null }) {
+    Object.assign(this, { raiz, tx, editor, idioma, fuenteLibro, contenidos, alDecir, letraVersos, alLetraVersos });
     cuenta++;
     this.turno = 0;
     this.armar();
@@ -117,7 +123,10 @@ export class NotaEditor {
     this.pie = h('figcaption', { clase: 'tal-nota__pie' });
     this.figura = h('figure', { clase: 'tal-nota__pasaje', 'aria-live': 'polite' }, [this.pasaje, this.pie]);
     this.version = h('select', { clase: 'tal-ctl', 'aria-label': tx.ncVersion });
-    this.parteC = h('div', { clase: 'tal-nota__parte' }, [this.cajaCita, this.varias, this.figura, campo(tx.ncVersion, this.version)]);
+    /* La letra de los versiculos: solo la lista fija, sin «la del libro» (el PDF siempre dice cual) */
+    this.fv = h('select', { clase: 'tal-ctl', 'aria-label': tx.ncLetraVersos });
+    this.fv.append(...Object.entries(FUENTES_NOTA).map(([k, v]) => h('option', { value: k, texto: v.familia })));
+    this.parteC = h('div', { clase: 'tal-nota__parte' }, [this.cajaCita, this.varias, this.figura, campo(tx.ncVersion, this.version), campo(tx.ncLetraVersos, this.fv)]);
 
     /* Abajo */
     this.error = h('p', { clase: 'tal-nota__error', role: 'alert' });
@@ -131,6 +140,7 @@ export class NotaEditor {
     /* Los selectores del Taller, cada letra vista en su letra */
     this.selFt = new Selector(this.ft, { fuenteDe: (v) => this.cssDe(v) });
     this.selFd = new Selector(this.fd, { fuenteDe: (v) => this.cssDe(v) });
+    this.selFv = new Selector(this.fv, { fuenteDe: (v) => this.cssDe(v) });
     this.selVersion = null;
 
     f.addEventListener('submit', (e) => { e.preventDefault(); this.aceptar(); });
@@ -142,6 +152,7 @@ export class NotaEditor {
     for (const c of [this.palabra, this.texto, ...Object.values(P), this.escrita]) c.addEventListener('input', () => { c.removeAttribute('aria-invalid'); this.pintarVista(); });
     this.ft.addEventListener('change', () => this.pintarLetras());
     this.fd.addEventListener('change', () => this.pintarLetras());
+    this.fv.addEventListener('change', () => this.cambiarLetraVersos());
     this.cita.addEventListener('input', () => { this.citaEditada = true; this.cita.removeAttribute('aria-invalid'); this.leerCita(); });
   }
 
@@ -248,8 +259,32 @@ export class NotaEditor {
   }
 
   /* ---- Cita ---- */
+  /* La del libro ahora (o la de los libros nuevos, que es la que llevara el PDF) */
+  letraDelLibro() {
+    let v = '';
+    try { v = this.letraVersos ? this.letraVersos() : ''; } catch { v = ''; }
+    return letraDeVersos(v);
+  }
+  pintarLetraVersos() {
+    const id = letraDeVersos(this.fv.value), grande = LETRAS_GRANDES.has(id);
+    this.pasaje.style.fontFamily = FUENTES_NOTA[id].css;
+    this.pasaje.style.fontSize = grande ? '20px' : '';
+    this.pasaje.style.lineHeight = grande ? '1.4' : '';
+  }
+  /* Cambia para TODO el libro: se guarda en el acto y se dice */
+  cambiarLetraVersos() {
+    const id = letraDeVersos(this.fv.value);
+    this.pintarLetraVersos();
+    if (id === this.letraDelLibro() && this.letraVersos && this.letraVersos()) return;
+    if (this.alLetraVersos) this.alLetraVersos(id);
+    this.alDecir(poner(this.tx.ncLetraCambiada, { f: FUENTES_NOTA[id].familia }));
+  }
+
   prepararCita(n, sel) {
     const idioma = this.idioma();
+    this.cargarLetras();
+    this.fv.value = this.letraDelLibro();
+    this.pintarLetraVersos();
     this.citaEditada = false;
     this.halladas = n ? [] : citasDeSeleccion(sel.texto, sel.mapa, idioma);
     this.pintarVersiones(n && n.rv !== undefined ? n.rv : this.recordada());
@@ -406,6 +441,6 @@ export class NotaEditor {
 
   /* Cuantas notas distintas lleva el libro (para «Compartir»: el PDF que vuelve debe traerlas todas) */
   cuantas() {
-    try { return hrefsDeNotas(this.contenidos ? this.contenidos() : [], this.idioma()).size; } catch { return undefined; }
+    try { return hrefsDeNotas(this.contenidos ? this.contenidos() : [], this.idioma(), { fv: this.letraDelLibro() }).size; } catch { return undefined; }
   }
 }

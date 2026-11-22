@@ -119,6 +119,11 @@ export function rutaAlmacen(ruta, exts) {
   return punto > 0 && Array.isArray(exts) && exts.includes(ruta.slice(punto + 1));
 }
 
+/* Una imagen de un libro del Taller, en su carpeta del cajon privado: `taller/<libro>/img/<nombre>.webp|png|jpg`. La misma
+   cuenta para la imagen de arriba del contenido (ConfigPagina.js) y la del lomo (LomoLibro.js). */
+const RE_IMAGEN_LIBRO = /^taller\/[a-z0-9]+(?:[.-][a-z0-9]+)*\/img\/[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+export const esRutaImagenLibro = (ruta) => typeof ruta === 'string' && rutaAlmacen(ruta, ['webp', 'png', 'jpg']) && RE_IMAGEN_LIBRO.test(ruta);
+
 /* ---- Nombres de la base -------------------------------------------------------
    En la base los campos van en snake_case (idioma_original); en el codigo, en
    camelCase (idiomaOriginal). Estas dos los pasan de una forma a otra, saltandose

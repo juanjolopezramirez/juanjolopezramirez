@@ -1542,6 +1542,102 @@ console.log('los botones «Duolingo» del PDF: el gemelo que se hunde y dice «C
   });
 }
 
+/* LAS TAPAS DE UN ENLACE PRIVADO (ronda 2): el color del carton viaja en hojas[0].tapa y hojas[n-1].tapa */
+console.log('las tapas de un enlace privado');
+{
+  const { colorDeCanto, ANCHO_CANTO } = await import('../src/scripts/contenido/taller/CantoTapa.js');
+  const PE = await import('../src/scripts/contenido/taller/PaginasEdicion.js');
+  /* Una tapa de 120 x 168 px: borde (5 px, el 4 % de 120) de un color, centro de otro */
+  const tapa = (borde, centro, w = ANCHO_CANTO, h = 168) => {
+    const d = new Uint8ClampedArray(w * h * 4), m = Math.max(2, Math.round(w * 0.04));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const c = x >= m && x < w - m && y >= m && y < h - m ? centro : borde, i = (y * w + x) * 4;
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
+    return d;
+  };
+  await ok('colorDeCanto: la media del borde (4 %), como tools/books.py board(); el centro no cuenta', () => {
+    assert.equal(colorDeCanto(tapa([0x6b, 0x2d, 0x3a], [255, 255, 255]), 120, 168), '#6b2d3a');
+    assert.equal(colorDeCanto(tapa([10, 20, 30], [250, 0, 0], 50, 70), 50, 70), '#0a141e', 'con 2 px de borde minimo');
+    /* mitad del borde negra, mitad blanca: la media es gris (la misma cuenta, pixel a pixel) */
+    const w = 120, h = 168, d = tapa([0, 0, 0], [9, 9, 9]);
+    for (let y = 0; y < h / 2; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; d[i] = d[i + 1] = d[i + 2] = 255; }
+    const g = parseInt(colorDeCanto(d, w, h).slice(1, 3), 16);
+    assert.ok(Math.abs(g - 128) <= 2, `gris: ${g}`);
+    assert.match(leer('tools/books.py'), /m = max\(2, round\(w \* 0\.04\)\)/, 'books.py sigue midiendo el mismo borde');
+  });
+  await ok('colorDeCanto: datos que no sirven dan vacio', () => {
+    assert.equal(colorDeCanto(null, 10, 10), '');
+    assert.equal(colorDeCanto(new Uint8ClampedArray(4), 10, 10), '', 'menos pixeles de los que dice');
+    assert.equal(colorDeCanto(new Uint8ClampedArray(400), 0, 10), '');
+    assert.equal(colorDeCanto(new Uint8ClampedArray(400), 2.5, 10), '');
+  });
+  await ok('hojasSeguras: la tapa solo en la primera y la ultima fila, y solo si es un color', () => {
+    const h = PE.hojasSeguras([
+      { text: 'a', tapa: '#6B2D3A' }, { text: 'b', tapa: '#123456' }, { text: 'c', tapa: 'red' },
+      { text: 'd', tapa: 'url(x)' }
+    ], 4);
+    assert.equal(h[0].tapa, '#6b2d3a', 'normalizado');
+    assert.ok(!('tapa' in h[1]) && !('tapa' in h[2]), 'una fila de en medio no lleva tapa');
+    assert.ok(!('tapa' in h[3]), 'algo que no es un color se tira');
+    const malas = ['#12345', '#1234567', 'rgb(300,0,0)', 'expression(1)', '#abc;color:red', 12, null, {}, ['#ffffff']];
+    for (const t of malas) assert.ok(!('tapa' in PE.hojasSeguras([{ text: '', tapa: t }], 1)[0]), String(t));
+    assert.equal(PE.hojasSeguras([{ text: '', tapa: 'rgb(1, 2, 3)' }], 1)[0].tapa, '#010203');
+  });
+  await ok('tapasDeHojas: [delante, detras], un lado solo se repite, sin tapas es null (las ediciones de antes)', () => {
+    const viejas = PE.hojasSeguras([{ text: 'a' }, { text: 'b', folio: 1 }, { text: 'c' }], 3);
+    assert.equal(PE.tapasDeHojas(viejas), null);
+    assert.deepEqual(PE.tapasDeHojas(PE.hojasSeguras([{ text: 'a', tapa: '#111111' }, { text: 'b' }, { text: 'c', tapa: '#222222' }], 3)), ['#111111', '#222222']);
+    assert.deepEqual(PE.tapasDeHojas(PE.hojasSeguras([{ text: 'a', tapa: '#111111' }, { text: 'b' }], 2)), ['#111111', '#111111']);
+    assert.deepEqual(PE.tapasDeHojas(PE.hojasSeguras([{ text: 'a' }, { text: 'b', tapa: '#222222' }], 2)), ['#222222', '#222222']);
+    assert.equal(PE.tapasDeHojas(PE.hojasSeguras([{ text: 'a' }, { text: 'b', tapa: '#333333' }, { text: 'c' }], 3)), null, 'la de en medio no cuenta');
+    assert.equal(PE.tapasDeHojas([]), null);
+    assert.equal(PE.tapasDeHojas(null), null);
+  });
+  await ok('ponerTapas: gana lo elegido en el Taller, luego lo medido; las filas de en medio no cambian', () => {
+    const hojas = [{ text: 'a' }, { text: 'b', tapa: '#999999' }, { text: 'c' }];
+    const r = PE.ponerTapas(hojas, ['#aa0000', ''], ['#00aa00', '#0000aa']);
+    assert.equal(r[0].tapa, '#aa0000', 'elegida');
+    assert.equal(r[2].tapa, '#0000aa', 'medida');
+    assert.ok(!('tapa' in r[1]), 'una tapa en medio se quita');
+    assert.ok(!('tapa' in hojas[0]) && hojas[1].tapa === '#999999', 'no toca las de entrada');
+    const nada = PE.ponerTapas([{ text: 'a' }, { text: 'b' }], undefined, ['', 'x']);
+    assert.ok(!('tapa' in nada[0]) && !('tapa' in nada[1]), 'sin color, nada');
+    /* y lo que se escribe se vuelve a leer igual */
+    assert.deepEqual(PE.tapasDeHojas(PE.hojasSeguras(r, 3)), ['#aa0000', '#0000aa']);
+  });
+  await ok('vista.js no pinta un carton fijo: usa las tapas de la edicion o el color de la hoja de estilo', () => {
+    const v = leer('src/scripts/lector/vista.js');
+    assert.ok(!/#263B28/i.test(v), 'ningun #263B28');
+    assert.ok(!/board:[^,]*'#[0-9a-f]{3,6}'/i.test(v), 'ningun color escrito en board');
+    assert.match(v, /board: libro\.blando \? null : libro\.tapas/);
+    assert.match(v, /tapasDeHojas\(hojas\)/);
+  });
+  await ok('site.js quita el color del carton cuando el libro no trae uno (el siguiente libro no hereda el anterior)', () => {
+    const s = leer('src/scripts/site.js');
+    assert.match(s, /removeProperty\('--board-front'\)/);
+    assert.match(s, /removeProperty\('--board-back'\)/);
+    /* el camino de verdad, con un estilo de mentira */
+    const props = new Map();
+    const style = { setProperty: (k, v) => props.set(k, v), removeProperty: (k) => props.delete(k) };
+    const poner = (board) => {
+      const [front, back] = board || [];
+      if (front) style.setProperty('--board-front', front); else style.removeProperty('--board-front');
+      if (back) style.setProperty('--board-back', back); else style.removeProperty('--board-back');
+    };
+    poner(['#6b2d3a', '#4a2a4f']);
+    assert.equal(props.get('--board-front'), '#6b2d3a');
+    poner(null);
+    assert.equal(props.size, 0);
+    assert.ok(s.includes("if (front) flipBox.style.setProperty('--board-front', front); else flipBox.style.removeProperty('--board-front');"), 'site.js hace lo mismo que esta prueba');
+  });
+  await ok('la demo de /vista/ trae sus tapas en la primera y la ultima hoja', () => {
+    const d = leer('src/scripts/lector/vistaDemo.js');
+    assert.match(d, /if \(i === 0\) h\.tapa = TAPAS\[0\]/);
+    assert.match(d, /if \(i === n - 1\) h\.tapa = TAPAS\[1\]/);
+  });
+}
+
 /* Las notas y el indice (etapa 5a): tools/test-notas.mjs, con el mismo contador */
 const { probarNotas } = await import('./test-notas.mjs');
 await probarNotas(ok);

@@ -381,6 +381,8 @@ const { tx } = Astro.props;
                 <label><span>{tx.lomoGrosor}</span><input class="tal-ctl tal-ctl--num" name="lomoGrosor" type="number" min="4" max="40" step="0.5" placeholder={tx.lomoGrosorAuto} /></label>
                 <div class="tal-colores" data-tal-lomo-colores></div>
               </div>
+              <!-- La imagen del lomo: sus botones y lo que dice los pone taller/LomoSubido.js -->
+              <div class="tal-lomo__imagen" data-tal-lomo-imagen></div>
               <p class="tal-ayuda">{tx.lomoAyuda}</p>
             </div>
           </details>

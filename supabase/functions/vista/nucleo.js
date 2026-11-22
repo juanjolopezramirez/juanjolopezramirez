@@ -86,8 +86,63 @@ export function cabeceras(origen, lista = ORIGENES_POR_DEFECTO) {
 // UNA SOLA respuesta mala para todo: mal escrito, desconocido, vencido, apagado, edición que ya no está.
 export const CUERPO_MALO = JSON.stringify({ error: MENSAJE });
 
-// Lo que se entrega de una edición. `urls` = { 900: [...], 1600: [...] }
+// LA FICHA DEL LIBRO (supabase/016_ficha.sql): resumen, tema, claves («Lo que encontrarás») y para_quien. La base ya
+// la revisa (ficha_valida), pero aquí se limpia otra vez antes de entregarla, con las MISMAS reglas que el lector
+// (src/scripts/lector/ficha.js → limpiarFicha; tools/test-ficha.mjs comprueba que las dos dicen lo mismo). Va copiada
+// y no importada: la función se publica sola, sin el resto del sitio. Solo las cuatro claves, solo lo que tiene algo.
+const FICHA_TOPES = { resumen: 500, tema: 60, para_quien: 80, clave: 70, claves: 5 };
+// Los rangos van armados con fromCharCode (sin escapes de cuatro cifras en el texto: el despliegue los convertia en letras)
+const fichaCh = (n) => String.fromCharCode(n);
+const fichaDe = (a, b) => fichaCh(a) + (b === undefined ? "" : "-" + fichaCh(b));
+const FICHA_RAROS = new RegExp("[" + [[0x0, 0x8], [0xB], [0xC], [0xE, 0x1F], [0x7F, 0x9F], [0x200B, 0x200F], [0x202A, 0x202E], [0x2066, 0x2069], [0xFEFF]].map(([a, b]) => fichaDe(a, b)).join("") + "]", "g");
+const FICHA_SALTOS = new RegExp(fichaCh(13) + fichaCh(10) + "?|" + fichaCh(13) + "|[" + fichaCh(0x2028) + fichaCh(0x2029) + "]", "g");
+/* Medio emoji suelto (una mitad sin la otra): la base no lo acepta en un jsonb */
+const FICHA_ALTA = "[" + fichaDe(0xD800, 0xDBFF) + "]";
+const FICHA_SUELTOS = new RegExp(FICHA_ALTA + "[" + fichaDe(0xDC00, 0xDFFF) + "]|[" + fichaDe(0xD800, 0xDFFF) + "]", "g"); // un par entero se queda; una mitad sola, no (sin lookbehind: Safari viejo)
+const FICHA_ALTA_AL_FINAL = new RegExp(FICHA_ALTA + "$");
+const fichaPropia = (o, k) => !!o && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k);
+function fichaCortar(t, max) {
+  if (t.length <= max) return t;
+  let s = t.slice(0, max);
+  if (FICHA_ALTA_AL_FINAL.test(s)) s = s.slice(0, -1);
+  return s;
+}
+function fichaLinea(v, max) {
+  if (typeof v !== 'string') return '';
+  const t = v.replace(FICHA_SALTOS, ' ').replace(/\t/g, ' ').replace(FICHA_RAROS, '').replace(FICHA_SUELTOS, (m) => (m.length === 2 ? m : '')).replace(/\s+/g, ' ').trim();
+  return fichaCortar(t, max).trim();
+}
+function fichaParrafos(v, max) {
+  if (typeof v !== 'string') return '';
+  const t = v.replace(FICHA_SALTOS, '\n').replace(/\t/g, ' ').replace(FICHA_RAROS, '').replace(FICHA_SUELTOS, (m) => (m.length === 2 ? m : ''))
+    .replace(/[^\S\n]+\n/g, '\n').replace(/\n[^\S\n]+/g, '\n').replace(/[^\S\n]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n').trim();
+  return fichaCortar(t, max).trim();
+}
+export function fichaLimpia(j) {
+  const f = {};
+  if (!j || typeof j !== 'object' || Array.isArray(j)) return f;
+  const resumen = fichaPropia(j, 'resumen') ? fichaParrafos(j.resumen, FICHA_TOPES.resumen) : '';
+  const tema = fichaPropia(j, 'tema') ? fichaLinea(j.tema, FICHA_TOPES.tema) : '';
+  const lista = fichaPropia(j, 'claves') && Array.isArray(j.claves) ? j.claves : [];
+  const claves = [];
+  for (const c of lista.slice(0, 50)) {
+    const t = fichaLinea(c, FICHA_TOPES.clave);
+    if (t) claves.push(t);
+    if (claves.length === FICHA_TOPES.claves) break;
+  }
+  const paraQuien = fichaPropia(j, 'para_quien') ? fichaLinea(j.para_quien, FICHA_TOPES.para_quien) : '';
+  if (resumen) f.resumen = resumen;
+  if (tema) f.tema = tema;
+  if (claves.length) f.claves = claves;
+  if (paraQuien) f.para_quien = paraQuien;
+  return f;
+}
+
+// Lo que se entrega de una edición. `urls` = { 900: [...], 1600: [...] }. La ficha va solo si dice algo (un libro sin
+// ficha contesta lo mismo que antes de 016).
 export function cuerpoBueno(edicion, urls) {
+  const ficha = fichaLimpia(edicion.ficha);
   return JSON.stringify({
     titulo: edicion.titulo,
     idioma: edicion.idioma,
@@ -96,7 +151,8 @@ export function cuerpoBueno(edicion, urls) {
     blando: edicion.blando === true,
     hojas: edicion.hojas,
     urls: { w900: urls[900], w1600: urls[1600] },
-    segundos: SEGUNDOS_URL
+    segundos: SEGUNDOS_URL,
+    ...(Object.keys(ficha).length ? { ficha } : {})
   });
 }
 

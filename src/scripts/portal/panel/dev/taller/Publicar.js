@@ -12,11 +12,13 @@
    Aqui no se guarda el secreto en ninguna parte: vive en el cuadro de «tu enlace» hasta que se cierra la ventana o se crea otro.
    Todo texto de la pagina se escribe con textContent. Lo que sube y baja pasa por be.taller (real.js / demo.js). */
 import { crearToken, direccion, diasValidos, estadoDe, huella, nombreLimpio, vencimiento, DIAS, DIAS_POR_DEFECTO, EDICIONES_MAX } from '../../../../contenido/taller/Enlaces.js';
-import { hojasDeEdicion, foliosDeEdicion } from '../../../../contenido/taller/PaginasEdicion.js';
+import { hojasDeEdicion, foliosDeEdicion, ponerLomo, ponerTapas } from '../../../../contenido/taller/PaginasEdicion.js';
+import { lomoDeEdicion } from './LomoSubido.js';
 import { notasDelPdf, revisarPdf } from '../../../../contenido/taller/RevisarPdf.js';
 import { revisarArchivo } from '../../../archivos.js';
 import { mirar, pintar } from './LeerEdicion.js';
 import { PublicarRecursos } from './PublicarRecursos.js';
+import { limpiarFicha } from '../../../../lector/ficha.js';
 
 const poner = (t, datos) => Object.entries(datos || {}).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), t || '');
 const SUBIDAS_A_LA_VEZ = 4;
@@ -32,7 +34,8 @@ export const rutasDeEdicion = (obraId, id, paginas) => {
 };
 
 export class Publicar {
-  /* `contexto()` → { obraId, titulo, idioma, ratioLibro, numeros, paginasMesa, notas? } (guardado y medido al momento);
+  /* `contexto()` → { obraId, titulo, idioma, ratioLibro, numeros, paginasMesa, notas?, tapas?, lomo?, ficha? } (guardado y medido al momento;
+     `tapas`: [delante, detras], los colores que eligio el autor para las tapas, o nada; `lomo`: taller/LomoSubido.js → contextoDeLomo);
      `obraId()` el id del libro abierto (barato: para repintar la lista sin guardar ni medir); `be()` el backend de ahora; `lang` el idioma de la pagina para la direccion */
   constructor(dialogo, { tx, be, contexto, obraId, textoDe, fecha, lang }) {
     Object.assign(this, { dialogo, tx, be, contexto, obraId, textoDe, fecha, lang });
@@ -145,7 +148,11 @@ export class Publicar {
     const activos = enlaces ? enlaces.filter((l) => estadoDe(l) === 'activo').length : 0;
     const seguro = activos ? poner(activos === 1 ? this.tx.cpQuitarSeguro1 : this.tx.cpQuitarSeguroN, { n: activos }) : this.tx.cpQuitarSeguro;
     const quitar = this.boton(this.tx.cpQuitarEdicion, seguro, () => this.quitarEdicion(e, obraId));
-    cab.append(t, quitar);
+    /* La ficha (016) es lo unico que cambia de una edicion ya hecha: se pone la de ahora, sin subir otro PDF */
+    const ficha = this.boton(this.tx.cpFicha, this.tx.cpFichaSeguro, () => this.ponerFicha(e));
+    ficha.title = this.tx.cpFichaAyuda;
+    ficha.classList.add('tal-ficha__actualizar');
+    cab.append(t, ficha, quitar);
     const ul = document.createElement('ul');
     ul.className = 'tal-comp__enlaces';
     ul.setAttribute('role', 'list');
@@ -190,6 +197,17 @@ export class Publicar {
     });
     b.addEventListener('blur', desarmar);
     return b;
+  }
+
+  /* ---- La ficha de una edicion: la de ahora (guardada antes, por contexto()) ---- */
+  async ponerFicha(e) {
+    const be = this.be(), vida = this.vida;
+    const c = await this.contexto();
+    if (vida !== this.vida) return;
+    if (!c) { this.estado.textContent = this.tx.cpNoLibro; return; }
+    const r = await be.taller.actualizarFichaEdicion(e.id, limpiarFicha(c.ficha));
+    if (vida !== this.vida) return;
+    this.estado.textContent = r.error ? this.textoDe(r.error) : this.tx.cpFichaLista;
   }
 
   /* ---- Apagar, quitar ---- */
@@ -359,11 +377,16 @@ export class Publicar {
       };
       this.estado.textContent = this.tx.cpGuardando;
       await guardar(`${carpeta}original.pdf`, archivo, 'original.pdf');
+      /* La tapa de delante y la de detras: el color de su borde, por si el autor no eligio uno (como Recursos, tools/books.py) */
+      const duro = this.duro.checked;
+      const medidas = ['', ''];
       for (let n = 1; n <= leido.paginas; n++) {
         if (!vigente()) throw Object.assign(new Error('parado'), { clave: 'parado' });
         this.progreso(poner(this.tx.cpPagina, { n, total: leido.paginas }), n, leido.paginas);
-        const p = await pintar(leido.doc, n);
+        const p = await pintar(leido.doc, n, 1600, 900, { canto: duro && (n === 1 || n === leido.paginas) });
         if (p.error) throw Object.assign(new Error(p.error), { clave: p.error });
+        if (n === 1 && p.canto) medidas[0] = p.canto;
+        if (n === leido.paginas && p.canto) medidas[1] = p.canto;
         lanzar(`${carpeta}p${pad(n)}-1600.webp`, p.grande, `p${n}-1600.webp`);
         await esperar(SUBIDAS_A_LA_VEZ - 1);
         lanzar(`${carpeta}p${pad(n)}-900.webp`, p.chica, `p${n}-900.webp`);
@@ -371,11 +394,21 @@ export class Publicar {
       }
       await Promise.all(pendientes);
       if (!vigente()) throw Object.assign(new Error('parado'), { clave: 'parado' });
+      /* El lomo de «Ver el lomo» (solo tapa dura): su color, su letra, su texto, su grueso y una copia pequeña de su imagen.
+         Viaja en la primera hoja (PaginasEdicion.ponerLomo); si la imagen no llega, va sin ella. */
+      const lomo = duro && c.lomo ? await lomoDeEdicion(c.lomo).catch(() => null) : null;
+      if (!vigente()) throw Object.assign(new Error('parado'), { clave: 'parado' });
+      const filas = duro ? ponerLomo(ponerTapas(hojas.hojas, c.tapas, medidas), lomo) : hojas.hojas;
+      /* El autor puso una imagen en el lomo y no entro (no se pudo achicar, o no cabia): se le dice */
+      const lomoFila = duro && filas[0] ? filas[0].lomo : null;
+      if (duro && c.lomo && c.lomo.ruta && !(lomoFila && lomoFila.img)) this.falla('cpLomoSinImagen');
 
       /* LA FILA, al final: hasta aqui, de esta edicion solo hay archivos sueltos */
       const r = await be.taller.crearEdicion({
         id, obraId, titulo: c.titulo, idioma: c.idioma, paginas: leido.paginas, ratio: Math.round(leido.ratio * 10000) / 10000,
-        blando: !this.duro.checked, hojas: hojas.hojas
+        blando: !duro, hojas: filas,
+        /* La ficha del libro (016), tal como esta ahora: cada edicion se lleva su copia */
+        ficha: limpiarFicha(c.ficha)
       });
       if (r.error) throw Object.assign(new Error('fila'), { clave: r.error });
       subidas.length = 0;

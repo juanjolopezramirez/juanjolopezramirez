@@ -18,6 +18,7 @@ import { SECCIONES } from '../../../data/biblioteca.js';
 import { idiomaValido } from '../comun.js';
 import { ubicacion } from '../Almacen.js';
 import { ES_ID_OBRA } from './ArchivosObra.js';
+import { fichaVacia, limpiarFicha } from '../../lector/ficha.js';
 
 export const TEMAS = SECCIONES.map((s) => ({ id: s.id, nombre: s.nombre.es }));
 const ES_UUID = ES_ID_OBRA;
@@ -105,7 +106,8 @@ export async function publicarLibro({ be, obraId, edicionId, libroId, lang, tema
 
   const eds = await be.taller.ediciones(obraId);
   if (eds.error) return eds;
-  if (!eds.filas.some((e) => e.id === edicionId)) return { error: 'noExiste' };
+  const edicion = eds.filas.find((e) => e.id === edicionId);
+  if (!edicion) return { error: 'noExiste' };
   if (eds.filas[0].id !== edicionId) return { error: 'edicionNueva' };
 
   const repo = be.contenido.repositorio(Libro);
@@ -125,7 +127,9 @@ export async function publicarLibro({ be, obraId, edicionId, libroId, lang, tema
     ...base, id: libroId, idiomaOriginal: previo ? previo.idiomaOriginal : lang, publicado: true,
     seccion: tema, tipo: tipoDeEdicion(blando),
     titulo: { ...(base.titulo || {}), [lang]: t.texto },
-    pdf: { ...(base.pdf || {}), [lang]: ruta }
+    pdf: { ...(base.pdf || {}), [lang]: ruta },
+    /* La ficha de la edicion (016) pasa a Recursos en su idioma; sin ficha, se queda la que ya habia */
+    ficha: fichaVacia(edicion.ficha) ? { ...(base.ficha || {}) } : { ...(base.ficha || {}), [lang]: limpiarFicha(edicion.ficha) }
   });
   const prueba = armar(Libro.rutaPdf(libroId, lang, 'aaaaaa')).validar();
   if (!prueba.ok) return { error: 'invalido', errores: prueba.errores };

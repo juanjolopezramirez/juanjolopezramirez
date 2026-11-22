@@ -5,7 +5,7 @@
 import { paginasDe, pliegoVecino } from '../../../../lector/pliegos.js';
 
 export {
-  PILA_MAX, apilarVuelta, barraDePliego, paginasDe, pliegoALaVuelta, pliegoDe, pliegoDeBarra, pliegoVecino, planDeViaje, sacarVuelta, totalPliegos,
+  PILA_MAX, apilarVuelta, barraDePliego, lomoDe, paginasDe, pliegoALaVuelta, pliegoDe, pliegoDeBarra, pliegoVecino, planDeViaje, sacarVuelta, totalPliegos,
 } from '../../../../lector/pliegos.js';
 
 /* La primera hoja del contenido del libro (por su numero desde 0), o -1 si no tiene. `paginas` son las de la mesa. */
@@ -34,15 +34,11 @@ export function ventana(centros, n, alrededor = 1) {
   return vivas;
 }
 
-/* El grueso del libro: cuanto asoma el canto de las hojas apiladas encima de cada carton y cuanto mide el
-   lomo. `c` hojas de las `n`; `ancho` es el de una pagina en px. Siempre un numero finito y pequeño. */
+/* El grueso del libro: cuanto asoma el canto de las hojas apiladas encima de cada carton. `c` hojas de las `n`; `ancho`
+   es el de una pagina en px. Siempre un numero finito y pequeño. (El del lomo, lomoDe, vive en lector/pliegos.js.) */
 export function cantoDe(c, n, ancho) {
   if (!(c > 0) || !(n > 0) || !(ancho > 0)) return 0;
   return +(2 + ancho * 0.016 * Math.min(1, c / n)).toFixed(1);
-}
-export function lomoDe(n, ancho) {
-  if (!(n > 0) || !(ancho > 0)) return 0;
-  return Math.round(Math.min(ancho * 0.16, Math.max(8, 4 + n * ancho * 0.0045)));
 }
 
 /* Donde mira el libro cerrado: la tapa a la derecha, la contratapa a la izquierda; abierto, al centro */

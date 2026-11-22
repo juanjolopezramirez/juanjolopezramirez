@@ -161,3 +161,44 @@
    derecha (la contratapa) se ve de frente. */
 .flip__lomo-titulo { transform: scaleX(-1); }
 .flip[data-at="back"] .flip__lomo-titulo { transform: none; }
+
+/* La imagen del lomo (la que sube el autor en el Taller, o la pequeña de un enlace privado): llena el lomo entero, en lugar
+   del titulo. Encima, la misma luz curva del lomo, mas suave, para que siga pareciendo redondo. Como el titulo, se voltea
+   cuando se mira desde la tapa. */
+.flip__lomo--imagen { background: var(--lomo-color, var(--board-front)); }
+.flip__lomo-img {
+  position: absolute; inset: 0;
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.flip[data-at="back"] .flip__lomo-img { transform: none; }
+.flip__lomo--imagen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgb(0 0 0 / .32), rgb(0 0 0 / 0) 22%, rgb(255 255 255 / .1) 50%, rgb(0 0 0 / 0) 74%, rgb(0 0 0 / .28));
+}
+
+/* ---- «Ver el lomo» en el lector de la web ----
+   El boton del muelle (site.js) pone `data-lomo="si"` en el panel: cerrado, el libro se ve de tres cuartos, con el lomo a la
+   vista; abierto, se inclina hacia atras. Es el mismo ladeo del «Ver como libro» del Taller (taller.css), pero aqui la
+   perspectiva va en el propio libro (`perspective()` en su transform), sin tocar la caja de alrededor. Ladeado, el libro no
+   se toca: la libreria mide el dedo en un plano plano. Las flechas y las teclas siguen pasando las hojas. */
+.book-panel .flip {
+  transition: translate var(--cam-ms, 0ms) cubic-bezier(.45, 0, .25, 1), transform .7s var(--ease-smooth, cubic-bezier(.16, 1, .3, 1));
+}
+.book-panel[data-lomo="si"] .flip { transform-style: preserve-3d; pointer-events: none; }
+.book-panel[data-lomo="si"] .flip[data-at="front"] { transform: perspective(2200px) rotateY(32deg); }
+.book-panel[data-lomo="si"] .flip[data-at="back"] { transform: perspective(2200px) rotateY(-32deg); }
+.book-panel[data-lomo="si"] .flip[data-at="open"] { transform: perspective(2200px) rotateX(16deg); }
+.book-panel[data-lomo="si"] .flip__boards { transform: translateZ(-1px); }
+/* En el telefono (la camara: el libro mide dos pantallas y se ve una pagina) la tapa llena el ancho y el lomo quedaria en el
+   borde de la pantalla: el libro ladeado se corre hacia dentro lo que asoma el lomo y un margen. Con la tapa, a la derecha;
+   con la contratapa, a la izquierda. Abierto, el lomo no se ve de lado y el libro se queda donde esta. */
+.book-panel[data-lomo="si"] .flip[data-cam][data-at="front"] { transform: translateX(calc(var(--lomo, 12px) * .6 + 28px)) perspective(2200px) rotateY(32deg); }
+.book-panel[data-lomo="si"] .flip[data-cam][data-at="back"] { transform: translateX(calc((var(--lomo, 12px) * .6 + 28px) * -1)) perspective(2200px) rotateY(-32deg); }
+/* La lupa endereza el libro de golpe (mide las paginas de frente), y con «menos movimiento» nunca gira: cambia y ya */
+.book-panel[data-lomo-sin-giro] .flip { transition: translate var(--cam-ms, 0ms) cubic-bezier(.45, 0, .25, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .book-panel .flip { transition: translate var(--cam-ms, 0ms) cubic-bezier(.45, 0, .25, 1); }
+}

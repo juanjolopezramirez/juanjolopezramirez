@@ -16,12 +16,17 @@
      pdf        { <idioma>: 'libros/<id>/<idioma>.pdf' }, obligatorio en el original
      lomo       { <idioma> | 'todos': 'lomos/<id>[.<idioma>]-<azar>.png' } (opcional; PNG
                 porque la estanteria, data/lomos.js, sabe medir PNG y no WebP)
-     etiquetas  las que el quiera (comun.js → etiquetas) */
+     etiquetas  las que el quiera (comun.js → etiquetas)
+     ficha      { <idioma>: { resumen, tema, claves, para_quien } } (016; opcional): lo que dice el «ⓘ» del lector. La
+                escribe el Taller (Recursos.js → publicarLibro); aqui solo se limpia (lector/ficha.js → limpiarFichas) */
 import { TipoDeContenido } from './Tipo.js';
-import { etiquetas, i18n, idiomaValido, objeto, rutaAlmacen, tiene } from './comun.js';
+import { IDIOMAS, etiquetas, i18n, idiomaValido, objeto, rutaAlmacen, tiene } from './comun.js';
 import { GROSORES } from './medidas.js';
 import { SECCIONES, TIPOS, LIBROS_DEL_CODIGO } from '../../data/biblioteca.js';
 import { TONOS, RESERVADOS } from '../biblioteca.js';
+import { limpiarFichas } from '../lector/ficha.js';
+
+const IDIOMAS_FICHA = IDIOMAS.map((i) => i.id);
 
 const ID = /^[a-z][a-z0-9]{0,39}$/;
 /* Los del codigo y los otros nombres con que tools/books.py los reconoce (ALIAS): un libro
@@ -57,7 +62,9 @@ export class Libro extends TipoDeContenido {
       subtitulo: i18n(d.subtitulo, 160),
       pdf,
       lomo,
-      etiquetas: etiquetas(d.etiquetas)
+      etiquetas: etiquetas(d.etiquetas),
+      /* Siempre limpia: lo que no pasa se cae (nunca hace caer el libro) */
+      ficha: JSON.parse(JSON.stringify(limpiarFichas(d.ficha, IDIOMAS_FICHA)))
     };
   }
 
@@ -120,7 +127,8 @@ export class Libro extends TipoDeContenido {
     return {
       seccion: this.seccion, tipo: this.tipo, grosor: this.grosor, tono: this.tono,
       titulo: { ...this.titulo }, subtitulo: { ...this.subtitulo },
-      pdf: { ...this.pdf }, lomo: { ...this.lomo }, etiquetas: [...this.etiquetas]
+      pdf: { ...this.pdf }, lomo: { ...this.lomo }, etiquetas: [...this.etiquetas],
+      ficha: JSON.parse(JSON.stringify(this.ficha))
     };
   }
 }

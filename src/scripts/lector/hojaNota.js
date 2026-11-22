@@ -84,9 +84,11 @@ export function pintarReferencia(p, nota, idioma, { anfitrion = false, conEnlace
 export const poner = (plantilla, hueco, valor) => plantilla.replace(hueco, () => String(valor));
 
 /* El pasaje: un solo parrafo con el numero de cada versiculo pequeño delante (cap:v si el pasaje cruza capitulos).
-   Un versiculo que la version no trae dice eso, en vez de quedar en blanco. */
-export function pintarVersos(caja, pasaje, tl) {
+   Un versiculo que la version no trae dice eso, en vez de quedar en blanco. `fv`: la letra que eligio el libro para sus
+   versiculos (solo de FUENTES_NOTA); sin ella, la de siempre. Los numeros siguen en la letra del sitio (base.css). */
+export function pintarVersos(caja, pasaje, tl, fv) {
   const p = nodo('p', 'lector__nota-pasaje');
+  ponerFuente(p, fv);
   pasaje.versos.forEach(({ cap, v, t, omitido }, i) => {
     if (i) p.appendChild(document.createTextNode(' '));
     const n = nodo('sup', 'lector__nota-v', pasaje.varios ? `${cap}:${v}` : String(v));
@@ -124,7 +126,7 @@ export function llenarCita({ nota, idioma, tl, base, caja, estado, pie, extra, v
     caja.removeAttribute('aria-busy');
     if (pasaje.estado === 'ok') {
       estado.textContent = '';
-      pintarVersos(caja, pasaje, tl);
+      pintarVersos(caja, pasaje, tl, nota.fv);
       pie.textContent = pasaje.nombre;
       if (pasaje.parcial) extra.appendChild(nodo('p', 'lector__nota-aviso', tl('parcial')));
       if (pasaje.recortado) {

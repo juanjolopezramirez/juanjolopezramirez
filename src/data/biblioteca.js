@@ -45,6 +45,9 @@
      tono      'ocre' | 'salvia' | 'pizarra' | 'tierra' | 'niebla' | 'arena'
                (opcional: el color de su lomo y de su portada dibujada; si no,
                el del carton de su PDF, o pino)
+     ficha     { es: { resumen, tema, claves, para_quien }, en: … } (opcional: lo
+               que dice el «ⓘ» del lector; lector/ficha.js la limpia al abrirla.
+               Los del panel la traen de la base, 016)
 */
 
 import LIBROS_DEL_PANEL from './remoto/biblioteca.js';
@@ -126,8 +129,10 @@ const convertido = (l) => {
   /* El titulo y el subtitulo, solo en los idiomas que quedan (comprobar() no deja un
      subtitulo en un idioma que el libro no tiene) */
   const solo = (o) => Object.fromEntries(Object.entries(o || {}).filter(([x]) => idiomas.includes(x)));
-  const { subtitulo, ...resto } = l;
+  const { subtitulo, ficha, ...resto } = l;
   const sub = solo(subtitulo);
-  return { ...resto, idiomas, titulo: solo(l.titulo), ...(Object.keys(sub).length ? { subtitulo: sub } : {}) };
+  /* La ficha del «ⓘ» (016), igual: solo en los idiomas que quedan */
+  const fi = solo(ficha);
+  return { ...resto, idiomas, titulo: solo(l.titulo), ...(Object.keys(sub).length ? { subtitulo: sub } : {}), ...(Object.keys(fi).length ? { ficha: fi } : {}) };
 };
 export const LIBROS = [...LIBROS_DEL_CODIGO, ...LIBROS_DEL_PANEL.map(convertido).filter(Boolean)];

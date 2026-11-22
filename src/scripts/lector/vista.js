@@ -13,9 +13,10 @@
    Lo que llega de la funcion es dato ajeno: se revisa antes de dar nada al lector (medidas, direcciones, enlaces). */
 import { leerConfig } from '../portal/config.js';
 import { leerToken } from '../contenido/taller/Enlaces.js';
-import { hojasSeguras, foliosDeHojas, PAGINAS_MAX } from '../contenido/taller/PaginasEdicion.js';
+import { hojasSeguras, foliosDeHojas, lomoDeHojas, tapasDeHojas, PAGINAS_MAX } from '../contenido/taller/PaginasEdicion.js';
 import { preguntar } from './preguntar.js';
 import { claveDeEnlace } from './marcadores.js';
+import { limpiarFicha } from './ficha.js';
 
 const RENOVAR_MS = 7 * 60 * 1000;
 
@@ -48,7 +49,11 @@ async function pedir(cfg, token, renovar) {
   return preguntar({ url: cfg.url, clave: cfg.clave }, token, renovar);
 }
 
-/* Lo que llega se comprueba entero. Devuelve { titulo, idioma, n, ratio, blando, hojas, folios, w900, w1600 } o null.
+/* Lo que llega se comprueba entero. Devuelve { titulo, idioma, n, ratio, blando, hojas, folios, tapas, lomo, ficha, w900, w1600 } o null.
+   `lomo`: el de «Ver el lomo» (lector/lomo.js: color, letra, texto, grueso, imagen pequeña), o null; solo en tapa dura.
+   `ficha`: la del «ⓘ» (016), otra vez limpia (lector/ficha.js); {} si la edicion no trae.
+   `tapas`: [delante, detras], los colores del carton que trae la edicion (PaginasEdicion.tapasDeHojas), o null: el lector usa
+   el de su hoja de estilo.
    `folios`: los numeros impresos de cada pagina (las ediciones nuevas los traen en sus hojas), o null: el lector cuenta las
    imagenes como antes. `idioma`: el del libro, si tiene la forma de un idioma; si no, null (el lector usa el de la pagina). */
 function revisar(d, cfg) {
@@ -66,7 +71,8 @@ function revisar(d, cfg) {
   if (!w900 || !w1600) return null;
   const hojas = hojasSeguras(d.hojas, n);
   const idioma = typeof d.idioma === 'string' && /^[a-z]{2}$/.test(d.idioma) ? d.idioma : null;
-  return { titulo: String(d.titulo || '').slice(0, 200), idioma, n, ratio, blando: d.blando === true, hojas, folios: foliosDeHojas(hojas), w900, w1600 };
+  const blando = d.blando === true;
+  return { titulo: String(d.titulo || '').slice(0, 200), idioma, n, ratio, blando, hojas, folios: foliosDeHojas(hojas), tapas: blando ? null : tapasDeHojas(hojas), lomo: blando ? null : lomoDeHojas(hojas), ficha: limpiarFicha(d.ficha), w900, w1600 };
 }
 
 function cuandoListo(fn) {
@@ -115,7 +121,7 @@ async function iniciar() {
     document.dispatchEvent(new CustomEvent('lector:abrir', {
       detail: {
         titulo: libro.titulo, idioma: libro.idioma, paginas: libro.n, ratio: libro.ratio, blando: libro.blando,
-        board: libro.blando ? null : ['#263B28', '#263B28'], textos: libro.hojas, folios: libro.folios, marcas, src,
+        board: libro.blando ? null : libro.tapas, lomo: libro.lomo, textos: libro.hojas, folios: libro.folios, marcas, src, ficha: libro.ficha,
         alCerrar: () => { boton.hidden = false; boton.focus(); }
       }
     }));

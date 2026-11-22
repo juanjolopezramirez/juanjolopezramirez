@@ -80,6 +80,9 @@ jobs:
           node tools/test-biblia.mjs
           node tools/test-lector.mjs
           node tools/test-marcas-notas.mjs
+          node tools/test-ficha.mjs
+          node tools/test-vista.mjs
+          node tools/test-lomo.mjs
 
       # Astro 7.4 pide Node 22.23.4 o mas; 24 es el que se probo en local.
       - name: Install, build, and upload Site

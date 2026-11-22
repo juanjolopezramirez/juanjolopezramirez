@@ -7,6 +7,7 @@
    falsos), «Marcar 2 citas» (notasLibro.js), el aviso de notas que faltan (RevisarPdf.js), el aspecto de los botones y la
    pagina /ir/ (lector/botonEnPdf.js), y que los enlaces viejos de copiar sigan valiendo. Se para con codigo 1 si algo falla. */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -354,6 +355,125 @@ await ok('la burbuja pone «Cita bíblica» primero cuando lo elegido parece una
   assert.deepEqual(E.ordenDeNotas('Ahavá', 'es'), ['definicion', 'citaBiblica']);
   assert.deepEqual(E.ordenDeNotas('', 'es'), ['definicion', 'citaBiblica']);
   assert.deepEqual(E.ordenDeNotas('el 1 de mayo', 'es'), ['definicion', 'citaBiblica']);
+});
+
+/* LA LETRA DE LOS VERSICULOS (ronda 2): una para todo el libro (ConfigPagina.notas.letraVersos), escrita en cada cita (`fv`) */
+console.log('\nla letra de los versiculos');
+const { ConfigPagina, PAGINA_BYTES_MAX } = await cargar('src/scripts/contenido/taller/ConfigPagina.js');
+await ok('fv: ida y vuelta en el enlace de una cita; una letra que no es de la lista se tira', () => {
+  for (const fv of Object.keys(N.FUENTES_NOTA)) {
+    const h = N.enlaceDeNota({ v: 1, k: 'c', r: 'JHN.3.16', rv: 'NVI', fv, l: 'es' });
+    assert.equal(N.notaDeEnlace(h).fv, fv, fv);
+  }
+  for (const fv of ['Comic Sans', 'libro', '__proto__', 'estonia;color:red', 7, null]) {
+    assert.equal(N.limpiarNota({ v: 1, k: 'c', r: 'JHN.3.16', fv }).fv, undefined, String(fv));
+  }
+  /* solo en una cita: una definicion no lleva `fv` */
+  assert.equal(N.limpiarNota({ v: 1, k: 'd', t: 'x', fv: 'lora' }).fv, undefined);
+  /* el orden fijo: la misma nota da el mismo enlace, con `fv` entre `rv` y `l` */
+  const plano = JSON.parse(Buffer.from(N.enlaceDeNota({ l: 'es', fv: 'lora', rv: 'NVI', r: 'JHN.3.16', k: 'c', v: 1 }).split('#n=')[1], 'base64url').toString('utf8'));
+  assert.deepEqual(Object.keys(plano), ['v', 'k', 'r', 'rv', 'fv', 'l']);
+  /* un enlace viejo, sin `fv`, sigue valiendo y sigue sin letra (el lector usa la de siempre) */
+  assert.equal(N.notaDeEnlace(N.enlaceDeNota({ v: 1, k: 'c', r: 'PSA.139', l: 'es' })).fv, undefined);
+});
+await ok('notaDeMarca y enlaceDeMarca llevan la letra del libro solo a las citas; la marca guardada no la lleva', () => {
+  assert.equal(NL.notaDeMarca(marcaCita(), 'es', { fv: 'estonia' }).fv, 'estonia');
+  assert.equal(NL.notaDeMarca(marcaDef(), 'es', { fv: 'estonia' }).fv, undefined);
+  assert.equal(N.notaDeEnlace(NL.enlaceDeMarca(marcaCita(), 'es', { fv: 'lora' })).fv, 'lora');
+  assert.equal(NL.notaDeMarca(marcaCita(), 'es', { fv: 'otra' }).fv, undefined);
+  assert.ok(!('fv' in NL.marcaDeNota({ v: 1, k: 'c', r: 'JHN.3.16', fv: 'lora' }).attrs), 'la letra es del libro, no de la marca');
+  assert.ok(!('fv' in NL.marcaLimpia({ type: 'citaBiblica', attrs: { r: 'JHN.3.16', fv: 'lora' } }).attrs));
+});
+await ok('hrefsDeNotas cuenta lo mismo con la letra (el aviso de «Compartir» sigue cuadrando con el PDF)', () => {
+  const caps = [doc(parrafo(texto('a', [marcaCita({ r: 'JHN.3.16', rv: 'NVI' })]), texto('b', [marcaCita({ r: 'JHN.3.17' })]), texto('c', [marcaDef({ t: 'c' })]))),
+    doc(parrafo(texto('d', [marcaCita({ r: 'JHN.3.16', rv: 'NVI' })]), texto('e', [marcaDef({ t: 'c' })])))];
+  const sin = NL.hrefsDeNotas(caps, 'es'), con = NL.hrefsDeNotas(caps, 'es', { fv: 'estonia' });
+  assert.equal(sin.size, 3);
+  assert.equal(con.size, sin.size);
+  const citas = [...con].map((h) => N.notaDeEnlace(h)).filter((x) => x.k === 'c');
+  assert.ok(citas.length === 2 && citas.every((x) => x.fv === 'estonia'));
+  /* la cuenta del PDF que vuelve: los mismos enlaces que saca aHoja */
+  const h = aHoja({ titulo: 'L', idioma: 'es', pagina: { notas: { letraVersos: 'estonia' } }, fuentes: [] }, [{ contenido: caps[0] }, { contenido: caps[1] }]);
+  const delPdf = new Set(todos(h.nodos, (x) => x.tag === 'a' && /^nota/.test(x.clase)).map((a) => a.attrs.href));
+  assert.deepEqual([...delPdf].sort(), [...con].sort());
+});
+await ok('al sacar el PDF, la letra se ESCRIBE: la elegida, o Bricolage Grotesque si no se eligio', () => {
+  const cap = { contenido: doc(parrafo(texto('Juan 3:16', [marcaCita({ r: 'JHN.3.16' })]), texto(' y '), texto('Ahavá', [marcaDef()]))) };
+  const citaDe = (pagina) => {
+    const h = aHoja({ titulo: 'L', idioma: 'es', pagina, fuentes: [] }, [cap]);
+    return todos(h.nodos, (x) => x.tag === 'a' && /^nota/.test(x.clase)).map((a) => N.notaDeEnlace(a.attrs.href));
+  };
+  const [c1, d1] = citaDe({});
+  assert.equal(NL.LETRA_VERSOS, 'bricolage-grotesque');
+  assert.equal(c1.fv, 'bricolage-grotesque', 'sin elegir: la de los libros nuevos, escrita');
+  assert.equal(d1.fv, undefined, 'una definicion no la lleva');
+  assert.equal(citaDe({ notas: { letraVersos: 'estonia' } })[0].fv, 'estonia');
+  assert.equal(citaDe({ notas: { letraVersos: 'Comic Sans' } })[0].fv, 'bricolage-grotesque', 'una que no es de la lista no pasa');
+  /* quien arma nodos sin un libro (sin `notas`) no inventa letra */
+  const sueltos = aNodos(cap.contenido, 'pdf', { idioma: 'es' });
+  assert.equal(N.notaDeEnlace(buscar(sueltos, (x) => x.tag === 'a' && /nota--cita/.test(x.clase)).attrs.href).fv, undefined);
+});
+await ok('ConfigPagina guarda la letra del libro (solo de la lista) y la devuelve en aDatos', () => {
+  assert.deepEqual(new ConfigPagina({}).notas, { letraVersos: '' });
+  assert.deepEqual(new ConfigPagina({}).aDatos().notas, { letraVersos: '' });
+  assert.equal(new ConfigPagina({ notas: { letraVersos: 'lora' } }).aDatos().notas.letraVersos, 'lora');
+  for (const v of ['Lora', 'x', '__proto__', 3, null]) assert.equal(new ConfigPagina({ notas: { letraVersos: v } }).notas.letraVersos, '', String(v));
+  assert.equal(new ConfigPagina({ notas: 'estonia' }).notas.letraVersos, '');
+  /* lo de mas no entra */
+  assert.deepEqual(Object.keys(new ConfigPagina({ notas: { letraVersos: 'lora', otra: 1 } }).aDatos().notas), ['letraVersos']);
+});
+await ok('`pagina` sigue cabiendo en los 8000 bytes de la base en el peor caso (como lo cuenta jsonb::text)', () => {
+  /* Postgres escribe jsonb con «, » y «: »: se mide igual */
+  const pg = (x) => Array.isArray(x) ? '[' + x.map(pg).join(', ') + ']' : x && typeof x === 'object'
+    ? '{' + Object.entries(x).map(([k, v]) => JSON.stringify(k) + ': ' + pg(v)).join(', ') + '}' : JSON.stringify(x);
+  const bytes = (x) => new TextEncoder().encode(pg(x)).length;
+  const largo = (k) => '𐍈'.repeat(k);
+  const fuente = (i) => ('Fuente ' + String(i).padStart(2, '0') + ' ' + 'Abcdefgh '.repeat(6)).trim().slice(0, 60).trim();
+  const lugar = { que: 'texto', negrita: true, texto: largo(60) };
+  const peor = new ConfigPagina({
+    anchoMm: 148.55, altoMm: 210.55, margenes: { sup: 20.5, inf: 22.5, izq: 18.5, der: 18.5 }, numeros: { ver: true, lugar: 'pie-exterior' },
+    indice: { ver: true, titulo: largo(120), subtemas: true, puntos: true, antesDe: 'a'.repeat(40), plantilla: 'clasico', orden: true, imagen: { ruta: `taller/${'a'.repeat(40)}/img/${'b'.repeat(60)}.webp`, altoPct: 30, ajuste: 'contener' }, portadas: true, verRol: true, negrita: { n1: true, n2: true } },
+    cabeza: { ver: true, partes: { rotulo: true, nombre: true, rol: true, subetapa: true }, distanciaMm: 10.5, tamanoPt: 9.5, lados: { izquierda: { izq: lugar, centro: lugar, der: lugar }, derecha: { izq: lugar, centro: lugar, der: lugar } } },
+    autor: largo(80), rotulo: { ver: true, palabra: largo(30), cifras: 'romano' }, portada: 'si', imprenta: true,
+    lomo: { texto: largo(40), color: '#123456', tinta: '#123456', grosor: 12.5, tapas: { delante: '#123456', detras: '#123456' }, imagen: { ruta: `taller/${'a'.repeat(40)}/img/lomo-${'b'.repeat(139)}.png` } },
+    aviso: { copiado: largo(60), enlace: largo(60), falla: largo(60), fondo: '#123456', tinta: '#123456', lugar: 'arriba', segundos: 2.5 },
+    papel: '#123456', letras: Object.fromEntries(Array.from({ length: 50 }, (_, i) => [fuente(i), '#123456'])), titulos: { t1: '#123456', t2: '#123456', t3: '#123456' },
+    colores: Array.from({ length: 20 }, (_, i) => '#1234' + String(i % 100).padStart(2, '0')),
+    cuerpo: { fuente: fuente(1), tamanoPt: 11.5, interlinea: 1.55 }, capital: { estilo: 'sencilla', fuente: fuente(2), lineas: 3, separaMm: 1.5 }, cita: { fuente: fuente(3), tamanoPt: 100, sangriaMm: 4.7, cursiva: false },
+    notas: { letraVersos: 'bricolage-grotesque' }
+  }).aDatos();
+  assert.equal(Object.keys(peor.letras).length, 40, 'el tope de letras se cumplio');
+  assert.equal(peor.lomo.imagen.ruta.length, 200, 'la imagen del lomo (ruta de 200 letras) entra en el peor caso');
+  assert.equal(PAGINA_BYTES_MAX, 8000);
+  const { notas, ...sin } = peor;
+  assert.deepEqual(notas, { letraVersos: 'bricolage-grotesque' });
+  const total = bytes(peor), sinNotas = bytes(sin);
+  assert.ok(total <= PAGINA_BYTES_MAX, `peor caso: ${total} bytes`);
+  assert.ok(total - sinNotas <= 60, `las notas pesan ${total - sinNotas} bytes`);
+  assert.match(readFileSync(path.join(raiz, 'supabase/012_taller.sql'), 'utf8'), /octet_length\(pagina::text\) <= 8000/, 'el tope de la base sigue siendo 8000');
+});
+
+await ok('la hoja de la nota, /nota/ y el Taller usan la letra (solo la de la lista) y Estonia/Petemoss salen mas grandes', () => {
+  const leer = (r) => readFileSync(path.join(raiz, r), 'utf8');
+  const hoja = leer('src/scripts/lector/hojaNota.js');
+  assert.match(hoja, /export function pintarVersos\(caja, pasaje, tl, fv\)/);
+  assert.match(hoja, /ponerFuente\(p, fv\)/, 'por ponerFuente: solo FUENTES_NOTA, nunca un estilo de la nota');
+  assert.match(hoja, /pintarVersos\(caja, pasaje, tl, nota\.fv\)/, 'llenarCita (lector y /nota/) pasa la letra');
+  for (const [f, css] of [['src/styles/base.css', leer('src/styles/base.css')], ['src/pages/nota.astro', leer('src/pages/nota.astro')]]) {
+    assert.match(css, /\.lector__nota-pasaje\[data-fuente="estonia"\], \.lector__nota-pasaje\[data-fuente="petemoss"\] \{ font-size: 1\.\d+rem; line-height: 1\.4; \}/, f);
+    assert.match(css, /\.lector__nota-pasaje\[data-fuente="estonia"\] \.lector__nota-v/, `${f}: el numero no crece`);
+  }
+  const ed = leer('src/scripts/portal/panel/dev/taller/NotaEditor.js');
+  assert.match(ed, /campo\(tx\.ncLetraVersos, this\.fv\)/);
+  assert.match(ed, /new Selector\(this\.fv, \{ fuenteDe: \(v\) => this\.cssDe\(v\) \}\)/, 'cada opcion en su letra');
+  assert.ok(ed.includes("this.idioma(), { fv: this.letraDelLibro() }).size"), 'la cuenta de «Compartir» con la misma letra');
+  const tx = leer('src/data/portal/textos.js');
+  assert.match(tx, /ncLetraVersos: 'Letra de los versículos \(todo el libro\)'/);
+  assert.match(tx, /ncLetraCambiada: '[^']*\{f\}[^']*'/);
+  for (const f of ['src/scripts/portal/panel/dev/taller/NotaEditor.js', 'src/scripts/portal/panel/dev/taller/LeerEdicion.js', 'src/scripts/portal/panel/dev/taller/Publicar.js',
+    'src/scripts/contenido/taller/CantoTapa.js', 'src/scripts/contenido/taller/PaginasEdicion.js', 'src/scripts/contenido/taller/ConfigPagina.js', 'src/scripts/contenido/taller/notasLibro.js']) {
+    assert.ok(!/localStorage|sessionStorage|innerHTML/.test(leer(f)), f);
+  }
 });
 
 console.log(`\n${n} bien${mal ? `, ${mal} MAL` : ''}`);

@@ -4,12 +4,13 @@
    libro; un visor de PDF cualquiera lo abre en /nota/, que muestra lo mismo.
 
      definicion  { v:1, k:'d', t, d, r:{ a, y, ti, f, u } | rf, ft, fd, l? }
-     cita        { v:1, k:'c', r:'JER.1.4-5', x:'Jeremías 1:4-5', rv:'NVI', l? }
+     cita        { v:1, k:'c', r:'JER.1.4-5', x:'Jeremías 1:4-5', rv:'NVI', fv?, l? }
 
    t titulo (80) · d descripcion (1200) · r referencia APA por partes (200 cada una; u solo https, 300) · rf referencia
    escrita a mano (400) · ft/fd la letra del titulo y de la descripcion (solo las de FUENTES_NOTA; otra cualquiera = la del
    libro) · r de la cita en forma canonica (biblia/referencias.js) · x como se lee (120) · rv la version que recomienda el
-   autor en Bible Gateway · l el idioma del libro ('es' | 'en'), opcional: la pagina /nota/ lo usa para elegir la version.
+   autor en Bible Gateway · fv la letra del texto de los versiculos (una para todo el libro; solo las de FUENTES_NOTA; sin
+   ella, la de siempre: Young Serif) · l el idioma del libro ('es' | 'en'), opcional: la pagina /nota/ lo usa para elegir la version.
 
    Puro: sin pagina, sin red. Lo usaran el lector, la pagina /nota/ y el Taller. Todo lo que llega se trata como hostil. */
 import { deCanonica, rotulo, VERSION_GATEWAY } from '../biblia/referencias.js';
@@ -104,6 +105,7 @@ export function limpiarNota(x) {
     if (etiqueta) n.x = etiqueta;
     const rv = version(x.rv);
     if (rv) n.rv = rv;
+    if (fuenteValida(x.fv)) n.fv = x.fv;
   }
   if (x.l === 'es' || x.l === 'en') n.l = x.l;
   return n;
@@ -172,7 +174,7 @@ export function enlaceDeNota(nota, { origen = ORIGEN_NOTA } = {}) {
   const ruta = rutaDeNota(origen);
   if (!n || !ruta) return null;
   /* Siempre en el mismo orden: la misma nota da el mismo enlace */
-  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'l'];
+  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'fv', 'l'];
   const plano = {};
   for (const k of orden) if (n[k] !== undefined) plano[k] = n.k === 'd' && k === 'r' ? { ...n.r } : n[k];
   const href = ruta + '#n=' + aBase64Url(new TextEncoder().encode(JSON.stringify(plano)));

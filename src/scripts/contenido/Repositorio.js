@@ -20,6 +20,8 @@
    Nada lanza: { ok: true } o { error: '<clave>' }, como portal/real.js. `Tipo` es la clase
    (Libro, Trabajo, Proyecto, Etapa): de ella salen la tabla y, en las casas, la `clase`. */
 
+import { tiene } from './comun.js';
+
 const invalido = (r) => ({ error: 'invalido', errores: r.errores, avisos: r.avisos, faltan: r.faltan || [] });
 
 /* Un error de la base, en una palabra que el panel sabe decir. */
@@ -59,7 +61,9 @@ const juntar = (Tipo, filas, borradores) => {
   return ids.map((id) => {
     const f = de(filas, id);
     const b = de(borradores, id);
-    return new Entrada(id, f ? Tipo.deFila(f) : null, b ? Tipo.deFila({ ...b.fila, id }) : null);
+    /* Un borrador de antes de 016 no trae `ficha`: se queda con la de lo publicado (si no, publicarlo la borraria) */
+    const fila = b && f && tiene(f, 'ficha') && !tiene(b.fila, 'ficha') ? { ...b.fila, ficha: f.ficha } : b && b.fila;
+    return new Entrada(id, f ? Tipo.deFila(f) : null, b ? Tipo.deFila({ ...fila, id }) : null);
   }).sort((a, b) => (a.actual.orden - b.actual.orden) || a.id.localeCompare(b.id));
 };
 

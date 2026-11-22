@@ -33,6 +33,8 @@ import { SelectorColor } from './taller/SelectorColor.js';
 import { Selector } from './taller/Selector.js';
 import { BorrarLibro } from './taller/BorrarLibro.js';
 import { Publicar } from './taller/Publicar.js';
+import { Ficha } from './taller/Ficha.js';
+import { contextoDeLomo, LomoSubido } from './taller/LomoSubido.js';
 import { ratioDeHoja } from '../../../contenido/taller/RevisarPdf.js';
 import { icono } from './taller/iconos.js';
 import { familiaCss } from '../../../contenido/taller/fuentes.js';
@@ -130,6 +132,9 @@ export class Taller extends Seccion {
       contexto: () => this.contextoDeCompartir(), obraId: () => (this.obra ? this.obra.id : '')
     });
     m('[data-tal-compartir]').addEventListener('click', () => this.publicar.abrir());
+    /* La ficha del libro (016): se escribe desde «Ajustes del libro» (taller/Ficha.js) y se guarda con el libro */
+    this.ficha = new Ficha(m('[data-tal-ajustes]'), { tx: this.tx, leer: () => (this.obra ? this.obra.ficha : null), alDecir: (t) => this.decir(t),
+      alGuardar: async (f) => { if (!this.obra) return false; this.obra.ficha = f; this.obraSucia = true; return (await this.guardarObra()) === true; } });
     m('[data-tal-version]').addEventListener('click', () => this.guardarVersion());
     m('[data-tal-quedarme]').addEventListener('click', () => this.resolver(true));
     m('[data-tal-traer]').addEventListener('click', () => this.resolver(false));
@@ -291,7 +296,14 @@ export class Taller extends Seccion {
     });
     this.cinta.ponerFuentes(this.obra.fuentes);
     /* Definicion y cita biblica sobre lo elegido (una sola ventana, como la cinta) */
-    this.notas = this.notas || new NotaEditor(this.m('[data-tal-cinta]'), { tx: this.tx, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null), idioma: () => (this.obra && this.obra.idioma === 'en' ? 'en' : 'es'), fuenteLibro: () => (this.obra ? this.obra.pagina.cuerpo.fuente : ''), contenidos: () => (this.mesa ? this.mesa.vivos.map((v) => v.editor.getJSON()) : []), alDecir: (t) => this.decir(t) });
+    this.notas = this.notas || new NotaEditor(this.m('[data-tal-cinta]'), { tx: this.tx, editor: () => (this.mesa && this.mesa.activo ? this.mesa.activo.editor : null), idioma: () => (this.obra && this.obra.idioma === 'en' ? 'en' : 'es'), fuenteLibro: () => (this.obra ? this.obra.pagina.cuerpo.fuente : ''), contenidos: () => (this.mesa ? this.mesa.vivos.map((v) => v.editor.getJSON()) : []), alDecir: (t) => this.decir(t),
+      /* La letra de los versiculos: una para todo el libro, guardada por el camino de siempre */
+      letraVersos: () => (this.obra ? this.obra.pagina.notas.letraVersos : ''),
+      alLetraVersos: (id) => {
+        if (!this.obra) return;
+        this.obra.pagina = new ConfigPagina({ ...this.obra.pagina.aDatos(), notas: { ...this.obra.pagina.notas, letraVersos: id } });
+        this.guardarObra();
+      } });
     this.burbuja = this.burbuja || new Burbuja(this.nodoMesa, { tx: this.tx, notas: this.notas, editor: () => (this.mesa && this.mesa.editable && this.mesa.activo ? this.mesa.activo.editor : null), idioma: () => (this.obra && this.obra.idioma === 'en' ? 'en' : 'es'), alDecir: (t) => this.decir(t) });
     this.mesa.editable = !enTelefono();
     this.mesa.cinta = this.cinta;
@@ -299,6 +311,8 @@ export class Taller extends Seccion {
     /* El visor lee del libro su lomo y su aviso, y guarda el aviso por el camino de siempre (`guardarObra`) */
     const libro = {
       config: () => (this.obra ? this.obra.pagina : null),
+      obraId: () => (this.obra ? this.obra.id : ''),
+      imagenLomo: (ruta) => (this.imagenes ? this.imagenes.dame(ruta) : ''),
       puedeCambiar: () => !!(this.obra && this.mesa && this.mesa.editable),
       cambiar: (parche) => {
         if (!this.obra || !this.mesa || !this.mesa.editable) return false;
@@ -898,6 +912,12 @@ export class Taller extends Seccion {
       fila(tx.lomoTapaDelante, lomo.tapas.delante, (c) => cambiar({ tapas: { delante: c } })),
       fila(tx.lomoTapaDetras, lomo.tapas.detras, (c) => cambiar({ tapas: { detras: c } }))
     );
+    /* La imagen del lomo (taller/LomoSubido.js): se sube como las del libro y queda en pagina.lomo.imagen */
+    this.lomoSubido = this.lomoSubido || new LomoSubido(this.m('[data-tal-lomo-imagen]'), { tx,
+      libro: () => (this.obra ? { id: this.obra.id, pagina: this.obra.pagina, hojas: this.mesa ? this.mesa.paginas.length : 0, editable: !!(this.mesa && this.mesa.editable) } : null),
+      subir: (ruta, archivo) => this.be.taller.subir(ruta, archivo), imagenes: () => this.imagenes, turno: () => this.turnoObra,
+      alCambiar: (imagen) => { cambiar({ imagen }); this.lomoSubido.pintar(); }, alDecir: (t) => this.decir(t), alError: (k) => this.error(k) });
+    this.lomoSubido.pintar();
     this.pintarMuestraLomo();
   }
 
@@ -1143,8 +1163,12 @@ export class Taller extends Seccion {
     const p = this.obra.pagina;
     return {
       obraId: this.obra.id, titulo: this.obra.titulo, idioma: this.obra.idioma, ratioLibro: ratioDeHoja(p),
-      numeros: indice ? indice.numeros : {}, paginasMesa: this.mesa.paginas.length,
-      notas: this.notas ? this.notas.cuantas() : undefined
+      numeros: indice ? indice.numeros : {}, paginasMesa: this.mesa.paginas.length, ficha: { ...this.obra.ficha },
+      notas: this.notas ? this.notas.cuantas() : undefined,
+      /* Las tapas que eligio el autor («Lomo ▾»: su color, o el del lomo); vacias si no eligio nada: gana el color medido */
+      tapas: ((e) => [e.delante, e.detras])(estiloDeLomo(p.lomo, this.obra.titulo, {})),
+      /* El lomo para el enlace privado (Publicar.js le pone una copia pequeña de su imagen: taller/LomoSubido.js) */
+      lomo: contextoDeLomo(p, (r) => this.imagenes.dame(r), this.obra.id)
     };
   }
 

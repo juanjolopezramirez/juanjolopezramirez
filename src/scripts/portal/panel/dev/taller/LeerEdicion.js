@@ -9,6 +9,7 @@
    Todo lo que trae el PDF es dato ajeno: lo que sale de aqui pasa luego por revisarPdf / hojasDeEdicion. */
 import { abrirPdf, aArchivo, escalaDePagina } from './Pdf.js';
 import { PAGINAS_MAX, folioDeTextos } from '../../../../contenido/taller/PaginasEdicion.js';
+import { ANCHO_CANTO, colorDeCanto } from '../../../../contenido/taller/CantoTapa.js';
 
 const TEXTO_POR_PAGINA = 30000;
 
@@ -98,9 +99,23 @@ export async function mirar(archivo, { sigue = () => true, alPagina = () => {} }
   }
 }
 
+/* El color del borde de una tapa (CantoTapa.js), reducida a ANCHO_CANTO px como hace tools/books.py. '' si no se puede leer. */
+function cantoDe(canvas) {
+  const c = document.createElement('canvas');
+  try {
+    c.width = Math.min(ANCHO_CANTO, canvas.width);
+    c.height = Math.max(1, Math.round(canvas.height * (c.width / canvas.width)));
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(canvas, 0, 0, c.width, c.height);
+    return colorDeCanto(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+  } catch (e) { return ''; } finally { c.width = 0; c.height = 0; }
+}
+
 /* La pagina `n` como DOS imagenes WebP: se pinta UNA vez a `ancho` (1600) y la otra (900) sale de reducir esa.
-   { grande, chica } (blobs) o { error: 'edSinWebp' | 'edFalla' } */
-export async function pintar(doc, n, ancho = 1600, chico = 900) {
+   `canto`: tambien el color de su borde (la primera y la ultima: las tapas), de la de 900.
+   { grande, chica, canto? } (blobs, '#rrggbb' o '') o { error: 'edSinWebp' | 'edFalla' } */
+export async function pintar(doc, n, ancho = 1600, chico = 900, { canto = false } = {}) {
   const p = await doc.getPage(n);
   try {
     const v1 = p.getViewport({ scale: 1 });
@@ -120,9 +135,10 @@ export async function pintar(doc, n, ancho = 1600, chico = 900) {
     x.imageSmoothingQuality = 'high';
     x.drawImage(canvas, 0, 0, c2.width, c2.height);
     canvas.width = 0; canvas.height = 0;
+    const color = canto ? cantoDe(c2) : '';
     const chica = await aArchivo(c2);
     c2.width = 0; c2.height = 0;
     if (!grande.blob || !chica.blob || grande.ext !== 'webp' || chica.ext !== 'webp') return { error: 'edSinWebp' };
-    return { grande: grande.blob, chica: chica.blob };
+    return canto ? { grande: grande.blob, chica: chica.blob, canto: color } : { grande: grande.blob, chica: chica.blob };
   } finally { p.cleanup(); }
 }

@@ -40,6 +40,13 @@ await db.exec(sql013);
 const sql014 = readFileSync(join(raiz, 'supabase/014_recursos.sql'), 'utf8');
 await db.exec(sql014);
 await db.exec(sql014);
+/* 016 (la ficha del libro) pide biblioteca y claves_de_idioma (007): las dos, en su forma minima */
+const sql007 = readFileSync(join(raiz, 'supabase/007_desarrollo.sql'), 'utf8');
+const de007 = sql007.indexOf('create or replace function public.claves_de_idioma');
+await db.exec(`create table if not exists public.biblioteca (id text primary key); ${sql007.slice(de007, sql007.indexOf('$$;', de007) + 3)}`);
+const sql016 = readFileSync(join(raiz, 'supabase/016_ficha.sql'), 'utf8');
+await db.exec(sql016);
+await db.exec(sql016);
 
 const ident = (x) => `"${x}"`;
 class Consulta {
@@ -201,7 +208,9 @@ await ok('013: una edicion y un enlace entran por el repositorio de verdad; la h
   assert.equal(lista.filas.length, 1);
   assert.equal(lista.filas[0].ratio, 0.7048);
   assert.equal(lista.filas[0].blando, false);
-  assert.deepEqual(Object.keys(lista.filas[0]).sort(), ['blando', 'creado', 'id', 'idioma', 'paginas', 'ratio', 'titulo']);
+  /* `ficha` (016): la lista la trae para «Actualizar la ficha» y para publicar en Recursos; las hojas, nunca */
+  assert.deepEqual(Object.keys(lista.filas[0]).sort(), ['blando', 'creado', 'ficha', 'id', 'idioma', 'paginas', 'ratio', 'titulo']);
+  assert.deepEqual(lista.filas[0].ficha, {});
   const lejos = new Date(Date.now() + 400 * 864e5).toISOString();
   const l = await repo.crearEnlace({ edicionId: ed13, hash: hex('ab'), nombre: 'Ana', vence: lejos });
   assert.ok(l.ok, JSON.stringify(l));
@@ -327,7 +336,7 @@ await ok('013: ni una funcion sin search_path ni una «security definer», y nad
   for (const x of f) { assert.equal(x.prosecdef, false); assert.ok((x.proconfig || []).some((c) => c.startsWith('search_path='))); }
 });
 /* ---- 014: publicar en Recursos. Se pega dos veces (arriba): el vinculo con el libro de Recursos ---- */
-await db.exec(`create table public.biblioteca (id text primary key); create table public.borradores (tabla text, id text);
+await db.exec(`create table if not exists public.biblioteca (id text primary key); create table public.borradores (tabla text, id text);
   grant select on public.biblioteca, public.borradores to authenticated`);
 const llamadas = [];
 const sbConAlmacen = { ...sb, storage: { from: (cajon) => ({ copy: async (a, b, o) => { llamadas.push({ cajon, a, b, o }); return { data: { path: b }, error: null }; } }) } };
@@ -439,6 +448,33 @@ await ok('014: ni funciones sin search_path ni «security definer» nuevas, y el
   assert.equal((await db.query(`select 1 from pg_constraint where conrelid = 'public.taller_obras'::regclass and contype = 'f'`)).rows.length, 0, 'sin llave foranea a biblioteca');
   assert.deepEqual((await db.query(`select tgname from pg_trigger where tgrelid = 'public.taller_obras'::regclass and not tgisinternal order by 1`)).rows.map((r) => r.tgname), ['taller_obras_editado', 'taller_obras_libro_fijo', 'taller_obras_rev']);
   for (const rol of ['anon', 'authenticated']) assert.equal((await db.query(`select has_function_privilege($1, 'public.taller_libro_fijo()', 'execute') as v`, [rol])).rows[0].v, false, rol);
+});
+await ok('016: la ficha se guarda con el libro, cada edicion se lleva su copia y de una edicion solo se cambia la ficha', async () => {
+  const o = new Obra({ titulo: 'Con ficha', pagina: new ConfigPagina({}).aDatos(), ficha: { resumen: 'Uno.\nDos.', tema: 'Amor', claves: ['a', 'b'], para_quien: 'Todos' } });
+  const c = await repo.crearObra(o.aDatos());
+  assert.ok(c.ok, JSON.stringify(c));
+  const a = await repo.abrir(c.id);
+  assert.deepEqual(a.obra.ficha, { resumen: 'Uno.\nDos.', tema: 'Amor', claves: ['a', 'b'], para_quien: 'Todos' });
+  const p = new Obra(a.obra);
+  /* lo que escribe el autor llega sucio (un tema larguisimo, un control): el repositorio lo limpia y la base lo acepta */
+  p.ficha = { tema: 'x'.repeat(90) + String.fromCharCode(7), otra: 1 };
+  const g = await repo.guardarObra(p.aDatos(), A);
+  assert.ok(g.ok, JSON.stringify(g));
+  assert.equal((await repo.abrir(c.id)).obra.ficha.tema.length, 60);
+  const e = await repo.crearEdicion({ obraId: c.id, titulo: 'T', paginas: 1, ratio: 0.7, hojas: [{ text: '' }], ficha: { tema: 'Copia' } });
+  assert.ok(e.ok, JSON.stringify(e));
+  assert.deepEqual((await repo.ediciones(c.id)).filas[0].ficha, { tema: 'Copia' });
+  assert.deepEqual(await repo.actualizarFichaEdicion(e.id, { tema: 'Arreglada', claves: ['', 'c'] }), { ok: true });
+  assert.deepEqual((await repo.ediciones(c.id)).filas[0].ficha, { tema: 'Arreglada', claves: ['c'] });
+  assert.deepEqual(await repo.actualizarFichaEdicion(crypto.randomUUID(), { tema: 'x' }), { error: 'noExiste' });
+  const sinFicha = await repo.crearEdicion({ obraId: c.id, titulo: 'T', paginas: 1, ratio: 0.7, hojas: [{ text: '' }] });
+  assert.ok(sinFicha.ok);
+  assert.deepEqual((await db.query('select ficha from public.taller_ediciones where id = $1', [sinFicha.id])).rows[0].ficha, {});
+  for (const [col, puede] of [['ficha', true], ['titulo', false], ['hojas', false], ['paginas', false]]) {
+    assert.equal((await db.query(`select has_column_privilege('authenticated', 'public.taller_ediciones', $1, 'UPDATE') as v`, [col])).rows[0].v, puede, col);
+  }
+  for (const t of ['taller_obras', 'taller_ediciones', 'biblioteca']) assert.equal((await db.query(`select has_column_privilege('anon', $1, 'ficha', 'UPDATE') as v`, [`public.${t}`])).rows[0].v, false, t);
+  assert.ok((await repo.borrarObra(c.id)).ok);
 });
 await ok('borrar el libro borra sus capitulos y copias', async () => {
   assert.ok((await repo.borrarObra(id)).ok);

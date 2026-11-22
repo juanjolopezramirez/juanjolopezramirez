@@ -6,6 +6,7 @@
      crearPieza(datos) · guardarPieza(datos, pestana) · borrarPieza(id)
      copia(obraId, motivo, nombre) · versiones(obraId) · restaurar(versionId)
      ediciones(obraId) · crearEdicion(datos) · borrarEdicion(id)            (supabase/013_publicar.sql)
+     actualizarFichaEdicion(id, ficha)                                      (016: lo unico que cambia de una edicion)
      enlaces(edicionId) · crearEnlace(datos) · apagarEnlace(id)
      libroDe(obraId) · vincularLibro(obraId, libroId) · desvincularLibro(obraId) · copiarARecursos(obraId, edicionId, libroId, lang)
      quitarPdfDeRecursos(obraId, libroId, ruta)   (014)
@@ -18,6 +19,7 @@ import { deFila } from '../comun.js';
 import { VERSION_CONTENIDO } from './Migrar.js';
 import { DIAS_MAX, NOMBRE_MAX } from './Enlaces.js';
 import { nombrePdfDeRecursos, planDeCopia, veredictoDeId } from './Recursos.js';
+import { limpiarFicha } from '../../lector/ficha.js';
 
 export function decidir(actual, pestana) {
   if (!actual) return { error: 'permiso' };
@@ -122,7 +124,7 @@ export class RepositorioTallerMemoria {
     /* Las mas nuevas primero; con la misma hora (dos seguidas), la ultima que se hizo */
     const filas = [...this.edicionesM.values()].filter((e) => e.obraId === obraId).map((e, i) => [e, i])
       .sort((a, b) => (a[0].creado < b[0].creado ? 1 : a[0].creado > b[0].creado ? -1 : b[1] - a[1])).map(([e]) => e)
-      .map(({ id, titulo, idioma, paginas, ratio, blando, creado }) => ({ id, titulo, idioma, paginas, ratio, blando, creado }));
+      .map(({ id, titulo, idioma, paginas, ratio, blando, creado, ficha }) => ({ id, titulo, idioma, paginas, ratio, blando, creado, ficha: copiaProfunda(ficha || {}) }));
     return { ok: true, filas };
   }
   async crearEdicion(d) {
@@ -132,8 +134,15 @@ export class RepositorioTallerMemoria {
     if (!(d.ratio > 0.2 && d.ratio < 5) || !d.titulo || d.titulo.length > 200 || JSON.stringify(hojas).length > 4000000) return { error: 'lleno' };
     const id = d.id || nuevoId();
     const carpeta = `taller/${d.obraId}/ediciones/${id}/`;
-    this.edicionesM.set(id, { id, obraId: d.obraId, titulo: d.titulo, idioma: d.idioma || 'es', paginas, ratio: d.ratio, blando: d.blando !== false, carpeta, pdf: `${carpeta}original.pdf`, hojas, creado: new Date(this.reloj()).toISOString() });
+    this.edicionesM.set(id, { id, obraId: d.obraId, titulo: d.titulo, idioma: d.idioma || 'es', paginas, ratio: d.ratio, blando: d.blando !== false, carpeta, pdf: `${carpeta}original.pdf`, hojas, ficha: { ...limpiarFicha(d.ficha) }, creado: new Date(this.reloj()).toISOString() });
     return { ok: true, id, carpeta };
+  }
+  /* La ficha de una edicion ya hecha (016: lo UNICO que se puede cambiar de ella): arreglar una errata sin subir otro PDF */
+  async actualizarFichaEdicion(id, ficha) {
+    const e = this.edicionesM.get(id);
+    if (!e) return { error: 'noExiste' };
+    e.ficha = { ...limpiarFicha(ficha) };
+    return { ok: true };
   }
   async borrarEdicion(id) {
     if (!this.edicionesM.has(id)) return { error: 'noExiste' };
@@ -224,8 +233,10 @@ export class RepositorioTallerMemoria {
     /* Como en la base: `rev` sigue subiendo y `pestana` queda vacia, asi otra pestaña recibe conflicto */
     const revs = new Map([...this.obrasM, ...this.capitulosM, ...this.piezasM].map(([k, x]) => [k, x.rev]));
     const subir = (x) => ({ ...x, rev: (revs.get(x.id) || 0) + 1, pestana: null });
+    /* Como en la base (012, taller_restaurar): la ficha (016) no vuelve atras; se queda la de ahora */
+    const ahora = this.obrasM.get(v.obraId);
     this.quitarFilas(v.obraId);
-    this.obrasM.set(obra.id, subir(obra));
+    this.obrasM.set(obra.id, subir({ ...obra, ficha: ahora && ahora.ficha ? ahora.ficha : {} }));
     capitulos.forEach((c) => this.capitulosM.set(c.id, subir(c)));
     piezas.forEach((p) => this.piezasM.set(p.id, subir(p)));
     return { ok: true };
@@ -234,7 +245,8 @@ export class RepositorioTallerMemoria {
 
 /* EN LA BASE (supabase/012_taller.sql). Las reglas estan alla: esto solo pregunta. */
 const CAMPOS = {
-  obra: ({ id, titulo, idioma, pagina, fuentes }) => ({ id, titulo, idioma, pagina, fuentes }),
+  /* `ficha` (016): siempre limpia, y siempre un objeto (la columna no admite null) */
+  obra: ({ id, titulo, idioma, pagina, fuentes, ficha }) => ({ id, titulo, idioma, pagina, fuentes, ficha: { ...limpiarFicha(ficha) } }),
   capitulo: ({ titulo, contenido, letras }) => ({ titulo, contenido, letras }),
   pieza: ({ nombre, estado, pdf, anchoMm, altoMm, dpi, ajuste, paginas }) => ({ nombre, estado, pdf, ancho_mm: anchoMm, alto_mm: altoMm, dpi, ajuste, paginas })
 };
@@ -259,7 +271,7 @@ export class RepositorioTallerSupabase {
   }
   async abrir(id) {
     const [o, c, p] = await Promise.all([
-      this.pedir(this.sb.from('taller_obras').select('id,titulo,idioma,pagina,fuentes,rev,libro_id').eq('id', id).maybeSingle()),
+      this.pedir(this.sb.from('taller_obras').select('id,titulo,idioma,pagina,fuentes,rev,libro_id,ficha').eq('id', id).maybeSingle()),
       this.pedir(this.sb.from('taller_capitulos').select('id,obra_id,orden,titulo,contenido,letras,rev').eq('obra_id', id).order('orden').order('id').limit(200)),
       this.pedir(this.sb.from('taller_piezas').select('id,obra_id,nombre,estado,pdf,ancho_mm,alto_mm,dpi,ajuste,paginas,rev').eq('obra_id', id).limit(500))
     ]);
@@ -332,17 +344,24 @@ export class RepositorioTallerSupabase {
 
   /* ---- Compartir (supabase/013_publicar.sql). Nunca se pide `hash` de vuelta ni `hojas` en una lista. ---- */
   async ediciones(obraId) {
-    const r = await this.pedir(this.sb.from('taller_ediciones').select('id,titulo,idioma,paginas,ratio,blando,creado').eq('obra_id', obraId).order('creado', { ascending: false }).limit(20));
-    return r.error ? r : { ok: true, filas: r.data.map((f) => ({ ...f, ratio: Number(f.ratio) })) };
+    const r = await this.pedir(this.sb.from('taller_ediciones').select('id,titulo,idioma,paginas,ratio,blando,creado,ficha').eq('obra_id', obraId).order('creado', { ascending: false }).limit(20));
+    return r.error ? r : { ok: true, filas: r.data.map((f) => ({ ...f, ratio: Number(f.ratio), ficha: { ...limpiarFicha(f.ficha) } })) };
   }
   async crearEdicion(d) {
     const id = d.id || nuevoId();
     const carpeta = `taller/${d.obraId}/ediciones/${id}/`;
     const r = await this.pedir(this.sb.from('taller_ediciones').insert({
       id, obra_id: d.obraId, titulo: d.titulo, idioma: d.idioma || 'es', paginas: d.paginas, ratio: d.ratio, blando: d.blando !== false,
-      carpeta, pdf: `${carpeta}original.pdf`, hojas: d.hojas
+      carpeta, pdf: `${carpeta}original.pdf`, hojas: d.hojas, ficha: { ...limpiarFicha(d.ficha) }
     }));
     return r.error ? r : { ok: true, id, carpeta };
+  }
+  /* La ficha de una edicion ya hecha: lo UNICO de ella que el admin puede cambiar (016, `grant update (ficha)`). Si las reglas
+     no dejan, la base no da error: cambia cero filas. Por eso se pide la fila de vuelta */
+  async actualizarFichaEdicion(id, ficha) {
+    const r = await this.pedir(this.sb.from('taller_ediciones').update({ ficha: { ...limpiarFicha(ficha) } }).eq('id', id).select('id'));
+    if (r.error) return r;
+    return Array.isArray(r.data) && r.data.length === 1 ? { ok: true } : { error: 'noExiste' };
   }
   async borrarEdicion(id) {
     const r = await this.pedir(this.sb.from('taller_ediciones').delete().eq('id', id).select('id'));

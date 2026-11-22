@@ -12,12 +12,22 @@
 
    Aqui no hay pdf.js ni red: `rect` ya viene en coordenadas de la pagina (origen arriba a la izquierda, mismas
    unidades que `ancho` y `alto`), y el destino de un salto interno ya viene resuelto a un numero de pagina.
-   El PDF puede ser de cualquiera, asi que cada dato se trata como hostil. */
+   El PDF puede ser de cualquiera, asi que cada dato se trata como hostil.
+
+   LO QUE ES DEL LIBRO ENTERO viaja en la primera y la ultima fila (no hay otra columna para eso: asi no se toca la base ni
+   la funcion `vista`, que devuelve `hojas` tal cual):
+     hojas[0].tapa      el color del carton de la tapa de delante ('#rrggbb'), solo si el libro es de tapa dura
+     hojas[n-1].tapa    el de la tapa de detras
+     hojas[0].lomo      el lomo { c, t, x, g, img } (lector/lomo.js: su color, su letra, su texto, su grueso y una imagen pequeña)
+   Un `tapa` en otra fila, o que no es un color, se tira; un `lomo` fuera de la fila 0 tambien, y del de la fila 0 solo queda lo
+   que vale. Una edicion de antes no los trae: el lector usa su color de siempre y el titulo en el lomo. */
 
 import { esEnlaceCopia } from '../../lector/copiaEnPdf.js';
+import { colorValido } from './marcas.js';
 import { esEnlaceNota, pareceEnlaceNota } from '../../lector/notaEnPdf.js';
 import { esEnlaceBoton, pareceEnlaceBoton } from '../../lector/botonEnPdf.js';
 import { FOLIO_MAX } from '../../lector/pliegos.js';
+import { limpiarLomoEdicion } from '../../lector/lomo.js';
 
 export const ENLACES_MAX = 200;
 export const AREA_MAX = 0.25;
@@ -188,7 +198,65 @@ export function hojasSeguras(hojas, n) {
     const hoja = links.length ? { text, links } : { text };
     /* El numero impreso: solo un entero de 1 a FOLIO_MAX ('3', -1, 2.5, 1e9 no son un folio) */
     if (h && folioBueno(h.folio)) hoja.folio = h.folio;
+    /* El color de una tapa: solo en la primera y la ultima fila, y solo si es un color */
+    const tapa = h && (i === 0 || i === n - 1) ? colorValido(h.tapa) : '';
+    if (tapa) hoja.tapa = tapa;
+    /* El lomo: solo en la primera fila, y de el solo lo que vale (lector/lomo.js) */
+    const lomo = h && i === 0 ? limpiarLomoEdicion(h.lomo) : null;
+    if (lomo) hoja.lomo = lomo;
     salida.push(hoja);
   }
   return salida;
+}
+
+/* Los colores de las tapas de una edicion (las filas de hojasSeguras) → [delante, detras] o null si no trae ninguno.
+   Si trae uno solo, el otro lado lo repite (un carton de un color y otro del de siempre se veria roto). */
+export function tapasDeHojas(hojas) {
+  if (!Array.isArray(hojas) || !hojas.length) return null;
+  const a = colorValido(hojas[0] && hojas[0].tapa), b = colorValido(hojas[hojas.length - 1] && hojas[hojas.length - 1].tapa);
+  if (!a && !b) return null;
+  return [a || b, b || a];
+}
+
+/* Escribe las tapas en las filas de una edicion nueva (una copia; las de en medio no cambian). Para cada lado gana el color que
+   eligio el autor en el Taller («Lomo ▾»); si no eligio, el medido en el borde de la tapa (CantoTapa.js); si tampoco, nada.
+   `elegidas` y `medidas`: [delante, detras], cada uno un color o vacio. */
+export function ponerTapas(hojas, elegidas, medidas) {
+  if (!Array.isArray(hojas) || !hojas.length) return hojas;
+  const lado = (k) => colorValido(Array.isArray(elegidas) ? elegidas[k] : '') || colorValido(Array.isArray(medidas) ? medidas[k] : '');
+  const salida = hojas.map((h) => {
+    const { tapa, ...resto } = h && typeof h === 'object' ? h : {};
+    return resto;
+  });
+  const delante = lado(0), detras = lado(1);
+  if (delante) salida[0].tapa = delante;
+  if (detras) salida[salida.length - 1].tapa = detras;
+  return salida;
+}
+
+/* El lomo de una edicion (las filas de hojasSeguras) → { c?, t?, x?, g?, img? } o null si no trae */
+export function lomoDeHojas(hojas) {
+  return Array.isArray(hojas) && hojas.length ? limpiarLomoEdicion(hojas[0] && hojas[0].lomo) : null;
+}
+
+/* Escribe el lomo en la primera fila de una edicion nueva (una copia; las demas no cambian). Lo que no vale se tira; si con la
+   imagen las filas pasaran de HOJAS_MAX_BYTES + LOMO_HOLGURA, el lomo va sin imagen (su color y su texto si caben). La base deja
+   4 MB (013): hojasDeEdicion ya dejo las filas por debajo de 3,5 MB y la imagen no pasa de 160 000 letras. */
+export const LOMO_HOLGURA = 170000;
+export function ponerLomo(hojas, lomo) {
+  if (!Array.isArray(hojas) || !hojas.length) return hojas;
+  const salida = hojas.map((h, i) => {
+    if (i !== 0) return h;
+    const { lomo: viejo, ...resto } = h && typeof h === 'object' ? h : {};
+    return resto;
+  });
+  let l = limpiarLomoEdicion(lomo);
+  if (!l) return salida;
+  const peso = (x) => new TextEncoder().encode(JSON.stringify(x)).length;
+  const con = (v) => salida.map((h, i) => (i === 0 ? { ...h, lomo: v } : h));
+  if (l.img && peso(con(l)) > HOJAS_MAX_BYTES + LOMO_HOLGURA) {
+    const { img, ...sinImagen } = l;
+    l = Object.keys(sinImagen).length ? sinImagen : null;
+  }
+  return l ? con(l) : salida;
 }

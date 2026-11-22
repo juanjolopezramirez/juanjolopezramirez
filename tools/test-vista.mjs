@@ -130,6 +130,23 @@ await ok('las hojas llegan tal cual: el numero impreso de cada pagina (folio) vi
   const N = await import('../supabase/functions/vista/nucleo.js');
   assert.deepEqual(JSON.parse(N.cuerpoBueno(edicion({ hojas }), { 900: [], 1600: [] })).hojas[2].folio, 2);
 });
+await ok('016: la ficha de la edicion se pide, se limpia y se entrega; sin ficha, la respuesta es la de antes', async () => {
+  const k = Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => (i * 13 + 5) & 255)).toString('base64url');
+  const ficha = { resumen: 'Un libro.\r\nPara leer\u0007 despacio.', tema: ' Amor ', claves: ['Uno', '', 'Dos', 3], para_quien: 'Quien\nquiera', otra: 'x', __proto__: { mala: 1 } };
+  await enlace(k, { edicion: edicion({ ficha }) });
+  const r = await pedir({ k });
+  assert.equal(r.status, 200);
+  const j = JSON.parse(await r.text());
+  assert.deepEqual(j.ficha, { resumen: 'Un libro.\nPara leer despacio.', tema: 'Amor', claves: ['Uno', 'Dos'], para_quien: 'Quien quiera' });
+  const vacia = Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => (i * 17 + 9) & 255)).toString('base64url');
+  await enlace(vacia, { edicion: edicion({ ficha: { tema: '   ', claves: [] } }) });
+  const v = JSON.parse(await (await pedir({ k: vacia })).text());
+  assert.ok(!('ficha' in v), 'una ficha que no dice nada no viaja');
+  const N = await import('../supabase/functions/vista/nucleo.js');
+  for (const raro of [null, undefined, 'texto', 42, ['a'], { resumen: 7, claves: 'no' }]) assert.ok(!('ficha' in JSON.parse(N.cuerpoBueno(edicion({ ficha: raro }), { 900: [], 1600: [] }))), String(raro));
+  assert.equal(N.fichaLimpia({ tema: 'x'.repeat(200) }).tema.length, 60);
+  assert.equal(N.fichaLimpia({ claves: Array(9).fill('a') }).claves.length, 5);
+});
 await ok('renovar las direcciones no cuenta otra visita', async () => {
   const antes = buena.vistas;
   const r = await pedir({ k: TOKEN, renovar: true });

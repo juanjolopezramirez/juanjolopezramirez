@@ -142,6 +142,11 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
       <span class="lector__marca-firma" data-lector-firma></span>
     </a>
     <h2 class="lector__titulo" id="book-title"></h2>
+    <!-- «Sobre este libro» (ⓘ): va DESPUES del titulo y fuera de el, para que el nombre del dialogo siga siendo solo el titulo.
+         Abre la hoja de la ficha (lector/hojaFicha.js): resumen, tema, «Lo que encontrarás», «Para quién» y los datos. -->
+    <button class="lector__info" type="button" data-lector-info aria-haspopup="dialog" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.25" /><path d="M12 7.6h.01" /></svg>
+    </button>
     <div class="lector__pastilla lector__ajustes" role="group" data-lector-ajustes>
       <div class="lector__idioma" data-lector-idioma data-flag-es={META.es.flag} data-flag-en={META.en.flag}>
         <button class="lector__idioma-actual" type="button" data-lector-idioma-btn aria-expanded="false" aria-controls="lector-idioma-lista" hidden>
@@ -300,6 +305,11 @@ const creditos = [...new Set(VIDEOS.map((v) => v.for).filter(Boolean))]
       <!-- La lupa: la unica manera de agrandar el libro (el zoom del navegador esta apagado aqui dentro). -->
       <button class="book__ruta-btn lector__icono" type="button" data-book-zoom aria-pressed="false" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" /><path d="M8 10.5h5" /><path class="book__zoom-plus" d="M10.5 8v5" /></svg>
+      </button>
+      <!-- «Ver el lomo» (solo los libros de tapa dura; site.js lo muestra): el libro se ladea y deja ver su lomo; otra vez, o
+           Escape, lo endereza. El dibujo: un libro de pie visto de lado, el lomo delante y la tapa que se va hacia atras. -->
+      <button class="book__ruta-btn lector__icono lector__lomo" type="button" data-lector-lomo aria-pressed="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h4.5v14H5z" /><path d="M9.5 5.5l9-2.5v14l-9 2.5" /><path d="M7.25 8.5v5" /></svg>
       </button>
       <button class="book__ruta-btn lector__icono lector__son" type="button" data-book-sound aria-pressed="true">
         <svg viewBox="0 0 24 24" aria-hidden="true">

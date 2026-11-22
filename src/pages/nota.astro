@@ -46,6 +46,11 @@ const FUENTES = 'https://fonts.googleapis.com/css2?family=Young+Serif&family=Bri
       .lector__nota-pasaje { margin: 0; max-width: 60ch; font-family: var(--serif); font-size: 1.15rem; line-height: 1.6; text-wrap: pretty; }
       .lector__nota-v { margin-right: .05em; font-family: var(--sans); font-size: .62em; font-weight: 700; line-height: 0; color: var(--oro); font-variant-numeric: tabular-nums; vertical-align: .55em; }
       .lector__nota-omitido { font-size: .82em; font-style: italic; color: var(--tenue); font-family: var(--sans); }
+      /* La letra de los versiculos del libro: Estonia y Petemoss con mas cuerpo; el numero no crece con ellas */
+      .lector__nota-pasaje[data-fuente="estonia"], .lector__nota-pasaje[data-fuente="petemoss"] { font-size: 1.7rem; line-height: 1.4; }
+      .lector__nota-pasaje[data-fuente="estonia"] .lector__nota-v, .lector__nota-pasaje[data-fuente="petemoss"] .lector__nota-v { font-size: .72rem; }
+      .lector__nota-pasaje[data-fuente="estonia"] .lector__nota-omitido, .lector__nota-pasaje[data-fuente="petemoss"] .lector__nota-omitido { font-size: .95rem; }
+      .lector__nota-pasaje[data-fuente="bricolage-grotesque"] { line-height: 1.55; }
       .lector__nota-estado { margin: 0; font-size: .95rem; color: var(--tenue); }
       .lector__nota-estado:empty, .lector__nota-pie:empty, .lector__nota-extra:empty { display: none; }
       .lector__nota-pie { margin: 1rem 0 0; padding-top: .75rem; border-top: 1px solid var(--hilo); font-size: .85rem; line-height: 1.5; color: var(--tenue); overflow-wrap: anywhere; }

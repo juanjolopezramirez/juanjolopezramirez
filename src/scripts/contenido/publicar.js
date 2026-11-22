@@ -13,6 +13,7 @@
 import { Libro } from './Libro.js';
 import { Trabajo, Proyecto } from './Casa.js';
 import { Etapa } from './Etapa.js';
+import { limpiarFichas, fichaVacia } from '../lector/ficha.js';
 
 /* Las imagenes del panel se sirven desde aqui (public/assets/remoto/<ruta del almacen>) */
 export const CARPETA_PUBLICA = 'assets/remoto';
@@ -51,6 +52,9 @@ export function paraBiblioteca(libro) {
   if (Object.keys(sub).length) entrada.subtitulo = sub;
   if (libro.grosor) entrada.grosor = libro.grosor;
   if (libro.tono) entrada.tono = libro.tono;
+  /* La ficha del «ⓘ» (016), solo en los idiomas que salen */
+  const ficha = limpiarFichas(libro.ficha, idiomas);
+  if (Object.keys(ficha).length) entrada.ficha = JSON.parse(JSON.stringify(ficha));
   return entrada;
 }
 

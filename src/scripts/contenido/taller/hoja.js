@@ -341,7 +341,7 @@ export function aHoja(obra, capitulos, o = {}) {
     if (i === antes) nodos.push(...indice);
     const propio = colorValido(objeto(c.contenido).papel);
     if (propio) usados.capitulos.add(propio);
-    const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres, paginaMm: { anchoMm: config.anchoMm, altoMm: config.altoMm }, idioma: obra.idioma, cuerpo: config.cuerpo });
+    const hijos = aNodos(c.contenido, 'pdf', { ...o, papelCapitulo: propio || config.papel || PAPEL_BASE, papelesLibres: usados.libres, paginaMm: { anchoMm: config.anchoMm, altoMm: config.altoMm }, idioma: obra.idioma, cuerpo: config.cuerpo, notas: config.notas });
     const esPortada = portada && i === 0;
     if (esPortada) usados.portada = propio || '';
     /* La contraportada: sin numero ni encabezado, como la portada (la mesa hace lo mismo) */

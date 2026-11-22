@@ -1,0 +1,21 @@
+/* LA FICHA DEL LIBRO en el Taller (panel/dev/taller/Ficha.js). La ventana usa las piezas de la de las notas
+   (.tal-ajustes .tal-nota, en taller.css); aqui solo lo suyo: el contador junto al nombre, las lineas de «Lo que
+   encontrarás» y la entrada en «Ajustes del libro». Mismos oficios de la consola (--tiza, --prompt, --raya). */
+.tal-ficha__entrada { display: grid; gap: .3rem; padding-top: .7rem; border-top: 1px solid var(--raya); }
+.tal-ficha__entrada .tal-ayuda { margin: 0; }
+.tal-ficha__fila { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .75rem; margin-top: .2rem; }
+.tal-ficha__estado { font-size: 12px; color: var(--tiza-2); }
+
+.tal-ficha__nombre { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.tal-ficha__cuenta { font-size: 11px; color: var(--tiza-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tal-ficha__cuenta[data-cerca] { color: var(--prompt); font-weight: 600; }
+.tal-ficha__ayuda { font-size: 11px; color: var(--tiza-2); }
+.tal-ficha .tal-ficha__resumen { min-height: 8.5em; }
+
+/* Las lineas: el numero en el margen, como en una lista escrita a mano */
+.tal-ficha__claves { display: grid; gap: .4rem; margin: 0; padding: 0 0 0 1.4rem; }
+.tal-ficha__claves li { padding-left: .2rem; }
+/* «Actualizar la ficha» (Compartir): su segundo toque pide confirmar en el color del Taller, no en el rojo de borrar */
+.tal-comp .tal-btn.tal-ficha__actualizar[data-armado="1"] { background: rgb(var(--prompt-rgb) / .16); border-color: var(--prompt); color: var(--tiza); }
+
+.tal-ficha__claves li::marker { font: 600 11px/1 var(--mono, ui-monospace, monospace); color: var(--tiza-2); }

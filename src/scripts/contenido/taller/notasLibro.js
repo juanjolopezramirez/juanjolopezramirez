@@ -5,8 +5,9 @@
      marca   { type: 'definicion',  attrs: { t, d?, r?: { a, y, ti, f, u } , rf?, ft?, fd? } }
              { type: 'citaBiblica', attrs: { r: 'JER.1.4-5', x?, rv? } }
 
-   El idioma (`l`) no se guarda en la marca: es el del libro y se pone al sacar el PDF. Puro: sin pagina, sin red. */
-import { enlaceDeNota, limpiarNota } from '../../lector/notaEnPdf.js';
+   El idioma (`l`) no se guarda en la marca: es el del libro y se pone al sacar el PDF. La letra de los versiculos (`fv`)
+   tampoco: es UNA para todo el libro (ConfigPagina.notas.letraVersos) y va en cada cita al sacar el PDF. Puro: sin pagina, sin red. */
+import { enlaceDeNota, fuenteValida, limpiarNota } from '../../lector/notaEnPdf.js';
 import { canonica, leerReferencias, rotulo } from '../../biblia/referencias.js';
 
 export const TIPO_DE_MARCA = Object.freeze({ definicion: 'd', citaBiblica: 'c' });
@@ -15,12 +16,18 @@ export const esMarcaNota = (type) => type === 'definicion' || type === 'citaBibl
 const objeto = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
 const idiomaLibro = (l) => (l === 'en' ? 'en' : 'es');
 
-/* La nota (limpia) que dice una marca, o null. `idioma`: el del libro (va como `l`). */
-export function notaDeMarca(m, idioma) {
+/* LA LETRA DE LOS VERSICULOS de un libro nuevo, si el autor no eligio otra. Se ESCRIBE en cada cita al sacar el PDF: un PDF
+   de antes, sin `fv`, se sigue viendo con la de siempre (Young Serif), y uno nuevo no depende de lo que el lector suponga. */
+export const LETRA_VERSOS = 'bricolage-grotesque';
+export const letraDeVersos = (v) => (fuenteValida(v) ? v : LETRA_VERSOS);
+
+/* La nota (limpia) que dice una marca, o null. `idioma`: el del libro (va como `l`). `fv`: la letra de los versiculos del
+   libro (solo en una cita; una que no es de la lista se tira). */
+export function notaDeMarca(m, idioma, { fv } = {}) {
   const o = objeto(m), k = typeof o.type === 'string' && Object.hasOwn(TIPO_DE_MARCA, o.type) ? TIPO_DE_MARCA[o.type] : null;
   if (!k) return null;
   const a = objeto(o.attrs);
-  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft: a.ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv }), v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
+  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft: a.ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, fv }), v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
   return n;
 }
 
@@ -37,8 +44,8 @@ export function marcaDeNota(nota) {
 /* La marca limpia, o null si no es una nota (marcas.js la usa al guardar: una nota mala no se guarda) */
 export const marcaLimpia = (m) => { const n = notaDeMarca(m); return n ? marcaDeNota(n) : null; };
 
-/* El enlace de la nota de una marca, o null (si no es nota, o no cabe en 8000 letras) */
-export const enlaceDeMarca = (m, idioma) => { const n = notaDeMarca(m, idioma); return n ? enlaceDeNota(n) : null; };
+/* El enlace de la nota de una marca, o null (si no es nota, o no cabe en 8000 letras). `opciones`: { fv } (notaDeMarca) */
+export const enlaceDeMarca = (m, idioma, opciones) => { const n = notaDeMarca(m, idioma, opciones); return n ? enlaceDeNota(n) : null; };
 
 /* Recorre el texto de los capitulos (el JSON del editor, o `{ doc }`) y da cada marca de nota que encuentra, EN EL ORDEN DEL
    LIBRO (capitulo por capitulo, de arriba abajo): la pila se llena al reves para sacar primero lo primero */
@@ -55,10 +62,11 @@ function* marcasDe(contenidos) {
   }
 }
 
-/* Los enlaces de nota distintos que deberia llevar el PDF de estos capitulos */
-export function hrefsDeNotas(contenidos, idioma) {
+/* Los enlaces de nota distintos que deberia llevar el PDF de estos capitulos. `opciones`: { fv }, la misma letra de versiculos
+   que lleva el PDF (asi la cuenta de «Compartir» sale igual que la del PDF) */
+export function hrefsDeNotas(contenidos, idioma, opciones) {
   const salida = new Set();
-  for (const m of marcasDe(contenidos)) { const h = enlaceDeMarca(m, idioma); if (h) salida.add(h); }
+  for (const m of marcasDe(contenidos)) { const h = enlaceDeMarca(m, idioma, opciones); if (h) salida.add(h); }
   return salida;
 }
 

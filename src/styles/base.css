@@ -5319,6 +5319,17 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 }
 .lector__idioma-op:hover { background: var(--l-velo); }
 .lector__idioma-op img { width: 1.75rem; height: 1.75rem; flex: none; }
+/* «Sobre este libro» (ⓘ): pegado al titulo, que ya no se estira; los ajustes se van a la derecha por su cuenta */
+.book-panel[data-lector] .lector__titulo { flex: 0 1 auto; }
+.book-panel[data-lector] .lector__ajustes { margin-left: auto; }
+.lector__info {
+  display: grid; place-items: center; flex: none;
+  width: var(--l-toque); height: var(--l-toque); margin-left: -.35rem;
+  border-radius: 50%; color: var(--l-tenue);
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
+.lector__info:hover, .lector__info[aria-expanded="true"] { background: var(--l-velo); color: var(--l-tinta); }
+.lector__info svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .lector__tema {
   display: grid; place-items: center;
   width: var(--l-toque); height: var(--l-toque);
@@ -5390,7 +5401,8 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 }
 .lector__icono { padding: 0; }
 .lector__puntos { stroke-width: 3; }
-.book__ruta-btn[data-book-zoom][aria-pressed="true"] { background: var(--l-tinta); color: var(--l-sobre); }
+.book__ruta-btn[data-book-zoom][aria-pressed="true"],
+.book__ruta-btn[data-lector-lomo][aria-pressed="true"] { background: var(--l-tinta); color: var(--l-sobre); }
 [aria-pressed="true"] > svg .book__zoom-plus { display: none; }
 .lector__son[aria-pressed="true"] .book__sound-off, .lector__son[aria-pressed="false"] .book__sound-on,
 .lector__hoja [aria-pressed="true"] .book__sound-off, .lector__hoja [aria-pressed="false"] .book__sound-on { display: none; }
@@ -5682,6 +5694,12 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 .lector__nota-pasaje { margin: 0; max-width: 52ch; font-family: var(--serif); font-size: 1.12rem; line-height: 1.6; text-wrap: pretty; }
 .lector__nota-v { margin-right: .05em; font-family: var(--sans); font-size: .62em; font-weight: 700; line-height: 0; color: var(--l-papel-oro); font-variant-numeric: tabular-nums; vertical-align: .55em; }
 .lector__nota-omitido { font-family: var(--sans); font-size: .82em; font-style: italic; color: var(--l-papel-tenue); }
+/* La letra de los versiculos que eligio el libro (hojaNota.pintarVersos pone data-fuente). Estonia y Petemoss son de ojo
+   chico: mas cuerpo y renglon mas suelto, como en las definiciones. El numero y «omitido» no crecen con ellas (en rem). */
+.lector__nota-pasaje[data-fuente="estonia"], .lector__nota-pasaje[data-fuente="petemoss"] { font-size: 1.6rem; line-height: 1.4; }
+.lector__nota-pasaje[data-fuente="estonia"] .lector__nota-v, .lector__nota-pasaje[data-fuente="petemoss"] .lector__nota-v { font-size: .7rem; }
+.lector__nota-pasaje[data-fuente="estonia"] .lector__nota-omitido, .lector__nota-pasaje[data-fuente="petemoss"] .lector__nota-omitido { font-size: .92rem; }
+.lector__nota-pasaje[data-fuente="bricolage-grotesque"] { line-height: 1.55; }
 .lector__nota-estado { margin: 0; font-size: .92rem; line-height: 1.5; color: var(--l-papel-tenue); }
 .lector__nota-estado:empty { display: none; }
 .lector__nota-cargando { animation: lector-respira 1.4s var(--ease) infinite alternate; }
@@ -5709,6 +5727,41 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
 }
 .lector__nota-ver:hover { background: #1D2E1F; }
 .lector__nota-ver:active { scale: .97; }
+
+/* ---------- La ficha del libro («Sobre este libro»): el mismo papel que la nota ----------
+   El titulo, su subtitulo, el tema en una pastilla DEBAJO (nunca encima del titulo), lo que escribio el autor y una fila de
+   datos al pie. Sin ficha (un libro del codigo) quedan el titulo, el tema y los datos. */
+.lector__info-t { margin-bottom: .2rem; }
+.lector__info-sub { margin: 0 2.75rem 0 0; font-family: var(--serif); font-size: 1.05rem; font-style: italic; line-height: 1.35; color: var(--l-papel-tenue); text-wrap: balance; }
+.lector__info-autor { margin: .2rem 0 0; font-size: .85rem; color: var(--l-papel-tenue); }
+.lector__info-tema { margin: .7rem 0 0; }
+.lector__info-chip {
+  display: inline-block; padding: .22rem .7rem;
+  border-radius: 999px; background: rgb(192 138 46 / .12); box-shadow: inset 0 0 0 1px rgb(154 106 31 / .45);
+  font-size: .78rem; font-weight: 600; line-height: 1.35; letter-spacing: .01em; color: var(--l-papel-tinta);
+}
+.lector__info-escrito { margin-top: 1rem; }
+.lector__info-resumen { max-width: 52ch; }
+.lector__info-trozo { margin-top: 1.15rem; }
+.lector__info-h { margin: 0 0 .35rem; font-family: var(--sans); font-size: .8rem; font-weight: 600; letter-spacing: .01em; color: var(--l-papel-tinta); }
+.lector__info-claves { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.lector__info-claves li { position: relative; padding-left: 1.1rem; font-size: .98rem; line-height: 1.5; text-wrap: pretty; overflow-wrap: break-word; }
+.lector__info-claves li::before { content: ""; position: absolute; left: .2rem; top: .62em; width: .36rem; height: .36rem; border-radius: 50%; background: var(--l-papel-oro); }
+.lector__info-para { margin: 0; font-size: .98rem; line-height: 1.5; text-wrap: pretty; overflow-wrap: break-word; }
+.lector__info-datos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 .5rem;
+  margin: 1.2rem 0 0; padding: .55rem 0 0; list-style: none;
+  border-top: 1px solid var(--l-papel-hilo);
+  font-size: .82rem; line-height: 1.5; color: var(--l-papel-tenue); font-variant-numeric: tabular-nums;
+}
+.lector__info-datos li { display: inline-flex; align-items: center; min-height: 1.9rem; }
+.lector__info-datos li + li::before { content: "·"; margin-right: .5rem; color: var(--l-papel-oro); }
+.lector__info-otra {
+  min-height: var(--l-toque); padding: 0 .1rem;
+  color: var(--l-papel-tinta); font-size: inherit; font-weight: 600;
+  text-decoration: underline; text-decoration-color: var(--l-papel-oro); text-decoration-thickness: 1.5px; text-underline-offset: 3px;
+}
+.lector__info-otra:hover { text-decoration-thickness: 2.5px; }
 
 /* La palabra o la cita que se puede tocar dentro de la pagina: un punteado de oro debajo, y al pasar o al llegar con el
    teclado, el oro la cubre. El dedo cabe aunque la palabra sea corta. */
@@ -5909,6 +5962,14 @@ button.lector__idioma-actual:hover, .lector__idioma-actual[aria-expanded="true"]
   .lector__nota.is-abierta { opacity: 1; }
   .lector__nota-cuerpo { padding-bottom: 1.35rem; }
   .book-panel[data-lector] .lector__fondo.is-nota { display: block; background: transparent; }
+  /* La ficha cae de la banda, junto al titulo y su «ⓘ», y no del muelle como la nota */
+  .lector__nota--info {
+    left: var(--l-gut-l); right: auto; bottom: auto;
+    top: calc(var(--l-techo, 4.5rem) + .4rem);
+    width: min(27rem, calc(100% - var(--l-gut-l) - var(--l-gut-r)));
+    max-height: min(38rem, calc(100% - var(--l-techo, 4.5rem) - var(--l-suelo, 4.5rem) - 1.25rem));
+    translate: 0 -.6rem;
+  }
   /* La firma no llego (una pagina sin cabecera, /vista/): queda el pez */
   .lector__marca[data-sin-firma] .lector__marca-pez { display: block; }
   .lector__marca[data-sin-firma] .lector__marca-firma { display: none; }
