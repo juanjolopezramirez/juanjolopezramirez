@@ -1,0 +1,45 @@
+---
+import '../../../styles/tokens.css';
+import '../../../styles/terminal.css';
+import '../../../styles/un-mismo-sentir.css';
+import Fondo from '../../../components/portal/Fondo.astro';
+import AlefIcono from '../../../components/portal/AlefIcono.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const home = `${base}/es/`;
+const icon = `${base}/assets/logos/mark-icon.svg`;
+const mark = `${base}/assets/logos/mark-bone.svg`;
+const syriac = encodeURIComponent('ܐܒܓܕܗܘܙܚܛܝܟܠܡܢܣܥܦܨܩܪܫܬ');
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Un mismo sentir</title>
+    <link rel="icon" href={icon} type="image/svg+xml" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=JetBrains+Mono:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=Noto+Sans+Syriac:wght@500&text=${syriac}&display=swap`} />
+  </head>
+  <body class="pagina--noche ums-night">
+    <div class="terminal ums-terminal">
+      <Fondo />
+      <button class="fondo-pausa ums-ambient" type="button" data-fondo-pausa
+        data-pausar="Pausar el fondo" data-seguir="Reanudar el fondo" aria-label="Pausar el fondo" hidden>
+        <AlefIcono nombre="pausa" class="fondo-pausa__pausa" />
+        <AlefIcono nombre="play" class="fondo-pausa__play" />
+      </button>
+      <div id="game" data-home={home} data-mark={mark}></div>
+    </div>
+    <noscript><p>Activa JavaScript para jugar. <a href={home}>Volver al sitio</a></p></noscript>
+    <script>
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import Game from '../../../components/un-mismo-sentir/Game.jsx';
+
+      const container = document.getElementById('game');
+      if (container) createRoot(container).render(React.createElement(Game, { home: container.dataset.home, mark: container.dataset.mark }));
+    </script>
+  </body>
+</html>
