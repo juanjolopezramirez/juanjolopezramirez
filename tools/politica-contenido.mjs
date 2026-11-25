@@ -111,7 +111,7 @@ async function paginas(dir) {
 }
 
 /* La integracion de Astro: al terminar de compilar, a cada pagina su politica. */
-export function politicaDeContenido({ supabase = '' } = {}) {
+export function politicaDeContenido({ supabase = '', juego = '' } = {}) {
   return {
     name: 'politica-de-contenido',
     hooks: {
@@ -121,8 +121,13 @@ export function politicaDeContenido({ supabase = '' } = {}) {
         for (const f of lista) {
           try {
             /* Solo el libro privado puede traer imagenes de Supabase (ver «imagenes» arriba) */
-            const esVista = /^[a-z]{2}\/vista\/index\.html$/.test(path.relative(raiz, f).split(path.sep).join('/'));
-            await writeFile(f, ponerPolitica(await readFile(f, 'utf8'), { supabase, imagenesDe: esVista && supabase ? [supabase] : [] }));
+            const ruta = path.relative(raiz, f).split(path.sep).join('/');
+            const esVista = /^[a-z]{2}\/vista\/index\.html$/.test(ruta);
+            const esJuego = ruta === 'es/juegos/un-mismo-sentir/index.html';
+            await writeFile(f, ponerPolitica(await readFile(f, 'utf8'), {
+              supabase: esJuego ? juego : supabase,
+              imagenesDe: esVista && supabase ? [supabase] : []
+            }));
           } catch (e) {
             throw new Error(`\n\n  POLITICA DE CONTENIDO: ${path.relative(raiz, f)}: ${e.message}\n`);
           }

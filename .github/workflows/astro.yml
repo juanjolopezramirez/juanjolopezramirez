@@ -31,6 +31,9 @@ jobs:
     env:
       PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+      PUBLIC_UMS_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_UMS_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PUBLIC_UMS_SUPABASE_PUBLISHABLE_KEY }}
+      PUBLIC_UMS_SHARED_PROJECT: 'true'
       # Ningun paquete corre codigo al instalarse, tampoco en el `npm install` que hace la accion de Astro
       NPM_CONFIG_IGNORE_SCRIPTS: "true"
     steps:
