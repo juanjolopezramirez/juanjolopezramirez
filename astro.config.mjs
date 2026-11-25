@@ -16,6 +16,7 @@ await revisarTiposTaller();
 // Detalle en PORTAL.md y en src/scripts/portal/estado.js → revisarVariables.
 // ---------------------------------------------------------------
 let supabaseUrl = '';
+let gameSupabaseUrl = '';
 {
   const env = loadEnv(process.env.NODE_ENV || 'production', process.cwd(), 'PUBLIC_');
   const r = revisarVariables(env.PUBLIC_SUPABASE_URL, env.PUBLIC_SUPABASE_ANON_KEY);
@@ -24,6 +25,17 @@ let supabaseUrl = '';
   const secretas = Object.keys(env).filter((k) => esClaveSecreta(String(env[k]).trim()));
   if (secretas.length) throw new Error('\n\n  PORTAL: ' + secretas.join(', ') + ' tiene una clave SECRETA de Supabase. Nada que empiece por PUBLIC_ puede llevarla: se publicaria. Quitala y, como ya se vio, generala de nuevo en Supabase.\n');
   if (r.ok && !r.vacio) supabaseUrl = limpiarUrl(env.PUBLIC_SUPABASE_URL);   // para la politica de contenido (connect-src)
+  const gameUrl = env.PUBLIC_UMS_SUPABASE_URL?.trim();
+  const gameKey = env.PUBLIC_UMS_SUPABASE_PUBLISHABLE_KEY?.trim();
+  if (gameUrl || gameKey) {
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(gameUrl ?? '') || !/^sb_publishable_[\w-]+$/.test(gameKey ?? '')) {
+      throw new Error('Un mismo sentir requiere la URL HTTPS y la clave publicable del Supabase del juego.');
+    }
+    gameSupabaseUrl = new URL(gameUrl).origin;
+    if (gameSupabaseUrl === supabaseUrl && env.PUBLIC_UMS_SHARED_PROJECT !== 'true') {
+      throw new Error('Activa el modo compartido de Un mismo sentir después de aplicar el aislamiento de invitados del portal.');
+    }
+  }
 }
 
 // ---------------------------------------------------------------
@@ -44,7 +56,7 @@ export default defineConfig({
   site: 'https://juanjolopezramirez.com',
   base: '/',
   // La politica de contenido (CSP) de cada pagina: tools/politica-contenido.mjs
-  integrations: [politicaDeContenido({ supabase: supabaseUrl })],
+  integrations: [politicaDeContenido({ supabase: supabaseUrl, juego: gameSupabaseUrl })],
   i18n: {
     defaultLocale: 'es',
     locales: ['es', 'en', 'pt', 'fr', 'it'],

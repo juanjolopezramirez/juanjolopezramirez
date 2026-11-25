@@ -149,6 +149,7 @@ small { font-size: .875rem; }
 .ums-progress-person strong { font-size: .9rem; }
 .ums-progress-connection { color: var(--ums-muted); font-size: .75rem; }
 .ums-progress-connection::before { display: inline-block; width: .4rem; aspect-ratio: 1; margin-inline-end: .3rem; border-radius: 50%; background: var(--ums-control); content: ""; }
+.ums-progress-connection.is-offline::before { background: var(--ums-edge); }
 .ums-progress-cards { display: flex; gap: .3rem; }
 .ums-progress-cards li { display: grid; place-items: center; width: 1.35rem; height: 1.55rem; border: 1px solid var(--ums-edge); border-radius: .25rem; color: var(--ums-muted); font: .7rem var(--mono); }
 .ums-progress-cards .is-written { border-color: var(--ums-match-high-line); color: var(--ums-match-high-ink); background: var(--ums-match-high); }
@@ -184,6 +185,7 @@ small { font-size: .875rem; }
 .ums-match-mark { display: inline-grid; flex: none; place-items: center; width: 1.55rem; height: 1.15rem; border: 1px solid var(--match-line); border-radius: .24rem; background: var(--match-fill); color: var(--match-ink); }
 .ums-match-mark svg { width: 1rem; height: .75rem; }
 .ums-face-card .ums-match-mark { justify-self: end; border-color: transparent; }
+.ums-original-mark { justify-self: end; width: .5rem; height: .5rem; border-radius: 50%; background: var(--ums-gold); }
 .ums-match-key { display: flex; flex-wrap: wrap; gap: .5rem .85rem; padding: 0; margin: 0; list-style: none; color: var(--ums-muted); font-size: .875rem; }
 .ums-match-key li, .ums-help-points dt { display: flex; align-items: center; gap: .5rem; }
 .ums-vote-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); }

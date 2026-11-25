@@ -10,7 +10,7 @@ function CardSeal() {
   </svg>;
 }
 
-export default function WritingDeck({ words, setWords, error, reduced }) {
+export default function WritingDeck({ words, setWords, error, reduced, maxLength = 32 }) {
   const [active, setActive] = useState(0);
   const [covered, setCovered] = useState([false, false, false]);
   const [announcement, setAnnouncement] = useState('');
@@ -85,7 +85,7 @@ export default function WritingDeck({ words, setWords, error, reduced }) {
         {hidden ? <div className="ums-card-back-copy"><CardSeal /><p>Respuesta oculta</p></div> :
           <label className="ums-field ums-card-entry" htmlFor={`word-${active}`}>
             Respuesta {active + 1}
-            <input ref={input} id={`word-${active}`} value={words[active]} autoComplete="off" maxLength={32}
+            <input ref={input} id={`word-${active}`} value={words[active]} autoComplete="off" maxLength={maxLength}
               placeholder="Por ejemplo, Toy Story" aria-invalid={invalid || undefined}
               aria-describedby={invalid ? 'form-error' : undefined}
               onChange={(event) => setWords((previous) => previous.map((word, index) => index === active ? event.target.value : word))} />

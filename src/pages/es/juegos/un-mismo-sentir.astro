@@ -30,7 +30,9 @@ const syriac = encodeURIComponent('ܐܒܓܕܗܘܙܚܛܝܟܠܡܢܣܥܦܨܩܪܫܬ'
         <AlefIcono nombre="pausa" class="fondo-pausa__pausa" />
         <AlefIcono nombre="play" class="fondo-pausa__play" />
       </button>
-      <div id="game" data-home={home} data-mark={mark}></div>
+      <div id="game" data-home={home} data-mark={mark}
+        data-ums-url={import.meta.env.PUBLIC_UMS_SUPABASE_URL?.trim()}
+        data-ums-key={import.meta.env.PUBLIC_UMS_SUPABASE_PUBLISHABLE_KEY?.trim()}></div>
     </div>
     <noscript><p>Activa JavaScript para jugar. <a href={home}>Volver al sitio</a></p></noscript>
     <script>
@@ -39,7 +41,22 @@ const syriac = encodeURIComponent('ܐܒܓܕܗܘܙܚܛܝܟܠܡܢܣܥܦܨܩܪܫܬ'
       import Game from '../../../components/un-mismo-sentir/Game.jsx';
 
       const container = document.getElementById('game');
-      if (container) createRoot(container).render(React.createElement(Game, { home: container.dataset.home, mark: container.dataset.mark }));
+      if (container) {
+        const { home, mark, umsUrl, umsKey } = container.dataset;
+        const root = createRoot(container);
+        if (umsUrl && umsKey) {
+          Promise.all([
+            import('../../../components/un-mismo-sentir/LiveGame.jsx'),
+            import('../../../components/un-mismo-sentir/live-session.js')
+          ]).then(([game, connection]) => {
+            root.render(React.createElement(game.default, { home, mark, session: connection.liveSession(umsUrl, umsKey) }));
+          }).catch(() => {
+            root.render(React.createElement('p', { role: 'alert' }, 'No se pudo cargar el juego en línea. Recarga para intentarlo de nuevo.'));
+          });
+        } else {
+          root.render(React.createElement(Game, { home, mark }));
+        }
+      }
     </script>
   </body>
 </html>

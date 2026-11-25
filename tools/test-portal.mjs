@@ -404,11 +404,11 @@ ok('la demo solo se carga detras de import.meta.env.DEV, y solo ella', () => {
   const importan = archivos('src', (r) => /\.(js|astro)$/.test(r)).filter((f) => /import\(\s*['"][^'"]*demo\.js['"]\s*\)/.test(leer(f)));
   assert.deepEqual(importan, ['src/scripts/portal/backend.js']);
 });
-ok('supabase-js: version fija (sin ^ ni ~) y solo se importa en cliente.js', () => {
+ok('supabase-js: versión fija e importación limitada a los clientes del portal y del juego', () => {
   const v = JSON.parse(leer('package.json')).dependencies['@supabase/supabase-js'];
   assert.match(v, /^\d+\.\d+\.\d+$/);
-  const importan = archivos('src', (r) => /\.(js|astro)$/.test(r)).filter((f) => /@supabase\/supabase-js/.test(leer(f).replace(/\/\*[\s\S]*?\*\//g, '')));
-  assert.deepEqual(importan, ['src/scripts/portal/cliente.js']);
+  const importan = archivos('src', (r) => /\.(jsx?|astro)$/.test(r)).filter((f) => /@supabase\/supabase-js/.test(leer(f).replace(/\/\*[\s\S]*?\*\//g, '')));
+  assert.deepEqual(importan.sort(), ['src/components/un-mismo-sentir/live-session.js', 'src/scripts/portal/cliente.js']);
 });
 ok('el cliente: PKCE y no el flujo por defecto', () => {
   assert.match(leer('src/scripts/portal/cliente.js'), /flowType:\s*'pkce'/);
@@ -1255,7 +1255,7 @@ ok('cada marco (iframe) que el sitio abre esta permitido en frame-src', () => {
 });
 ok('la compilacion pone la politica en todas las paginas (astro.config.mjs)', () => {
   const c = leer('astro.config.mjs');
-  assert.match(c, /integrations: \[politicaDeContenido\(\{ supabase: supabaseUrl \}\)\]/);
+  assert.match(c, /integrations: \[politicaDeContenido\(\{ supabase: supabaseUrl, juego: gameSupabaseUrl \}\)\]/);
 });
 ok('lo compilado (dist/), si existe: TODAS las paginas llevan su politica', () => {
   const html = archivos('dist', (r) => r.endsWith('.html'));
