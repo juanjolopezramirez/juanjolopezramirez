@@ -73,6 +73,7 @@ class Lista {
       e.setAttribute('role', 'option');
       e.setAttribute('aria-selected', String(o.valor === hoy));
       if (o.fuente) e.style.fontFamily = o.fuente;
+      if (o.peso) e.style.fontWeight = o.peso;
       return e;
     }));
     this.lista = l;
@@ -140,9 +141,9 @@ class Lista {
   }
 }
 
-/* Un <select> con cara propia. `fuenteDe(valor)` dibuja cada opcion en su propia letra. */
+/* Un <select> con cara propia. `fuenteDe(valor)` dibuja cada opcion en su propia letra; `pesoDe(valor)`, en su grosor. */
 export class Selector {
-  constructor(select, { fuenteDe = null } = {}) {
+  constructor(select, { fuenteDe = null, pesoDe = null } = {}) {
     this.select = select;
     this.etiqueta = select.getAttribute('aria-label') || (select.closest('label') ? select.closest('label').querySelector('span').textContent : '');
     this.boton = crear('button', 'tal-sel');
@@ -153,7 +154,7 @@ export class Selector {
     this.boton.append(this.texto, crear('span', 'tal-sel__flecha'));
     this.lista = new Lista(this.boton, this.boton, {
       etiqueta: this.etiqueta,
-      opciones: () => [...select.options].map((o) => ({ valor: o.value, texto: o.textContent, fuente: fuenteDe ? fuenteDe(o.value) : '' })),
+      opciones: () => [...select.options].map((o) => ({ valor: o.value, texto: o.textContent, fuente: fuenteDe ? fuenteDe(o.value) : '', peso: pesoDe ? pesoDe(o.value) : '' })),
       actual: () => select.value,
       elegir: (v) => {
         if (v !== select.value) { select.value = v; select.dispatchEvent(new Event('change', { bubbles: true })); }

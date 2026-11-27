@@ -5,7 +5,7 @@
    guarda pasa siempre por TextoLibro.js: el editor propone, la lista de permitidos decide. */
 import { Editor, Extension } from '@tiptap/core';
 import { Fragment, Slice } from '@tiptap/pm/model';
-import { Plugin } from '@tiptap/pm/state';
+import { Plugin, TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import { Color, FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style';
 import Subscript from '@tiptap/extension-subscript';
@@ -144,6 +144,23 @@ const Anclas = Extension.create({
   }
 });
 
+/* UNA IMAGEN SOLTADA desde fuera (un archivo) sobre el texto: el cursor va al punto donde cayo y la mesa la sube y la pone
+   ahi por el mismo camino del boton «Imagen» (taller/SoltarMesa.js escucha `tal-soltar-imagen`). Un PDF, varias cosas, lo
+   que cae sobre una pagina libre o lo que se mueve dentro del libro siguen su camino de siempre (false). */
+const IMAGEN_SOLTADA = /\.(png|jpe?g|webp|svg)$/i;
+function soltarImagen(vista, e, movido) {
+  const dt = e.dataTransfer;
+  if (movido || !vista.editable || !dt || !dt.files || dt.files.length !== 1) return false;
+  const archivo = dt.files[0];
+  if (!IMAGEN_SOLTADA.test(String(archivo.name || ''))) return false;
+  if (e.target && e.target.closest && e.target.closest('.hoja')) return false;
+  const punto = vista.posAtCoords({ left: e.clientX, top: e.clientY });
+  if (punto) vista.dispatch(vista.state.tr.setSelection(TextSelection.near(vista.state.doc.resolve(punto.pos))));
+  vista.focus();
+  vista.dom.dispatchEvent(new CustomEvent('tal-soltar-imagen', { bubbles: true, detail: { archivo } }));
+  return true;
+}
+
 export function crearEditor(elemento, o) {
   return new Editor({
     element: elemento,
@@ -165,6 +182,7 @@ export function crearEditor(elemento, o) {
     ],
     editorProps: {
       transformPastedHTML: limpiarPegado,
+      handleDrop: (vista, e, trozo, movido) => soltarImagen(vista, e, movido),
       transformPasted: (s) => new Slice(fragmentoLimpio(s.content), s.openStart, s.openEnd),
       attributes: { class: 'libro flujo', 'aria-label': o.etiqueta, 'aria-multiline': 'true', spellcheck: 'true', lang: o.idioma },
       /* Que el cursor nunca quede pegado al borde de la mesa */

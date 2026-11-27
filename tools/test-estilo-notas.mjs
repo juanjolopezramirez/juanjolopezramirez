@@ -219,14 +219,152 @@ await ok('al sacar el PDF: la cita lleva la letra del libro; la definicion, la s
 });
 await ok('la hoja, /nota/ y el indice ponen la letra del titulo con ponerFuente; la letra a mano sale mas grande', () => {
   const hoja = leer('src/scripts/lector/hojaNota.js'), pag = leer('src/scripts/nota.js'), site = leer('src/scripts/site.js'), css = leer('src/styles/base.css');
-  assert.match(hoja, /t\.id = 'lector-nota-t';\s*ponerFuente\(t, nota\.ft\);/);
-  assert.match(pag, /ponerFuente\(titulo, nota\.ft\);/);
+  assert.match(hoja, /t\.id = 'lector-nota-t';\s*ponerFuente\(t, nota\.ft, nota\.wt\);/);
+  assert.match(pag, /ponerFuente\(titulo, nota\.ft, nota\.wt\);/);
   assert.match(site, /import\('\.\/lector\/hojaNota\.js'\)\.then\(\(m\) => conLetra\.forEach/);
   assert.match(css, /\.lector__fila strong\[data-fuente="estonia"\], \.lector__fila strong\[data-fuente="petemoss"\] \{ font-size: 1\.55rem;/);
   assert.match(css, /\.lector__nota-t\[data-fuente="petemoss"\], \.lector__nota-t\[data-fuente="estonia"\]/);
   const tx = PORTAL_TEXTOS.es.panel.taller;
   assert.equal(tx.enLetraTitulo, 'Letra del título');
   assert.match(tx.ndLetraLibroAyuda, /Estilo de las notas/);
+});
+
+console.log('\nel grosor (A1)');
+await ok('los grosores de verdad de cada letra (Google Fonts, 2026-11-23) y pesoMasCercano', () => {
+  const rango = (id) => N.pesosDeFuente(id);
+  assert.deepEqual(rango('young-serif'), [400]);
+  assert.deepEqual(rango('petemoss'), [400]);
+  assert.deepEqual(rango('estonia'), [400]);
+  assert.deepEqual(rango('bricolage-grotesque'), [200, 300, 400, 500, 600, 700, 800]);
+  assert.deepEqual(rango('frank-ruhl-libre'), [300, 400, 500, 600, 700, 800, 900]);
+  assert.deepEqual(rango('lora'), [400, 500, 600, 700]);
+  assert.deepEqual(rango('x'), []);
+  assert.equal(N.pesoMasCercano('lora', 900), 700);
+  assert.equal(N.pesoMasCercano('lora', 300), 400);
+  assert.equal(N.pesoMasCercano('frank-ruhl-libre', 200), 300);
+  assert.equal(N.pesoMasCercano('bricolage-grotesque', 900), 800);
+  assert.equal(N.pesoMasCercano('bricolage-grotesque', 500), 500);
+  for (const id of ['young-serif', 'petemoss', 'estonia', 'x', undefined]) assert.equal(N.pesoMasCercano(id, 700), null, String(id));
+  for (const w of [0, '', null, undefined, NaN, -100, '700']) assert.equal(N.pesoMasCercano('lora', w), null, String(w));
+  /* las hojas de Google piden el rango entero */
+  assert.match(N.hojaDeFuente('bricolage-grotesque'), /family=Bricolage\+Grotesque:opsz,wght@12\.\.96,200\.\.800&/);
+  assert.match(N.hojaDeFuente('frank-ruhl-libre'), /family=Frank\+Ruhl\+Libre:wght@300\.\.900&/);
+  assert.match(N.hojaDeFuente('lora'), /family=Lora:ital,wght@0,400\.\.700;1,400\.\.700&/);
+  for (const f of ['src/layouts/Base.astro', 'src/pages/nota.astro']) assert.match(leer(f), /Bricolage\+Grotesque:opsz,wght@12\.\.96,200\.\.800&/, f);
+});
+await ok('wt / wd: ida y vuelta en su lugar; lo malo y lo que la letra no tiene se tira', () => {
+  const cita = { v: 1, k: 'c', r: 'JHN.3.16', rv: 'NVI', ft: 'frank-ruhl-libre', fv: 'bricolage-grotesque', wt: 800, wd: 300, l: 'es' };
+  const h = N.enlaceDeNota(cita);
+  assert.deepEqual(Object.keys(plano(h)), ['v', 'k', 'r', 'rv', 'ft', 'fv', 'wt', 'wd', 'l']);
+  const vuelta = N.notaDeEnlace(h);
+  assert.equal(vuelta.wt, 800);
+  assert.equal(vuelta.wd, 300);
+  assert.equal(N.enlaceDeNota(vuelta), h, 'la misma nota da el mismo enlace');
+  const def = { v: 1, k: 'd', t: 'Ahavá', d: 'Amor', ft: 'lora', fd: 'frank-ruhl-libre', wt: 700, wd: 900, cl: ['#7a3b1f', ''], l: 'es' };
+  const hd = N.enlaceDeNota(def);
+  assert.deepEqual(Object.keys(plano(hd)), ['v', 'k', 't', 'd', 'ft', 'fd', 'wt', 'wd', 'cl', 'l']);
+  assert.equal(N.notaDeEnlace(hd).wd, 900);
+  /* malos: fuera de 100-900, no de cien en cien, texto, decimales, objetos */
+  for (const w of [0, 50, 1000, 750, 450, '700', 700.5, -700, NaN, Infinity, null, [700], { 0: 700 }, true]) {
+    const x = N.limpiarNota({ ...cita, wt: w, wd: w });
+    assert.equal(x.wt, undefined, 'wt ' + String(w));
+    assert.equal(x.wd, undefined, 'wd ' + String(w));
+  }
+  /* la letra no lo tiene: Lora 300 o 800, Frank Ruhl 200, Bricolage 900 */
+  assert.equal(N.limpiarNota({ ...def, wt: 300 }).wt, undefined);
+  assert.equal(N.limpiarNota({ ...def, wt: 800 }).wt, undefined);
+  assert.equal(N.limpiarNota({ ...def, wd: 200 }).wd, undefined);
+  assert.equal(N.limpiarNota({ ...cita, wd: 900 }).wd, undefined);
+  /* una letra de un solo grosor no lleva ninguno, ni siquiera 400 */
+  for (const id of ['young-serif', 'petemoss', 'estonia']) {
+    assert.equal(N.limpiarNota({ ...cita, ft: id, wt: 400 }).wt, undefined, id);
+    assert.equal(N.limpiarNota({ ...cita, fv: id, wd: 400 }).wd, undefined, id);
+    assert.equal(N.limpiarNota({ ...def, fd: id, wd: 400 }).wd, undefined, id);
+  }
+  /* sin letra no hay grosor; y el de una parte no se cruza a la otra */
+  assert.equal(N.limpiarNota({ v: 1, k: 'c', r: 'JHN.3.16', wt: 700, wd: 700 }).wt, undefined);
+  assert.equal(N.limpiarNota({ v: 1, k: 'c', r: 'JHN.3.16', wt: 700, wd: 700 }).wd, undefined);
+  assert.equal(N.limpiarNota({ v: 1, k: 'd', t: 'x', ft: 'lora', wd: 700 }).wd, undefined, 'wd va con fd, no con ft');
+  /* una nota hostil con __proto__ no cuela nada */
+  assert.equal(N.limpiarNota(JSON.parse('{"v":1,"k":"d","t":"x","ft":"lora","__proto__":{"wt":700}}')).wt, undefined);
+});
+await ok('los enlaces de antes (sin wt / wd) no cambian ni un byte', () => {
+  const viejas = [
+    { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremías 1:4-5', rv: 'NVI', ft: 'frank-ruhl-libre', fv: 'bricolage-grotesque', cl: ['#2f5d50', ''], ee: 'tinta', l: 'es' },
+    { v: 1, k: 'd', t: 'Ahavá', d: 'Amor', ft: 'estonia', fd: 'lora', cd: ['#e8c58a', '#d9d4c7'], el: 'brillo', l: 'es' }
+  ];
+  for (const v of viejas) {
+    assert.equal(N.enlaceDeNota(v), 'https://juanjolopezramirez.com/nota/#n=' + Buffer.from(JSON.stringify(v)).toString('base64url'));
+    const leida = N.notaDeEnlace(N.enlaceDeNota(v));
+    assert.equal(leida.wt, undefined);
+    assert.equal(leida.wd, undefined);
+  }
+});
+await ok('ConfigPagina.notas.pesos: cuatro cifras; lo demas (o todo en cero) queda en blanco', () => {
+  assert.equal(new ConfigPagina({ notas: { pesos: '7030' } }).notas.pesos, '7030');
+  assert.equal(new ConfigPagina(new ConfigPagina({ notas: { pesos: '0907' } }).aDatos()).notas.pesos, '0907');
+  for (const v of ['0000', '703', '70300', '7a30', ' 7030', 7030, null, ['7030'], '７０３０']) assert.equal(new ConfigPagina({ notas: { pesos: v } }).notas.pesos, '', String(v));
+  assert.deepEqual(NL.pesosDeLibro('7030'), [700, 0, 300, 0]);
+  assert.deepEqual(NL.pesosDeLibro(''), [0, 0, 0, 0]);
+  assert.deepEqual(NL.pesosDeLibro('x'), [0, 0, 0, 0]);
+  assert.equal(NL.cadenaDePesos([700, 0, 300, 0]), '7030');
+  assert.equal(NL.cadenaDePesos([0, 0, 0, 0]), '');
+  assert.equal(NL.cadenaDePesos([750, 1000, -100, '700']), '', 'lo que no es un grosor cuenta como el de siempre');
+  assert.deepEqual(NL.ORDEN_PESOS, ['tituloRef', 'versos', 'tituloDef', 'textoDef']);
+});
+await ok('al sacar el PDF: cada nota lleva el grosor del libro, el mas cercano que tenga SU letra', () => {
+  const cap = { contenido: doc(parrafo(
+    texto('Juan 3:16', [{ type: 'citaBiblica', attrs: { r: 'JHN.3.16', x: 'Juan 3:16' } }]), texto(' y '),
+    texto('Ahavá', [{ type: 'definicion', attrs: { t: 'Ahavá', d: 'Amor', ft: 'lora', fd: 'frank-ruhl-libre' } }]), texto(' y '),
+    texto('Emet', [{ type: 'definicion', attrs: { t: 'Emet', d: 'Verdad', fd: 'estonia' } }]))) };
+  const notasDe = (pagina) => todos(aHoja({ titulo: 'L', idioma: 'es', pagina, fuentes: [] }, [cap]).nodos, (x) => x.tag === 'a' && /^nota/.test(x.clase)).map((a) => N.notaDeEnlace(a.attrs.href));
+  /* referencias: titulo Frank Ruhl 900, versiculos Bricolage (de los libros nuevos) 900 -> 800; definiciones: titulo 200, texto 900 */
+  const [c, propia, sinPropia] = notasDe({ notas: { tituloRef: 'frank-ruhl-libre', tituloDef: 'bricolage-grotesque', pesos: '9929' } });
+  assert.equal(c.wt, 900);
+  assert.equal(c.wd, 800, 'Bricolage llega a 800');
+  assert.equal(propia.ft, 'lora');
+  assert.equal(propia.wt, 400, 'la letra propia (Lora) manda: 200 -> 400');
+  assert.equal(propia.wd, 900, 'Frank Ruhl tiene 900');
+  assert.equal(sinPropia.ft, 'bricolage-grotesque');
+  assert.equal(sinPropia.wt, 200, 'sin la suya, la del libro, que tiene 200');
+  assert.equal(sinPropia.wd, undefined, 'Estonia tiene un solo grosor');
+  /* titulo de las referencias sin letra elegida = Young Serif: sin grosor */
+  const [c2] = notasDe({ notas: { pesos: '7700' } });
+  assert.equal(c2.wt, undefined);
+  assert.equal(c2.wd, 700);
+  /* sin grosor elegido: el enlace de siempre */
+  const sin = notasDe({ notas: { tituloRef: 'frank-ruhl-libre' } });
+  for (const x of sin) { assert.equal(x.wt, undefined); assert.equal(x.wd, undefined); }
+  /* estiloDeNotas lleva lo PEDIDO (cada nota lo ajusta); sin grosor, nada nuevo */
+  assert.deepEqual(NL.estiloDeNotas({ tituloRef: 'lora', pesos: '9000' }), { c: { ft: 'lora', wt: 900 }, d: {} });
+  assert.deepEqual(NL.estiloDeNotas({ tituloRef: 'lora' }), { c: { ft: 'lora' }, d: {} });
+  /* la marca guardada no lleva grosor: es del libro */
+  assert.ok(!('wt' in NL.marcaDeNota({ v: 1, k: 'd', t: 'x', ft: 'lora', wt: 700 }).attrs));
+  /* la cuenta de «Compartir» cuadra con el PDF */
+  const estilo = NL.estiloDeNotas(new ConfigPagina({ notas: { tituloRef: 'frank-ruhl-libre', tituloDef: 'bricolage-grotesque', pesos: '9929' } }).notas);
+  const delPdf = todos(aHoja({ titulo: 'L', idioma: 'es', pagina: { notas: { tituloRef: 'frank-ruhl-libre', tituloDef: 'bricolage-grotesque', pesos: '9929' } }, fuentes: [] }, [cap]).nodos, (x) => x.tag === 'a' && /^nota/.test(x.clase)).map((a) => a.attrs.href);
+  assert.deepEqual([...NL.hrefsDeNotas([cap.contenido], 'es', { fv: NL.LETRA_VERSOS, estilo })].sort(), [...new Set(delPdf)].sort());
+});
+await ok('el lector, /nota/, el indice y el Taller usan el grosor; nunca negrita falsa', () => {
+  const hoja = leer('src/scripts/lector/hojaNota.js'), pag = leer('src/scripts/nota.js'), site = leer('src/scripts/site.js'), css = leer('src/styles/base.css'), astro = leer('src/pages/nota.astro');
+  assert.match(hoja, /ponerFuente\(d, nota\.fd, nota\.wd\)/);
+  assert.match(pag, /ponerFuente\(d, nota\.fd, nota\.wd\)/);
+  assert.match(site, /m\.ponerFuente\(s, f, w\)/, 'las filas del indice');
+  assert.match(css, /\.lector__nota-t, \.lector__nota-texto, \.lector__nota-pasaje, \.lector__fila strong \{ font-synthesis-weight: none; \}/);
+  assert.match(astro, /\.lector__nota-t, \.lector__nota-texto, \.lector__nota-pasaje \{ font-synthesis-weight: none; \}/);
+  const est = leer('src/scripts/portal/panel/dev/taller/EstiloNotas.js');
+  assert.match(est, /pesos: cadenaDePesos\(\[0, 1, 2, 3\]\.map\(\(i\) => this\.pesoEfectivo\(i\)\)\)/);
+  assert.match(est, /verPeso\(i\) \{ this\.campoPw\[i\]\.hidden = TIPO_DE_PESO\[i\] !== this\.tipo \|\| this\.pesosOfrecidos\(i\)\.length < 2; \}/, 'solo con mas de un grosor');
+  assert.match(est, /this\.pesos\[i\] = \(letra \? pesoMasCercano\(letra, pedido\) : cercano\(lista, pedido\)\) \|\| 0;/, 'al cambiar de letra, el mas cercano al ULTIMO elegido');
+  assert.match(est, /this\.pesos\[i\] = this\.pedidos\[i\] = Number\(s\.value\) \|\| 0;/, 'lo elegido se recuerda mientras la ventana esta abierta');
+  assert.match(est, /this\.pedidos = \[\.\.\.this\.pesos\];/, 'al abrir, lo recordado es lo guardado');
+  const tx = PORTAL_TEXTOS.es.panel.taller;
+  for (const k of ['enGrosorTitulo', 'enGrosorVersos', 'enGrosorDesc', 'enGrosorSiempre', 'enGrosorDescAyuda']) assert.ok(tx[k], k);
+  for (const w of [200, 300, 400, 500, 600, 700, 800, 900]) assert.ok(tx.enPesos[w], 'enPesos ' + w);
+  /* el CSP sigue dejando las hojas de Google (mismos origenes) */
+  const csp = leer('tools/politica-contenido.mjs');
+  assert.match(csp, /style-src 'self' 'unsafe-inline' https:\/\/fonts\.googleapis\.com/);
+  assert.match(csp, /font-src 'self' https:\/\/fonts\.gstatic\.com/);
 });
 
 console.log('\nel contraste');

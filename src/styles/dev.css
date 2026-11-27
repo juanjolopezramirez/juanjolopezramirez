@@ -175,6 +175,11 @@
 .dev__medida:empty { display: none; }
 .dev__medida::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: .5rem; border-radius: 50%; background: var(--prompt); translate: 0 -1px; }
 .dev__medida--mal::before { background: var(--alerta); }
+/* La medida ideal del lomo: un punto hueco (lo que se pide), no el lleno (lo que mide el archivo) */
+.dev__medida--ideal { color: var(--tiza-2); }
+.dev__medida--ideal::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--prompt); }
+.dev__recortar { justify-self: start; margin-top: .4rem; }
+.dev__recortar[hidden] { display: none; }
 
 /* El error de un campo, debajo de el; la nota (un aviso que no frena), sin punto */
 .dev__error { display: flex; gap: .5rem; align-items: baseline; margin: 0; font-size: .84rem; line-height: 1.45; color: var(--tiza); }

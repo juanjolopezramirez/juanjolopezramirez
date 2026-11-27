@@ -53,7 +53,9 @@ const DUO = {
 };
 /* Los colores de muestra (ronda 3): por tema, [titulo, texto]. Tinta sepia y oro de dia; oro claro y salvia de noche. */
 const ESTILO_DEF = { cl: ['#7a3b1f', '#3b2f26'], cd: ['#e8c58a', '#d9d4c7'], ee: 'letra', el: 'brillo' };
-const ESTILO_CITA = { cl: ['#2f5d50', ''], cd: ['#9fd3c0', '#e4e0d4'], ft: 'frank-ruhl-libre' };   // ronda 4: la letra del titulo de las referencias
+/* A1, el grosor: el titulo de las referencias en Frank Ruhl Libre 800; versiculos en Bricolage 300 (Jeremías) y 700 (Mateo 3:17);
+   la descripcion de «Ahavá» en Lora 700. Su titulo pide 700 en Estonia, que tiene un solo grosor: el enlace lo tira. */
+const ESTILO_CITA = { cl: ['#2f5d50', ''], cd: ['#9fd3c0', '#e4e0d4'], ft: 'frank-ruhl-libre', wt: 800 };   // ronda 4: la letra del titulo de las referencias
 const TEXTOS = {
   es: {
     titulo: 'Muestra: notas del lector',
@@ -65,10 +67,10 @@ const TEXTOS = {
       [['h', 'Para buscar'], ['p', 'El índice también busca en el texto del libro, sin mirar tildes: prueba con «corazon» o con «AMOR».'], ['f', 'Una nota falsa'], ['kb', 'Copiar (sin escalón)'], ['kl', 'Junto al lomo']],
       [['t', 'Fin'], ['p', 'Contratapa']],
     ],
-    def: { v: 1, k: 'd', t: 'Ahavá', d: 'Amor. No nombra un sentimiento que ocurre, sino una decisión que se toma: querer el bien del otro antes de sentirlo.', r: { a: 'Brown, F., Driver, S. R., & Briggs, C. A.', y: '1906', ti: 'A Hebrew and English lexicon of the Old Testament', f: 'Clarendon Press', u: 'https://archive.org/details/hebrewenglishlex00browuoft' }, ft: 'estonia', fd: 'lora', ...ESTILO_DEF, l: 'es' },
-    c1: { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremías 1:4-5', rv: 'NVI', fv: 'bricolage-grotesque', ...ESTILO_CITA, ee: 'tinta', el: 'subraya', l: 'es' },
+    def: { v: 1, k: 'd', t: 'Ahavá', d: 'Amor. No nombra un sentimiento que ocurre, sino una decisión que se toma: querer el bien del otro antes de sentirlo.', r: { a: 'Brown, F., Driver, S. R., & Briggs, C. A.', y: '1906', ti: 'A Hebrew and English lexicon of the Old Testament', f: 'Clarendon Press', u: 'https://archive.org/details/hebrewenglishlex00browuoft' }, ft: 'estonia', fd: 'lora', wt: 700, wd: 700, ...ESTILO_DEF, l: 'es' },
+    c1: { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremías 1:4-5', rv: 'NVI', fv: 'bricolage-grotesque', ...ESTILO_CITA, wd: 300, ee: 'tinta', el: 'subraya', l: 'es' },
     c2: { v: 1, k: 'c', r: 'PSA.139', x: 'Salmo 139', fv: 'estonia', cd: ['#2a3a2c', ''], el: 'respira', l: 'es' },
-    c3: { v: 1, k: 'c', r: 'MAT.3.17', x: 'Mateo 3:17', fv: 'bricolage-grotesque', ...ESTILO_CITA, ee: 'sube', el: 'respira', l: 'es' },
+    c3: { v: 1, k: 'c', r: 'MAT.3.17', x: 'Mateo 3:17', fv: 'bricolage-grotesque', ...ESTILO_CITA, wd: 700, ee: 'sube', el: 'respira', l: 'es' },
     c4: { v: 1, k: 'c', r: 'MAT.4.3', x: '4:3', fv: 'bricolage-grotesque', ...ESTILO_CITA, ee: 'aparece', l: 'es' },
     copia: 'Antes de nacer ya eras conocido.',
     copiado: 'Copiado',
@@ -89,10 +91,10 @@ const TEXTOS = {
       [['h', 'To search'], ['p', 'The index also searches the text of the book: try “heart” or “LOVE”.'], ['f', 'A fake note'], ['kb', 'Copy (no ledge)'], ['kl', 'By the spine']],
       [['t', 'The end'], ['p', 'Back cover']],
     ],
-    def: { v: 1, k: 'd', t: 'Ahavah', d: 'Love. It names not a feeling that happens but a decision that is made: willing the good of the other before feeling it.', r: { a: 'Brown, F., Driver, S. R., & Briggs, C. A.', y: '1906', ti: 'A Hebrew and English lexicon of the Old Testament', f: 'Clarendon Press', u: 'https://archive.org/details/hebrewenglishlex00browuoft' }, ft: 'estonia', fd: 'lora', ...ESTILO_DEF, l: 'en' },
-    c1: { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremiah 1:4-5', rv: 'NIV', fv: 'bricolage-grotesque', ...ESTILO_CITA, ee: 'tinta', el: 'subraya', l: 'en' },
+    def: { v: 1, k: 'd', t: 'Ahavah', d: 'Love. It names not a feeling that happens but a decision that is made: willing the good of the other before feeling it.', r: { a: 'Brown, F., Driver, S. R., & Briggs, C. A.', y: '1906', ti: 'A Hebrew and English lexicon of the Old Testament', f: 'Clarendon Press', u: 'https://archive.org/details/hebrewenglishlex00browuoft' }, ft: 'estonia', fd: 'lora', wt: 700, wd: 700, ...ESTILO_DEF, l: 'en' },
+    c1: { v: 1, k: 'c', r: 'JER.1.4-5', x: 'Jeremiah 1:4-5', rv: 'NIV', fv: 'bricolage-grotesque', ...ESTILO_CITA, wd: 300, ee: 'tinta', el: 'subraya', l: 'en' },
     c2: { v: 1, k: 'c', r: 'PSA.139', x: 'Psalm 139', fv: 'estonia', cd: ['#2a3a2c', ''], el: 'respira', l: 'en' },
-    c3: { v: 1, k: 'c', r: 'MAT.3.17', x: 'Matthew 3:17', fv: 'bricolage-grotesque', ...ESTILO_CITA, ee: 'sube', el: 'respira', l: 'en' },
+    c3: { v: 1, k: 'c', r: 'MAT.3.17', x: 'Matthew 3:17', fv: 'bricolage-grotesque', ...ESTILO_CITA, wd: 700, ee: 'sube', el: 'respira', l: 'en' },
     c4: { v: 1, k: 'c', r: 'MAT.4.3', x: '4:3', fv: 'bricolage-grotesque', ...ESTILO_CITA, ee: 'aparece', l: 'en' },
     copia: 'You were known before you were born.',
     copiado: 'Copied',

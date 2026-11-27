@@ -53,11 +53,11 @@ function pintar() {
 
   if (nota.k === 'd') {
     const t = nodo('h1', 'lector__nota-t', nota.t);
-    ponerFuente(t, nota.ft);
+    ponerFuente(t, nota.ft, nota.wt);
     hoja.appendChild(t);
     if (nota.d) {
       const d = nodo('p', 'lector__nota-texto', nota.d);
-      ponerFuente(d, nota.fd);
+      ponerFuente(d, nota.fd, nota.wd);
       hoja.appendChild(d);
     }
     if (nota.r || nota.rf) {
@@ -80,7 +80,7 @@ function pintar() {
   const extra = nodo('div', 'lector__nota-extra');
   const rec = lineaRecomendada(nota, idioma, tl);
   const titulo = nodo('h1', 'lector__nota-t', nombre);
-  ponerFuente(titulo, nota.ft);
+  ponerFuente(titulo, nota.ft, nota.wt);
   titulo.tabIndex = -1;
   hoja.append(titulo, versos, estado, pie, ...(rec ? [rec] : []), extra);
   document.title = nombre;

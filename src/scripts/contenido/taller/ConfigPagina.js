@@ -184,7 +184,10 @@ export class ConfigPagina {
       entrada: entradaValida(nt.entrada) ? nt.entrada : '',
       bucle: bucleValido(nt.bucle) ? nt.bucle : '',
       tituloRef: fuenteValida(nt.tituloRef) ? nt.tituloRef : '',
-      tituloDef: fuenteValida(nt.tituloDef) ? nt.tituloDef : ''
+      tituloDef: fuenteValida(nt.tituloDef) ? nt.tituloDef : '',
+      /* El grosor, cuatro cifras (cada una = grosor / 100; 0 = el de siempre): titulo de las referencias, versiculos, titulo
+         de las definiciones y su descripcion. Todo en cero (o mal escrito) = '' (notasLibro.pesosDeLibro lo lee) */
+      pesos: typeof nt.pesos === 'string' && /^[0-9]{4}$/.test(nt.pesos) && nt.pesos !== '0000' ? nt.pesos : ''
     };
   }
 

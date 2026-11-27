@@ -2,16 +2,46 @@
 
    Lo propio de un libro:
      · el PDF de su idioma original y, si hay, el de cada version (otra lengua);
-     · el LOMO: al elegir el PNG se mide AQUI, antes de subirlo, contra la regla de su
-       grosor (contenido/medidas.js), y se pinta de pie en un estante pequeño. Si no
-       encaja, no se guarda y se dice que medida debe tener;
+     · el LOMO: al elegir (o soltar) el PNG se mide AQUI, antes de subirlo, contra la regla
+       de su grosor (contenido/medidas.js), y se pinta de pie en un estante pequeño. Si no
+       tiene la forma, se abre la ventana de recorte (RecorteImagen.js) con el marco del
+       grosor elegido (o, en automatico, el de los tres que menos corta): sale un PNG de la
+       medida del ejemplo (240, 300 o 375 × 1200) y queda en el mismo campo. Si se cancela,
+       no se guarda, se dice que medida debe tener y «Recortar el lomo…» la vuelve a abrir.
+       Arriba, la medida ideal del grosor elegido;
      · las rutas del almacen salen del id (Libro.rutaPdf / rutaLomo), con un trozo al azar:
        el lomo, porque el cajon de imagenes es publico y un borrador no se adivina; el PDF,
        para que el de un borrador no pise el del libro ya publicado. */
 import { EditorContenido } from './EditorContenido.js';
 import { Libro } from '../../../contenido/Libro.js';
-import { LOMOS, GROSORES } from '../../../contenido/medidas.js';
+import { LOMOS, GROSORES, RATIO_LOMO } from '../../../contenido/medidas.js';
+import { encajeDeLomo, medidaDeLomoAceptable } from '../../../contenido/taller/LomoLibro.js';
+import { encajeDeRecorte } from '../../../contenido/taller/Recorte.js';
+import { TONOS } from '../../../biblioteca.js';
 import { medidasDe } from '../../archivos.js';
+import { recortarImagen } from './RecorteImagen.js';
+import { ponerEnInput } from '../soltar.js';
+
+/* El grosor (de los tres) cuya forma se parece mas a la de una imagen: el que menos corta */
+export const grosorMasCercano = (m) => GROSORES.reduce((a, g) => (Math.abs(Math.log((m.w / m.h) / RATIO_LOMO[g])) < Math.abs(Math.log((m.w / m.h) / RATIO_LOMO[a])) ? g : a), GROSORES[0]);
+
+/* El color promedio del borde de una imagen (para «Rellenar» cuando no se eligio un color del lomo) */
+function colorDelBorde(fuente, w, h) {
+  const c = document.createElement('canvas');
+  c.width = 32; c.height = Math.max(1, Math.round(32 * (h / w)));
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(fuente, 0, 0, c.width, c.height);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  let r = 0, v = 0, b = 0, n = 0;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+    if (x > 0 && y > 0 && x < c.width - 1 && y < c.height - 1) continue;
+    const i = (y * c.width + x) * 4;
+    r += d[i]; v += d[i + 1]; b += d[i + 2]; n++;
+  }
+  c.width = 0; c.height = 0;
+  const hex = (x) => Math.round(x / n).toString(16).padStart(2, '0');
+  return n ? `#${hex(r)}${hex(v)}${hex(b)}` : '#2b3a43';
+}
 
 export class EditorLibro extends EditorContenido {
   static id = 'libros';
@@ -22,8 +52,61 @@ export class EditorLibro extends EditorContenido {
     super.armar();
     this.lomoRevision = null;                  // { ok, texto } del ultimo PNG elegido
     const f = this.form;
-    f.elements.lomo.addEventListener('change', () => this.revisarLomo());
-    f.querySelectorAll('input[name="grosor"]').forEach((r) => r.addEventListener('change', () => this.revisarLomo()));
+    /* Un PNG nuevo puede pedir recorte; cambiar el grosor solo vuelve a medir */
+    f.elements.lomo.addEventListener('change', () => this.revisarLomo(!this.poniendoRecorte));
+    f.querySelectorAll('input[name="grosor"]').forEach((r) => r.addEventListener('change', () => { this.pintarIdeal(); this.revisarLomo(false); }));
+    this.$('[data-lomo-recortar]').addEventListener('click', () => this.recortarLomo());
+    this.pintarIdeal();
+  }
+
+  /* «Tamaño ideal: 300 × 1200 px (lomo medio).» o, en automatico, las tres medidas */
+  pintarIdeal() {
+    const lx = this.lx, g = (this.form.querySelector('input[name="grosor"]:checked') || {}).value || '';
+    const e = g && LOMOS[g] ? LOMOS[g].ejemplo : null;
+    this.$('[data-lomo-ideal]').textContent = e
+      ? String(lx.lomoIdeal || '').replace('{w}', e.w).replace('{h}', e.h).replace('{grosor}', ((lx.grosores && lx.grosores[g]) || g).toLowerCase())
+      : lx.lomoIdealAuto || '';
+  }
+
+  /* LA VENTANA DE RECORTE para el PNG elegido: el marco con la forma del grosor (el elegido o el mas cercano). Lo que
+     sale es un PNG de la medida del ejemplo, que vuelve al mismo campo (y se mide otra vez: ya encaja). */
+  async recortarLomo() {
+    const f = this.form, input = f.elements.lomo, archivo = input.files && input.files[0];
+    if (!archivo || this.recortando) return;
+    /* Ocupado desde ya (antes de cualquier espera): dos clics o dos cambios seguidos no abren dos ventanas */
+    this.recortando = true;
+    let imagen = null;
+    try {
+      const m = await medidasDe(archivo, 'png');
+      /* Sus medidas, de la cabecera: una imagen enorme no se abre (colgaria la pestaña) */
+      if (!m || !medidaDeLomoAceptable(m)) return;
+      const elegido = (f.querySelector('input[name="grosor"]:checked') || {}).value || '';
+      const g = elegido && LOMOS[elegido] ? elegido : grosorMasCercano(m);
+      const salida = { ancho: LOMOS[g].ejemplo.w, alto: LOMOS[g].ejemplo.h };
+      imagen = await createImageBitmap(archivo);
+      const r = await recortarImagen({ fuente: imagen, w: imagen.width, h: imagen.height, aspecto: salida.ancho / salida.alto, salida, estilo: 'panel' });
+      if (!r) return;
+      const img = { w: imagen.width, h: imagen.height };
+      const e = r.modo === 'recortar' ? encajeDeRecorte(r.recorte, img, salida) : encajeDeLomo({ ancho: salida.ancho, alto: salida.alto, cabe: false }, 'rellenar', img);
+      if (!e) return;
+      const c = document.createElement('canvas');
+      c.width = salida.ancho; c.height = salida.alto;
+      const x = c.getContext('2d');
+      x.fillStyle = TONOS[f.elements.tono.value] || colorDelBorde(imagen, img.w, img.h);
+      x.fillRect(0, 0, c.width, c.height);
+      x.imageSmoothingQuality = 'high';
+      x.drawImage(imagen, e.s.x, e.s.y, e.s.w, e.s.h, e.d.x, e.d.y, e.d.w, e.d.h);
+      const blob = await new Promise((ok) => c.toBlob(ok, 'image/png'));
+      c.width = 0; c.height = 0;
+      if (!blob) return;
+      const nombre = String(archivo.name || 'lomo').replace(/\.png$/i, '') + '-recortado.png';
+      this.poniendoRecorte = true;
+      try { ponerEnInput(input, new File([blob], nombre, { type: 'image/png' })); } finally { this.poniendoRecorte = false; }
+    } catch (e) { /* se queda el aviso de la medida */ } finally {
+      if (imagen && imagen.close) imagen.close();
+      this.recortando = false;
+      input.focus({ preventScroll: true });
+    }
   }
 
   get lx() { return (this.tx && this.tx.libros) || {}; }
@@ -131,6 +214,8 @@ export class EditorLibro extends EditorContenido {
     this.lomoRevision = null;
     this.$('[data-lomo-medida]').textContent = '';
     this.$('[data-estante]').hidden = true;
+    this.$('[data-lomo-recortar]').hidden = true;
+    this.pintarIdeal();
   }
   abrir(entrada) {
     super.abrir(entrada);
@@ -140,19 +225,32 @@ export class EditorLibro extends EditorContenido {
       this.lomoRevision = null;
       this.$('[data-lomo-medida]').textContent = '';
       this.$('[data-estante]').hidden = true;
+      this.$('[data-lomo-recortar]').hidden = true;
+      this.pintarIdeal();
     }
   }
 
   /* ---- El lomo: medirlo y pintarlo antes de subirlo ---------------------------------------- */
-  async revisarLomo() {
+  /* `conRecorte`: un PNG recien elegido sin la forma del lomo abre la ventana de recorte */
+  async revisarLomo(conRecorte = false) {
     const f = this.form;
     const archivo = f.elements.lomo.files && f.elements.lomo.files[0];
     const salida = this.$('[data-lomo-medida]');
     const estante = this.$('[data-estante]');
+    const recortar = this.$('[data-lomo-recortar]');
     const lx = this.lx;
     this.quitarError(f.elements.lomo);
+    recortar.hidden = true;
     if (!archivo) { this.lomoRevision = null; salida.textContent = ''; estante.hidden = true; return; }
     const m = await medidasDe(archivo, 'png');
+    /* Una imagen enorme (de su cabecera) no se dibuja ni se recorta: colgaria la pestaña */
+    if (m && !medidaDeLomoAceptable(m)) {
+      this.lomoRevision = { ok: false, texto: lx.lomoGrande };
+      salida.textContent = lx.lomoGrande;
+      salida.classList.add('dev__medida--mal');
+      estante.hidden = true;
+      return;
+    }
     const grosor = (f.querySelector('input[name="grosor"]:checked') || {}).value || '';
     /* Con el grosor automatico vale cualquiera de los tres (aun no se sabe cuantas paginas tendra) */
     const reglas = grosor ? [grosor] : GROSORES;
@@ -171,6 +269,10 @@ export class EditorLibro extends EditorContenido {
     salida.textContent = texto;
     salida.classList.toggle('dev__medida--mal', !bueno);
     if (m) await this.pintarLomo(archivo, m); else estante.hidden = true;
+    /* Sin la forma (no solo chico): se recorta aqui mismo, en vez de quedar sin guardar */
+    const sinForma = !bueno && m && resultados.some((x) => x.r.clave === 'proporcion');
+    recortar.hidden = !sinForma;
+    if (sinForma && conRecorte) await this.recortarLomo();
   }
 
   /* El lomo de pie, a su proporcion, en un canvas (sin pedir img-src a la politica de

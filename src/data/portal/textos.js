@@ -289,11 +289,11 @@ export const PORTAL_TEXTOS = {
         lomoMenu: 'Lomo', lomoTexto: 'Texto del lomo', lomoTextoAuto: 'El título del libro', lomoColor: 'Color del lomo', lomoTinta: 'Letra del lomo', lomoGrosor: 'Grueso (mm)', lomoGrosorAuto: 'Auto',
         lomoTapaDelante: 'Tapa de adelante', lomoTapaDetras: 'Tapa de atrás', lomoAyuda: 'Así se ve en «Ver como libro».', lomoMuestra: 'Cómo se ve el lomo',
         lomoImagen: 'Imagen del lomo', lomoImagenPoner: 'Poner una imagen…', lomoImagenCambiar: 'Cambiar la imagen…', lomoImagenQuitar: 'Quitar la imagen',
-        lomoImagenAyuda: 'PDF, PNG, JPG, WebP o SVG. Se ve en «Ver como libro» y en los enlaces privados.',
-        lomoImagenForma: 'La imagen no tiene la forma del lomo. ¿Qué hago?', lomoImagenRellenar: 'Rellenar con el color del lomo', lomoImagenRecortar: 'Recortar al centro', lomoImagenCancelar: 'Cancelar',
+        lomoImagenAyuda: 'PDF, PNG, JPG, WebP o SVG. También puedes soltarla aquí. Se ve en «Ver como libro» y en los enlaces privados.',
         lomoImagenLeyendo: 'Preparando la imagen…', lomoImagenSubiendo: 'Subiendo la imagen…', lomoImagenPuesta: 'La imagen quedó en el lomo.', lomoImagenGirada: 'La imagen quedó en el lomo. Venía acostada: la puse de pie.',
         lomoImagenQuitada: 'El lomo ya no tiene imagen.', lomoImagenNoLee: 'No pude abrir ese archivo. Prueba con un PNG.', lomoImagenGrande: 'La imagen es demasiado grande (más de 12 000 px de lado). Prueba con una más chica.',
-        lomoImagenRecorte: 'Si cambias el grueso o las páginas, la imagen puede recortarse un poco.', lomoImagenSoloEditar: 'Para cambiar el lomo, abre el libro en una pantalla más grande.',
+        lomoImagenRecorte: 'Si cambias el grueso o las páginas, la imagen puede recortarse un poco.',
+        lomoIdeal: 'Tamaño ideal: {w} × {h} px ({g} × {a} mm, {ppp} ppp)', lomoImagenAjustar: 'Ajustar el recorte…', lomoImagenSinCambio: 'El lomo quedó como estaba.', lomoImagenSoloEditar: 'Para cambiar el lomo, abre el libro en una pantalla más grande.',
         indiceNegritaCap: 'Capítulos en negrita', indiceNegritaSub: 'Subtemas en negrita',
         celular: 'Aquí solo puedes leer. Para escribir, usa un computador.',
         conflicto: 'Otra pestaña cambió este capítulo. ¿Con cuál te quedas? Ninguno se pierde.',
@@ -340,6 +340,10 @@ export const PORTAL_TEXTOS = {
         enSinLibro: 'Abre un libro primero.',
         enLetras: 'Letras', enLetraTitulo: 'Letra del título', enLetraSiempre: 'La de siempre (Young Serif)',
         enLetraDefAyuda: 'Si una definición tiene su propia letra, se queda con la suya.',
+        /* El grosor de cada parte (A1): solo se ofrece si la letra tiene más de uno */
+        enGrosorTitulo: 'Grosor del título', enGrosorVersos: 'Grosor de los versículos', enGrosorDesc: 'Grosor de la descripción', enGrosorSiempre: 'El de siempre',
+        enGrosorDescAyuda: 'Cada definición usa el grosor más cercano que tenga su letra.',
+        enPesos: { 200: 'Muy fina', 300: 'Fina', 400: 'Normal', 500: 'Media', 600: 'Seminegrita', 700: 'Negrita', 800: 'Extranegrita', 900: 'Negra' },
         ndLetraTodas: 'La de todas las definiciones', ndLetraLibroAyuda: 'También puedes elegir la letra para todo el libro en «Estilo de las notas».',
         fichaRotulo: 'Ficha del libro', fichaAyuda: 'Lo que lee quien abre el libro y toca «Sobre este libro».', fichaEscribir: 'Escribir la ficha', fichaEditar: 'Cambiar la ficha',
         fichaVacia: 'Aún no tiene ficha.', fichaLlena: 'Ya tiene ficha.', fichaTitulo: 'Ficha del libro', fichaSobre: 'Escríbela en el idioma del libro. Todo es opcional.',
@@ -387,6 +391,24 @@ export const PORTAL_TEXTOS = {
         dibujoAyudaPanel: 'Agrandarlo no engorda el trazo. Para quitar un trazo entero, usa el borrador.',
         imagenTextoAyuda: 'Va con su párrafo. Para moverla donde quieras, pásala a una página libre.', subirPagina: 'Subir página', bajarPagina: 'Bajar página', eliminarPaginaSeguro: 'Pulsa otra vez para eliminar',
         elegidas: '{n} páginas elegidas', elegidaUna: '1 página elegida.', eleccionVacia: 'Ninguna página elegida.', soloUnCapitulo: 'Se eligen páginas de un solo capítulo.', soloLibres: 'Solo se eligen páginas libres y de PDF.', duplicarVarias: 'Duplicar {n} páginas', eliminarVarias: 'Eliminar {n} páginas', eliminarVariasSeguro: 'Pulsa otra vez para eliminar {n} páginas', variasBorradas: '{n} páginas eliminadas. Ctrl+Z las recupera.', variasDuplicadas: '{n} páginas duplicadas. Las copias quedaron elegidas.', quitarEleccion: 'Quitar selección', moverVarias: 'Mover {n} páginas a…', moverVariasA: 'Que empiecen en la página (de {total})', subirVarias: 'Subir las páginas elegidas', bajarVarias: 'Bajar las páginas elegidas', bloqueSoloCapitulo: 'Varias páginas se mueven dentro de su capítulo. Para llevarlas a otro, muévelas de una en una.', bloqueYaAhi: 'Ya están ahí.', bloqueQuedo: 'Las {n} páginas quedaron desde la {p}.', colorVarias: 'Color de estas hojas', colorDeLasHojas: 'Color de las {n} hojas', colorDeLaHoja: 'Color de la hoja', ajusteDeLasPdf: 'Las {n} de PDF', ajusteDeLaPdf: 'La de PDF', pdfNoCambian: 'Las {n} de PDF no cambian de color: lo que no cubren toma el de las hojas del libro.', pdfNoCambiaUna: 'La de PDF no cambia de color: lo que no cubre toma el de las hojas del libro.', variasAyuda: 'Mayús+clic elige las de en medio; Ctrl+clic suma o quita una.', variasQuietas: 'Este capítulo ahora solo se puede mirar.', suprVarias: 'Pulsa Supr otra vez para eliminar {n} páginas.', suprUna: 'Pulsa Supr otra vez para eliminar la página.', ayudaMiniaturas: 'Clic elige una página. Mayús y clic, las de en medio. Control y clic, una más. Supr las elimina.', paginaDeTexto: 'Esta página sale del texto. Mueve su capítulo.', fueraDeZona: 'Algo se sale de la zona segura.', recorteLados: { l: 'Izquierda (%)', t: 'Arriba (%)', r: 'Derecha (%)', b: 'Abajo (%)' }, enLinea: 'En línea', aIzquierda: 'Izquierda', aCentro: 'Centro', aDerecha: 'Derecha', pasarLibre: 'Pasar a página libre'
+      },
+      /* Arrastrar y soltar archivos (panel/soltar.js): lo que se dice encima de un lugar y cuando un archivo no sirve */
+      soltar: {
+        encima: 'Suelta el archivo aquí', encimaPdf: 'Suelta el PDF aquí', encimaImagen: 'Suelta la imagen aquí', encimaSvg: 'Suelta el SVG aquí',
+        noSirve: 'Ese archivo no sirve aquí: {porque}', tipo: 'aquí va {tipos}.', grande: 'pesa más de {mb} MB.', falso: 'no es lo que dice su nombre.', vacio: 'está vacío.',
+        uno: 'Suelta un solo archivo a la vez.', sinArchivo: 'No llegó ningún archivo. Guárdalo en tu equipo y suéltalo desde ahí.',
+        fuera: 'Aquí no se puede soltar un archivo.', fallo: 'No pude usar ese archivo. Prueba con el botón.',
+        tipoPdf: 'un PDF', tipoSvg: 'un SVG', tipoImagen: 'una imagen ({lista})', tipoPdfOImagen: 'un PDF o una imagen ({lista})', o: ' o ',
+        pdfQue: '¿Qué hago con este PDF?', pdfSueltas: 'Añadir sus páginas al libro', pdfPortada: 'Ponerlo de portada', pdfCambiar: 'Cambiar el PDF de estas páginas'
+      },
+      /* La ventana para recortar una imagen a la forma del lomo (panel/dev/RecorteImagen.js) */
+      recorte: {
+        titulo: 'Elige qué se ve en el lomo', ayuda: 'Mueve el marco con el dedo o el ratón. Para acercar o alejar, usa + y −.',
+        marco: 'Marco del recorte', marcoRol: 'marco', teclas: 'Flechas: mover. Mayúsculas y flechas: mover más. + y −: acercar y alejar.',
+        acercar: 'Acercar', alejar: 'Alejar', medida: 'Saldrá de {w} × {h} px',
+        borrosa: 'Esta parte tiene pocos píxeles: se verá borrosa. Aleja el marco o usa una imagen más grande.',
+        donde: 'El marco está al {x} % desde la izquierda y al {y} % desde arriba. Acercado al {z} %.',
+        usar: 'Usar este recorte', rellenar: 'Rellenar con el color del lomo', cancelar: 'Cancelar'
       },
       /* Brand Assets (panel/dev/Marca.js): elegir una pieza, su color, su fondo y su tamaño, y bajarla */
       marca: {
@@ -563,6 +585,10 @@ export const PORTAL_TEXTOS = {
           lomoPequeno: 'Mide {w} × {h} px: muy pequeño, se vería borroso. Mínimo 600 px de alto.',
           lomoIlegible: 'No pude leer su tamaño. ¿Es un PNG?',
           lomoYa: 'Ya tiene lomo. Elige otro solo si quieres cambiarlo.',
+          lomoIdeal: 'Tamaño ideal: {w} × {h} px (lomo {grosor}).',
+          lomoIdealAuto: 'Tamaño ideal: 240, 300 o 375 × 1200 px (lomo fino, medio o grueso).',
+          lomoRecortar: 'Recortar el lomo…',
+          lomoGrande: 'La imagen es demasiado grande (más de 12 000 px de lado). Prueba con una más chica.',
           tono: 'Color del lomo dibujado',
           tonoAuto: 'Automático',
           tonos: { ocre: 'Ocre', salvia: 'Salvia', pizarra: 'Pizarra', tierra: 'Tierra', niebla: 'Niebla', arena: 'Arena' }

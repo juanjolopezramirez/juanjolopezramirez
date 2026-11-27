@@ -30,7 +30,9 @@ const { lang, path = '', active = '', title, description, noindex = false, noche
    Code). Pone la clase en <body> y suma JetBrains Mono a las letras: es la tercera
    letra que el fundador aprobo SOLO para el portal (2026-10-26), y fuera de el no
    se descarga. */
-const FUENTES = 'https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,800&family=Petemoss'
+/* Bricolage Grotesque como rango (200..800, todo lo que tiene): asi el 700 tambien es de verdad, y una nota del lector
+   puede pedir cualquier grosor (wt / wd, lector/notaEnPdf.js) sin otra hoja */
+const FUENTES = 'https://fonts.googleapis.com/css2?family=Young+Serif&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Petemoss'
   + (noche ? '&family=JetBrains+Mono:wght@400;500;700' : '') + '&display=swap';
 /* De noche, el fondo de signos tambien escribe en arameo, con la letra siriaca
    (estrangela). Casi ningun telefono la trae: se pide a Google SOLO con las 22

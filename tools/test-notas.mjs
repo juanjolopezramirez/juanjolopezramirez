@@ -316,10 +316,12 @@ export async function probarNotas(ok) {
     const s = leer('src/scripts/lector/hojaNota.js');
     assert.match(s, /a\.target = '_blank';\s*a\.rel = 'noopener noreferrer';\s*a\.referrerPolicy = 'no-referrer';/);
     assert.match(s, /el\.style\.fontFamily = FUENTES_NOTA\[id\]\.css;/);
-    /* Lo unico mas: los dos colores del libro como variables, y solo despues de pasar por coloresSobre (#rrggbb que se lee) */
+    /* Lo unico mas: los dos colores del libro como variables, y solo despues de pasar por coloresSobre (#rrggbb que se lee);
+       y el grosor (A1), solo uno que esa letra tiene (pesoValido) */
     const usos = s.match(/\.style\.[^\n;]*/g) || [];
-    assert.equal(usos.length, 5, 'ningun otro estilo sale de la nota');
-    assert.ok(usos.filter((u) => !u.startsWith('.style.fontFamily')).every((u) => /^\.style\.(setProperty|removeProperty)\('--nota-[tx]'/.test(u)), usos.join(' | '));
+    assert.equal(usos.length, 6, 'ningun otro estilo sale de la nota');
+    assert.ok(usos.filter((u) => !u.startsWith('.style.fontFamily') && !u.startsWith('.style.fontWeight')).every((u) => /^\.style\.(setProperty|removeProperty)\('--nota-[tx]'/.test(u)), usos.join(' | '));
+    assert.match(s, /if \(pesoValido\(id, peso\)\) el\.style\.fontWeight = String\(peso\);/);
     assert.match(s, /const \{ titulo, texto \} = coloresSobre\(nota, fondo\);/);
     assert.match(s, /l\.href = hojaDeFuente\(id\);/);
   });

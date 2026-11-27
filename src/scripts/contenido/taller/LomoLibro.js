@@ -82,10 +82,30 @@ export function planDeLomo(img, { grosorMm, altoMm } = {}) {
   const w = girar ? h0 : w0, h = girar ? w0 : h0;
   const objetivo = grosorMm / altoMm, forma = w / h;
   const diferencia = Math.abs(forma / objetivo - 1);
-  const alto = Math.max(200, Math.min(LOMO_ALTO_MAX, Math.round((altoMm / 25.4) * LOMO_PPP)));
-  const ancho = Math.max(LOMO_ANCHO_MIN, Math.round(alto * objetivo));
+  const { ancho, alto } = medidaDelPng(grosorMm, altoMm);
   return { girar, ancho, alto, forma: r4(forma), objetivo: r4(objetivo), diferencia: r4(diferencia), cabe: diferencia <= LOMO_TOLERANCIA, sobra: forma > objetivo ? 'ancho' : 'alto' };
 }
+
+/* El PNG del lomo: el alto a LOMO_PPP (con LOMO_ALTO_MAX de tope) y el ancho con la forma del lomo */
+function medidaDelPng(grosorMm, altoMm) {
+  const alto = Math.max(200, Math.min(LOMO_ALTO_MAX, Math.round((altoMm / 25.4) * LOMO_PPP)));
+  return { alto, ancho: Math.max(LOMO_ANCHO_MIN, Math.round(alto * (grosorMm / altoMm))) };
+}
+
+/* LA MEDIDA IDEAL de la imagen del lomo, para decirla antes de subirla («Tamaño ideal: 154 × 2400 px (13,5 × 210 mm,
+   290 ppp)»): la misma que hace planDeLomo, asi una imagen de esa medida se escala sin preguntar. Cambia con el grueso
+   (el elegido, o el automatico segun las `n` hojas). → { ancho, alto, grosorMm, altoMm, ppp } o null.
+   `ppp`: los puntos por pulgada de verdad (con el tope de alto, un libro alto queda por debajo de LOMO_PPP). */
+export function medidaIdealDeLomo(lomo, n, { anchoMm, altoMm } = {}) {
+  if (!(altoMm > 0) || !Number.isFinite(altoMm)) return null;
+  const grosorMm = grosorDelLomoMm(lomo, n, anchoMm);
+  if (!(grosorMm > 0)) return null;
+  const { ancho, alto } = medidaDelPng(grosorMm, altoMm);
+  return { ancho, alto, grosorMm, altoMm: Math.round(altoMm * 10) / 10, ppp: Math.round(alto / (altoMm / 25.4)) };
+}
+
+/* Un numero de mm como se escribe en español: 13,5 (sin ceros de mas) */
+export const mmTexto = (x) => String(Math.round(Number(x) * 10) / 10).replace('.', ',');
 
 /* DONDE SE DIBUJA: de la imagen (ya de pie, `w` x `h`) se toma s{x,y,w,h} y se pone en d{x,y,w,h} del PNG del lomo.
    `modo`: 'escalar' (la imagen entera en el lomo entero: solo cuando `cabe`), 'rellenar' (entera y centrada; lo que falta,

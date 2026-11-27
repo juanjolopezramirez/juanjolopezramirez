@@ -8,7 +8,7 @@
 
    Todo se escribe con textContent y nodos: nada de HTML a mano. Mientras esta abierta, lo de detras queda inerte (como
    «Más»); Escape la cierra (site.js lo pide por orden) y el foco vuelve a quien la abrio. */
-import { FUENTES_NOTA, fuenteValida, hojaDeFuente } from './notaEnPdf.js';
+import { FUENTES_NOTA, fuenteValida, hojaDeFuente, pesoValido } from './notaEnPdf.js';
 import { referenciaAPA, rotuloDeCita, recomendada } from './notaTexto.js';
 import { pasajeDeNota } from './pasajeNota.js';
 import { enlaceGateway } from '../biblia/referencias.js';
@@ -58,11 +58,13 @@ function pedirFuente(id) {
   l.dataset.notaFuente = id;
   document.head.appendChild(l);
 }
-export function ponerFuente(el, id) {
+/* `peso`: el grosor de la nota (wt o wd), solo si esa letra lo tiene (pesoValido); si no, el de siempre */
+export function ponerFuente(el, id, peso) {
   if (!fuenteValida(id)) return;
   pedirFuente(id);
   el.style.fontFamily = FUENTES_NOTA[id].css;
   el.dataset.fuente = id;
+  if (pesoValido(id, peso)) el.style.fontWeight = String(peso);
 }
 
 /* La referencia APA en un parrafo: la cursiva es <i>, la direccion un enlace.
@@ -87,10 +89,11 @@ export const poner = (plantilla, hueco, valor) => plantilla.replace(hueco, () =>
 
 /* El pasaje: un solo parrafo con el numero de cada versiculo pequeño delante (cap:v si el pasaje cruza capitulos).
    Un versiculo que la version no trae dice eso, en vez de quedar en blanco. `fv`: la letra que eligio el libro para sus
-   versiculos (solo de FUENTES_NOTA); sin ella, la de siempre. Los numeros siguen en la letra del sitio (base.css). */
-export function pintarVersos(caja, pasaje, tl, fv) {
+   versiculos (solo de FUENTES_NOTA); sin ella, la de siempre. `peso`: su grosor (wd), si esa letra lo tiene. Los numeros
+   siguen en la letra del sitio (base.css). */
+export function pintarVersos(caja, pasaje, tl, fv, peso) {
   const p = nodo('p', 'lector__nota-pasaje');
-  ponerFuente(p, fv);
+  ponerFuente(p, fv, peso);
   pasaje.versos.forEach(({ cap, v, t, omitido }, i) => {
     if (i) p.appendChild(document.createTextNode(' '));
     const n = nodo('sup', 'lector__nota-v', pasaje.varios ? `${cap}:${v}` : String(v));
@@ -154,7 +157,7 @@ export function llenarCita({ nota, idioma, tl, base, caja, estado, pie, extra, v
     caja.removeAttribute('aria-busy');
     if (pasaje.estado === 'ok') {
       estado.textContent = '';
-      pintarVersos(caja, pasaje, tl, nota.fv);
+      pintarVersos(caja, pasaje, tl, nota.fv, nota.wd);
       if (alPasaje && caja.firstElementChild) alPasaje(caja.firstElementChild);
       pie.textContent = pasaje.nombre;
       if (pasaje.parcial) extra.appendChild(nodo('p', 'lector__nota-aviso', tl('parcial')));
@@ -242,11 +245,11 @@ export function crearHojaNota(ctx) {
   function definicion(nota, idioma) {
     const t = nodo('h3', 'lector__nota-t', nota.t);
     t.id = 'lector-nota-t';
-    ponerFuente(t, nota.ft);
+    ponerFuente(t, nota.ft, nota.wt);
     const partes = [t];
     if (nota.d) {
       const d = nodo('p', 'lector__nota-texto', nota.d);
-      ponerFuente(d, nota.fd);
+      ponerFuente(d, nota.fd, nota.wd);
       partes.push(d);
     }
     if (nota.r || nota.rf) {
@@ -265,7 +268,7 @@ export function crearHojaNota(ctx) {
     const nombre = rotuloDeCita(nota, idioma);
     const t = nodo('h3', 'lector__nota-t', nombre);
     t.id = 'lector-nota-t';
-    ponerFuente(t, nota.ft);
+    ponerFuente(t, nota.ft, nota.wt);
     const caja = nodo('div', 'lector__nota-caja');
     const estado = nodo('p', 'lector__nota-estado');
     estado.setAttribute('role', 'status');

@@ -25,8 +25,9 @@ import { deCanonica, rotulo } from '../../../../biblia/referencias.js';
 import { cargarPasaje, limitarVersos } from '../../../../biblia/cargar.js';
 import { textoParaLeer } from '../../../../biblia/mostrar.js';
 import { familiaCss } from '../../../../contenido/taller/fuentes.js';
-import { estiloDeNotas } from '../../../../contenido/taller/notasLibro.js';
-import { EstiloNotas } from './EstiloNotas.js';
+import { estiloDeNotas, pesosDeLibro } from '../../../../contenido/taller/notasLibro.js';
+import { pesoMasCercano } from '../../../../lector/notaEnPdf.js';
+import { EstiloNotas, pedirConPesos } from './EstiloNotas.js';
 
 /* Las versiones que se ofrecen (Bible Gateway las conoce por estas siglas) */
 export const VERSIONES_RECOMENDADAS = Object.freeze({
@@ -209,10 +210,20 @@ export class NotaEditor {
   /* Las letras que no trae el sitio se piden al usarse (y al abrir, para verlas en la lista) */
   cargarLetras() {
     for (const v of Object.values(FUENTES_NOTA)) if (!v.sitio) cargarFuente(v.familia);
+    for (const id of Object.keys(FUENTES_NOTA)) pedirConPesos(id);
   }
   pintarLetras() {
     this.palabra.style.fontFamily = this.cssDe(this.ft.value, { titulo: true });
     this.texto.style.fontFamily = this.cssDe(this.fd.value);
+    /* El grosor del libro («Estilo de las notas») sobre la letra que de verdad usa ESTA definicion: el mas cercano que ella
+       tenga; con una letra de un solo grosor, ninguno (como en el lector) */
+    const n = this.libroNotas(), p = pesosDeLibro(n && n.pesos);
+    const ft = this.ft.value || (n && n.tituloDef) || 'young-serif';
+    this.palabra.style.fontWeight = String(pesoMasCercano(ft, p[2]) || '');
+    this.texto.style.fontWeight = String(pesoMasCercano(this.fd.value, p[3]) || '');
+  }
+  libroNotas() {
+    try { return this.notasLibro ? this.notasLibro() : null; } catch { return null; }
   }
 
   /* ---- Abrir ---- */
@@ -305,6 +316,8 @@ export class NotaEditor {
     this.pasaje.style.fontFamily = FUENTES_NOTA[id].css;
     this.pasaje.style.fontSize = grande ? '20px' : '';
     this.pasaje.style.lineHeight = grande ? '1.4' : '';
+    const n = this.libroNotas();
+    this.pasaje.style.fontWeight = String(pesoMasCercano(id, pesosDeLibro(n && n.pesos)[1]) || '');
   }
   /* Cambia para TODO el libro: se guarda en el acto y se dice */
   cambiarLetraVersos() {

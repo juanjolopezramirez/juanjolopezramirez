@@ -1,7 +1,11 @@
 /* LA IMAGEN DEL LOMO, en el «Lomo ▾» de la cinta. El autor sube su lomo entero (un PDF, PNG, JPG, WebP o SVG) y aqui se
    vuelve un PNG a la medida del lomo del libro (LomoLibro.js → planDeLomo): si su forma se parece a la del lomo (menos de un
-   4 % de diferencia) se escala; si no, se pregunta una sola cosa: «Rellenar con el color del lomo» (la imagen entera, y lo
-   que falta del color del lomo) o «Recortar al centro» (el lomo lleno). Nunca se estira. Una imagen acostada se pone de pie.
+   4 % de diferencia) se escala; si no, se abre la ventana de recorte (panel/dev/RecorteImagen.js) con el marco centrado:
+   el autor lo mueve y lo acerca, o elige «Rellenar con el color del lomo» (la imagen entera, y lo que falta del color del
+   lomo). Nunca se estira. Una imagen acostada se pone de pie. Mientras la pestaña siga abierta, «Ajustar el recorte…»
+   vuelve a abrir la ventana con la imagen de antes (la original no se guarda: al recargar ya no esta).
+   Arriba se dice la medida ideal (LomoLibro.js → medidaIdealDeLomo), segun el grueso y las hojas de ahora. Tambien se
+   puede soltar el archivo en la caja (panel/soltar.js).
 
    El PNG se sube como las demas imagenes del libro, a `taller/<libro>/img/lomo-<azar>.png` (la misma carpeta y la misma
    cuenta que la imagen de arriba del contenido), y queda en `pagina.lomo.imagen = { ruta }`. «Ver como libro» la pinta en
@@ -13,8 +17,11 @@
    base ni la funcion `vista`, y la politica del sitio ya deja `img-src data:`.
 
    Todo se arma nodo por nodo y con textContent. Las imagenes se leen como direcciones «data:» (la politica no deja «blob:»). */
-import { encajeDeLomo, esRutaDelLomo, estiloDeLomo, grosorDelLomoMm, LOMO_COLOR, lomoParaEdicion, medidaDeLomoAceptable, planDeLomo } from '../../../../contenido/taller/LomoLibro.js';
+import { encajeDeLomo, esRutaDelLomo, estiloDeLomo, grosorDelLomoMm, LOMO_COLOR, lomoParaEdicion, medidaDeLomoAceptable, medidaIdealDeLomo, mmTexto, planDeLomo } from '../../../../contenido/taller/LomoLibro.js';
+import { encajeDeRecorte } from '../../../../contenido/taller/Recorte.js';
 import { imagenDeLomoValida } from '../../../../lector/lomo.js';
+import { recortarImagen } from '../RecorteImagen.js';
+import { zonaDeSoltar } from '../../soltar.js';
 import { esSvg, svgAPng } from './SvgAImagen.js';
 import { medidasDe, revisarArchivo } from '../../../archivos.js';
 /* Pdf.js pide pdf.js solo al abrir un PDF: importarlo aqui no baja nada de mas */
@@ -90,10 +97,14 @@ function dePie(img, girar) {
   return { fuente: c, w: cw, h: ch };
 }
 
-/* EL PNG DEL LOMO: la imagen, segun el plan y el modo ('escalar' | 'rellenar' | 'recortar'), sobre el color del lomo */
-async function pngDeLomo(img, plan, modo, color) {
+/* EL PNG DEL LOMO: la imagen, segun el plan y lo elegido, sobre el color del lomo. `eleccion`: { modo: 'escalar' |
+   'rellenar' } o { modo: 'recortar', recorte } (el marco de la ventana, normalizado, sobre la imagen ya de pie). */
+async function pngDeLomo(img, plan, eleccion, color) {
   const pie = dePie(img, plan.girar);
-  const e = encajeDeLomo(plan, modo, { w: pie.w, h: pie.h });
+  const e = eleccion.modo === 'recortar' && eleccion.recorte
+    ? encajeDeRecorte(eleccion.recorte, { w: pie.w, h: pie.h }, plan)
+    : encajeDeLomo(plan, eleccion.modo, { w: pie.w, h: pie.h });
+  if (!e) throw new Error('encaje');
   const c = document.createElement('canvas');
   c.width = plan.ancho; c.height = plan.alto;
   const g = c.getContext('2d');
@@ -180,28 +191,25 @@ export class LomoSubido {
     Object.assign(this, { caja, tx, libro, subir, imagenes, turno, alCambiar, alDecir, alError });
     this.n = ++cuenta;
     this.ocupado = false;
+    /* La imagen de la ultima subida, para «Ajustar el recorte…» (solo en esta pestaña): { img, turno, libro, recorte } */
+    this.original = null;
     this.armar();
   }
 
   armar() {
-    const tx = this.tx, idForma = `tal-lomo-forma-${this.n}`;
+    const tx = this.tx;
     this.archivo = h('input', { type: 'file', hidden: true, tabindex: '-1', 'aria-hidden': 'true',
       accept: '.pdf,.png,.jpg,.jpeg,.webp,.svg,application/pdf,image/png,image/jpeg,image/webp,image/svg+xml' });
     this.bPoner = h('button', { clase: 'tal-btn', type: 'button', texto: tx.lomoImagenPoner });
+    this.bAjustar = h('button', { clase: 'tal-btn', type: 'button', texto: tx.lomoImagenAjustar, hidden: true });
     this.bQuitar = h('button', { clase: 'tal-btn', type: 'button', texto: tx.lomoImagenQuitar, hidden: true });
-    this.bRellenar = h('button', { clase: 'tal-btn', type: 'button', texto: tx.lomoImagenRellenar });
-    this.bRecortar = h('button', { clase: 'tal-btn', type: 'button', texto: tx.lomoImagenRecortar });
-    this.bCancelar = h('button', { clase: 'tal-btn', type: 'button', texto: tx.lomoImagenCancelar });
-    this.elige = h('div', { clase: 'tal-lomo__elige', role: 'group', 'aria-labelledby': idForma, hidden: true }, [
-      h('p', { id: idForma, texto: tx.lomoImagenForma }),
-      h('div', { clase: 'tal-lomo__imagen-fila' }, [this.bRellenar, this.bRecortar, this.bCancelar])
-    ]);
+    this.ideal = h('p', { clase: 'tal-ayuda tal-lomo__ideal' });
     this.estado = h('p', { clase: 'tal-ayuda tal-lomo__estado', role: 'status' });
     this.aviso = h('p', { clase: 'tal-ayuda tal-lomo__aviso', texto: tx.lomoImagenRecorte, hidden: true });
     this.caja.replaceChildren(
       h('p', { clase: 'tal-rotulo', texto: tx.lomoImagen }),
-      h('div', { clase: 'tal-lomo__imagen-fila' }, [this.bPoner, this.bQuitar]),
-      this.elige,
+      this.ideal,
+      h('div', { clase: 'tal-lomo__imagen-fila' }, [this.bPoner, this.bAjustar, this.bQuitar]),
       this.estado,
       this.aviso,
       this.archivo
@@ -213,11 +221,30 @@ export class LomoSubido {
       this.archivo.value = '';
       if (a) this.traer(a);
     });
+    this.bAjustar.addEventListener('click', () => this.ajustar());
     this.bQuitar.addEventListener('click', () => this.quitar());
-    this.bRellenar.addEventListener('click', () => this.elegir('rellenar'));
-    this.bRecortar.addEventListener('click', () => this.elegir('recortar'));
-    this.bCancelar.addEventListener('click', () => this.elegir(null));
-    this.elige.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.elegir(null); } });
+    /* Soltar el archivo en la caja: lo mismo que elegirlo */
+    zonaDeSoltar(this.caja, {
+      acepta: ['pdf', 'png', 'jpg', 'webp', 'svg'], chip: true,
+      activa: () => { const l = this.libro(); return !!(l && l.editable) && !this.ocupado; },
+      alSoltar: (a) => this.traer(a)
+    });
+    /* La medida ideal cambia con el grueso (y las hojas): se vuelve a decir al abrir el «Lomo ▾» y al escribir el grueso.
+       (Despues del que lo guarda: este escucha mas adentro, por eso espera un momento.) */
+    const panel = this.caja.closest('.tal-lomo');
+    const plegable = this.caja.closest('details');
+    /* La imagen de antes (para «Ajustar el recorte…») vive mientras el «Lomo ▾» siga abierto: al cerrarlo, o al salir
+       del libro (la mesa se esconde), se suelta y no queda ocupando memoria */
+    if (plegable) plegable.addEventListener('toggle', () => { if (plegable.open) this.pintarIdeal(); else this.soltarOriginal(); });
+    const mesa = this.caja.closest('[data-tal-mesa]');
+    if (mesa) new MutationObserver(() => { if (mesa.hidden) this.soltarOriginal(); }).observe(mesa, { attributes: true, attributeFilter: ['hidden'] });
+    if (panel) panel.addEventListener('input', () => setTimeout(() => this.pintarIdeal(), 0));
+  }
+
+  soltarOriginal() {
+    if (!this.original || this.ocupado) return;
+    this.original = null;
+    this.pintar();
   }
 
   /* El lomo pequeño de la cinta ([data-tal-lomo-muestra]) lleva la imagen encima, si hay */
@@ -226,26 +253,36 @@ export class LomoSubido {
     return p ? p.querySelector('[data-tal-lomo-muestra]') : null;
   }
 
+  /* «Tamaño ideal: 154 × 2400 px (13,5 × 210 mm, 290 ppp)» con el grueso y las hojas de ahora */
+  pintarIdeal() {
+    const l = this.libro();
+    /* El grueso que se esta escribiendo cuenta ya (el libro lo guarda un poco despues); vacio = automatico */
+    const campo = this.caja.closest('.tal-lomo') && this.caja.closest('.tal-lomo').querySelector('[name="lomoGrosor"]');
+    const escrito = campo ? (campo.value === '' ? 'auto' : Number(campo.value)) : null;
+    const lomo = l && l.pagina ? (escrito === null || (escrito !== 'auto' && !Number.isFinite(escrito)) ? l.pagina.lomo : { ...l.pagina.lomo, grosor: escrito }) : null;
+    const m = lomo ? medidaIdealDeLomo(lomo, l.hojas, { anchoMm: l.pagina.anchoMm, altoMm: l.pagina.altoMm }) : null;
+    this.ideal.hidden = !m;
+    this.ideal.textContent = m ? this.tx.lomoIdeal.replace('{w}', m.ancho).replace('{h}', m.alto).replace('{g}', mmTexto(m.grosorMm)).replace('{a}', mmTexto(m.altoMm)).replace('{ppp}', m.ppp) : '';
+  }
+
   /* Como esta el libro abierto: los botones, y la imagen en la muestra */
   pintar() {
-    /* Una pregunta de otro libro (se abrio otro mientras esperaba) ya no vale */
-    if (this.pendiente && this.pendiente.turno !== this.turno()) {
-      this.pendiente = null;
-      this.elige.hidden = true;
-      this.ocupado = false;
-      this.caja.setAttribute('aria-busy', 'false');
-      this.estado.textContent = this.tx.lomoImagenAyuda;
-    }
     const l = this.libro();
+    /* La imagen de antes es de ESTE libro, abierto esta vez: si se abrio otro, ya no vale */
+    if (this.original && (this.original.turno !== this.turno() || !l || this.original.libro !== l.id)) this.original = null;
     const ruta = l && l.pagina && l.pagina.lomo.imagen && esRutaDelLomo(l.pagina.lomo.imagen.ruta, l.id) ? l.pagina.lomo.imagen.ruta : '';
+    if (!ruta) this.original = null;
     const editable = !!(l && l.editable);
     this.aviso.hidden = !ruta;
     this.bPoner.textContent = ruta ? this.tx.lomoImagenCambiar : this.tx.lomoImagenPoner;
     this.bPoner.disabled = !editable || this.ocupado;
+    this.bAjustar.hidden = !(ruta && this.original);
+    this.bAjustar.disabled = !editable || this.ocupado;
     this.bQuitar.hidden = !ruta;
     this.bQuitar.disabled = !editable || this.ocupado;
     if (!editable && l) this.estado.textContent = this.tx.lomoImagenSoloEditar;
-    else if (!this.ocupado && this.elige.hidden && this.estado.textContent === this.tx.lomoImagenSoloEditar) this.estado.textContent = this.tx.lomoImagenAyuda;
+    else if (!this.ocupado && this.estado.textContent === this.tx.lomoImagenSoloEditar) this.estado.textContent = this.tx.lomoImagenAyuda;
+    this.pintarIdeal();
     this.pintarMuestra(ruta);
   }
 
@@ -275,6 +312,14 @@ export class LomoSubido {
     this.pintar();
   }
 
+  /* El plan del lomo de AHORA (el grueso y las hojas pueden haber cambiado) para una imagen */
+  planPara(img) {
+    const l = this.libro();
+    if (!l || !l.pagina) return null;
+    const c = l.pagina;
+    return planDeLomo({ w: img.naturalWidth, h: img.naturalHeight }, { grosorMm: grosorDelLomoMm(c.lomo, l.hojas, c.anchoMm), altoMm: c.altoMm });
+  }
+
   /* ---- Traer un archivo: de lo que sea a una imagen, y el plan ---- */
   async traer(archivo) {
     const l = this.libro();
@@ -287,19 +332,52 @@ export class LomoSubido {
       if (!dir) return;
       if (turno !== this.turno()) return;
       const img = await abrirImagen(dir);
-      const c = l.pagina;
-      const plan = planDeLomo({ w: img.naturalWidth, h: img.naturalHeight }, { grosorMm: grosorDelLomoMm(c.lomo, l.hojas, c.anchoMm), altoMm: c.altoMm });
+      const plan = this.planPara(img);
       if (!plan) { this.decir(this.tx.lomoImagenNoLee); return; }
-      if (plan.cabe) { await this.hacer(img, plan, 'escalar', turno); return; }
-      /* No tiene la forma del lomo: el autor elige (y mientras tanto lo demas espera) */
-      this.pendiente = { img, plan, turno };
-      this.elige.hidden = false;
+      /* Ya tiene la forma del lomo: se escala sin preguntar (y queda «Ajustar el recorte…» por si acaso) */
+      if (plan.cabe) { await this.hacer(img, plan, { modo: 'escalar' }, turno); return; }
       this.decir('');
-      this.bRellenar.focus();
+      const eleccion = await this.preguntar(img, plan, null);
+      if (turno !== this.turno()) return;
+      if (!eleccion) { this.decir(this.tx.lomoImagenAyuda); return; }
+      await this.hacer(img, plan, eleccion, turno);
     } catch (e) {
       if (turno === this.turno()) this.decir(e && e.grande ? this.tx.lomoImagenGrande : this.tx.lomoImagenNoLee);
     } finally {
-      if (!this.pendiente) this.ocupar(false);
+      this.ocupar(false);
+      /* Tras la ventana, el boton que la abrio estaba apagado: el foco no se pierde */
+      if (!document.activeElement || document.activeElement === document.body) (this.bAjustar.hidden ? this.bPoner : this.bAjustar).focus();
+    }
+  }
+
+  /* La ventana de recorte con la imagen de pie (y el marco de antes, si lo hay) → la eleccion o null */
+  async preguntar(img, plan, recorte) {
+    const pie = dePie(img, plan.girar);
+    try {
+      return await recortarImagen({ fuente: pie.fuente, w: pie.w, h: pie.h, aspecto: plan.ancho / plan.alto, salida: plan, recorte, estilo: 'taller' });
+    } finally {
+      if (pie.fuente !== img) { pie.fuente.width = 0; pie.fuente.height = 0; }
+    }
+  }
+
+  /* «Ajustar el recorte…»: la imagen de antes, con el grueso de ahora */
+  async ajustar() {
+    const o = this.original, l = this.libro();
+    if (!o || !l || !l.editable || this.ocupado) return;
+    const turno = this.turno();
+    this.ocupar(true);
+    try {
+      const plan = this.planPara(o.img);
+      if (!plan) { this.decir(this.tx.lomoImagenNoLee); return; }
+      const eleccion = await this.preguntar(o.img, plan, o.recorte);
+      if (turno !== this.turno()) return;
+      if (!eleccion) { this.decir(this.tx.lomoImagenSinCambio); return; }
+      await this.hacer(o.img, plan, eleccion, turno);
+    } catch (e) {
+      if (turno === this.turno()) this.decir(e && e.grande ? this.tx.lomoImagenGrande : this.tx.lomoImagenNoLee);
+    } finally {
+      this.ocupar(false);
+      if (!this.bAjustar.hidden) this.bAjustar.focus(); else this.bPoner.focus();
     }
   }
 
@@ -326,21 +404,12 @@ export class LomoSubido {
     return aDireccion(archivo);
   }
 
-  async elegir(modo) {
-    const p = this.pendiente;
-    this.pendiente = null;
-    this.elige.hidden = true;
-    if (!p) return;
-    if (!modo) { this.decir(this.tx.lomoImagenAyuda); this.ocupar(false); this.bPoner.focus(); return; }
-    try { await this.hacer(p.img, p.plan, modo, p.turno); } catch (e) { this.decir(e && e.grande ? this.tx.lomoImagenGrande : this.tx.lomoImagenNoLee); } finally { this.ocupar(false); this.bPoner.focus(); }
-  }
-
   /* El PNG a la medida del lomo, subido y puesto en el libro */
-  async hacer(img, plan, modo, turno) {
+  async hacer(img, plan, eleccion, turno) {
     const l = this.libro();
     if (!l || turno !== this.turno()) return;
     const color = estiloDeLomo(l.pagina.lomo, '', {}).color;
-    const blob = await pngDeLomo(img, plan, modo, color);
+    const blob = await pngDeLomo(img, plan, eleccion, color);
     if (turno !== this.turno()) return;
     const ruta = `taller/${l.id}/img/lomo-${azar()}.png`;
     if (!ruta.startsWith(`taller/${l.id}/img/`)) return;
@@ -352,6 +421,8 @@ export class LomoSubido {
     const im = this.imagenes();
     if (im) await im.poner(ruta, archivo);
     if (turno !== this.turno()) return;
+    /* Para «Ajustar el recorte…»: la imagen y el marco elegido (rellenar o escalar: el marco centrado) */
+    this.original = { img, turno, libro: l.id, recorte: eleccion.modo === 'recortar' ? eleccion.recorte : null };
     this.alCambiar({ ruta });
     const dicho = plan.girar ? this.tx.lomoImagenGirada : this.tx.lomoImagenPuesta;
     this.decir(dicho);
@@ -361,6 +432,7 @@ export class LomoSubido {
   quitar() {
     const l = this.libro();
     if (!l || !l.editable || this.ocupado) return;
+    this.original = null;
     this.alCambiar(null);
     this.decir(this.tx.lomoImagenQuitada);
     this.alDecir(this.tx.lomoImagenQuitada);

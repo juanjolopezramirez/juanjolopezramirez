@@ -2931,8 +2931,8 @@ function initBook() {
     }));
     /* Cada nombre en la letra de su titulo (la que eligio el libro o la nota): la pide la misma pieza que la hoja de la nota
        (hojaNota.ponerFuente: solo la lista fija), que llega con import() */
-    const conLetra = lista.map(({ nota }, i) => [filasIndice.children[i], nota.ft]).filter(([li, f]) => li && f);
-    if (conLetra.length) import('./lector/hojaNota.js').then((m) => conLetra.forEach(([li, f]) => { const s = li.querySelector('strong'); if (s && s.isConnected) m.ponerFuente(s, f); })).catch(() => {});
+    const conLetra = lista.map(({ nota }, i) => [filasIndice.children[i], nota.ft, nota.wt]).filter(([li, f]) => li && f);
+    if (conLetra.length) import('./lector/hojaNota.js').then((m) => conLetra.forEach(([li, f, w]) => { const s = li.querySelector('strong'); if (s && s.isConnected) m.ponerFuente(s, f, w); })).catch(() => {});
   }
   async function cargarIndice() {
     if (!modIndice) modIndice = await import('./lector/indiceLector.js');

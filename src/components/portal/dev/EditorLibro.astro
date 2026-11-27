@@ -122,11 +122,15 @@ const medida = (m) => `${m.ejemplo.w} × ${m.ejemplo.h} px`;
       <label class="portal__etiqueta" for="lb-lomo">{l.lomo}</label>
       <span class="dev__elegir"><input class="dev__archivo" id="lb-lomo" name="lomo" type="file" accept="image/png,.png" aria-describedby="lb-lomo-ayuda lb-lomo-nombre lb-lomo-medida" /><span class="dev__elegir-boton" aria-hidden="true">{l.elegirLomo}</span><span class="dev__elegir-nombre" id="lb-lomo-nombre" data-nombre-archivo>{tx.ningunArchivo}</span></span>
       <p class="portal__ayuda" id="lb-lomo-ayuda">{l.lomoAyuda} <span data-lomo-ya hidden>{l.lomoYa}</span></p>
+      {/* La medida ideal segun el grosor elegido (EditorLibro.js la cambia al elegir otro) */}
+      <p class="dev__medida dev__medida--ideal" data-lomo-ideal>{l.lomoIdealAuto}</p>
       {/* El estante pequeño: el lomo elegido, de pie, a su proporcion (lo pinta EditorLibro.js en un canvas) */}
       <div class="dev__estante" data-estante hidden>
         <canvas class="dev__lomo" data-lomo-vista width="60" height="240" aria-hidden="true"></canvas>
       </div>
       <p class="dev__medida" id="lb-lomo-medida" data-lomo-medida aria-live="polite"></p>
+      {/* Si el PNG no tiene la forma del lomo, se abre la ventana de recorte; si se cancelo, este boton la vuelve a abrir */}
+      <button class="portal__boton portal__boton--suave dev__recortar" type="button" data-lomo-recortar hidden>{l.lomoRecortar}</button>
     </div>
 
     <div class="dev__campo" data-campo="tono">

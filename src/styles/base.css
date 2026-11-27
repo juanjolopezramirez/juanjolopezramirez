@@ -5709,6 +5709,8 @@ html[data-tema="claro"] .book-panel[data-lector] {
 .lector__nota-t[data-fuente="petemoss"], .lector__nota-t[data-fuente="estonia"] { font-size: 2.6rem; line-height: 1.05; letter-spacing: 0; }
 .lector__nota-texto[data-fuente="estonia"] { font-size: 1.6rem; line-height: 1.25; }
 .lector__nota-t[data-fuente="bricolage-grotesque"] { font-weight: 600; letter-spacing: -.02em; }
+/* El grosor de la nota (wt / wd) llega solo si su letra lo tiene: una de un solo grosor nunca sale con negrita falsa */
+.lector__nota-t, .lector__nota-texto, .lector__nota-pasaje, .lector__fila strong { font-synthesis-weight: none; }
 .lector__nota-texto { margin: 0; max-width: 46ch; color: var(--nota-x, inherit); font-size: 1.02rem; line-height: 1.55; white-space: pre-line; text-wrap: pretty; overflow-wrap: break-word; }
 .lector__nota-texto[data-fuente="petemoss"] { font-size: 1.6rem; line-height: 1.25; }
 .lector__nota-pasaje { margin: 0; max-width: 52ch; color: var(--nota-x, inherit); font-family: var(--serif); font-size: 1.12rem; line-height: 1.6; text-wrap: pretty; }

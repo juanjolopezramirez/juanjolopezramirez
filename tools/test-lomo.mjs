@@ -326,6 +326,115 @@ await ok('rutasDelLibro: la copia del libro guarda la imagen del lomo; el PDF no
   assert.equal(rutasDelLibro({ pagina: {} }, []).size, 0);
 });
 
+/* ---- 5b. El recorte (A2): Recorte.js, la medida ideal, y quien lo usa ---- */
+const RC = await cargar('src/scripts/contenido/taller/Recorte.js');
+const forma = (r, img) => (r.w * img.w) / (r.h * img.h);
+const dentro = (r) => r.x >= -1e-12 && r.y >= -1e-12 && r.x + r.w <= 1 + 1e-12 && r.y + r.h <= 1 + 1e-12;
+await ok('Recorte: el marco inicial es el mas grande con la forma del lomo, centrado', () => {
+  const a = 154 / 2400;
+  for (const img of [{ w: 1000, h: 1500 }, { w: 300, h: 6000 }, { w: 4000, h: 4000 }, { w: 64, h: 1000 }]) {
+    const r = RC.recorteInicial(img, a);
+    assert.ok(Math.abs(forma(r, img) / a - 1) < 1e-9, 'la forma');
+    assert.ok(dentro(r));
+    assert.ok(Math.abs(r.w - 1) < 1e-12 || Math.abs(r.h - 1) < 1e-12, 'llena un lado');
+    assert.ok(Math.abs(r.x - (1 - r.x - r.w)) < 1e-9 && Math.abs(r.y - (1 - r.y - r.h)) < 1e-9, 'centrado');
+    assert.equal(RC.zoomDe(r, img, a), 1);
+  }
+  for (const raro of [[null, 0.1], [{ w: 0, h: 1 }, 0.1], [{ w: 1, h: 1 }, 0], [{ w: 1, h: 1 }, NaN]]) assert.equal(RC.recorteInicial(...raro), null);
+});
+await ok('Recorte: mover y acercar nunca cambian la forma ni sacan el marco de la imagen', () => {
+  const img = { w: 1200, h: 1800 }, a = 0.25;
+  let r = RC.recorteInicial(img, a);
+  for (const [dx, dy] of [[5, 0], [-5, 0], [0, 3], [0, -3], [0.01, 0.01], [NaN, 0]]) {
+    r = RC.moverRecorte(r, dx, dy, img, a);
+    assert.ok(dentro(r), `${dx},${dy}`);
+    assert.ok(Math.abs(forma(r, img) / a - 1) < 1e-9);
+  }
+  r = RC.moverRecorte(RC.recorteInicial(img, a), 9, 0, img, a);
+  assert.ok(Math.abs(r.x + r.w - 1) < 1e-12, 'se queda en el borde derecho');
+  /* Acercar: el marco se achica, con tope ZOOM_MAX; alejar: hasta el mas grande */
+  let z = RC.recorteInicial(img, a);
+  for (let i = 0; i < 40; i++) z = RC.escalarRecorte(z, 1.5, img, a);
+  assert.ok(Math.abs(RC.zoomDe(z, img, a) - RC.ZOOM_MAX) < 1e-9, 'tope de acercar');
+  assert.ok(dentro(z) && Math.abs(forma(z, img) / a - 1) < 1e-9);
+  for (let i = 0; i < 40; i++) z = RC.escalarRecorte(z, 1 / 1.5, img, a);
+  assert.ok(Math.abs(RC.zoomDe(z, img, a) - 1) < 1e-9, 'tope de alejar');
+  /* El punto bajo el puntero no se corre */
+  const c = RC.recorteInicial(img, a), p = { x: c.x + c.w * 0.25, y: c.y + c.h * 0.75 };
+  const n = RC.escalarRecorte(c, 2, img, a, p);
+  assert.ok(Math.abs((p.x - n.x) / n.w - 0.25) < 1e-9 && Math.abs((p.y - n.y) / n.h - 0.75) < 1e-9);
+  /* Un marco que llega torcido se arregla */
+  const l = RC.limitarRecorte({ x: -3, y: 2, w: 7 }, img, a);
+  assert.ok(dentro(l) && Math.abs(forma(l, img) / a - 1) < 1e-9);
+});
+await ok('Recorte: sale como encajeDeLomo (s → d lleno) y avisa si se vera borroso', () => {
+  const img = { w: 1000, h: 3000 }, salida = { ancho: 100, alto: 2400 }, a = salida.ancho / salida.alto;
+  const r = RC.recorteInicial(img, a), e = RC.encajeDeRecorte(r, img, salida);
+  assert.equal(e.modo, 'recortar');
+  assert.deepEqual(e.d, { x: 0, y: 0, w: 100, h: 2400 });
+  assert.ok(Math.abs((e.s.w / e.s.h) / (e.d.w / e.d.h) - 1) < 1e-9, 'nunca estira');
+  assert.ok(e.s.x >= 0 && e.s.y >= 0 && e.s.x + e.s.w <= img.w + 1e-9 && e.s.y + e.s.h <= img.h + 1e-9);
+  assert.equal(RC.seVeBorrosa(r, img, salida), false, '3000 px para 2400');
+  const cerca = RC.escalarRecorte(r, 2, img, a);
+  assert.ok(Math.abs(RC.ampliacionDe(cerca, img, salida) - 1.6) < 1e-9);
+  assert.equal(RC.seVeBorrosa(cerca, img, salida), true, '1500 px para 2400');
+  assert.equal(RC.seVeBorrosa(RC.recorteInicial({ w: 200, h: 2300 }, a), { w: 200, h: 2300 }, salida), false, 'un 4 % mas no se nota');
+  assert.equal(RC.encajeDeRecorte(r, img, null), null);
+  assert.equal(RC.yaEncaja({ w: 100, h: 2400 }, a), true);
+  assert.equal(RC.yaEncaja({ w: 110, h: 2400 }, a), false);
+  /* La misma forma que encajeDeLomo: pngDeLomo dibuja cualquiera de los dos */
+  const p = LB.planDeLomo(img, { grosorMm: 10, altoMm: 240 });
+  assert.deepEqual(Object.keys(LB.encajeDeLomo(p, 'recortar', img)).sort(), Object.keys(RC.encajeDeRecorte(RC.recorteInicial(img, p.ancho / p.alto), img, p)).sort());
+});
+await ok('medidaIdealDeLomo: la misma medida que planDeLomo (asi una imagen de esa medida no pide recorte), con el grueso y las hojas', () => {
+  const m = LB.medidaIdealDeLomo({ grosor: 13.5 }, 100, { anchoMm: 148, altoMm: 210 });
+  assert.deepEqual(m, { ancho: 154, alto: 2400, grosorMm: 13.5, altoMm: 210, ppp: 290 });
+  const p = LB.planDeLomo({ w: m.ancho, h: m.alto }, { grosorMm: 13.5, altoMm: 210 });
+  assert.equal(p.cabe, true);
+  assert.deepEqual([p.ancho, p.alto], [m.ancho, m.alto]);
+  /* Un libro bajo: 300 ppp de verdad */
+  const b = LB.medidaIdealDeLomo({ grosor: 10 }, 1, { anchoMm: 100, altoMm: 150 });
+  assert.equal(b.alto, Math.round(150 / 25.4 * 300));
+  assert.equal(b.ppp, 300);
+  /* Automatico: crece con las hojas */
+  assert.ok(LB.medidaIdealDeLomo({}, 300, { anchoMm: 148, altoMm: 210 }).ancho > LB.medidaIdealDeLomo({}, 20, { anchoMm: 148, altoMm: 210 }).ancho);
+  assert.equal(LB.medidaIdealDeLomo({}, 20, { anchoMm: 148, altoMm: 0 }), null);
+  assert.equal(LB.mmTexto(13.5), '13,5');
+  assert.equal(LB.mmTexto(210), '210');
+  const t = leer('src/data/portal/textos.js');
+  assert.ok(t.includes("lomoIdeal: 'Tamaño ideal: {w} × {h} px ({g} × {a} mm, {ppp} ppp)'"));
+});
+await ok('LomoSubido: sin la forma abre la ventana de recorte; «Ajustar el recorte…» en la pestaña; la medida ideal; se puede soltar', () => {
+  const src = leer('src/scripts/portal/panel/dev/taller/LomoSubido.js');
+  assert.match(src, /if \(plan\.cabe\) \{ await this\.hacer\(img, plan, \{ modo: 'escalar' \}, turno\); return; \}/);
+  assert.match(src, /recortarImagen\(\{ fuente: pie\.fuente, w: pie\.w, h: pie\.h, aspecto: plan\.ancho \/ plan\.alto, salida: plan/);
+  assert.match(src, /encajeDeRecorte\(eleccion\.recorte, \{ w: pie\.w, h: pie\.h \}, plan\)/);
+  assert.ok(src.includes('this.bAjustar') && src.includes('tx.lomoImagenAjustar'));
+  assert.match(src, /this\.original = \{ img, turno, libro: l\.id/);
+  assert.match(src, /medidaIdealDeLomo\(lomo, l\.hojas, \{ anchoMm: l\.pagina\.anchoMm, altoMm: l\.pagina\.altoMm \}\)/);
+  assert.match(src, /querySelector\('\[name="lomoGrosor"\]'\)/, 'el grueso que se esta escribiendo cuenta ya');
+  assert.match(src, /zonaDeSoltar\(this\.caja/);
+  assert.ok(!/tal-lomo__elige|lomoImagenRecortar/.test(src), 'la pregunta vieja ya no esta');
+  const r = leer('src/scripts/portal/panel/dev/RecorteImagen.js');
+  assert.ok(r.includes("showModal()") && r.includes("'cancel'") && r.includes('setPointerCapture') && r.includes("'wheel'"));
+  assert.match(r, /this\.lienzo\.width = 0;\s*this\.lienzo\.height = 0;/, 'se suelta el lienzo');
+  assert.match(r, /role: 'status'/);
+  for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', "e.shiftKey ? 10 : 1", "'+'", "'-'"]) assert.ok(r.includes(k), k);
+});
+await ok('Recursos (EditorLibro): el lomo de estanteria sin la forma se recorta (240/300/375 × 1200), con su medida ideal', async () => {
+  const { grosorMasCercano } = await cargar('src/scripts/portal/panel/dev/EditorLibro.js');
+  assert.equal(grosorMasCercano({ w: 240, h: 1200 }), 'fino');
+  assert.equal(grosorMasCercano({ w: 400, h: 1200 }), 'grueso');
+  assert.equal(grosorMasCercano({ w: 290, h: 1200 }), 'medio');
+  assert.equal(grosorMasCercano({ w: 2000, h: 1000 }), 'grueso', 'la mas ancha: la que menos corta');
+  const src = leer('src/scripts/portal/panel/dev/EditorLibro.js');
+  assert.match(src, /if \(sinForma && conRecorte\) await this\.recortarLomo\(\);/);
+  assert.match(src, /salida = \{ ancho: LOMOS\[g\]\.ejemplo\.w, alto: LOMOS\[g\]\.ejemplo\.h \}/);
+  assert.match(src, /ponerEnInput\(input, new File\(\[blob\]/);
+  const a = leer('src/components/portal/dev/EditorLibro.astro');
+  assert.ok(a.includes('data-lomo-ideal') && a.includes('data-lomo-recortar'));
+});
+
 /* ---- 6. Marcado, textos, estilos y reglas del portal ---- */
 await ok('el boton «Ver el lomo» esta en el muelle, nace escondido y con aria-pressed; sus rotulos en es y en', async () => {
   const panels = leer('src/components/Panels.astro');

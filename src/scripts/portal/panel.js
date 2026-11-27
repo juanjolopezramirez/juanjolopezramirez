@@ -23,6 +23,7 @@ import { Recursos } from './panel/Recursos.js';
 import { Accesos } from './panel/Accesos.js';
 import { Seguridad } from './panel/Seguridad.js';
 import { errorEnForm, limpiarForm } from './panel/formulario.js';
+import { guardiaDeVentana, soltarEnFormularios } from './panel/soltar.js';
 
 const TARDO = Symbol('tardo');
 const limite = (promesa, ms = 15000) =>
@@ -64,6 +65,11 @@ function iniciar(raiz) {
       return de.origin === window.location.origin && de.pathname === rutaPortal(lang);
     } catch (e) { return false; }
   })();
+
+  /* Soltar archivos (panel/soltar.js): un archivo soltado fuera de su lugar nunca abre el archivo en la pestaña (se
+     perderia lo que no se guardo), y cada «Elegir…» de Developer-Mode tambien lo recibe soltado */
+  guardiaDeVentana(window);
+  soltarEnFormularios(raiz);
 
   let be = null;
   let primera = true;          // la א de la llegada sale una sola vez, no en cada «Intentar otra vez»
@@ -134,7 +140,9 @@ function iniciar(raiz) {
     libros: () => import('./panel/dev/EditorLibro.js').then((m) => new m.EditorLibro(raiz, ctx)),
     camino: () => import('./panel/dev/EditorEtapa.js').then((m) => new m.EditorEtapa(raiz, ctx)),
     marca: () => import('./panel/dev/Marca.js').then((m) => new m.Marca(raiz, ctx)),
-    taller: () => import('./panel/dev/Taller.js').then((m) => new m.Taller(raiz, ctx)),
+    /* El Taller y lo que se le suelta (taller/SoltarMesa.js: imagenes, PDF, el icono SVG de un boton) */
+    taller: () => import('./panel/dev/Taller.js')
+      .then((m) => import('./panel/dev/taller/SoltarMesa.js').then((s) => s.soltarEnMesa(new m.Taller(raiz, ctx)))),
     tablero: () => import('./panel/Tablero.js').then((m) => new m.Tablero(raiz, ctx)),
     trabajos: () => import('./panel/dev/EditorCasa.js').then((m) => new m.EditorTrabajos(raiz, ctx)),
     proyectos: () => import('./panel/dev/EditorCasa.js').then((m) => new m.EditorProyectos(raiz, ctx))

@@ -9,7 +9,7 @@
    tampoco: es UNA para todo el libro (ConfigPagina.notas.letraVersos) y va en cada cita al sacar el PDF. Lo mismo el ESTILO de
    las notas (sus colores por tema y sus efectos: ConfigPagina.notas), que va en cada nota como cl/cd/ee/el (estiloDeNotas).
    Puro: sin pagina, sin red. */
-import { enlaceDeNota, fuenteValida, limpiarNota, parDeColores, entradaValida, bucleValido } from '../../lector/notaEnPdf.js';
+import { enlaceDeNota, fuenteValida, limpiarNota, parDeColores, entradaValida, bucleValido, pesoMasCercano } from '../../lector/notaEnPdf.js';
 import { canonica, leerReferencias, rotulo } from '../../biblia/referencias.js';
 
 export const TIPO_DE_MARCA = Object.freeze({ definicion: 'd', citaBiblica: 'c' });
@@ -23,32 +23,52 @@ const idiomaLibro = (l) => (l === 'en' ? 'en' : 'es');
 export const LETRA_VERSOS = 'bricolage-grotesque';
 export const letraDeVersos = (v) => (fuenteValida(v) ? v : LETRA_VERSOS);
 
-/* EL ESTILO DE LAS NOTAS DE UN LIBRO, listo para cada nota: de ConfigPagina.notas -> { c: { cl?, cd?, ft? }, d: { cl?, cd?, ft? },
-   ee?, el? } (c las citas, d las definiciones; ft la letra del titulo para todo el libro). Lo que falta no va: una nota sin
-   estilo se ve como siempre. */
+/* EL GROSOR DE LAS NOTAS DE UN LIBRO: ConfigPagina.notas.pesos, cuatro cifras (grosor / 100; 0 = el de siempre) en este
+   orden. pesosDeLibro('7030') -> [700, 0, 300, 0]; cadenaDePesos([700, 0, 300, 0]) -> '7030' (todo en cero: ''). */
+export const ORDEN_PESOS = Object.freeze(['tituloRef', 'versos', 'tituloDef', 'textoDef']);
+export function pesosDeLibro(s) {
+  return typeof s === 'string' && /^[0-9]{4}$/.test(s) ? Array.from(s, (c) => Number(c) * 100) : [0, 0, 0, 0];
+}
+export function cadenaDePesos(lista) {
+  const cifras = [0, 1, 2, 3].map((i) => {
+    const w = Array.isArray(lista) ? lista[i] : 0;
+    return Number.isInteger(w) && w >= 100 && w <= 900 && w % 100 === 0 ? w / 100 : 0;
+  }).join('');
+  return cifras === '0000' ? '' : cifras;
+}
+
+/* EL ESTILO DE LAS NOTAS DE UN LIBRO, listo para cada nota: de ConfigPagina.notas -> { c: { cl?, cd?, ft?, wt?, wd? },
+   d: { cl?, cd?, ft?, wt?, wd? }, ee?, el? } (c las citas, d las definiciones; ft la letra del titulo para todo el libro; wt / wd
+   el grosor PEDIDO del titulo y del texto: cada nota lo acerca al que tiene su letra, notaDeMarca). Lo que falta no va: una
+   nota sin estilo se ve como siempre. */
 export function estiloDeNotas(notas) {
-  const o = objeto(notas), col = objeto(o.colores);
-  const porTipo = (k, letra) => {
+  const o = objeto(notas), col = objeto(o.colores), p = pesosDeLibro(o.pesos);
+  const porTipo = (k, letra, wt, wd) => {
     const t = objeto(col[k]), salida = {};
     const cl = parDeColores(t.claro), cd = parDeColores(t.oscuro);
     if (cl) salida.cl = cl;
     if (cd) salida.cd = cd;
     if (fuenteValida(letra)) salida.ft = letra;
+    if (wt) salida.wt = wt;
+    if (wd) salida.wd = wd;
     return salida;
   };
-  return { c: porTipo('cita', o.tituloRef), d: porTipo('definicion', o.tituloDef), ...(entradaValida(o.entrada) ? { ee: o.entrada } : {}), ...(bucleValido(o.bucle) ? { el: o.bucle } : {}) };
+  return { c: porTipo('cita', o.tituloRef, p[0], p[1]), d: porTipo('definicion', o.tituloDef, p[2], p[3]), ...(entradaValida(o.entrada) ? { ee: o.entrada } : {}), ...(bucleValido(o.bucle) ? { el: o.bucle } : {}) };
 }
 
 /* La nota (limpia) que dice una marca, o null. `idioma`: el del libro (va como `l`). `fv`: la letra de los versiculos del
    libro (solo en una cita; una que no es de la lista se tira). `estilo`: el de estiloDeNotas (colores de su clase, efectos y
-   la letra del titulo del libro: en una cita es la suya; en una definicion solo si ella no eligio una propia). */
+   la letra del titulo del libro: en una cita es la suya; en una definicion solo si ella no eligio una propia). El grosor va
+   con la letra que de verdad usa la nota (la propia de la definicion o la del libro; fd; fv), el mas cercano que ella tenga;
+   una letra de un solo grosor no lleva ninguno. */
 export function notaDeMarca(m, idioma, { fv, estilo } = {}) {
   const o = objeto(m), k = typeof o.type === 'string' && Object.hasOwn(TIPO_DE_MARCA, o.type) ? TIPO_DE_MARCA[o.type] : null;
   if (!k) return null;
   const a = objeto(o.attrs), e = objeto(estilo), deTipo = objeto(e[k]);
   const extra = { cl: deTipo.cl, cd: deTipo.cd, ee: e.ee, el: e.el };
   const ft = k === 'd' ? (fuenteValida(a.ft) ? a.ft : deTipo.ft) : deTipo.ft;
-  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, ft, fv }), ...extra, v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
+  const pesos = { wt: pesoMasCercano(ft, deTipo.wt), wd: pesoMasCercano(k === 'd' ? a.fd : fv, deTipo.wd) };
+  const n = limpiarNota({ ...(k === 'd' ? { t: a.t, d: a.d, r: a.r, rf: a.rf, ft, fd: a.fd } : { r: a.r, x: a.x, rv: a.rv, ft, fv }), ...pesos, ...extra, v: 1, k, ...(idioma ? { l: idiomaLibro(idioma) } : {}) });
   return n;
 }
 

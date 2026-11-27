@@ -1,6 +1,7 @@
 /* «ESTILO DE LAS NOTAS»: como se ven TODAS las notas del libro en el lector. Una sola ventana, para todo el libro:
      - la letra de los versiculos (la misma de la ventana de la referencia biblica: ConfigPagina.notas.letraVersos);
      - la letra del TITULO: de las referencias (tituloRef) y de las definiciones que no eligieron una propia (tituloDef);
+     - el GROSOR de cada parte (pesos), debajo de su letra y solo si esa letra tiene mas de uno;
      - los colores: de las referencias biblicas (titulo y versiculos) y de las definiciones (palabra y descripcion), cada uno
        para el tema claro y para el oscuro del lector ('' = el de siempre);
      - el efecto al abrir y el movimiento suave mientras esta abierta (la lista fija del lector: notaEnPdf.js).
@@ -13,10 +14,10 @@
 import { Selector } from './Selector.js';
 import { SelectorColor } from './SelectorColor.js';
 import { cargarFuente } from './Fuentes.js';
-import { FUENTES_NOTA, ENTRADAS_NOTA, BUCLES_NOTA, colorNota, entradaValida, bucleValido, fuenteValida } from '../../../../lector/notaEnPdf.js';
+import { FUENTES_NOTA, ENTRADAS_NOTA, BUCLES_NOTA, colorNota, entradaValida, bucleValido, fuenteValida, hojaDeFuente, pesosDeFuente, pesoMasCercano } from '../../../../lector/notaEnPdf.js';
 import { PAPEL_NOTA, TINTA_NOTA, ORO_NOTA, CONTRASTE_AVISO, CONTRASTE_LECTOR, contraste } from '../../../../lector/colorNota.js';
 import { animarNota, reducido } from '../../../../lector/efectosNota.js';
-import { letraDeVersos } from '../../../../contenido/taller/notasLibro.js';
+import { letraDeVersos, pesosDeLibro, cadenaDePesos } from '../../../../contenido/taller/notasLibro.js';
 
 const poner = (t, datos) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (datos && datos[k] !== undefined ? String(datos[k]) : m));
 function h(tag, attrs = {}, hijos = []) {
@@ -41,6 +42,24 @@ const MUESTRA = {
   definicion: { t: 'Ahavá', x: 'Amor. Una decisión que se toma: querer el bien del otro.' }
 };
 const vacios = () => Object.fromEntries(TIPOS.map((k) => [k, { claro: ['', ''], oscuro: ['', ''] }]));
+/* EL GROSOR (A1): cuatro, en el orden de ConfigPagina.notas.pesos: titulo de las referencias, versiculos, titulo de las
+   definiciones, descripcion. La descripcion no tiene letra para todo el libro (cada definicion elige la suya): ofrece todos
+   los grosores que tiene alguna letra de la lista, y cada definicion usa el mas cercano que tenga la suya. */
+const TIPO_DE_PESO = ['cita', 'cita', 'definicion', 'definicion'];
+const TODOS_LOS_PESOS = [...new Set(Object.keys(FUENTES_NOTA).flatMap((id) => (pesosDeFuente(id).length > 1 ? pesosDeFuente(id) : [])))].sort((a, b) => a - b);
+const cercano = (lista, w) => (lista.length > 1 && w > 0 ? lista.reduce((m, x) => (Math.abs(x - w) < Math.abs(m - w) ? x : m)) : 0);
+/* Las letras de la lista con todos sus grosores, para la muestra (una hoja por letra, una vez; la misma direccion fija que
+   el lector, hojaDeFuente). Las del sitio ya vienen con la pagina. */
+const pedidas = new Set();
+export function pedirConPesos(id) {
+  if (!fuenteValida(id) || FUENTES_NOTA[id].sitio || pedidas.has(id) || pesosDeFuente(id).length < 2) return;
+  pedidas.add(id);
+  const l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = hojaDeFuente(id);
+  l.referrerPolicy = 'no-referrer';
+  document.head.append(l);
+}
 
 export class EstiloNotas {
   /* `menu`: donde va su boton en «Nota ▾» (o null). `leer()`: ConfigPagina.notas del libro abierto (o null).
@@ -82,8 +101,8 @@ export class EstiloNotas {
       const caja = h('div', { 'data-tema': tema }, [h('span', { texto: tema === 'claro' ? tx.enClaro : tx.enOscuro }), t, x]);
       Object.assign(caja.style, { display: 'grid', alignContent: 'start', gap: '.35rem', minWidth: '0', padding: '.75rem .85rem .85rem', borderRadius: '10px', background: PAPEL_NOTA[tema], color: TINTA_NOTA[tema], boxShadow: tema === 'oscuro' ? 'inset 0 0 0 1px rgb(241 239 233 / .14)' : 'none' });
       Object.assign(caja.firstChild.style, { font: '600 10px/1.2 system-ui, sans-serif', letterSpacing: '.02em', color: tema === 'claro' ? '#55625a' : '#b9c2b6' });
-      Object.assign(t.style, { margin: '0', font: '400 22px/1.15 "Young Serif", Georgia, serif', overflowWrap: 'anywhere' });
-      Object.assign(x.style, { margin: '0', font: '14px/1.55 Georgia, serif', overflowWrap: 'break-word' });
+      Object.assign(t.style, { margin: '0', font: '400 22px/1.15 "Young Serif", Georgia, serif', overflowWrap: 'anywhere', fontSynthesisWeight: 'none' });
+      Object.assign(x.style, { margin: '0', font: '14px/1.55 Georgia, serif', overflowWrap: 'break-word', fontSynthesisWeight: 'none' });
       return [tema, { caja, t, x }];
     }));
     const papeles = h('div', {}, [this.papeles.claro.caja, this.papeles.oscuro.caja]);
@@ -125,10 +144,19 @@ export class EstiloNotas {
     this.ftDef = letraTitulo();
     this.campoFtCita = campo(tx.enLetraTitulo, this.ftCita);
     this.campoFtDef = campo(tx.enLetraTitulo, this.ftDef);
-    this.ayudaFtDef = h('p', { clase: 'tal-ayuda', texto: tx.enLetraDefAyuda });
+    this.ayudaFtDef = h('p', { clase: 'tal-ayuda', texto: `${tx.enLetraDefAyuda} ${tx.enGrosorDescAyuda}` });
+    /* El grosor, debajo de su letra: solo se ve si esa letra tiene mas de uno */
+    const rotulosPeso = [tx.enGrosorTitulo, tx.enGrosorVersos, tx.enGrosorTitulo, tx.enGrosorDesc];
+    this.pesos = [0, 0, 0, 0];
+    this.pw = rotulosPeso.map((r) => h('select', { clase: 'tal-ctl', 'aria-label': r }));
+    this.campoPw = this.pw.map((s, i) => campo(rotulosPeso[i], s));
+    const columna = (...hijos) => { const c = h('div', {}, hijos); Object.assign(c.style, { display: 'grid', gap: '.6rem', alignContent: 'start', minWidth: '0' }); return c; };
     const letras = h('fieldset', { clase: 'tal-nota__grupo' }, [
       h('legend', { texto: tx.enLetras }),
-      h('div', { clase: 'tal-nota__letras' }, [this.campoFtCita, this.campoFtDef, this.campoFv]),
+      h('div', { clase: 'tal-nota__letras' }, [
+        columna(this.campoFtCita, this.campoFtDef, this.campoPw[0], this.campoPw[2]),
+        columna(this.campoFv, this.campoPw[1], this.campoPw[3])
+      ]),
       this.ayudaFtDef
     ]);
 
@@ -158,11 +186,18 @@ export class EstiloNotas {
     this.selFv = new Selector(this.fv, { fuenteDe: cssDe });
     this.selFtCita = new Selector(this.ftCita, { fuenteDe: cssDe });
     this.selFtDef = new Selector(this.ftDef, { fuenteDe: cssDe });
-    this.ftCita.addEventListener('change', () => this.pintarMuestra());
-    this.ftDef.addEventListener('change', () => this.pintarMuestra());
+    /* Cada grosor se ve en su letra y en su grosor; la descripcion (sin letra para todo el libro) en Bricolage Grotesque, que
+       el sitio ya trae con todos sus grosores */
+    this.selPw = this.pw.map((s, i) => new Selector(s, {
+      fuenteDe: () => FUENTES_NOTA[this.letraDePeso(i) || 'bricolage-grotesque'].css,
+      pesoDe: (v) => v || this.pesoDeSiempre(i)
+    }));
+    this.pw.forEach((s, i) => s.addEventListener('change', () => { this.pesos[i] = this.pedidos[i] = Number(s.value) || 0; this.pintarMuestra(); }));
+    this.ftCita.addEventListener('change', () => { this.rehacerPeso(0); this.pintarMuestra(); });
+    this.ftDef.addEventListener('change', () => { this.rehacerPeso(2); this.pintarMuestra(); });
     this.selEe = new Selector(this.ee);
     this.selEl = new Selector(this.el);
-    this.fv.addEventListener('change', () => this.pintarMuestra());
+    this.fv.addEventListener('change', () => { this.rehacerPeso(1); this.pintarMuestra(); });
     this.ee.addEventListener('change', () => this.pintarMuestra());
     this.el.addEventListener('change', () => this.pintarMuestra());
     cancelar.addEventListener('click', () => d.close());
@@ -182,9 +217,15 @@ export class EstiloNotas {
       this.colores[k][tema] = [colorNota(par[0]), colorNota(par[1])];
     }
     for (const v of Object.values(FUENTES_NOTA)) if (!v.sitio) cargarFuente(v.familia);
+    for (const id of Object.keys(FUENTES_NOTA)) pedirConPesos(id);
     this.fv.value = letraDeVersos(n.letraVersos);
     this.ftCita.value = fuenteValida(n.tituloRef) ? n.tituloRef : '';
     this.ftDef.value = fuenteValida(n.tituloDef) ? n.tituloDef : '';
+    this.pesos = pesosDeLibro(n.pesos);
+    /* El ultimo grosor elegido en cada parte mientras la ventana esta abierta: si se pasa por una letra de un solo grosor y
+       se vuelve a una de varios, vuelve (el mas cercano que ella tenga) */
+    this.pedidos = [...this.pesos];
+    for (const i of [0, 1, 2, 3]) this.rehacerPeso(i);
     this.ee.value = entradaValida(n.entrada) ? n.entrada : '';
     this.el.value = bucleValido(n.bucle) ? n.bucle : '';
     this.error.textContent = '';
@@ -203,6 +244,7 @@ export class EstiloNotas {
     this.campoFtCita.hidden = !cita;
     this.campoFtDef.hidden = cita;
     this.ayudaFtDef.hidden = cita;
+    for (const i of [0, 1, 2, 3]) this.verPeso(i);
     const nombres = cita ? [tx.enTituloCita, tx.enTextoCita] : [tx.enTituloDef, tx.enTextoDef];
     this.nombresFila.forEach((s, i) => { s.textContent = nombres[i]; });
     for (const tema of TEMAS) for (const i of [0, 1]) {
@@ -212,6 +254,30 @@ export class EstiloNotas {
       sel.poner(this.colores ? this.colores[this.tipo][tema][i] : '');
     }
     if (!sinMuestra) this.pintarMuestra();
+  }
+
+  /* ---- El grosor ---- */
+  /* La letra de la que depende cada grosor (sin elegir, la de siempre: Young Serif); null en la descripcion */
+  letraDePeso(i) {
+    if (i === 0) return this.ftCita.value || 'young-serif';
+    if (i === 1) return letraDeVersos(this.fv.value);
+    if (i === 2) return this.ftDef.value || 'young-serif';
+    return null;
+  }
+  pesosOfrecidos(i) { const f = this.letraDePeso(i); return f ? pesosDeFuente(f) : TODOS_LOS_PESOS; }
+  /* El de siempre, como lo pinta el lector (base.css): el titulo en Bricolage Grotesque va en 600 */
+  pesoDeSiempre(i) { return (i === 0 || i === 2) && this.letraDePeso(i) === 'bricolage-grotesque' ? '600' : '400'; }
+  /* El grosor que de verdad se usara: uno que la letra tiene, o 0 (el de siempre) */
+  pesoEfectivo(i) { const lista = this.pesosOfrecidos(i); return lista.length > 1 && lista.includes(this.pesos[i]) ? this.pesos[i] : 0; }
+  verPeso(i) { this.campoPw[i].hidden = TIPO_DE_PESO[i] !== this.tipo || this.pesosOfrecidos(i).length < 2; }
+  /* Cambio la letra: el grosor pasa al mas cercano que ella tenga (o al de siempre si tiene uno solo), y la lista se rehace */
+  rehacerPeso(i) {
+    const lista = this.pesosOfrecidos(i), s = this.pw[i], letra = this.letraDePeso(i);
+    const pedido = this.pedidos ? this.pedidos[i] : this.pesos[i];
+    this.pesos[i] = (letra ? pesoMasCercano(letra, pedido) : cercano(lista, pedido)) || 0;
+    s.replaceChildren(h('option', { value: '', texto: this.tx.enGrosorSiempre }), ...lista.map((w) => h('option', { value: String(w), texto: (this.tx.enPesos && this.tx.enPesos[w]) || String(w) })));
+    s.value = this.pesos[i] ? String(this.pesos[i]) : '';
+    this.verPeso(i);
   }
 
   /* ---- La muestra: los dos papeles, con los colores que de verdad usaria el lector y el efecto elegido ---- */
@@ -234,7 +300,9 @@ export class EstiloNotas {
       t.style.fontFamily = FUENTES_NOTA[ft] ? FUENTES_NOTA[ft].css : TITULO_SIEMPRE;
       t.style.fontSize = grandeT ? '34px' : '22px';
       t.style.lineHeight = grandeT ? '1.05' : '1.15';
-      t.style.fontWeight = ft === 'bricolage-grotesque' ? '600' : '400';
+      const pt = this.pesoEfectivo(cita ? 0 : 2), px = this.pesoEfectivo(cita ? 1 : 3);
+      t.style.fontWeight = pt ? String(pt) : (ft === 'bricolage-grotesque' ? '600' : '400');
+      x.style.fontWeight = px ? String(px) : '400';
       x.textContent = m.x;
       x.style.fontFamily = cita ? FUENTES_NOTA[fv].css : 'Georgia, serif';
       x.style.fontSize = cita && LETRAS_GRANDES.has(fv) ? '20px' : '14px';
@@ -269,7 +337,8 @@ export class EstiloNotas {
       entrada: entradaValida(this.ee.value) ? this.ee.value : '',
       bucle: bucleValido(this.el.value) ? this.el.value : '',
       tituloRef: fuenteValida(this.ftCita.value) ? this.ftCita.value : '',
-      tituloDef: fuenteValida(this.ftDef.value) ? this.ftDef.value : ''
+      tituloDef: fuenteValida(this.ftDef.value) ? this.ftDef.value : '',
+      pesos: cadenaDePesos([0, 1, 2, 3].map((i) => this.pesoEfectivo(i)))
     };
     let bien = false;
     this.guardando = true;

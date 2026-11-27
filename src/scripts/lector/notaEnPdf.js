@@ -5,7 +5,7 @@
 
      definicion  { v:1, k:'d', t, d, r:{ a, y, ti, f, u } | rf, ft, fd, l? }
      cita        { v:1, k:'c', r:'JER.1.4-5', x:'Jeremías 1:4-5', rv:'NVI', ft?, fv?, l? }
-     las dos     ... cl?, cd?, ee?, el?
+     las dos     ... wt?, wd?, cl?, cd?, ee?, el?
 
    t titulo (80) · d descripcion (1200) · r referencia APA por partes (200 cada una; u solo https, 300) · rf referencia
    escrita a mano (400) · ft/fd la letra del titulo y de la descripcion (solo las de FUENTES_NOTA; otra cualquiera = la del
@@ -16,6 +16,8 @@
    cl / cd los colores del libro para el tema CLARO / OSCURO del lector: [titulo, texto] ('#rrggbb' o '' = el de siempre) ·
    ee / el el efecto de entrada y el de movimiento suave (solo los de ENTRADAS_NOTA / BUCLES_NOTA). Una nota sin ellos se
    ve como siempre. En una cita, ft es la letra de su titulo (la del libro para todas sus referencias; sin ella, Young Serif).
+   wt / wd el grosor del titulo y del texto (descripcion o versiculos): un numero 100-900 de cien en cien, solo si su letra
+   (ft; fd o fv) lo tiene (pesosDeFuente); si no, se tira.
 
    Puro: sin pagina, sin red. Lo usaran el lector, la pagina /nota/ y el Taller. Todo lo que llega se trata como hostil. */
 import { deCanonica, rotulo, VERSION_GATEWAY } from '../biblia/referencias.js';
@@ -27,14 +29,17 @@ export const HREF_NOTA_MAX = 8000;
 export const TOPES = Object.freeze({ t: 80, d: 1200, parte: 200, u: 300, rf: 400, x: 120 });
 
 /* Las letras que puede pedir una nota. Las tres primeras ya las trae el sitio (layouts/Base.astro); las otras se piden a
-   Google al usarse, una hoja por familia, con una direccion FIJA de aqui (nunca un nombre que venga en la nota). */
+   Google al usarse, una hoja por familia, con una direccion FIJA de aqui (nunca un nombre que venga en la nota).
+   `pesos`: el grosor mas fino y el mas grueso que de verdad tiene cada una en Google Fonts (fonts.google.com/metadata/fonts,
+   2026-11-23): Young Serif, Petemoss y Estonia solo 400; Bricolage Grotesque 200-800; Frank Ruhl Libre 300-900; Lora 400-700.
+   Las que tienen varios se piden como rango («200..800»): una sola hoja trae todos. */
 export const FUENTES_NOTA = Object.freeze({
-  'young-serif': Object.freeze({ familia: 'Young Serif', css: '"Young Serif", Georgia, serif', google: 'Young+Serif', sitio: true }),
-  'bricolage-grotesque': Object.freeze({ familia: 'Bricolage Grotesque', css: '"Bricolage Grotesque", system-ui, sans-serif', google: 'Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600', sitio: true }),
-  petemoss: Object.freeze({ familia: 'Petemoss', css: '"Petemoss", cursive', google: 'Petemoss', sitio: true }),
-  estonia: Object.freeze({ familia: 'Estonia', css: '"Estonia", Georgia, serif', google: 'Estonia', sitio: false }),
-  'frank-ruhl-libre': Object.freeze({ familia: 'Frank Ruhl Libre', css: '"Frank Ruhl Libre", Georgia, serif', google: 'Frank+Ruhl+Libre:wght@400;500;700', sitio: false }),
-  lora: Object.freeze({ familia: 'Lora', css: '"Lora", Georgia, serif', google: 'Lora:ital,wght@0,400;0,600;1,400', sitio: false }),
+  'young-serif': Object.freeze({ familia: 'Young Serif', css: '"Young Serif", Georgia, serif', google: 'Young+Serif', sitio: true, pesos: Object.freeze([400, 400]) }),
+  'bricolage-grotesque': Object.freeze({ familia: 'Bricolage Grotesque', css: '"Bricolage Grotesque", system-ui, sans-serif', google: 'Bricolage+Grotesque:opsz,wght@12..96,200..800', sitio: true, pesos: Object.freeze([200, 800]) }),
+  petemoss: Object.freeze({ familia: 'Petemoss', css: '"Petemoss", cursive', google: 'Petemoss', sitio: true, pesos: Object.freeze([400, 400]) }),
+  estonia: Object.freeze({ familia: 'Estonia', css: '"Estonia", Georgia, serif', google: 'Estonia', sitio: false, pesos: Object.freeze([400, 400]) }),
+  'frank-ruhl-libre': Object.freeze({ familia: 'Frank Ruhl Libre', css: '"Frank Ruhl Libre", Georgia, serif', google: 'Frank+Ruhl+Libre:wght@300..900', sitio: false, pesos: Object.freeze([300, 900]) }),
+  lora: Object.freeze({ familia: 'Lora', css: '"Lora", Georgia, serif', google: 'Lora:ital,wght@0,400..700;1,400..700', sitio: false, pesos: Object.freeze([400, 700]) }),
 });
 export const FUENTE_LIBRO = 'libro';
 
@@ -54,6 +59,23 @@ export function parDeColores(v) {
 }
 export const fuenteValida = (id) => typeof id === 'string' && Object.prototype.hasOwnProperty.call(FUENTES_NOTA, id);
 export const hojaDeFuente = (id) => (fuenteValida(id) ? `https://fonts.googleapis.com/css2?family=${FUENTES_NOTA[id].google}&display=swap` : null);
+
+/* EL GROSOR (wt del titulo, wd del texto): 100-900 de cien en cien, y solo uno que la letra tenga de verdad. Una letra de un
+   solo grosor no lleva ninguno: el navegador lo inventaria (negrita falsa). */
+export function pesosDeFuente(id) {
+  if (!fuenteValida(id)) return [];
+  const [a, b] = FUENTES_NOTA[id].pesos, salida = [];
+  for (let w = a; w <= b; w += 100) salida.push(w);
+  return salida;
+}
+export const variosPesos = (id) => pesosDeFuente(id).length > 1;
+export const pesoValido = (id, w) => Number.isInteger(w) && w >= 100 && w <= 900 && w % 100 === 0 && variosPesos(id) && pesosDeFuente(id).includes(w);
+/* El grosor que tiene esa letra mas cerca del pedido; null si la letra tiene uno solo o no se pidio ninguno (0, '', null) */
+export function pesoMasCercano(id, w) {
+  const lista = pesosDeFuente(id);
+  if (lista.length < 2 || typeof w !== 'number' || !Number.isFinite(w) || w <= 0) return null;
+  return lista.reduce((m, x) => (Math.abs(x - w) < Math.abs(m - w) ? x : m));
+}
 
 /* Controles, invisibles y marcas de direccion (los mismos rangos que copiaEnPdf.js, escritos en numeros) */
 const RANGOS = [[0, 8], [0xb, 0xc], [0xe, 0x1f], [0x7f, 0x9f], [0xad, 0xad], [0x200b, 0x200f], [0x202a, 0x202e], [0x2060, 0x2064], [0x2066, 0x2069], [0xfeff, 0xfeff]];
@@ -118,6 +140,8 @@ export function limpiarNota(x) {
       if (rf) n.rf = rf;
     }
     for (const k of ['ft', 'fd']) if (fuenteValida(x[k])) n[k] = x[k];
+    if (pesoValido(n.ft, x.wt)) n.wt = x.wt;
+    if (pesoValido(n.fd, x.wd)) n.wd = x.wd;
   } else {
     if (typeof x.r !== 'string' || !deCanonica(x.r)) return null;
     n.r = x.r;
@@ -127,6 +151,8 @@ export function limpiarNota(x) {
     if (rv) n.rv = rv;
     if (fuenteValida(x.ft)) n.ft = x.ft;
     if (fuenteValida(x.fv)) n.fv = x.fv;
+    if (pesoValido(n.ft, x.wt)) n.wt = x.wt;
+    if (pesoValido(n.fv, x.wd)) n.wd = x.wd;
   }
   for (const k of ['cl', 'cd']) { const par = propia(x, k) ? parDeColores(x[k]) : null; if (par) n[k] = par; }
   if (entradaValida(x.ee)) n.ee = x.ee;
@@ -199,7 +225,7 @@ export function enlaceDeNota(nota, { origen = ORIGEN_NOTA } = {}) {
   const ruta = rutaDeNota(origen);
   if (!n || !ruta) return null;
   /* Siempre en el mismo orden: la misma nota da el mismo enlace */
-  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'cl', 'cd', 'ee', 'el', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'ft', 'fv', 'cl', 'cd', 'ee', 'el', 'l'];
+  const orden = n.k === 'd' ? ['v', 'k', 't', 'd', 'r', 'rf', 'ft', 'fd', 'wt', 'wd', 'cl', 'cd', 'ee', 'el', 'l'] : ['v', 'k', 'r', 'x', 'rv', 'ft', 'fv', 'wt', 'wd', 'cl', 'cd', 'ee', 'el', 'l'];
   const plano = {};
   for (const k of orden) if (n[k] !== undefined) plano[k] = n.k === 'd' && k === 'r' ? { ...n.r } : Array.isArray(n[k]) ? [...n[k]] : n[k];
   const href = ruta + '#n=' + aBase64Url(new TextEncoder().encode(JSON.stringify(plano)));
